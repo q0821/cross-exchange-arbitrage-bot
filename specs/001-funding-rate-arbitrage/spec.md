@@ -5,6 +5,12 @@
 **Status**: Draft
 **Input**: User description: "專為永續合約市場設計的跨交易所資金費率套利平台。它自動偵測各交易所間的資金費率差異,並在條件符合時執行雙邊對沖交易,讓使用者在市場波動中持續獲取穩定收益,同時降低風險與操作成本。一開始先追蹤幣安及okx兩個交易所就好,幣別追蹤 BTC、ETH、SOL 就好"
 
+## Clarifications
+
+### Session 2025-10-20
+
+- Q: 當系統需要儲存交易所 API 金鑰時（用於自動交易），這些敏感憑證應該如何管理？ → A: 環境變數 + 作業系統金鑰鏈（macOS Keychain / Linux Secret Service）
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - 即時監控資金費率差異 (Priority: P1)
@@ -126,6 +132,15 @@
 - **FR-018**: 系統必須提供使用者手動執行或取消套利交易的功能
 - **FR-019**: 系統必須在執行雙邊交易時確保訂單金額和方向正確(一個做多、一個做空)
 - **FR-020**: 系統必須持續監控已建立的對沖部位,包括保證金使用率和未實現盈虧
+- **FR-021**: 系統必須使用環境變數儲存 API 金鑰,並支援作業系統金鑰鏈 (macOS Keychain / Linux Secret Service) 作為額外的加密保護層
+
+### Non-Functional Requirements
+
+#### Security & Privacy
+- **NFR-SEC-001**: API 金鑰必須透過環境變數配置,不可硬編碼於程式碼或配置檔中
+- **NFR-SEC-002**: 系統應支援整合作業系統金鑰鏈服務 (macOS Keychain, Linux Secret Service) 以提供額外的憑證加密保護
+- **NFR-SEC-003**: 所有與交易所的 API 通訊必須使用 HTTPS/WSS 加密連線
+- **NFR-SEC-004**: 系統日誌不可記錄完整的 API 金鑰,僅允許記錄前 4 碼或後 4 碼作為識別
 
 ### Key Entities
 
@@ -161,3 +176,4 @@
 - 假設使用者的網路環境穩定,能夠支援即時數據傳輸
 - 假設交易所 API 具備足夠的請求限額以支援即時監控需求
 - 假設市場正常運作,不考慮交易所被駭客攻擊或長時間維護的極端情況
+- 假設使用者的作業系統支援金鑰鏈服務 (macOS Keychain / Linux Secret Service),或願意僅使用環境變數作為憑證管理方式
