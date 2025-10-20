@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { FundingRateMonitor } from '../../../services/monitor/FundingRateMonitor.js';
 import { logger } from '../../../lib/logger.js';
+import { MonitorOutputFormatter } from '../../../lib/formatters/MonitorOutputFormatter.js';
 
 export function createMonitorStartCommand(): Command {
   const command = new Command('start');
@@ -11,6 +12,7 @@ export function createMonitorStartCommand(): Command {
     .option('-i, --interval <ms>', '更新間隔（毫秒）', '5000')
     .option('-t, --threshold <percent>', '套利閾值（百分比）', '0.05')
     .option('--testnet', '使用測試網', false)
+    .option('--format <mode>', '輸出格式 (table|plain|json)', undefined)
     .action(async (options) => {
       try {
         logger.info('啟動監控服務...');
@@ -31,21 +33,52 @@ export function createMonitorStartCommand(): Command {
         // 建立監控服務
         const monitor = new FundingRateMonitor(symbols, interval, threshold, isTestnet);
 
+        // 建立輸出格式化器
+        const formatter = new MonitorOutputFormatter(options.format);
+
+        logger.info({
+          outputMode: formatter.getOutputMode(),
+          terminalInfo: formatter.getTerminalInfo()
+        }, '輸出格式化器已初始化');
+
+        // 儲存所有交易對的最新資料
+        const latestPairs = new Map();
+
         // 監聽事件
         monitor.on('rate-updated', (pair) => {
-          const isOpportunity = monitor['calculator'].isArbitrageOpportunity(pair);
+          // 更新該交易對的最新資料
+          latestPairs.set(pair.symbol, pair);
 
-          console.log(`\n[${new Date().toLocaleTimeString()}] ${pair.symbol}`);
-          console.log(`  Binance: ${pair.binance.getFundingRatePercent()}`);
-          console.log(`  OKX: ${pair.okx.getFundingRatePercent()}`);
-          console.log(`  利差: ${pair.spreadPercent.toFixed(4)}% ${isOpportunity ? '✅ 套利機會' : ''}`);
+          // 收集所有已有資料的交易對
+          const pairs = Array.from(latestPairs.values());
+
+          // 取得統計資訊
+          const stats = monitor.getStats();
+
+          // 渲染狀態摘要（在表格上方）
+          const statusHeader = formatter.renderStatusHeader(stats);
+
+          // 渲染表格
+          const tableOutput = formatter.renderTable(pairs, threshold * 100);
+
+          // 合併輸出並刷新終端
+          const combinedOutput = statusHeader ? `${statusHeader}${tableOutput}` : tableOutput;
+          formatter.refresh(combinedOutput);
         });
 
         monitor.on('opportunity-detected', (pair) => {
-          console.log('\n' + '='.repeat(50));
-          console.log('🎯 發現套利機會！');
-          console.log(monitor['calculator'].generateOpportunityReport(pair));
-          console.log('='.repeat(50));
+          // 記錄到日誌檔案
+          logger.info({
+            symbol: pair.symbol,
+            spread: pair.spreadPercent,
+            binanceRate: pair.binance.fundingRate,
+            okxRate: pair.okx.fundingRate,
+            spreadAnnualized: pair.spreadAnnualized
+          }, '套利機會偵測');
+
+          // 使用格式化的機會報告輸出到終端
+          const report = formatter.renderOpportunityReport(pair, threshold * 100);
+          console.log(report);
         });
 
         monitor.on('error', (error) => {
@@ -65,18 +98,21 @@ export function createMonitorStartCommand(): Command {
         // 啟動監控
         await monitor.start();
 
-        console.log('\n✅ 監控服務已啟動');
-        console.log(`📊 監控交易對: ${symbols.join(', ')}`);
-        console.log(`⏱️  更新間隔: ${interval}ms`);
-        console.log(`🎯 套利閾值: ${(threshold * 100).toFixed(2)}%`);
-        console.log(`🌐 環境: ${isTestnet ? '測試網' : '正式網'}`);
-        console.log('\n按 Ctrl+C 停止監控\n');
+        logger.info({
+          symbols,
+          interval,
+          threshold: (threshold * 100).toFixed(2) + '%',
+          environment: isTestnet ? '測試網' : '正式網'
+        }, '監控服務已啟動');
 
         // 處理 Ctrl+C
         process.on('SIGINT', async () => {
-          console.log('\n\n正在停止監控服務...');
+          // 清除 log-update 顯示
+          formatter.done();
+
+          logger.info('正在停止監控服務...');
           await monitor.stop();
-          console.log('✅ 監控服務已停止');
+          logger.info('監控服務已停止');
           process.exit(0);
         });
 
@@ -88,7 +124,6 @@ export function createMonitorStartCommand(): Command {
         logger.error({
           error: error instanceof Error ? error.message : String(error),
         }, '啟動監控失敗');
-        console.error('\n❌ 啟動失敗:', error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });

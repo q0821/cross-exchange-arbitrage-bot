@@ -3,6 +3,8 @@ import { createExchange } from '../../connectors/factory.js';
 import type { IExchangeConnector } from '../../connectors/types.js';
 import { FundingRateRecord, FundingRateStore, FundingRatePair } from '../../models/FundingRate.js';
 import { RateDifferenceCalculator } from './RateDifferenceCalculator.js';
+import { MonitorStatsTracker } from './MonitorStats.js';
+import type { MonitorStats } from './MonitorStats.js';
 import { logger } from '../../lib/logger.js';
 
 /**
@@ -37,11 +39,13 @@ export class FundingRateMonitor extends EventEmitter {
   private okx: IExchangeConnector;
   private store: FundingRateStore;
   private calculator: RateDifferenceCalculator;
+  private statsTracker: MonitorStatsTracker;
 
   private symbols: string[];
   private updateInterval: number; // 毫秒
   private isRunning = false;
   private intervalId: NodeJS.Timeout | null = null;
+  private activeOpportunities = new Set<string>(); // 追蹤當前活躍的套利機會
 
   private status: MonitorStatus = {
     isRunning: false,
@@ -68,6 +72,7 @@ export class FundingRateMonitor extends EventEmitter {
     this.okx = createExchange('okx', isTestnet);
     this.store = new FundingRateStore();
     this.calculator = new RateDifferenceCalculator(minSpreadThreshold);
+    this.statsTracker = new MonitorStatsTracker();
 
     this.status.symbols = symbols;
     this.status.updateInterval = updateInterval;
@@ -174,6 +179,13 @@ export class FundingRateMonitor extends EventEmitter {
       const succeeded = results.filter((r) => r.status === 'fulfilled').length;
       const failed = results.filter((r) => r.status === 'rejected').length;
 
+      // 更新統計追蹤器
+      this.statsTracker.increment('totalUpdates')
+      if (failed > 0) {
+        this.statsTracker.increment('errorCount', failed)
+      }
+
+      // 保持舊的 status 物件同步（向後相容）
       this.status.totalUpdates++;
       this.status.errors += failed;
       this.status.lastUpdate = new Date();
@@ -195,6 +207,7 @@ export class FundingRateMonitor extends EventEmitter {
       });
     } catch (error) {
       this.status.errors++;
+      this.statsTracker.increment('errorCount')
       logger.error({
         error: error instanceof Error ? error.message : String(error),
       }, 'Failed to update rates');
@@ -227,12 +240,24 @@ export class FundingRateMonitor extends EventEmitter {
     this.emit('rate-updated', pair);
 
     // 檢查是否有套利機會
-    if (this.calculator.isArbitrageOpportunity(pair)) {
+    const isOpportunity = this.calculator.isArbitrageOpportunity(pair);
+    const wasOpportunity = this.activeOpportunities.has(symbol);
+
+    if (isOpportunity) {
+      if (!wasOpportunity) {
+        // 新機會出現
+        this.activeOpportunities.add(symbol);
+        this.statsTracker.setActiveOpportunities(this.activeOpportunities.size);
+      }
       logger.info({
         symbol,
         spread: pair.spreadPercent,
       }, 'Arbitrage opportunity detected');
       this.emit('opportunity-detected', pair);
+    } else if (wasOpportunity) {
+      // 機會消失
+      this.activeOpportunities.delete(symbol);
+      this.statsTracker.setActiveOpportunities(this.activeOpportunities.size);
     }
   }
 
@@ -241,6 +266,27 @@ export class FundingRateMonitor extends EventEmitter {
    */
   getStatus(): MonitorStatus {
     return { ...this.status };
+  }
+
+  /**
+   * 取得統計資訊
+   */
+  getStats(): MonitorStats {
+    return this.statsTracker.getStats();
+  }
+
+  /**
+   * 取得運行時長（秒）
+   */
+  getUptime(): number {
+    return this.statsTracker.getUptime();
+  }
+
+  /**
+   * 取得格式化的運行時長
+   */
+  getFormattedUptime(): string {
+    return this.statsTracker.getFormattedUptime();
   }
 
   /**

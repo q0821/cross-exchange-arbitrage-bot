@@ -1,30 +1,28 @@
 import pino from 'pino';
+import { mkdirSync } from 'fs';
+import { dirname } from 'path';
 
-const isProduction = process.env.NODE_ENV === 'production';
 const logLevel = process.env.LOG_LEVEL || 'info';
-const prettyPrint = process.env.LOG_PRETTY === 'true' || !isProduction;
+
+// 確保 logs 目錄存在
+const logFilePath = 'logs/monitor.log';
+mkdirSync(dirname(logFilePath), { recursive: true });
 
 export const logger = pino({
   level: logLevel,
-  ...(prettyPrint && {
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'SYS:standard',
-        ignore: 'pid,hostname',
-        singleLine: false,
-      },
+  transport: {
+    target: 'pino/file',
+    options: {
+      destination: logFilePath,
+      mkdir: true
+    }
+  },
+  formatters: {
+    level: (label: string) => {
+      return { level: label };
     },
-  }),
-  ...(!prettyPrint && {
-    formatters: {
-      level: (label: string) => {
-        return { level: label };
-      },
-    },
-    timestamp: pino.stdTimeFunctions.isoTime,
-  }),
+  },
+  timestamp: pino.stdTimeFunctions.isoTime,
 }) as pino.Logger;
 
 // 建立子 logger 的輔助函式
