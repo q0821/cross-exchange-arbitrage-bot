@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks)",
+      "Bash(git commit -m \"$(cat <<''EOF''\ndocs: 建立專案憲法並更新開發文件\n\n專案憲法 v1.0.0 (.specify/memory/constitution.md):\n- 建立 5 個核心原則保障交易平台安全性\n- 定義交易安全要求與風險控管機制\n- 制定開發工作流程與品質關卡\n- 更新 plan.md 憲法檢查區段並標註合規狀態\n\n核心原則:\n1. 交易安全優先 (必須遵守): Saga 模式、原子性操作、餘額驗證\n2. 完整可觀測性 (必須遵守): 結構化日誌、交易追蹤、效能指標\n3. 防禦性程式設計: 重試機制、優雅降級、WebSocket 自動重連\n4. 資料完整性: Prisma 遷移、TimescaleDB、Decimal 金融計算\n5. 漸進式交付: MVP 優先、測試網驗證、獨立故事測試\n\n進度追蹤文件:\n- PROGRESS.md: 新增專案進度報告與里程碑記錄\n- tasks.md: 更新任務完成狀態與進度摘要\n- plan.md: 更新憲法合規檢查，標註所有原則已滿足\n- CLAUDE.md: 更新專案指導方針\n- api-best-practices.md: API 整合最佳實踐文件\n\n當前進度:\n- Phase 1 Setup: 100% 完成 (8/8)\n- Phase 2 Foundational: 78% 完成 (7/9)\n- Phase 3 User Story 1: 30% 完成 (5/16)\n\n技術亮點:\n- 成功整合 Binance Futures API 直接調用\n- CCXT 用於 OKX 永續合約資金費率查詢\n- 完整的錯誤處理與重試機制\n- 結構化日誌系統 (Pino)\n\n參考: /speckit.analyze 分析報告 #P1 (憲法關鍵問題)\nEOF\n)\")",
+      "Bash(git add tests/)",
+      "Bash(git commit -m \"test: 新增測試目錄結構\n\n建立測試資料夾架構:\n- tests/unit/: 單元測試\n- tests/integration/: 整合測試\n- tests/e2e/: 端對端測試\n\n待後續實作測試案例\n\")",
+      "Bash(git add .claude/settings.local.json)",
+      "Bash(git commit -m \"chore: 新增 Claude Code 本地設定檔\n\n配置 Claude Code IDE 整合設定\n\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
