@@ -1,0 +1,276 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [timescaledb]
+}
+
+// ===== 資金費率記錄 (TimescaleDB Hypertable) =====
+model FundingRate {
+  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  exchange          String    @db.VarChar(50)
+  symbol            String    @db.VarChar(20)
+  funding_rate      Decimal   @db.Decimal(10, 8)
+  next_funding_time DateTime  @db.Timestamptz
+  mark_price        Decimal?  @db.Decimal(20, 8)
+  index_price       Decimal?  @db.Decimal(20, 8)
+  recorded_at       DateTime  @default(now()) @db.Timestamptz // 分區鍵
+  created_at        DateTime  @default(now()) @db.Timestamptz
+
+  @@unique([exchange, symbol, recorded_at])
+  @@index([recorded_at(sort: Desc)])
+  @@index([exchange, symbol, recorded_at(sort: Desc)])
+  @@index([symbol, recorded_at(sort: Desc)])
+  @@map("funding_rates")
+}
+
+// ===== 套利機會 =====
+model ArbitrageOpportunity {
+  id                    String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  symbol                String             @db.VarChar(20)
+  long_exchange         String             @db.VarChar(50)
+  short_exchange        String             @db.VarChar(50)
+  long_funding_rate     Decimal            @db.Decimal(10, 8)
+  short_funding_rate    Decimal            @db.Decimal(10, 8)
+  rate_difference       Decimal            @db.Decimal(10, 8)
+  expected_return_rate  Decimal            @db.Decimal(10, 8)
+  estimated_profit_usdt Decimal?           @db.Decimal(20, 8)
+  status                OpportunityStatus  @default(PENDING)
+  detected_at           DateTime           @default(now()) @db.Timestamptz
+  expires_at            DateTime           @db.Timestamptz
+  executed_at           DateTime?          @db.Timestamptz
+  completed_at          DateTime?          @db.Timestamptz
+  failure_reason        String?            @db.Text
+  created_at            DateTime           @default(now()) @db.Timestamptz
+  updated_at            DateTime           @updatedAt @db.Timestamptz
+
+  // Relations
+  arbitrage_cycle ArbitrageCycle?
+
+  @@index([status], map: "idx_opportunity_status")
+  @@index([detected_at(sort: Desc)], map: "idx_opportunity_detected")
+  @@index([symbol, detected_at(sort: Desc)], map: "idx_opportunity_symbol_detected")
+  @@index([expires_at], map: "idx_opportunity_expires")
+  @@map("arbitrage_opportunities")
+}
+
+enum OpportunityStatus {
+  PENDING   // 待執行
+  EXECUTING // 執行中
+  COMPLETED // 已完成
+  FAILED    // 失敗
+  EXPIRED   // 已過期
+
+  @@map("opportunity_status")
+}
+
+// ===== 對沖部位 =====
+model HedgePosition {
+  id                     String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  arbitrage_cycle_id     String         @unique @db.Uuid
+  symbol                 String         @db.VarChar(20)
+  long_exchange          String         @db.VarChar(50)
+  short_exchange         String         @db.VarChar(50)
+  position_size          Decimal        @db.Decimal(20, 8)
+  position_value_usdt    Decimal        @db.Decimal(20, 8)
+  leverage               Int            @default(1)
+  long_entry_price       Decimal        @db.Decimal(20, 8)
+  short_entry_price      Decimal        @db.Decimal(20, 8)
+  long_exit_price        Decimal?       @db.Decimal(20, 8)
+  short_exit_price       Decimal?       @db.Decimal(20, 8)
+  margin_used_usdt       Decimal        @db.Decimal(20, 8)
+  margin_ratio           Decimal?       @db.Decimal(10, 8)
+  unrealized_pnl_usdt    Decimal?       @default(0) @db.Decimal(20, 8)
+  realized_pnl_usdt      Decimal?       @db.Decimal(20, 8)
+  total_funding_received Decimal?       @default(0) @db.Decimal(20, 8)
+  total_funding_paid     Decimal?       @default(0) @db.Decimal(20, 8)
+  status                 PositionStatus @default(OPENING)
+  opened_at              DateTime       @default(now()) @db.Timestamptz
+  closed_at              DateTime?      @db.Timestamptz
+  failure_reason         String?        @db.Text
+  created_at             DateTime       @default(now()) @db.Timestamptz
+  updated_at             DateTime       @updatedAt @db.Timestamptz
+
+  // Relations
+  arbitrage_cycle ArbitrageCycle @relation(fields: [arbitrage_cycle_id], references: [id], onDelete: Cascade)
+  trades          TradeRecord[]
+
+  @@index([status], map: "idx_position_status")
+  @@index([arbitrage_cycle_id], map: "idx_position_cycle")
+  @@index([opened_at(sort: Desc)], map: "idx_position_opened")
+  @@index([symbol, status], map: "idx_position_symbol")
+  @@map("hedge_positions")
+}
+
+enum PositionStatus {
+  OPENING // 開倉中
+  ACTIVE  // 持倉中
+  CLOSING // 平倉中
+  CLOSED  // 已平倉
+  FAILED  // 失敗
+
+  @@map("position_status")
+}
+
+// ===== 交易記錄 =====
+model TradeRecord {
+  id                String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  hedge_position_id String        @db.Uuid
+  exchange          String        @db.VarChar(50)
+  symbol            String        @db.VarChar(20)
+  order_id          String        @db.VarChar(100)
+  client_order_id   String?       @db.VarChar(100)
+  side              TradeSide
+  type              OrderType
+  action            TradeAction
+  quantity          Decimal       @db.Decimal(20, 8)
+  filled_quantity   Decimal       @db.Decimal(20, 8)
+  price             Decimal?      @db.Decimal(20, 8)
+  average_price     Decimal       @db.Decimal(20, 8)
+  fee               Decimal       @default(0) @db.Decimal(20, 8)
+  fee_currency      String        @default("USDT") @db.VarChar(10)
+  commission_rate   Decimal?      @db.Decimal(10, 8)
+  order_status      OrderStatus
+  slippage          Decimal?      @db.Decimal(10, 8)
+  executed_at       DateTime      @default(now()) @db.Timestamptz
+  created_at        DateTime      @default(now()) @db.Timestamptz
+
+  // Relations
+  hedge_position HedgePosition @relation(fields: [hedge_position_id], references: [id], onDelete: Cascade)
+
+  @@unique([exchange, order_id])
+  @@index([hedge_position_id], map: "idx_trade_position")
+  @@index([executed_at(sort: Desc)], map: "idx_trade_executed")
+  @@index([exchange, symbol, executed_at(sort: Desc)], map: "idx_trade_exchange_symbol")
+  @@map("trade_records")
+}
+
+enum TradeSide {
+  LONG  // 做多
+  SHORT // 做空
+
+  @@map("trade_side")
+}
+
+enum OrderType {
+  MARKET // 市價單
+  LIMIT  // 限價單
+
+  @@map("order_type")
+}
+
+enum TradeAction {
+  OPEN  // 開倉
+  CLOSE // 平倉
+
+  @@map("trade_action")
+}
+
+enum OrderStatus {
+  FILLED   // 完全成交
+  PARTIAL  // 部分成交
+  CANCELED // 已取消
+  FAILED   // 失敗
+
+  @@map("order_status")
+}
+
+// ===== 套利週期 =====
+model ArbitrageCycle {
+  id                   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  opportunity_id       String               @unique @db.Uuid
+  symbol               String               @db.VarChar(20)
+  initial_capital_usdt Decimal              @db.Decimal(20, 8)
+  total_fees_usdt      Decimal              @default(0) @db.Decimal(20, 8)
+  total_funding_income Decimal              @default(0) @db.Decimal(20, 8)
+  price_pnl_usdt       Decimal?             @default(0) @db.Decimal(20, 8)
+  net_profit_usdt      Decimal?             @db.Decimal(20, 8)
+  net_profit_rate      Decimal?             @db.Decimal(10, 8)
+  roi                  Decimal?             @db.Decimal(10, 8)
+  funding_periods      Int                  @default(0)
+  duration_hours       Decimal?             @db.Decimal(10, 2)
+  status               CycleStatus          @default(ACTIVE)
+  started_at           DateTime             @default(now()) @db.Timestamptz
+  completed_at         DateTime?            @db.Timestamptz
+  notes                String?              @db.Text
+  created_at           DateTime             @default(now()) @db.Timestamptz
+  updated_at           DateTime             @updatedAt @db.Timestamptz
+
+  // Relations
+  opportunity    ArbitrageOpportunity @relation(fields: [opportunity_id], references: [id], onDelete: Cascade)
+  hedge_position HedgePosition?
+
+  @@index([opportunity_id], map: "idx_cycle_opportunity")
+  @@index([status], map: "idx_cycle_status")
+  @@index([started_at(sort: Desc)], map: "idx_cycle_started")
+  @@index([symbol, status], map: "idx_cycle_symbol_status")
+  @@map("arbitrage_cycles")
+}
+
+enum CycleStatus {
+  ACTIVE    // 進行中
+  COMPLETED // 已完成
+  FAILED    // 失敗
+
+  @@map("cycle_status")
+}
+
+// ===== 風險參數 =====
+model RiskParameters {
+  id                       String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name                     String   @unique @db.VarChar(100)
+  description              String?  @db.Text
+  min_rate_difference      Decimal  @default(0.0005) @db.Decimal(10, 8)
+  max_position_size_usdt   Decimal  @default(10000) @db.Decimal(20, 8)
+  max_total_exposure_usdt  Decimal  @default(50000) @db.Decimal(20, 8)
+  max_leverage             Int      @default(5)
+  stop_loss_rate           Decimal  @default(0.001) @db.Decimal(10, 8)
+  max_holding_hours        Int      @default(24)
+  position_size_percentage Decimal  @default(0.03) @db.Decimal(10, 8)
+  enable_auto_trading      Boolean  @default(false)
+  enable_auto_close        Boolean  @default(true)
+  max_slippage_rate        Decimal  @default(0.001) @db.Decimal(10, 8)
+  min_liquidity_usdt       Decimal  @default(50000) @db.Decimal(20, 8)
+  is_active                Boolean  @default(true)
+  created_at               DateTime @default(now()) @db.Timestamptz
+  updated_at               DateTime @updatedAt @db.Timestamptz
+
+  @@index([is_active], map: "idx_risk_params_active")
+  @@map("risk_parameters")
+}
+
+// ===== 系統事件 (TimescaleDB Hypertable) =====
+model SystemEvent {
+  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  event_type  String        @db.VarChar(50)
+  severity    EventSeverity
+  exchange    String?       @db.VarChar(50)
+  symbol      String?       @db.VarChar(20)
+  message     String        @db.Text
+  details     Json?         @db.JsonB
+  related_id  String?       @db.Uuid
+  is_notified Boolean       @default(false)
+  occurred_at DateTime      @default(now()) @db.Timestamptz
+  created_at  DateTime      @default(now()) @db.Timestamptz
+
+  @@index([event_type, occurred_at(sort: Desc)], map: "idx_event_type_occurred")
+  @@index([severity, occurred_at(sort: Desc)], map: "idx_event_severity")
+  @@index([is_notified], map: "idx_event_notified")
+  @@map("system_events")
+}
+
+enum EventSeverity {
+  INFO     // 資訊
+  WARNING  // 警告
+  ERROR    // 錯誤
+  CRITICAL // 嚴重
+
+  @@map("event_severity")
+}
