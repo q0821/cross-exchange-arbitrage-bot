@@ -1,0 +1,86 @@
+{
+  "app": {
+    "name": "cross-exchange-arbitrage-bot",
+    "version": "0.1.0",
+    "env": "development"
+  },
+  "server": {
+    "port": 3000,
+    "host": "localhost"
+  },
+  "exchanges": {
+    "binance": {
+      "name": "Binance",
+      "testnet": false,
+      "apiEndpoint": "https://fapi.binance.com",
+      "wsEndpoint": "wss://fstream.binance.com",
+      "rateLimit": {
+        "ordersPerSecond": 10,
+        "requestsPerMinute": 1200
+      }
+    },
+    "okx": {
+      "name": "OKX",
+      "testnet": false,
+      "apiEndpoint": "https://www.okx.com",
+      "wsEndpoint": "wss://ws.okx.com:8443/ws/v5/public",
+      "rateLimit": {
+        "ordersPerSecond": 10,
+        "requestsPerMinute": 600
+      }
+    }
+  },
+  "trading": {
+    "minSpreadThreshold": 0.0005,
+    "maxPositionSizeUsd": 10000,
+    "defaultLeverage": 1,
+    "orderTimeoutMs": 5000,
+    "slippageTolerance": 0.001
+  },
+  "risk": {
+    "maxDailyLoss": 1000,
+    "maxDrawdown": 0.1,
+    "positionSizePercent": 0.1,
+    "stopLossPercent": 0.02,
+    "emergencyStopLoss": 0.05
+  },
+  "monitoring": {
+    "healthCheckIntervalMs": 60000,
+    "priceUpdateIntervalMs": 1000,
+    "fundingRateCheckIntervalMs": 300000,
+    "maxPriceDeviationPercent": 0.05
+  },
+  "database": {
+    "connectionPoolMin": 2,
+    "connectionPoolMax": 10,
+    "queryTimeout": 30000,
+    "enableLogging": false
+  },
+  "redis": {
+    "keyPrefix": "arb:",
+    "ttl": {
+      "fundingRate": 3600,
+      "price": 60,
+      "opportunity": 300
+    }
+  },
+  "logging": {
+    "level": "info",
+    "pretty": true,
+    "file": {
+      "enabled": false,
+      "path": "logs/app.log",
+      "maxSize": "10M",
+      "maxFiles": 5
+    }
+  },
+  "notifications": {
+    "telegram": {
+      "enabled": false,
+      "notifyOnOpportunity": true,
+      "notifyOnTrade": true,
+      "notifyOnError": true,
+      "minOpportunitySpread": 0.001
+    }
+  }
+}

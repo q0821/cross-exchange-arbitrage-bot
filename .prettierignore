@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+.pnpm-store
+*.log
+.env
+.env.*
+pnpm-lock.yaml
+prisma/migrations
