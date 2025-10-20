@@ -4,6 +4,9 @@
   "description": "跨交易所資金費率套利平台 - 自動偵測幣安和 OKX 的資金費率差異並執行套利交易",
   "main": "dist/index.js",
   "type": "module",
+  "bin": {
+    "arbitrage-bot": "./dist/cli/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/index.ts",

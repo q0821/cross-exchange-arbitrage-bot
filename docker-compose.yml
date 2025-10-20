@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with TimescaleDB
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: arbitrage-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: arbitrage_user
+      POSTGRES_PASSWORD: arbitrage_pass
+      POSTGRES_DB: arbitrage_db
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./prisma/migrations/init-timescale.sql:/docker-entrypoint-initdb.d/01-init-timescale.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U arbitrage_user -d arbitrage_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - arbitrage-network
+
+  # Redis (Optional - for caching)
+  redis:
+    image: redis:7-alpine
+    container_name: arbitrage-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - arbitrage-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  arbitrage-network:
+    driver: bridge

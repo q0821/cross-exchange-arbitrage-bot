@@ -79,9 +79,9 @@
 **⚠️ CRITICAL**: 此階段完成前,任何 User Story 都無法開始
 
 - [x] T009 定義 Prisma schema 於 prisma/schema.prisma,包含 7 個核心實體
-- [ ] T010 建立 PostgreSQL 初始化腳本,啟用 TimescaleDB extension (待資料庫安裝)
-- [ ] T011 執行 Prisma migrate 建立資料庫 schema (待資料庫安裝)
-- [ ] T012 設定 TimescaleDB Hypertable 轉換腳本於 prisma/migrations/timescale-setup.sql (待資料庫安裝)
+- [x] T010 建立 PostgreSQL 初始化腳本,啟用 TimescaleDB extension
+- [x] T011 執行 Prisma migrate 建立資料庫 schema
+- [x] T012 設定 TimescaleDB Hypertable 轉換腳本於 prisma/migrations/timescale-setup.sql
 - [ ] T013 [P] 建立 Redis 連線模組於 src/lib/redis.ts (選用功能,暫時跳過)
 - [x] T014 [P] 建立 Logger 模組於 src/lib/logger.ts,支援檔案和 console 輸出
 - [x] T015 [P] 建立設定載入模組於 src/lib/config.ts,支援環境變數替換
@@ -90,7 +90,7 @@
 - [x] T018 [P] 建立重試機制於 src/lib/retry.ts (包含指數退避策略)
 - [x] T019 [P] 建立 WebSocket 管理模組於 src/lib/websocket.ts
 
-**Progress**: 7/9 核心任務完成 (資料庫相關任務待安裝 PostgreSQL 後執行)
+**Progress**: 9/9 核心任務完成 (Redis 為選用功能)
 
 **Checkpoint**: 基礎設施大部分完成 - 可以開始 API 測試和交易所連接器開發
 
@@ -104,24 +104,24 @@
 
 ### 實作任務
 
-- [ ] T020 [P] [US1] 建立 FundingRate 資料模型於 src/models/FundingRate.ts,包含驗證邏輯
+- [x] T020 [P] [US1] 建立 FundingRate 資料模型於 src/models/FundingRate.ts,包含驗證邏輯
 - [x] T021 [P] [US1] 建立 Binance 連接器於 src/connectors/binance.ts,實作資金費率 API 調用 (使用 Binance Futures API)
 - [x] T022 [P] [US1] 建立 OKX 連接器於 src/connectors/okx.ts,實作資金費率 API 調用 (使用 CCXT)
 - [x] T023 [US1] 建立交易所連接器介面於 src/connectors/types.ts 和 base.ts,定義統一介面
 - [x] T024 [US1] 建立連接器工廠於 src/connectors/factory.ts,根據交易所名稱建立實例
 - [x] T025 [US1] 建立 API 測試腳本於 src/test-api.ts,驗證交易所連接器功能
 
-**Progress**: 5/6 任務完成 - 交易所連接器已完成並通過測試
-- [ ] T024 [US1] 實作資金費率監控服務於 src/services/monitor/FundingRateMonitor.ts
-- [ ] T025 [US1] 整合 WebSocket 訂閱於 src/services/monitor/WebSocketManager.ts
-- [ ] T026 [US1] 實作費率差異計算服務於 src/services/monitor/RateDifferenceCalculator.ts
-- [ ] T027 [US1] 實作 Redis 快取層於 src/services/monitor/RateCache.ts
-- [ ] T028 [US1] 實作 API 連線失敗重試機制於 src/lib/retry.ts
-- [ ] T029 [US1] 建立 CLI monitor start 指令於 src/cli/commands/monitor/start.ts
-- [ ] T030 [US1] 建立 CLI monitor stop 指令於 src/cli/commands/monitor/stop.ts
-- [ ] T031 [US1] 建立 CLI monitor status 指令於 src/cli/commands/monitor/status.ts
-- [ ] T032 [US1] 建立 CLI 主程式入口於 src/cli/index.ts,整合 Commander.js
-- [ ] T033 [US1] 建立 funding-rates list 指令於 src/cli/commands/funding-rates/list.ts
+**Progress**: 8/10 任務完成 - 核心監控服務已完成
+- [x] T024 [US1] 實作資金費率監控服務於 src/services/monitor/FundingRateMonitor.ts
+- [ ] T025 [US1] 整合 WebSocket 訂閱於 src/services/monitor/WebSocketManager.ts (選用,暫時跳過)
+- [x] T026 [US1] 實作費率差異計算服務於 src/services/monitor/RateDifferenceCalculator.ts
+- [ ] T027 [US1] 實作 Redis 快取層於 src/services/monitor/RateCache.ts (選用,暫時跳過)
+- [x] T028 [US1] 實作 API 連線失敗重試機制於 src/lib/retry.ts (已完成)
+- [x] T029 [US1] 建立 CLI monitor start 指令於 src/cli/commands/monitor/start.ts
+- [x] T030 [US1] 建立 CLI monitor stop 指令於 src/cli/commands/monitor/stop.ts (整合在 start 中)
+- [x] T031 [US1] 建立 CLI monitor status 指令於 src/cli/commands/monitor/status.ts
+- [x] T032 [US1] 建立 CLI 主程式入口於 src/cli/index.ts,整合 Commander.js
+- [ ] T033 [US1] 建立 funding-rates list 指令於 src/cli/commands/funding-rates/list.ts (可選)
 
 **Checkpoint**: 監控服務完成,可以即時查看資金費率差異
 
