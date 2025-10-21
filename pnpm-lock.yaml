@@ -29,6 +29,9 @@ importers:
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      decimal.js:
+        specifier: ^10.6.0
+        version: 10.6.0
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
@@ -57,6 +60,9 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
     devDependencies:
+      '@types/decimal.js':
+        specifier: ^7.4.3
+        version: 7.4.3
       '@types/node':
         specifier: ^20.16.11
         version: 20.19.22
@@ -646,6 +652,10 @@ packages:
   '@telegraf/types@7.1.0':
     resolution: {integrity: sha512-kGevOIbpMcIlCDeorKGpwZmdH7kHbqlk/Yj6dEpJMKEQw5lk0KVQY0OLXaCswy8GqlIVLd5625OB+rAntP9xVw==}
 
+  '@types/decimal.js@7.4.3':
+    resolution: {integrity: sha512-7MpxcJPHqQ637FCZwJLtJMaDZkcD/iyUxj0m8A+m06slFeqRiK9QtgEyuocWNRbEtCrOZOEbZPTSSR88hMZVsg==}
+    deprecated: This is a stub types definition. decimal.js provides its own type definitions, so you do not need this installed.
+
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
@@ -925,6 +935,9 @@ packages:
     peerDependenciesMeta:
       supports-color:
         optional: true
+
+  decimal.js@10.6.0:
+    resolution: {integrity: sha512-YpgQiITW3JXGntzdUmyUR1V812Hn8T1YVXhCu+wO3OpS4eU9l4YdD3qjyiKdV6mvV29zapkMeD390UVEf2lkUg==}
 
   deep-eql@5.0.2:
     resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
@@ -2254,6 +2267,10 @@ snapshots:
 
   '@telegraf/types@7.1.0': {}
 
+  '@types/decimal.js@7.4.3':
+    dependencies:
+      decimal.js: 10.6.0
+
   '@types/estree@1.0.8': {}
 
   '@types/node@20.19.22':
@@ -2568,6 +2585,8 @@ snapshots:
   debug@4.4.3:
     dependencies:
       ms: 2.1.3
+
+  decimal.js@10.6.0: {}
 
   deep-eql@5.0.2: {}
 

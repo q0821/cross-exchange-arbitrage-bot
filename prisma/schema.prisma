@@ -31,44 +31,132 @@ model FundingRate {
   @@map("funding_rates")
 }
 
-// ===== 套利機會 =====
+// ===== 套利機會 (Detection System - US1-US4) =====
 model ArbitrageOpportunity {
-  id                    String             @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
-  symbol                String             @db.VarChar(20)
-  long_exchange         String             @db.VarChar(50)
-  short_exchange        String             @db.VarChar(50)
-  long_funding_rate     Decimal            @db.Decimal(10, 8)
-  short_funding_rate    Decimal            @db.Decimal(10, 8)
-  rate_difference       Decimal            @db.Decimal(10, 8)
-  expected_return_rate  Decimal            @db.Decimal(10, 8)
-  estimated_profit_usdt Decimal?           @db.Decimal(20, 8)
-  status                OpportunityStatus  @default(PENDING)
-  detected_at           DateTime           @default(now()) @db.Timestamptz
-  expires_at            DateTime           @db.Timestamptz
-  executed_at           DateTime?          @db.Timestamptz
-  completed_at          DateTime?          @db.Timestamptz
-  failure_reason        String?            @db.Text
-  created_at            DateTime           @default(now()) @db.Timestamptz
-  updated_at            DateTime           @updatedAt @db.Timestamptz
+  id                      String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  symbol                  String              @db.VarChar(20)
+  long_exchange           String              @db.VarChar(50)
+  short_exchange          String              @db.VarChar(50)
+  long_funding_rate       Decimal             @db.Decimal(10, 8)
+  short_funding_rate      Decimal             @db.Decimal(10, 8)
+  rate_difference         Decimal             @db.Decimal(10, 8)
+  expected_return_rate    Decimal             @db.Decimal(10, 8)
+  status                  OpportunityStatus   @default(ACTIVE)
+  detected_at             DateTime            @default(now()) @db.Timestamptz
+  expired_at              DateTime?           @db.Timestamptz
+  closed_at               DateTime?           @db.Timestamptz
+  max_rate_difference     Decimal?            @db.Decimal(10, 8)
+  max_rate_difference_at  DateTime?           @db.Timestamptz
+  notification_count      Int                 @default(0)
+  last_notification_at    DateTime?           @db.Timestamptz
+  created_at              DateTime            @default(now()) @db.Timestamptz
+  updated_at              DateTime            @updatedAt @db.Timestamptz
 
   // Relations
-  arbitrage_cycle ArbitrageCycle?
+  history                 OpportunityHistory?
+  notifications           NotificationLog[]
+  arbitrage_cycle         ArbitrageCycle?
 
   @@index([status], map: "idx_opportunity_status")
   @@index([detected_at(sort: Desc)], map: "idx_opportunity_detected")
   @@index([symbol, detected_at(sort: Desc)], map: "idx_opportunity_symbol_detected")
-  @@index([expires_at], map: "idx_opportunity_expires")
+  @@index([expired_at], map: "idx_opportunity_expired")
   @@map("arbitrage_opportunities")
 }
 
 enum OpportunityStatus {
-  PENDING   // 待執行
-  EXECUTING // 執行中
-  COMPLETED // 已完成
-  FAILED    // 失敗
-  EXPIRED   // 已過期
+  ACTIVE   // 機會活躍中
+  EXPIRED  // 機會已過期
+  CLOSED   // 機會已關閉
 
   @@map("opportunity_status")
+}
+
+// ===== 機會歷史摘要 (US3) =====
+model OpportunityHistory {
+  id                        String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  opportunity_id            String            @unique @db.Uuid
+  symbol                    String            @db.VarChar(20)
+  long_exchange             String            @db.VarChar(50)
+  short_exchange            String            @db.VarChar(50)
+  initial_rate_difference   Decimal           @db.Decimal(10, 8)
+  max_rate_difference       Decimal           @db.Decimal(10, 8)
+  avg_rate_difference       Decimal           @db.Decimal(10, 8)
+  duration_ms               BigInt
+  duration_minutes          Decimal           @db.Decimal(10, 2)
+  total_notifications       Int
+  detected_at               DateTime          @db.Timestamptz
+  expired_at                DateTime          @db.Timestamptz
+  disappear_reason          DisappearReason
+  created_at                DateTime          @default(now()) @db.Timestamptz
+
+  // Relations
+  opportunity               ArbitrageOpportunity @relation(fields: [opportunity_id], references: [id], onDelete: Restrict)
+
+  @@index([symbol], map: "idx_history_symbol")
+  @@index([detected_at(sort: Desc)], map: "idx_history_detected")
+  @@index([duration_ms(sort: Desc)], map: "idx_history_duration")
+  @@index([max_rate_difference(sort: Desc)], map: "idx_history_max_diff")
+  @@map("opportunity_history")
+}
+
+enum DisappearReason {
+  RATE_DROPPED
+  DATA_UNAVAILABLE
+  MANUAL_CLOSE
+  SYSTEM_ERROR
+
+  @@map("disappear_reason")
+}
+
+// ===== 通知日誌 (US1, US4 - TimescaleDB Hypertable) =====
+model NotificationLog {
+  id                       String              @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  opportunity_id           String              @db.Uuid
+  symbol                   String              @db.VarChar(20)
+  notification_type        NotificationType
+  channel                  NotificationChannel
+  severity                 Severity            @default(INFO)
+  message                  String              @db.Text
+  rate_difference          Decimal             @db.Decimal(10, 8)
+  sent_at                  DateTime            @default(now()) @db.Timestamptz
+  is_debounced             Boolean             @default(false)
+  debounce_skipped_count   Int                 @default(0)
+
+  // Relations
+  opportunity              ArbitrageOpportunity @relation(fields: [opportunity_id], references: [id], onDelete: Cascade)
+
+  @@id([id, sent_at])
+  @@index([opportunity_id, sent_at(sort: Desc)], map: "idx_notification_opportunity")
+  @@index([symbol, sent_at(sort: Desc)], map: "idx_notification_symbol")
+  @@index([sent_at(sort: Desc)], map: "idx_notification_sent")
+  @@index([notification_type, sent_at(sort: Desc)], map: "idx_notification_type")
+  @@map("notification_logs")
+}
+
+enum NotificationType {
+  OPPORTUNITY_APPEARED
+  OPPORTUNITY_DISAPPEARED
+  OPPORTUNITY_UPDATED
+
+  @@map("notification_type")
+}
+
+enum NotificationChannel {
+  TERMINAL
+  LOG
+  WEBHOOK
+  TELEGRAM
+
+  @@map("notification_channel")
+}
+
+enum Severity {
+  INFO
+  WARNING
+  CRITICAL
+
+  @@map("severity")
 }
 
 // ===== 對沖部位 =====
