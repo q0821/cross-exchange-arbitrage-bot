@@ -7,8 +7,8 @@
  */
 
 import ccxt from 'ccxt';
-import { logger } from '../logger';
-import { apiKeys } from '../config';
+import { logger } from '../logger.js';
+import { apiKeys } from '../config.js';
 
 export class OkxCCXT {
   private client: ccxt.okx;

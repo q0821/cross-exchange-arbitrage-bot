@@ -1,5 +1,11 @@
 import { Command } from 'commander';
+import { PrismaClient } from '@prisma/client';
 import { FundingRateMonitor } from '../../../services/monitor/FundingRateMonitor.js';
+import { FundingRateValidator } from '../../../services/validation/FundingRateValidator.js';
+import { FundingRateValidationRepository } from '../../../repositories/FundingRateValidationRepository.js';
+import { OkxConnectorAdapter } from '../../../adapters/OkxConnectorAdapter.js';
+import { OkxCCXT } from '../../../lib/ccxt/OkxCCXT.js';
+import { OKXConnector } from '../../../connectors/okx.js';
 import { logger } from '../../../lib/logger.js';
 import { MonitorOutputFormatter } from '../../../lib/formatters/MonitorOutputFormatter.js';
 
@@ -13,6 +19,7 @@ export function createMonitorStartCommand(): Command {
     .option('-t, --threshold <percent>', '套利閾值（百分比）', '0.05')
     .option('--testnet', '使用測試網', false)
     .option('--format <mode>', '輸出格式 (table|plain|json)', undefined)
+    .option('--enable-validation', '啟用 OKX 資金費率雙重驗證（需要資料庫）', false)
     .action(async (options) => {
       try {
         logger.info('啟動監控服務...');
@@ -22,16 +29,49 @@ export function createMonitorStartCommand(): Command {
         const interval = parseInt(options.interval, 10);
         const threshold = parseFloat(options.threshold) / 100; // 轉換為小數
         const isTestnet = options.testnet;
+        const enableValidation = options.enableValidation;
 
         logger.info({
           symbols,
           interval,
           threshold: (threshold * 100).toFixed(2) + '%',
           testnet: isTestnet,
+          enableValidation,
         }, '監控參數');
 
+        // 建立驗證器（如果啟用）
+        let validator: FundingRateValidator | undefined;
+        let prisma: PrismaClient | undefined;
+        if (enableValidation) {
+          logger.info('初始化資金費率驗證器...');
+
+          // 初始化 Prisma Client
+          prisma = new PrismaClient();
+
+          // 建立 OKX Connector（用於驗證）
+          const okxConnector = new OKXConnector(isTestnet);
+          await okxConnector.connect();
+
+          // 建立 Adapter
+          const okxAdapter = new OkxConnectorAdapter(okxConnector);
+
+          // 建立 CCXT
+          const okxCCXT = new OkxCCXT(isTestnet);
+
+          // 建立 Repository
+          const repository = new FundingRateValidationRepository(prisma);
+
+          // 建立 Validator
+          validator = new FundingRateValidator(repository, okxAdapter, okxCCXT);
+
+          logger.info('資金費率驗證器已初始化');
+        }
+
         // 建立監控服務
-        const monitor = new FundingRateMonitor(symbols, interval, threshold, isTestnet);
+        const monitor = new FundingRateMonitor(symbols, interval, threshold, isTestnet, {
+          validator,
+          enableValidation,
+        });
 
         // 建立輸出格式化器
         const formatter = new MonitorOutputFormatter(options.format);
@@ -112,6 +152,13 @@ export function createMonitorStartCommand(): Command {
 
           logger.info('正在停止監控服務...');
           await monitor.stop();
+
+          // 如果啟用了驗證，關閉 Prisma 連線
+          if (prisma) {
+            logger.info('關閉資料庫連線...');
+            await prisma.$disconnect();
+          }
+
           logger.info('監控服務已停止');
           process.exit(0);
         });

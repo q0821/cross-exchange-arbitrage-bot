@@ -10,10 +10,10 @@ import {
   IFundingRateValidator,
   FundingRateValidationResult,
   FundingRateValidatorConfig,
-} from '../../types/service-interfaces';
-import { IFundingRateValidationRepository } from '../../types/service-interfaces';
-import { createValidationResult, createValidationError } from '../../models/FundingRateValidation';
-import { logger } from '../../lib/logger';
+} from '../../types/service-interfaces.js';
+import { IFundingRateValidationRepository } from '../../types/service-interfaces.js';
+import { createValidationResult, createValidationError } from '../../models/FundingRateValidation.js';
+import { logger } from '../../lib/logger.js';
 
 // 這些會在後續任務中實作
 interface IOkxConnector {

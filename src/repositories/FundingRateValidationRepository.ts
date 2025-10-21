@@ -9,8 +9,8 @@ import { PrismaClient, Prisma } from '@prisma/client';
 import {
   IFundingRateValidationRepository,
   FundingRateValidationResult,
-} from '../types/service-interfaces';
-import { logger } from '../lib/logger';
+} from '../types/service-interfaces.js';
+import { logger } from '../lib/logger.js';
 
 export class FundingRateValidationRepository implements IFundingRateValidationRepository {
   constructor(private prisma: PrismaClient) {}

@@ -6,6 +6,7 @@ import { RateDifferenceCalculator } from './RateDifferenceCalculator.js';
 import { MonitorStatsTracker } from './MonitorStats.js';
 import type { MonitorStats } from './MonitorStats.js';
 import { logger } from '../../lib/logger.js';
+import type { IFundingRateValidator } from '../../types/service-interfaces.js';
 
 /**
  * 監控狀態
@@ -40,12 +41,14 @@ export class FundingRateMonitor extends EventEmitter {
   private store: FundingRateStore;
   private calculator: RateDifferenceCalculator;
   private statsTracker: MonitorStatsTracker;
+  private validator?: IFundingRateValidator; // 可選的資金費率驗證器
 
   private symbols: string[];
   private updateInterval: number; // 毫秒
   private isRunning = false;
   private intervalId: NodeJS.Timeout | null = null;
   private activeOpportunities = new Set<string>(); // 追蹤當前活躍的套利機會
+  private enableValidation = false; // 驗證功能開關
 
   private status: MonitorStatus = {
     isRunning: false,
@@ -61,7 +64,11 @@ export class FundingRateMonitor extends EventEmitter {
     symbols: string[] = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
     updateInterval = 5000,
     minSpreadThreshold = 0.0005,
-    isTestnet = false
+    isTestnet = false,
+    options?: {
+      validator?: IFundingRateValidator;
+      enableValidation?: boolean;
+    }
   ) {
     super();
 
@@ -74,6 +81,10 @@ export class FundingRateMonitor extends EventEmitter {
     this.calculator = new RateDifferenceCalculator(minSpreadThreshold);
     this.statsTracker = new MonitorStatsTracker();
 
+    // 設定驗證器
+    this.validator = options?.validator;
+    this.enableValidation = options?.enableValidation ?? false;
+
     this.status.symbols = symbols;
     this.status.updateInterval = updateInterval;
 
@@ -82,6 +93,7 @@ export class FundingRateMonitor extends EventEmitter {
       updateInterval,
       minSpreadThreshold,
       isTestnet,
+      enableValidation: this.enableValidation,
     }, 'FundingRateMonitor initialized');
   }
 
@@ -233,6 +245,25 @@ export class FundingRateMonitor extends EventEmitter {
     this.store.save(binanceRate);
     this.store.save(okxRate);
 
+    // 執行 OKX 資金費率驗證（如果啟用）
+    if (this.enableValidation && this.validator) {
+      try {
+        // 轉換符號格式：BTCUSDT -> BTC-USDT-SWAP
+        const okxSymbol = this.toOKXSymbol(symbol);
+        await this.validator.validate(okxSymbol);
+        logger.debug({
+          symbol,
+          okxSymbol,
+        }, 'OKX funding rate validation completed');
+      } catch (error) {
+        logger.warn({
+          symbol,
+          error: error instanceof Error ? error.message : String(error),
+        }, 'OKX funding rate validation failed (non-blocking)');
+        // 驗證失敗不影響監控主流程
+      }
+    }
+
     // 計算差異
     const pair = this.calculator.calculateDifference(binanceRate, okxRate);
 
@@ -259,6 +290,15 @@ export class FundingRateMonitor extends EventEmitter {
       this.activeOpportunities.delete(symbol);
       this.statsTracker.setActiveOpportunities(this.activeOpportunities.size);
     }
+  }
+
+  /**
+   * 轉換符號格式：BTCUSDT -> BTC-USDT-SWAP
+   */
+  private toOKXSymbol(symbol: string): string {
+    // 移除 USDT 後綴，然後重組為 OKX 格式
+    const base = symbol.replace('USDT', '');
+    return `${base}-USDT-SWAP`;
   }
 
   /**

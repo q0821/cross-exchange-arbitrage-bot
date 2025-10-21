@@ -1,4 +1,4 @@
-import chalk, { Chalk } from 'chalk'
+import { Chalk, type ChalkInstance } from 'chalk'
 
 /**
  * ColorStyler - 處理終端顏色和視覺樣式
@@ -10,7 +10,7 @@ import chalk, { Chalk } from 'chalk'
  * 注意：chalk 預設會自動檢測終端顏色支援，但我們提供明確控制
  */
 export class ColorStyler {
-  private readonly chalk: Chalk
+  private readonly chalk: ChalkInstance
 
   constructor(private readonly supportsColor: boolean) {
     // 建立自訂 chalk 實例，強制套用顏色設定

@@ -5,8 +5,8 @@
  * Feature: 004-fix-okx-add-price-display
  */
 
-import { OKXConnector } from '../connectors/okx';
-import { logger } from '../lib/logger';
+import { OKXConnector } from '../connectors/okx.js';
+import { logger } from '../lib/logger.js';
 
 /**
  * Adapter 介面，符合 FundingRateValidator 的需求
