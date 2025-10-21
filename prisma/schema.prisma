@@ -246,6 +246,28 @@ model RiskParameters {
   @@map("risk_parameters")
 }
 
+// ===== 資金費率驗證記錄 (TimescaleDB Hypertable) =====
+model FundingRateValidation {
+  id                  Int      @id @default(autoincrement())
+  timestamp           DateTime @default(now()) @db.Timestamptz(6)
+  symbol              String   @db.VarChar(20)
+  exchange            String   @default("okx") @db.VarChar(50)
+  okxRate             Decimal  @db.Decimal(18, 8)
+  okxNextRate         Decimal? @db.Decimal(18, 8)
+  okxFundingTime      DateTime? @db.Timestamptz(6)
+  ccxtRate            Decimal? @db.Decimal(18, 8)
+  ccxtFundingTime     DateTime? @db.Timestamptz(6)
+  discrepancyPercent  Decimal? @db.Decimal(10, 6)
+  validationStatus    String   @db.VarChar(10)
+  errorMessage        String?  @db.Text
+
+  @@unique([timestamp, symbol])
+  @@index([symbol, timestamp(sort: Desc)])
+  @@index([validationStatus, timestamp(sort: Desc)])
+  @@index([timestamp(sort: Desc)])
+  @@map("funding_rate_validations")
+}
+
 // ===== 系統事件 (TimescaleDB Hypertable) =====
 model SystemEvent {
   id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
