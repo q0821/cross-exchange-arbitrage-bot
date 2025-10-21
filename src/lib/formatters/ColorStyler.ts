@@ -1,4 +1,4 @@
-import chalk from 'chalk'
+import chalk, { Chalk } from 'chalk'
 
 /**
  * ColorStyler - 處理終端顏色和視覺樣式
@@ -10,7 +10,12 @@ import chalk from 'chalk'
  * 注意：chalk 預設會自動檢測終端顏色支援，但我們提供明確控制
  */
 export class ColorStyler {
-  constructor(private readonly supportsColor: boolean) {}
+  private readonly chalk: Chalk
+
+  constructor(private readonly supportsColor: boolean) {
+    // 建立自訂 chalk 實例，強制套用顏色設定
+    this.chalk = new Chalk({ level: supportsColor ? 3 : 0 })
+  }
 
   /**
    * 突顯套利機會文字
@@ -26,8 +31,8 @@ export class ColorStyler {
 
     // 支援顏色時使用 chalk
     return intensity === 'high'
-      ? chalk.green.bold(text)
-      : chalk.yellow(text)
+      ? this.chalk.green.bold(text)
+      : this.chalk.yellow(text)
   }
 
   /**
@@ -54,12 +59,12 @@ export class ColorStyler {
 
     // 差異 > 0.1% 使用綠色 (高價值機會)
     if (absSpread > 0.1) {
-      return chalk.green.bold(value)
+      return this.chalk.green.bold(value)
     }
 
     // 差異 0.05-0.1% 使用黃色 (中等機會)
     if (absSpread >= threshold && absSpread <= 0.1) {
-      return chalk.yellow(value)
+      return this.chalk.yellow(value)
     }
 
     // 未達閾值使用預設顏色
@@ -72,7 +77,7 @@ export class ColorStyler {
    * @returns 紅色文字 (支援顏色) 或原文字
    */
   error(text: string): string {
-    return this.supportsColor ? chalk.red(text) : text
+    return this.supportsColor ? this.chalk.red(text) : text
   }
 
   /**
@@ -81,7 +86,7 @@ export class ColorStyler {
    * @returns 黃色文字 (支援顏色) 或原文字
    */
   warning(text: string): string {
-    return this.supportsColor ? chalk.yellow(text) : text
+    return this.supportsColor ? this.chalk.yellow(text) : text
   }
 
   /**
@@ -90,7 +95,7 @@ export class ColorStyler {
    * @returns 綠色文字 (支援顏色) 或原文字
    */
   success(text: string): string {
-    return this.supportsColor ? chalk.green(text) : text
+    return this.supportsColor ? this.chalk.green(text) : text
   }
 
   /**
@@ -99,6 +104,6 @@ export class ColorStyler {
    * @returns 暗淡文字 (支援顏色) 或原文字
    */
   dim(text: string): string {
-    return this.supportsColor ? chalk.dim(text) : text
+    return this.supportsColor ? this.chalk.dim(text) : text
   }
 }
