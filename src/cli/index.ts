@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { createMonitorStartCommand } from './commands/monitor/start.js';
 import { createMonitorStatusCommand } from './commands/monitor/status.js';
+import { createConfigCommand } from './commands/opportunities/config.js';
 import { logger } from '../lib/logger.js';
 
 const program = new Command();
@@ -19,8 +20,16 @@ monitorCommand.description('資金費率監控相關指令');
 monitorCommand.addCommand(createMonitorStartCommand());
 monitorCommand.addCommand(createMonitorStatusCommand());
 
+// Opportunities 指令群組
+const opportunitiesCommand = new Command('opportunities');
+opportunitiesCommand.description('套利機會偵測相關指令');
+
+// 註冊 opportunities 子指令
+opportunitiesCommand.addCommand(createConfigCommand());
+
 // 註冊主指令
 program.addCommand(monitorCommand);
+program.addCommand(opportunitiesCommand);
 
 // 錯誤處理
 program.exitOverride();
