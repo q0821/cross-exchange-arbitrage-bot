@@ -28,7 +28,7 @@
   - ✅ Prisma Client 初始化
   - ⏭️ Redis 連線模組 (選用功能，Phase 8+ 效能優化)
 
-- **Phase 3: User Story 1** - 70% 完成 (核心監控功能已實作)
+- **Phase 3: User Story 1** - 100% 完成 ✅ (核心監控功能 + CLI 指令)
   - ✅ T020-T025: 交易所連接器與資料模型
     - FundingRate 資料模型 (`src/models/FundingRate.ts`)
     - Binance 連接器 (Binance Futures API `/fapi/v1/premiumIndex`)
@@ -44,6 +44,15 @@
     - `arb monitor status` - 查看監控狀態
     - CLI 主程式入口 (Commander.js)
   - ⏭️ T025, T027: WebSocket 訂閱和 Redis 快取 (選用功能暫時跳過)
+
+- **Phase 4: User Story 2** - 40% 完成 (核心偵測 + 通知 + CLI 已實作)
+  - ✅ 套利機會偵測核心
+  - ✅ 通知系統 (Terminal + Log 渠道)
+  - ✅ CLI 指令 (config/list/show)
+  - ✅ 整合測試腳本
+  - ⏭️ Telegram Bot 通知
+  - ⏭️ Redis Pub/Sub
+  - ⏭️ 機會過期管理
 
 ### 🎯 新增功能 (超出原規劃 - Phase 3 擴展)
 基於實際需求，提前實作了 Phase 4 的部分核心功能：
@@ -68,22 +77,38 @@
   - 持續時間格式化
   - 費率差異格式化
 
-### 📊 實作統計
-- **程式碼量**: ~3,250 行 TypeScript
-- **新增檔案**: 16 個核心檔案
+### 📊 實作統計 (截至 2025-10-22)
+- **程式碼量**: ~3,600 行 TypeScript
+- **新增檔案**: 20 個核心檔案 + 4 個測試工具
 - **資料模型**: 10 個 Prisma models
 - **服務層**: 8 個服務類別
 - **Repository**: 3 個資料存取層
-- **Commits**: 2 個主要提交已推送至 main
+- **CLI 指令**: 6 個 (monitor: 2, opportunities: 4)
+- **Commits**: 4 個主要提交已推送至 main
+  - `7f69bd0` - CLI list/show 指令
+  - `850fc7d` - 整合測試腳本
+  - `dd8e475` - CLI config 指令
+  - `cdc5ed6` - 文件更新
+
+- ✅ **CLI 指令擴展** (2025-10-22 新增)
+  - `arb opportunities config` - 查看套利偵測配置
+  - `arb opportunities list` - 列出套利機會（支援篩選、排序、多種輸出格式）
+  - `arb opportunities show <id>` - 顯示機會詳情（支援短 ID 查詢）
+
+- ✅ **整合測試**
+  - 端對端整合測試腳本 (`src/test-integration.ts`)
+  - 資料庫查詢工具 (`src/check-db.ts`)
+  - 測試資料清理工具 (`src/clean-test-data.ts`)
+  - Repository 單元測試 (`src/test-repo.ts`)
 
 ### 🔄 進行中
-- Phase 3 US1 整合測試
-- 準備開始 Phase 4 US2 剩餘任務
+- Phase 4 US2 剩餘任務（Telegram Bot、Redis Pub/Sub、機會過期管理）
 
 ### ⏭️ 下一步
-1. 完成 Phase 3 US1 端到端測試
-2. 開始 Phase 4 US2 剩餘任務 (閾值判斷、收益計算、CLI 指令)
-3. 整合 OpportunityDetector 到 FundingRateMonitor
+1. 實作 Telegram Bot 通知渠道（T040）
+2. 整合 Redis Pub/Sub 機制（T041）
+3. 實作機會過期管理（T042）
+4. 開始 Phase 5: 交易執行系統（US3）
 
 ### 📈 技術亮點
 - ✅ 成功整合 Binance Futures API 直接調用
@@ -192,8 +217,8 @@
 - [ ] T040 [US2] 實作 Telegram Bot 通知於 src/services/notification/TelegramNotifier.ts
 - [ ] T041 [US2] 整合 Redis Pub/Sub 機制於 src/services/notification/EventPublisher.ts
 - [ ] T042 [US2] 實作機會過期管理於 src/services/detector/OpportunityExpiration.ts
-- [ ] T043 [US2] 建立 CLI opportunities list 指令於 src/cli/commands/opportunities/list.ts
-- [ ] T044 [US2] 建立 CLI opportunities show 指令於 src/cli/commands/opportunities/show.ts
+- [x] T043 [US2] 建立 CLI opportunities list 指令於 src/cli/commands/opportunities/list.ts
+- [x] T044 [US2] 建立 CLI opportunities show 指令於 src/cli/commands/opportunities/show.ts
 - [ ] T045 [US2] 整合偵測器至監控服務於 src/services/monitor/FundingRateMonitor.ts
 
 **Checkpoint**: 自動偵測套利機會完成,可以即時通知使用者
