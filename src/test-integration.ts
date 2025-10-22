@@ -21,10 +21,10 @@ import { NotificationService } from './services/notification/NotificationService
 import { TerminalChannel } from './services/notification/channels/TerminalChannel.js'
 import { LogChannel } from './services/notification/channels/LogChannel.js'
 import { ArbitrageOpportunityRepository } from './repositories/ArbitrageOpportunityRepository.js'
-import { OpportunityHistoryRepository } from './repositories/OpportunityHistoryRepository.js'
+// import { OpportunityHistoryRepository } from './repositories/OpportunityHistoryRepository.js' // 未使用
 import { DebounceManager } from './lib/debounce.js'
 import { logger } from './lib/logger.js'
-import { config } from './lib/config.js'
+// import { config } from './lib/config.js' // 未使用
 import type { FundingRatePair } from './models/FundingRate.js'
 import { Decimal } from 'decimal.js'
 
@@ -53,7 +53,7 @@ async function main() {
 
     // 初始化 Repository
     const opportunityRepo = new ArbitrageOpportunityRepository(prisma)
-    const historyRepo = new OpportunityHistoryRepository(prisma)
+    // const historyRepo = new OpportunityHistoryRepository(prisma) // 未使用
 
     // 初始化 OpportunityDetector
     const detector = new OpportunityDetector(opportunityRepo, {
@@ -91,16 +91,22 @@ async function main() {
         // 轉換為 FundingRateData 格式
         const fundingRates = new Map([
           ['binance', {
+            exchange: 'binance' as const,
+            symbol: pair.symbol,
             fundingRate: new Decimal(pair.binance.fundingRate) as any,
             nextFundingTime: pair.binance.nextFundingTime,
             markPrice: pair.binance.markPrice ? new Decimal(pair.binance.markPrice) as any : undefined,
             indexPrice: pair.binance.indexPrice ? new Decimal(pair.binance.indexPrice) as any : undefined,
+            recordedAt: new Date(),
           }],
           ['okx', {
+            exchange: 'okx' as const,
+            symbol: pair.symbol,
             fundingRate: new Decimal(pair.okx.fundingRate) as any,
             nextFundingTime: pair.okx.nextFundingTime,
             markPrice: pair.okx.markPrice ? new Decimal(pair.okx.markPrice) as any : undefined,
             indexPrice: pair.okx.indexPrice ? new Decimal(pair.okx.indexPrice) as any : undefined,
+            recordedAt: new Date(),
           }],
         ])
 
@@ -134,16 +140,14 @@ async function main() {
 
             // 發送通知到 Terminal 和 Log 渠道
             await terminalChannel.send({
+              symbol: dbOpportunity.symbol,
               message: `發現套利機會: ${dbOpportunity.symbol}`,
-              opportunity: dbOpportunity,
-              type: 'OPPORTUNITY_APPEARED',
               severity: 'INFO',
             })
 
             await logChannel.send({
+              symbol: dbOpportunity.symbol,
               message: `發現套利機會: ${dbOpportunity.symbol}`,
-              opportunity: dbOpportunity,
-              type: 'OPPORTUNITY_APPEARED',
               severity: 'INFO',
             })
 
@@ -222,7 +226,7 @@ async function main() {
         symbol: opp.symbol,
         status: opp.status,
         rateDifference: opp.rate_difference.toString(),
-        annualizedReturn: opp.annualized_return.toString(),
+        expectedReturnRate: opp.expected_return_rate.toString(),
         detectedAt: opp.detected_at,
       }, '機會記錄')
     }

@@ -3,6 +3,8 @@ import { Command } from 'commander';
 import { createMonitorStartCommand } from './commands/monitor/start.js';
 import { createMonitorStatusCommand } from './commands/monitor/status.js';
 import { createConfigCommand } from './commands/opportunities/config.js';
+import { createListCommand } from './commands/opportunities/list.js';
+import { createShowCommand } from './commands/opportunities/show.js';
 import { logger } from '../lib/logger.js';
 
 const program = new Command();
@@ -26,6 +28,8 @@ opportunitiesCommand.description('套利機會偵測相關指令');
 
 // 註冊 opportunities 子指令
 opportunitiesCommand.addCommand(createConfigCommand());
+opportunitiesCommand.addCommand(createListCommand());
+opportunitiesCommand.addCommand(createShowCommand());
 
 // 註冊主指令
 program.addCommand(monitorCommand);
