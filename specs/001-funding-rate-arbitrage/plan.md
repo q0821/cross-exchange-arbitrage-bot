@@ -13,22 +13,33 @@
 
 **Language/Version**: TypeScript 5.3+ + Node.js 20.x LTS
 **Primary Dependencies**:
-  - binance-connector-node 3.x (幣安官方 SDK)
-  - okx-node-sdk 1.x (OKX 官方 SDK)
-  - ccxt 4.x (備援,統一交易所介面)
-  - Prisma 5.x (ORM,資料庫管理)
-  - ws 8.x (WebSocket 連線管理)
-  - NEEDS CLARIFICATION: 通知系統 (Telegram Bot / Email / Webhook)
-  - NEEDS CLARIFICATION: 日誌系統 (winston / pino)
-  - NEEDS CLARIFICATION: 配置管理 (dotenv / config)
+  - binance-connector-node 3.x (幣安官方 SDK) - 部分使用，主要使用直接 API 調用
+  - ccxt 4.x (統一交易所介面，用於 OKX)
+  - Prisma 5.x (ORM,資料庫管理) ✅
+  - ws 8.x (WebSocket 連線管理) ✅
+  - ✅ 通知系統:
+    - chalk 5.x (終端機彩色輸出) - MVP 階段
+    - pino (結構化日誌) - MVP 階段
+    - Telegram Bot (Phase 4+, 選用功能)
+    - Webhook (Phase 4+, 選用功能)
+  - ✅ 日誌系統: pino (已選擇並實作)
+  - ✅ 配置管理: dotenv + Zod schema validation (已實作)
+  - ✅ 金融計算: decimal.js (確保精確度)
 
 **Storage**:
-  - NEEDS CLARIFICATION: PostgreSQL / SQLite (交易記錄、部位狀態、資金費率歷史)
-  - NEEDS CLARIFICATION: Redis (快取即時費率、減少 API 呼叫)
+  - ✅ PostgreSQL 15 + TimescaleDB extension (已實作)
+    - 交易記錄、部位狀態、資金費率歷史
+    - Hypertables: funding_rates, notification_logs
+    - 90 天資料保留政策
+  - ⏭️ Redis (選用功能，Phase 8+ 效能優化時考慮)
+    - 快取即時費率、減少 API 呼叫
 
 **Testing**:
-  - NEEDS CLARIFICATION: Jest / Vitest (單元測試)
-  - NEEDS CLARIFICATION: 測試策略 (模擬交易所 API、整合測試環境)
+  - ⏳ Jest (規劃中)
+  - ⏳ 測試策略:
+    - 單元測試: 模擬交易所 API 回應
+    - 整合測試: 使用交易所 testnet 環境
+    - E2E 測試: 完整交易流程驗證
 
 **Target Platform**: Linux/macOS server (長時間運行的 Node.js 服務)
 
