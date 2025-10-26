@@ -45,11 +45,13 @@
     - CLI 主程式入口 (Commander.js)
   - ⏭️ T025, T027: WebSocket 訂閱和 Redis 快取 (選用功能暫時跳過)
 
-- **Phase 4: User Story 2** - 40% 完成 (核心偵測 + 通知 + CLI 已實作)
+- **Phase 4: User Story 2** - 60% 完成 (核心偵測 + 通知 + CLI + 格式化已完成)
   - ✅ 套利機會偵測核心
   - ✅ 通知系統 (Terminal + Log 渠道)
   - ✅ CLI 指令 (config/list/show)
   - ✅ 整合測試腳本
+  - ✅ 格式化工具模組 (OpportunityFormatter)
+  - ✅ 列表顯示優化 (持續時間、通知計數)
   - ⏭️ Telegram Bot 通知
   - ⏭️ Redis Pub/Sub
   - ⏭️ 機會過期管理
@@ -73,22 +75,30 @@
 
 - ✅ **輔助工具**
   - 機會計算輔助函式 (`src/lib/opportunity-helpers.ts`)
-  - 年化收益率計算
-  - 持續時間格式化
-  - 費率差異格式化
+  - 格式化工具模組 (`src/lib/formatters/OpportunityFormatter.ts`)
+    - 年化收益率格式化 (`formatAnnualizedReturn`)
+    - 持續時間格式化 (`formatDuration`, `formatDurationMs`)
+    - 費率差異格式化 (`formatSpread`)
+    - 通知計數格式化 (`formatNotificationCount`)
+    - 日期時間格式化 (`formatDateTime`, `formatShortDateTime`)
+    - 字串截斷工具 (`truncate`)
 
-### 📊 實作統計 (截至 2025-10-22)
-- **程式碼量**: ~3,600 行 TypeScript
-- **新增檔案**: 20 個核心檔案 + 4 個測試工具
+### 📊 實作統計 (截至 2025-10-23)
+- **程式碼量**: ~4,000 行 TypeScript
+- **新增檔案**: 21 個核心檔案 + 4 個測試工具
 - **資料模型**: 10 個 Prisma models
 - **服務層**: 8 個服務類別
 - **Repository**: 3 個資料存取層
 - **CLI 指令**: 6 個 (monitor: 2, opportunities: 4)
-- **Commits**: 4 個主要提交已推送至 main
+- **工具模組**: 1 個格式化模組 (8 個格式化函式)
+- **Commits**: 7 個主要提交已推送至 main
+  - `ab7faca` - Phase 1-3 MVP 完整文件
+  - `6c2c0d7` - MVP 測試腳本
+  - `00324af` - 基礎架構 (Phase 1-2)
+  - `ae43ebf` - tasks.md 進度更新
   - `7f69bd0` - CLI list/show 指令
-  - `850fc7d` - 整合測試腳本
-  - `dd8e475` - CLI config 指令
-  - `cdc5ed6` - 文件更新
+  - `89324ab` - 格式化工具與列表優化
+  - `6d48fab` - 專案設定更新
 
 - ✅ **CLI 指令擴展** (2025-10-22 新增)
   - `arb opportunities config` - 查看套利偵測配置

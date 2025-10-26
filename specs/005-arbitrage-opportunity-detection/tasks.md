@@ -188,7 +188,7 @@ This document provides a comprehensive, ordered task list for implementing the *
 
 **Goal**: 支援多幣別同時偵測，並按照費率差異排序顯示
 
-**Status**: ⏳ Pending
+**Status**: ✅ Completed (2025-10-23)
 **Depends On**: User Story 1 完成
 
 ### Independent Test Criteria
@@ -201,17 +201,18 @@ This document provides a comprehensive, ordered task list for implementing the *
 
 #### 排序與計算邏輯
 
-- [ ] T022 [P] [US2] 新增排序方法到 OpportunityDetector 於 `src/services/monitor/OpportunityDetector.ts`
+- [x] T022 [P] [US2] 新增排序方法到 OpportunityDetector 於 `src/services/monitor/OpportunityDetector.ts` ✅ 2025-10-23
   - 實作 `getActiveOpportunitiesSorted()` 方法（按 rate_difference DESC 排序）
   - 實作機會自動重新排序邏輯（當費率更新時）
 
-- [ ] T023 [P] [US2] 新增統計計算方法到 ArbitrageOpportunityRepository
+- [x] T023 [P] [US2] 新增統計計算方法到 ArbitrageOpportunityRepository ✅ 2025-10-23
   - 實作 `findActiveWithStats()` 方法（包含年化收益率、持續時間）
+  - 實作 `findMany()` 方法（支援多條件篩選）
   - 優化查詢效能（使用索引）
 
 #### CLI 指令 (列表與排序)
 
-- [ ] T024 [US2] 實作 CLI 指令 `arb opportunities list` 於 `src/cli/commands/opportunities/list.ts`
+- [x] T024 [US2] 實作 CLI 指令 `arb opportunities list` 於 `src/cli/commands/opportunities/list.ts` ✅ 2025-10-23
   - 實作機會列表查詢（預設按 rate_difference DESC 排序）
   - 實作篩選功能 (`--symbol`, `--min-spread`)
   - 實作限制數量 (`--limit`, 預設 10)
@@ -219,15 +220,20 @@ This document provides a comprehensive, ordered task list for implementing the *
   - 支援三種輸出格式：table（預設）、json、csv
   - 使用 cli-table3 實作 table 輸出
   - 顯示欄位：Symbol, Long Exchange, Short Exchange, Spread %, Annual%, Duration, Notif.
+  - 優化表格佈局和欄位顯示
 
-- [ ] T025 [US2] 註冊 `list` 指令到 Commander.js 於 `src/cli/index.ts`
+- [x] T025 [US2] 註冊 `list` 指令到 Commander.js 於 `src/cli/index.ts` ✅ 2025-10-22
 
 #### 年化收益率顯示
 
-- [ ] T026 [P] [US2] 新增年化收益率格式化工具於 `src/lib/formatters/OpportunityFormatter.ts`
+- [x] T026 [P] [US2] 新增年化收益率格式化工具於 `src/lib/formatters/OpportunityFormatter.ts` ✅ 2025-10-23
   - 實作 `formatAnnualizedReturn()` 方法
   - 實作 `formatDuration()` 方法（毫秒轉為 "Xm Ys" 格式）
+  - 實作 `formatDurationMs()` 方法（支援 bigint 型別）
   - 實作 `formatSpread()` 方法（Decimal 轉為百分比字串）
+  - 實作 `formatDateTime()` 和 `formatShortDateTime()` 方法
+  - 實作 `formatNotificationCount()` 方法
+  - 實作 `truncate()` 字串截斷工具
 
 **Completion Criteria**:
 - ✅ 系統能同時追蹤 10+ 個幣別的機會
