@@ -293,4 +293,91 @@ export class ArbitrageOpportunityRepository implements IOpportunityRepository {
       throw error
     }
   }
+
+  /**
+   * 查詢活躍機會並包含統計資訊
+   * 包含年化收益率、持續時間等計算欄位
+   */
+  async findActiveWithStats(filters?: OpportunityFilters): Promise<PrismaArbitrageOpportunity[]> {
+    try {
+      const where: any = {
+        status: 'ACTIVE',
+      }
+
+      if (filters?.symbol) {
+        where.symbol = filters.symbol
+      }
+      if (filters?.minRateDifference) {
+        where.rate_difference = {
+          gte: filters.minRateDifference,
+        }
+      }
+
+      const opportunities = await this.prisma.arbitrageOpportunity.findMany({
+        where,
+        orderBy: {
+          rate_difference: 'desc', // 按費率差異降序排序
+        },
+        take: filters?.limit,
+      })
+
+      logger.debug({
+        count: opportunities.length,
+        filters,
+      }, '查詢活躍機會（含統計）')
+
+      return opportunities
+    } catch (error) {
+      logger.error({ error, filters }, '查詢活躍機會（含統計）失敗')
+      throw error
+    }
+  }
+
+  /**
+   * 根據多種條件查詢機會
+   */
+  async findMany(filters: OpportunityFilters): Promise<PrismaArbitrageOpportunity[]> {
+    try {
+      const where: any = {}
+
+      if (filters.symbol) {
+        where.symbol = filters.symbol
+      }
+      if (filters.status) {
+        where.status = filters.status
+      }
+      if (filters.minRateDifference) {
+        where.rate_difference = {
+          gte: filters.minRateDifference,
+        }
+      }
+      if (filters.detectedAfter || filters.detectedBefore) {
+        where.detected_at = {}
+        if (filters.detectedAfter) {
+          where.detected_at.gte = filters.detectedAfter
+        }
+        if (filters.detectedBefore) {
+          where.detected_at.lte = filters.detectedBefore
+        }
+      }
+
+      const opportunities = await this.prisma.arbitrageOpportunity.findMany({
+        where,
+        orderBy: {
+          rate_difference: 'desc',
+        },
+        take: filters.limit,
+      })
+
+      logger.debug({
+        count: opportunities.length,
+        filters,
+      }, '根據條件查詢機會')
+
+      return opportunities
+    } catch (error) {
+      logger.error({ error, filters }, '根據條件查詢機會失敗')
+      throw error
+    }
+  }
 }

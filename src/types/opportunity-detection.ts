@@ -346,6 +346,7 @@ export interface OpportunityFilters {
   minRateDifference?: Decimal
   detectedAfter?: Date
   detectedBefore?: Date
+  limit?: number
 }
 
 /**

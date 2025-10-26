@@ -2,13 +2,19 @@
  * CLI 指令: arb opportunities list
  * 列出當前活躍的套利機會
  *
- * Feature: 006-opportunities-list-show
- * Date: 2025-10-22
+ * Feature: 005-arbitrage-opportunity-detection (Phase 4)
+ * Updated: 2025-10-23
  */
 
 import { Command } from 'commander'
 import { PrismaClient } from '@prisma/client'
 import { logger } from '../../../lib/logger.js'
+import {
+  formatAnnualizedReturn,
+  formatSpread,
+  formatDuration,
+  formatNotificationCount,
+} from '../../../lib/formatters/OpportunityFormatter.js'
 
 interface ListOptions {
   status?: 'ACTIVE' | 'EXPIRED' | 'CLOSED'
@@ -123,40 +129,37 @@ function displayTable(opportunities: any[], status: string): void {
   }
 
   console.log(`\n📊 套利機會列表 (${status})\n`)
-  console.log('┌─────────┬───────────┬──────────┬──────────┬─────────────┬─────────────┬──────────────────┐')
-  console.log('│ 幣別    │ 做多      │ 做空     │ 費率差異 │ 年化收益    │ 狀態        │ 偵測時間         │')
-  console.log('├─────────┼───────────┼──────────┼─────────────┼─────────────┼─────────────┼──────────────────┤')
+  console.log('┌────────┬──────────┬───────────┬─────────┬──────────┬───────────┬────────┐')
+  console.log('│ Symbol │ Long     │ Short     │ Spread  │ Annual % │ Duration  │ Notif. │')
+  console.log('├────────┼──────────┼───────────┼─────────┼──────────┼───────────┼────────┤')
 
   for (const opp of opportunities) {
-    const symbol = opp.symbol.padEnd(8)
-    const longEx = opp.long_exchange.padEnd(8)
-    const shortEx = opp.short_exchange.padEnd(8)
-    const spread = (parseFloat(opp.rate_difference.toString()) * 100).toFixed(4) + '%'
-    const returnRate = (parseFloat(opp.expected_return_rate.toString()) * 100).toFixed(2) + '%'
-    const oppStatus = opp.status.padEnd(10)
-    const detectedAt = new Date(opp.detected_at).toLocaleString('zh-TW', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    const symbol = opp.symbol.padEnd(6)
+    const longEx = opp.long_exchange.substring(0, 8).padEnd(8)
+    const shortEx = opp.short_exchange.substring(0, 9).padEnd(9)
+    const spread = formatSpread(opp.rate_difference).padEnd(7)
+    const returnRate = formatAnnualizedReturn(opp.expected_return_rate).padEnd(8)
+    const duration = formatDuration(new Date(opp.detected_at), opp.expired_at || opp.closed_at).padEnd(9)
+    const notifCount = formatNotificationCount(opp.notification_count).padStart(6)
 
-    console.log(`│ ${symbol} │ ${longEx} │ ${shortEx} │ ${spread.padEnd(11)} │ ${returnRate.padEnd(11)} │ ${oppStatus} │ ${detectedAt.padEnd(16)} │`)
+    console.log(`│ ${symbol} │ ${longEx} │ ${shortEx} │ ${spread} │ ${returnRate} │ ${duration} │ ${notifCount} │`)
   }
 
-  console.log('└─────────┴───────────┴──────────┴─────────────┴─────────────┴─────────────┴──────────────────┘')
+  console.log('└────────┴──────────┴───────────┴─────────┴──────────┴───────────┴────────┘')
   console.log(`\n總計: ${opportunities.length} 個機會\n`)
 
   // 統計摘要
-  const avgReturn = opportunities.reduce((sum, opp) =>
-    sum + parseFloat(opp.expected_return_rate.toString()), 0) / opportunities.length
-  const maxReturn = Math.max(...opportunities.map(opp =>
-    parseFloat(opp.expected_return_rate.toString())))
-  const minReturnVal = Math.min(...opportunities.map(opp =>
-    parseFloat(opp.expected_return_rate.toString())))
+  if (opportunities.length > 0) {
+    const avgReturn = opportunities.reduce((sum, opp) =>
+      sum + parseFloat(opp.expected_return_rate.toString()), 0) / opportunities.length
+    const maxReturn = Math.max(...opportunities.map(opp =>
+      parseFloat(opp.expected_return_rate.toString())))
+    const minReturnVal = Math.min(...opportunities.map(opp =>
+      parseFloat(opp.expected_return_rate.toString())))
 
-  console.log('📈 統計摘要:')
-  console.log(`  - 平均年化收益: ${(avgReturn * 100).toFixed(2)}%`)
-  console.log(`  - 最高年化收益: ${(maxReturn * 100).toFixed(2)}%`)
-  console.log(`  - 最低年化收益: ${(minReturnVal * 100).toFixed(2)}%\n`)
+    console.log('📈 統計摘要:')
+    console.log(`  - 平均年化收益: ${(avgReturn * 100).toFixed(2)}%`)
+    console.log(`  - 最高年化收益: ${(maxReturn * 100).toFixed(2)}%`)
+    console.log(`  - 最低年化收益: ${(minReturnVal * 100).toFixed(2)}%\n`)
+  }
 }

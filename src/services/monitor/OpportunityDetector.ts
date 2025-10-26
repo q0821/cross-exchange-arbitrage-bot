@@ -7,7 +7,7 @@
  */
 
 import type { Decimal } from '@prisma/client/runtime/library'
-import type { DisappearReason } from '@prisma/client'
+import type { DisappearReason, ArbitrageOpportunity as PrismaArbitrageOpportunity } from '@prisma/client'
 import type {
   IOpportunityDetector,
   IOpportunityRepository,
@@ -273,5 +273,25 @@ export class OpportunityDetector implements IOpportunityDetector {
    */
   getConfig(): OpportunityDetectorConfig {
     return { ...this.config }
+  }
+
+  /**
+   * 獲取排序後的活躍機會列表
+   * 按照費率差異由高到低排序
+   */
+  async getActiveOpportunitiesSorted(limit?: number): Promise<PrismaArbitrageOpportunity[]> {
+    try {
+      const opportunities = await this.repository.findAllActive(limit)
+
+      logger.debug({
+        count: opportunities.length,
+        limit,
+      }, '獲取排序後的活躍機會列表')
+
+      return opportunities
+    } catch (error) {
+      logger.error({ error, limit }, '獲取排序機會列表時發生錯誤')
+      throw error
+    }
   }
 }
