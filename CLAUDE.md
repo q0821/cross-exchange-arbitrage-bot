@@ -20,9 +20,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 006-web-trading-platform: Added TypeScript 5.3+ with Node.js 20.x LTS
 - 005-arbitrage-opportunity-detection: Added TypeScript 5.3+ with Node.js 20.x LTS
 - 004-fix-okx-add-price-display: Added TypeScript 5.3+ with Node.js 20.x LTS
-- 001-funding-rate-arbitrage: Added TypeScript 5.3+ + Node.js 20.x LTS
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

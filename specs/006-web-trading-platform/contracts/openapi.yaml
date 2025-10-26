@@ -1,0 +1,908 @@
+openapi: 3.0.3
+info:
+  title: Web 多用戶套利交易平台 API
+  description: |
+    跨交易所資金費率套利平台 REST API
+
+    功能包括：
+    - 用戶註冊和認證
+    - API Key 管理
+    - 即時套利機會查詢
+    - 手動開倉/平倉操作
+    - 歷史交易記錄和收益統計
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:3000/api
+    description: 本地開發環境
+  - url: https://arbitrage.example.com/api
+    description: 生產環境
+
+tags:
+  - name: Auth
+    description: 用戶認證相關 API
+  - name: API Keys
+    description: API Key 管理
+  - name: Opportunities
+    description: 套利機會查詢
+  - name: Positions
+    description: 持倉管理
+  - name: Trades
+    description: 交易歷史
+  - name: Stats
+    description: 收益統計
+
+paths:
+  # ========== Auth APIs ==========
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: 用戶註冊
+      description: 建立新用戶帳號
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123
+                  description: 至少 8 字元，包含數字和字母
+      responses:
+        '201':
+          description: 註冊成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      userId:
+                        type: string
+                        example: clhv8j9k40000ld08x5k8f8b2
+                      email:
+                        type: string
+                        example: user@example.com
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email 已被使用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 用戶登入
+      description: 驗證用戶憑證並建立會話
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: 登入成功
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: token=jwt_token_here; HttpOnly; Secure; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      userId:
+                        type: string
+                      email:
+                        type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 用戶登出
+      description: 使會話失效
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ========== API Keys ==========
+  /api-keys:
+    get:
+      tags: [API Keys]
+      summary: 列出所有 API Key
+      description: 查詢當前用戶的所有 API Key（敏感資料部分遮罩）
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: exchange
+          schema:
+            type: string
+            enum: [binance, okx]
+          description: 篩選特定交易所
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [API Keys]
+      summary: 新增 API Key
+      description: 新增交易所 API Key（加密存儲）
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [exchange, label, apiKey, secret]
+              properties:
+                exchange:
+                  type: string
+                  enum: [binance, okx]
+                label:
+                  type: string
+                  minLength: 1
+                  maxLength: 50
+                  example: "我的幣安帳戶"
+                apiKey:
+                  type: string
+                  example: "your_api_key_here"
+                secret:
+                  type: string
+                  example: "your_secret_key_here"
+                passphrase:
+                  type: string
+                  description: 僅 OKX 需要
+                  example: "your_passphrase"
+      responses:
+        '201':
+          description: 新增成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ApiKey'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api-keys/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ApiKeyId'
+
+    get:
+      tags: [API Keys]
+      summary: 查詢特定 API Key
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ApiKey'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [API Keys]
+      summary: 更新 API Key
+      description: 更新標籤或啟用/停用狀態
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                isActive:
+                  type: boolean
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ApiKey'
+
+    delete:
+      tags: [API Keys]
+      summary: 刪除 API Key
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 刪除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  # ========== Opportunities ==========
+  /opportunities:
+    get:
+      tags: [Opportunities]
+      summary: 列出套利機會
+      description: 查詢當前所有活躍的套利機會
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [ACTIVE, EXPIRED]
+            default: ACTIVE
+        - in: query
+          name: symbol
+          schema:
+            type: string
+          description: 篩選特定交易對
+        - in: query
+          name: minReturn
+          schema:
+            type: number
+            format: double
+          description: 最小年化收益率（%）
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - in: query
+          name: sortBy
+          schema:
+            type: string
+            enum: [return, time, spread]
+            default: return
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArbitrageOpportunity'
+
+  /opportunities/{id}:
+    parameters:
+      - $ref: '#/components/parameters/OpportunityId'
+
+    get:
+      tags: [Opportunities]
+      summary: 查詢特定套利機會詳情
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/ArbitrageOpportunity'
+
+  # ========== Positions ==========
+  /positions:
+    get:
+      tags: [Positions]
+      summary: 列出持倉
+      description: 查詢當前用戶的所有持倉
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [PENDING, OPENING, OPEN, CLOSING, CLOSED, FAILED, PARTIAL]
+            default: OPEN
+        - in: query
+          name: symbol
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Position'
+
+    post:
+      tags: [Positions]
+      summary: 開倉
+      description: 在兩個交易所同時開倉（一個 Long，一個 Short）
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [opportunityId, positionSize]
+              properties:
+                opportunityId:
+                  type: string
+                  description: 套利機會 ID
+                positionSize:
+                  type: number
+                  format: double
+                  description: 倉位大小（USDT）
+                  example: 1000
+                leverage:
+                  type: integer
+                  minimum: 1
+                  maximum: 125
+                  default: 3
+                  description: 槓桿倍數
+      responses:
+        '201':
+          description: 開倉成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Position'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '402':
+          description: 餘額不足
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /positions/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PositionId'
+
+    get:
+      tags: [Positions]
+      summary: 查詢特定持倉詳情
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Position'
+
+  /positions/{id}/close:
+    parameters:
+      - $ref: '#/components/parameters/PositionId'
+
+    post:
+      tags: [Positions]
+      summary: 平倉
+      description: 在兩個交易所同時平倉
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 平倉成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Trade'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ========== Trades ==========
+  /trades:
+    get:
+      tags: [Trades]
+      summary: 查詢交易歷史
+      description: 查詢當前用戶的所有已平倉交易記錄
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: symbol
+          schema:
+            type: string
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      trades:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Trade'
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+
+  # ========== Stats ==========
+  /stats:
+    get:
+      tags: [Stats]
+      summary: 收益統計
+      description: 查詢當前用戶的收益統計資料
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Stats'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+      description: JWT Token 儲存在 HttpOnly Cookie 中
+
+  parameters:
+    ApiKeyId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: API Key ID
+
+    OpportunityId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 套利機會 ID
+
+    PositionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 持倉 ID
+
+  schemas:
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: string
+        exchange:
+          type: string
+          enum: [binance, okx]
+        label:
+          type: string
+        maskedKey:
+          type: string
+          description: 部分遮罩的 API Key（例如 "abcd****xyz"）
+          example: "kMzF****dE2p"
+        isActive:
+          type: boolean
+        lastValidatedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ArbitrageOpportunity:
+      type: object
+      properties:
+        id:
+          type: string
+        symbol:
+          type: string
+          example: "BTCUSDT"
+        longExchange:
+          type: string
+          enum: [binance, okx]
+          description: 應該開多的交易所
+        shortExchange:
+          type: string
+          enum: [binance, okx]
+          description: 應該開空的交易所
+        prices:
+          type: object
+          properties:
+            long:
+              type: number
+              format: double
+            short:
+              type: number
+              format: double
+        fundingRates:
+          type: object
+          properties:
+            long:
+              type: number
+              format: double
+            short:
+              type: number
+              format: double
+        spreadBps:
+          type: number
+          format: double
+          description: 費率差異（basis points）
+        annualizedReturn:
+          type: number
+          format: double
+          description: 預期年化收益率（%）
+        status:
+          type: string
+          enum: [ACTIVE, EXPIRED]
+        detectedAt:
+          type: string
+          format: date-time
+
+    Position:
+      type: object
+      properties:
+        id:
+          type: string
+        symbol:
+          type: string
+        longSide:
+          type: object
+          properties:
+            exchange:
+              type: string
+            orderId:
+              type: string
+              nullable: true
+            entryPrice:
+              type: number
+              format: double
+            positionSize:
+              type: number
+              format: double
+            leverage:
+              type: integer
+        shortSide:
+          type: object
+          properties:
+            exchange:
+              type: string
+            orderId:
+              type: string
+              nullable: true
+            entryPrice:
+              type: number
+              format: double
+            positionSize:
+              type: number
+              format: double
+            leverage:
+              type: integer
+        status:
+          type: string
+          enum: [PENDING, OPENING, OPEN, CLOSING, CLOSED, FAILED, PARTIAL]
+        unrealizedPnL:
+          type: number
+          format: double
+          description: 未實現 PnL（僅 status=OPEN 時有值）
+          nullable: true
+        openedAt:
+          type: string
+          format: date-time
+          nullable: true
+        closedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    Trade:
+      type: object
+      properties:
+        id:
+          type: string
+        symbol:
+          type: string
+        longSide:
+          type: object
+          properties:
+            exchange:
+              type: string
+            entryPrice:
+              type: number
+              format: double
+            exitPrice:
+              type: number
+              format: double
+            positionSize:
+              type: number
+              format: double
+        shortSide:
+          type: object
+          properties:
+            exchange:
+              type: string
+            entryPrice:
+              type: number
+              format: double
+            exitPrice:
+              type: number
+              format: double
+            positionSize:
+              type: number
+              format: double
+        openedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        holdingDuration:
+          type: integer
+          description: 持倉時間（秒）
+        pnl:
+          type: object
+          properties:
+            priceDiff:
+              type: number
+              format: double
+              description: 價差收益
+            fundingRate:
+              type: number
+              format: double
+              description: 資金費率收益
+            total:
+              type: number
+              format: double
+              description: 總收益
+        roi:
+          type: number
+          format: double
+          description: 收益率（%）
+        status:
+          type: string
+          enum: [SUCCESS, PARTIAL, FAILED]
+
+    Stats:
+      type: object
+      properties:
+        totalPnL:
+          type: number
+          format: double
+          description: 總實現收益（USDT）
+        totalRoi:
+          type: number
+          format: double
+          description: 總收益率（%）
+        totalTrades:
+          type: integer
+          description: 總交易次數
+        winRate:
+          type: number
+          format: double
+          description: 勝率（%）
+        dailyPnL:
+          type: array
+          description: 每日收益趨勢
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              pnl:
+                type: number
+                format: double
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Invalid request parameters"
+            details:
+              type: object
+              nullable: true
+
+  responses:
+    BadRequest:
+      description: 請求參數錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: 未授權（未登入或 Token 無效）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: 資源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

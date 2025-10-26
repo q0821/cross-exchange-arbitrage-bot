@@ -33,7 +33,14 @@
       "Bash(git branch -D 005-arbitrage-opportunity-detection)",
       "Bash(git add CHANGELOG.md README.md specs/001-funding-rate-arbitrage/plan.md specs/001-funding-rate-arbitrage/tasks.md)",
       "Bash(pnpm prisma migrate:*)",
-      "Bash(pnpm tsx:*)"
+      "Bash(pnpm tsx:*)",
+      "Bash(.specify/scripts/bash/create-new-feature.sh:*)",
+      "SlashCommand(/speckit.plan)",
+      "Bash(.specify/scripts/bash/setup-plan.sh:*)",
+      "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
+      "SlashCommand(/speckit.tasks)",
+      "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
