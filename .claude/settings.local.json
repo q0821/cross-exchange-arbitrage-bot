@@ -40,7 +40,15 @@
       "Bash(.specify/scripts/bash/update-agent-context.sh:*)",
       "SlashCommand(/speckit.tasks)",
       "Bash(.specify/scripts/bash/check-prerequisites.sh:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\ndocs: 完成 Web 多用戶套利交易平台完整規格和任務清單\n\n- 執行完整 SDD 工作流程產生功能規格、技術計劃和任務清單\n- 建立功能規格 (spec.md) 包含 5 個優先級用戶故事\n- 建立技術計劃 (plan.md) 和技術決策文件 (research.md)\n- 設計資料模型 (data-model.md) 包含 5 個新 Prisma 模型\n- 定義 REST API 規格 (contracts/openapi.yaml)\n- 定義 WebSocket 事件規格 (contracts/websocket.md)\n- 建立快速入門指南 (quickstart.md)\n- 產生完整開發任務清單 (tasks.md) 包含 98 個任務\n- 更新專案開發指南 (CLAUDE.md) 和設定檔\n\n功能：006-web-trading-platform\n分支：006-web-trading-platform\nEOF\n)\")",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm next telemetry:*)",
+      "Bash(git commit:*)",
+      "Bash(pnpm prisma generate:*)",
+      "Bash(pnpm prisma db push:*)"
     ],
     "deny": [],
     "ask": []
