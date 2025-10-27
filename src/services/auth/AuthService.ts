@@ -1,8 +1,8 @@
 import { PrismaClient } from '@prisma/client';
-import { User, CreateUserData } from '../../models/User.js';
-import { UserRepository } from '../../repositories/UserRepository.js';
-import { logger } from '../../lib/logger.js';
-import { AuthError, ValidationError } from '../../lib/errors.js';
+import { User, CreateUserData } from '@models/User';
+import { UserRepository } from '../../repositories/UserRepository';
+import { logger } from '@lib/logger';
+import { AuthError, ValidationError } from '@lib/errors';
 
 /**
  * AuthService

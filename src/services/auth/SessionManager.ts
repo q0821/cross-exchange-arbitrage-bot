@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { generateToken, JwtPayload, decodeToken } from '../../lib/jwt.js';
-import { logger } from '../../lib/logger.js';
+import { generateToken, JwtPayload, decodeToken } from '@lib/jwt';
+import { logger } from '@lib/logger';
 
 /**
  * SessionManager

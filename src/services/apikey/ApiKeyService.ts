@@ -1,9 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { ApiKey, CreateApiKeyData, DecryptedApiKey } from '../../models/ApiKey.js';
-import { ApiKeyRepository } from '../../repositories/ApiKeyRepository.js';
-import { encrypt, decrypt } from '../../lib/encryption.js';
-import { logger } from '../../lib/logger.js';
-import { ValidationError, NotFoundError, UnauthorizedError } from '../../lib/errors.js';
+import { ApiKey, CreateApiKeyData, DecryptedApiKey } from '@models/ApiKey';
+import { ApiKeyRepository } from '../../repositories/ApiKeyRepository';
+import { encrypt, decrypt } from '@lib/encryption';
+import { logger } from '@lib/logger';
+import { ValidationError, NotFoundError, UnauthorizedError } from '@lib/errors';
 
 /**
  * ApiKeyService

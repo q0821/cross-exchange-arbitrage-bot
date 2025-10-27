@@ -1,7 +1,7 @@
 import { PrismaClient, ApiKey as PrismaApiKey } from '@prisma/client';
-import { ApiKey, CreateApiKeyData } from '../models/ApiKey.js';
-import { logger } from '../lib/logger.js';
-import { DatabaseError, NotFoundError } from '../lib/errors.js';
+import { ApiKey, CreateApiKeyData } from '@models/ApiKey';
+import { logger } from '@lib/logger';
+import { DatabaseError, NotFoundError } from '@lib/errors';
 
 /**
  * ApiKeyRepository

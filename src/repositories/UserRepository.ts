@@ -1,7 +1,7 @@
 import { PrismaClient, User as PrismaUser } from '@prisma/client';
-import { User, CreateUserData } from '../models/User.js';
-import { logger } from '../lib/logger.js';
-import { DatabaseError, NotFoundError } from '../lib/errors.js';
+import { User, CreateUserData } from '@models/User';
+import { logger } from '@lib/logger';
+import { DatabaseError, NotFoundError } from '@lib/errors';
 
 /**
  * UserRepository
