@@ -99,33 +99,33 @@
 
 #### 領域模型（T021-T022，可並行）
 
-- [ ] T021 [P] [US1] 建立 User 模型：在 `src/models/User.ts` 中實作 User 領域邏輯（密碼驗證等）
-- [ ] T022 [P] [US1] 建立 ApiKey 模型：在 `src/models/ApiKey.ts` 中實作 ApiKey 領域邏輯（遮罩顯示等）
+- [x] T021 [P] [US1] 建立 User 模型：在 `src/models/User.ts` 中實作 User 領域邏輯（密碼驗證等）
+- [x] T022 [P] [US1] 建立 ApiKey 模型：在 `src/models/ApiKey.ts` 中實作 ApiKey 領域邏輯（遮罩顯示等）
 
 #### Repository 層（T023-T024，可並行）
 
-- [ ] T023 [P] [US1] 建立 UserRepository：在 `src/repositories/UserRepository.ts` 中實作用戶 CRUD 操作
-- [ ] T024 [P] [US1] 建立 ApiKeyRepository：在 `src/repositories/ApiKeyRepository.ts` 中實作 API Key CRUD 操作
+- [x] T023 [P] [US1] 建立 UserRepository：在 `src/repositories/UserRepository.ts` 中實作用戶 CRUD 操作
+- [x] T024 [P] [US1] 建立 ApiKeyRepository：在 `src/repositories/ApiKeyRepository.ts` 中實作 API Key CRUD 操作
 
 #### Service 層（T025-T027）
 
-- [ ] T025 [US1] 實作 AuthService：在 `src/services/auth/AuthService.ts` 中實作註冊、登入、登出邏輯
-- [ ] T026 [US1] 實作 SessionManager：在 `src/services/auth/SessionManager.ts` 中實作 JWT Token 管理
-- [ ] T027 [US1] 實作 ApiKeyService：在 `src/services/apikey/ApiKeyService.ts` 中實作 API Key 新增、驗證、加密/解密邏輯
+- [x] T025 [US1] 實作 AuthService：在 `src/services/auth/AuthService.ts` 中實作註冊、登入、登出邏輯
+- [x] T026 [US1] 實作 SessionManager：在 `src/services/auth/SessionManager.ts` 中實作 JWT Token 管理
+- [x] T027 [US1] 實作 ApiKeyService：在 `src/services/apikey/ApiKeyService.ts` 中實作 API Key 新增、驗證、加密/解密邏輯
 
 #### API Routes（T028-T032，部分可並行）
 
-- [ ] T028 [P] [US1] 實作註冊 API：在 `app/api/auth/register/route.ts` 中處理 POST /api/auth/register
-- [ ] T029 [P] [US1] 實作登入 API：在 `app/api/auth/login/route.ts` 中處理 POST /api/auth/login
-- [ ] T030 [P] [US1] 實作登出 API：在 `app/api/auth/logout/route.ts` 中處理 POST /api/auth/logout
-- [ ] T031 [US1] 實作 API Keys 列表和新增：在 `app/api/api-keys/route.ts` 中處理 GET/POST /api/api-keys
-- [ ] T032 [US1] 實作 API Key 詳情和刪除：在 `app/api/api-keys/[id]/route.ts` 中處理 GET/PATCH/DELETE /api/api-keys/:id
+- [x] T028 [P] [US1] 實作註冊 API：在 `app/api/auth/register/route.ts` 中處理 POST /api/auth/register
+- [x] T029 [P] [US1] 實作登入 API：在 `app/api/auth/login/route.ts` 中處理 POST /api/auth/login
+- [x] T030 [P] [US1] 實作登出 API：在 `app/api/auth/logout/route.ts` 中處理 POST /api/auth/logout
+- [x] T031 [US1] 實作 API Keys 列表和新增：在 `app/api/api-keys/route.ts` 中處理 GET/POST /api/api-keys
+- [x] T032 [US1] 實作 API Key 詳情和刪除：在 `app/api/api-keys/[id]/route.ts` 中處理 GET/PATCH/DELETE /api/api-keys/:id
 
 #### 前端頁面（T033-T035，可並行）
 
-- [ ] T033 [P] [US1] 建立登入頁面：在 `app/(auth)/login/page.tsx` 中實作登入表單和 UI
-- [ ] T034 [P] [US1] 建立註冊頁面：在 `app/(auth)/register/page.tsx` 中實作註冊表單和 UI
-- [ ] T035 [US1] 建立 API Key 管理頁面：在 `app/(dashboard)/settings/api-keys/page.tsx` 中實作 API Key 列表、新增、刪除 UI
+- [x] T033 [P] [US1] 建立登入頁面：在 `app/(auth)/login/page.tsx` 中實作登入表單和 UI
+- [x] T034 [P] [US1] 建立註冊頁面：在 `app/(auth)/register/page.tsx` 中實作註冊表單和 UI
+- [x] T035 [US1] 建立 API Key 管理頁面：在 `app/(dashboard)/settings/api-keys/page.tsx` 中實作 API Key 列表、新增、刪除 UI
 
 ### 驗收標準（獨立可測試）
 
