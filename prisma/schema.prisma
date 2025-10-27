@@ -384,3 +384,154 @@ enum EventSeverity {
 
   @@map("event_severity")
 }
+
+// ===== Web 多用戶平台模型 (Feature 006) =====
+
+// ===== 用戶 =====
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique @db.VarChar(255)
+  password  String   @db.VarChar(255) // bcrypt hashed
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  apiKeys    ApiKey[]
+  positions  Position[]
+  trades     Trade[]
+  auditLogs  AuditLog[]
+
+  @@index([email])
+  @@map("users")
+}
+
+// ===== API Key 管理 =====
+model ApiKey {
+  id                  String    @id @default(cuid())
+  userId              String
+  exchange            String    @db.VarChar(50) // "binance" | "okx"
+  label               String    @db.VarChar(100)
+  encryptedKey        String    @db.Text // AES-256-GCM encrypted
+  encryptedSecret     String    @db.Text
+  encryptedPassphrase String?   @db.Text // OKX only
+  isActive            Boolean   @default(true)
+  lastValidatedAt     DateTime? @db.Timestamptz
+  createdAt           DateTime  @default(now()) @db.Timestamptz
+  updatedAt           DateTime  @updatedAt @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exchange, label])
+  @@index([userId, isActive])
+  @@index([exchange])
+  @@map("api_keys")
+}
+
+// ===== 持倉管理 =====
+model Position {
+  id                   String           @id @default(cuid())
+  userId               String
+  symbol               String           @db.VarChar(20)
+  longExchange         String           @db.VarChar(50)
+  longOrderId          String?          @db.VarChar(100)
+  longEntryPrice       Decimal          @db.Decimal(18, 8)
+  longPositionSize     Decimal          @db.Decimal(18, 8)
+  longLeverage         Int              @default(3)
+  shortExchange        String           @db.VarChar(50)
+  shortOrderId         String?          @db.VarChar(100)
+  shortEntryPrice      Decimal          @db.Decimal(18, 8)
+  shortPositionSize    Decimal          @db.Decimal(18, 8)
+  shortLeverage        Int              @default(3)
+  status               PositionWebStatus @default(PENDING)
+  openFundingRateLong  Decimal          @db.Decimal(10, 8)
+  openFundingRateShort Decimal          @db.Decimal(10, 8)
+  unrealizedPnL        Decimal?         @db.Decimal(18, 8)
+  openedAt             DateTime?        @db.Timestamptz
+  closedAt             DateTime?        @db.Timestamptz
+  failureReason        String?          @db.Text
+  createdAt            DateTime         @default(now()) @db.Timestamptz
+  updatedAt            DateTime         @updatedAt @db.Timestamptz
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trade Trade?
+
+  @@index([userId, status])
+  @@index([symbol, status])
+  @@index([createdAt(sort: Desc)])
+  @@map("positions")
+}
+
+enum PositionWebStatus {
+  PENDING // 待開倉
+  OPENING // 開倉中
+  OPEN    // 持倉中
+  CLOSING // 平倉中
+  CLOSED  // 已平倉
+  FAILED  // 失敗
+  PARTIAL // 部分成功
+
+  @@map("position_web_status")
+}
+
+// ===== 交易記錄 =====
+model Trade {
+  id                  String       @id @default(cuid())
+  userId              String
+  positionId          String       @unique
+  symbol              String       @db.VarChar(20)
+  longExchange        String       @db.VarChar(50)
+  longEntryPrice      Decimal      @db.Decimal(18, 8)
+  longExitPrice       Decimal      @db.Decimal(18, 8)
+  longPositionSize    Decimal      @db.Decimal(18, 8)
+  shortExchange       String       @db.VarChar(50)
+  shortEntryPrice     Decimal      @db.Decimal(18, 8)
+  shortExitPrice      Decimal      @db.Decimal(18, 8)
+  shortPositionSize   Decimal      @db.Decimal(18, 8)
+  openedAt            DateTime     @db.Timestamptz
+  closedAt            DateTime     @db.Timestamptz
+  holdingDuration     Int          // seconds
+  priceDiffPnL        Decimal      @db.Decimal(18, 8)
+  fundingRatePnL      Decimal      @db.Decimal(18, 8)
+  totalPnL            Decimal      @db.Decimal(18, 8)
+  roi                 Decimal      @db.Decimal(10, 4)
+  status              TradeWebStatus @default(SUCCESS)
+  createdAt           DateTime     @default(now()) @db.Timestamptz
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  position Position @relation(fields: [positionId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([symbol, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("trades")
+}
+
+enum TradeWebStatus {
+  SUCCESS // 完全成功
+  PARTIAL // 部分成功
+  FAILED  // 失敗
+
+  @@map("trade_web_status")
+}
+
+// ===== 審計日誌 =====
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   @db.VarChar(50) // "LOGIN" | "APIKEY_ADD" | "POSITION_OPEN" | etc.
+  resource  String?  @db.VarChar(100)
+  details   Json?    @db.JsonB
+  ipAddress String?  @db.VarChar(45)
+  createdAt DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}

@@ -58,9 +58,9 @@
 
 #### 資料庫 Schema（T009-T011）
 
-- [ ] T009 更新 Prisma Schema：在 `prisma/schema.prisma` 中新增 User, ApiKey, Position, Trade, AuditLog 模型
-- [ ] T010 更新 ArbitrageOpportunity 模型：新增 longExchange 和 shortExchange 欄位到 `prisma/schema.prisma`
-- [ ] T011 建立並執行資料庫遷移：`pnpm prisma migrate dev --name add_web_platform_models`
+- [x] T009 更新 Prisma Schema：在 `prisma/schema.prisma` 中新增 User, ApiKey, Position, Trade, AuditLog 模型
+- [x] T010 更新 ArbitrageOpportunity 模型：新增 longExchange 和 shortExchange 欄位到 `prisma/schema.prisma`
+- [x] T011 建立並執行資料庫遷移：`pnpm prisma db push` (開發環境使用)
 
 #### 工具函式（T012-T016，可並行）
 
