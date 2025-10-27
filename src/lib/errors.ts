@@ -1,4 +1,4 @@
-import { logger } from './logger.js';
+import { logger } from './logger';
 
 // 基礎錯誤類別
 export class BaseError extends Error {
