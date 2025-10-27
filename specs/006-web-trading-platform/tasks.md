@@ -33,14 +33,14 @@
 
 ### Tasks
 
-- [ ] T001 安裝 Next.js 14 依賴：執行 `pnpm add next@14 react@18 react-dom@18`
-- [ ] T002 安裝 Socket.io 依賴：執行 `pnpm add socket.io@4 socket.io-client@4`
-- [ ] T003 安裝認證依賴：執行 `pnpm add bcrypt@5 jsonwebtoken@9 @types/bcrypt @types/jsonwebtoken`
-- [ ] T004 安裝 UI 依賴：執行 `pnpm add tailwindcss@3 @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-tabs`
-- [ ] T005 安裝圖表依賴：執行 `pnpm add recharts@2`
-- [ ] T006 安裝驗證依賴：執行 `pnpm add zod@3`
-- [ ] T007 安裝測試依賴：執行 `pnpm add -D playwright@1 @playwright/test`
-- [ ] T008 建立 Next.js 配置檔案 `next.config.js` 和 TailwindCSS 配置 `tailwind.config.js`
+- [x] T001 安裝 Next.js 14 依賴：執行 `pnpm add next@14 react@18 react-dom@18`
+- [x] T002 安裝 Socket.io 依賴：執行 `pnpm add socket.io@4 socket.io-client@4`
+- [x] T003 安裝認證依賴：執行 `pnpm add bcrypt@5 jsonwebtoken@9 @types/bcrypt @types/jsonwebtoken`
+- [x] T004 安裝 UI 依賴：執行 `pnpm add tailwindcss@3 @radix-ui/react-dialog @radix-ui/react-dropdown-menu @radix-ui/react-tabs`
+- [x] T005 安裝圖表依賴：執行 `pnpm add recharts@2`
+- [x] T006 安裝驗證依賴：執行 `pnpm add zod@3`
+- [x] T007 安裝測試依賴：執行 `pnpm add -D playwright@1 @playwright/test`
+- [x] T008 建立 Next.js 配置檔案 `next.config.js` 和 TailwindCSS 配置 `tailwind.config.js`
 
 ### 驗收標準
 

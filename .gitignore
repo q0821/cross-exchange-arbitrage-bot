@@ -63,3 +63,13 @@ Thumbs.db
 config/local.json
 config/production.json
 config/staging.json
+
+# Next.js
+.next/
+out/
+.vercel/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
