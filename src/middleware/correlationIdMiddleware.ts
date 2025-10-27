@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getOrGenerateCorrelationId } from '../lib/correlationId.js';
+import { getOrGenerateCorrelationId } from '@lib/correlationId';
 
 /**
  * Correlation ID 中介軟體
