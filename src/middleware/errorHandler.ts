@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { BaseError, toAppError } from '../lib/errors.js';
-import { logger } from '../lib/logger.js';
+import { BaseError, toAppError } from '@lib/errors';
+import { logger } from '@lib/logger';
 import { ZodError } from 'zod';
 
 /**

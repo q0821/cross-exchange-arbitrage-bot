@@ -1,8 +1,8 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { verifyToken, JwtPayload } from '../lib/jwt.js';
-import { logger } from '../lib/logger.js';
-import { OpportunityHandler } from './handlers/OpportunityHandler.js';
+import { verifyToken, JwtPayload } from '@lib/jwt';
+import { logger } from '@lib/logger';
+import { OpportunityHandler } from './handlers/OpportunityHandler';
 
 /**
  * Socket.io 伺服器初始化

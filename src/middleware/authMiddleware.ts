@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, JwtPayload } from '../lib/jwt.js';
-import { UnauthorizedError, InvalidTokenError } from '../lib/errors.js';
+import { verifyToken, JwtPayload } from '@lib/jwt';
+import { UnauthorizedError, InvalidTokenError } from '@lib/errors';
 
 /**
  * 認證中介軟體

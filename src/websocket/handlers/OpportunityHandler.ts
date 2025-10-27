@@ -1,6 +1,6 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { AuthenticatedSocket } from '../SocketServer.js';
-import { logger } from '../../lib/logger.js';
+import { AuthenticatedSocket } from '../SocketServer';
+import { logger } from '@lib/logger';
 
 /**
  * OpportunityHandler
