@@ -64,21 +64,21 @@
 
 #### 工具函式（T012-T016，可並行）
 
-- [ ] T012 [P] 實作 API Key 加密工具：在 `src/lib/encryption.ts` 中實作 AES-256-GCM 加密/解密函式
-- [ ] T013 [P] 實作 JWT 工具：在 `src/lib/jwt.ts` 中實作 Token 產生、驗證和解析函式
-- [ ] T014 [P] 建立 Zod 驗證 Schema：在 `src/lib/validation.ts` 中定義 Email、密碼、API Key 等驗證規則
-- [ ] T015 [P] 建立統一錯誤類別：在 `src/lib/errors.ts` 中定義 AuthError, ValidationError, ExchangeError 等錯誤類別
-- [ ] T016 [P] 實作 Correlation ID 工具：在 `src/lib/correlationId.ts` 中實作請求追蹤 ID 產生函式
+- [x] T012 [P] 實作 API Key 加密工具：在 `src/lib/encryption.ts` 中實作 AES-256-GCM 加密/解密函式
+- [x] T013 [P] 實作 JWT 工具：在 `src/lib/jwt.ts` 中實作 Token 產生、驗證和解析函式
+- [x] T014 [P] 建立 Zod 驗證 Schema：在 `src/lib/validation.ts` 中定義 Email、密碼、API Key 等驗證規則
+- [x] T015 [P] 建立統一錯誤類別：在 `src/lib/errors.ts` 中擴展既有錯誤類別以支援 Web 平台
+- [x] T016 [P] 實作 Correlation ID 工具：在 `src/lib/correlationId.ts` 中實作請求追蹤 ID 產生函式
 
 #### HTTP 中介軟體（T017-T019，可並行）
 
-- [ ] T017 [P] 實作認證中介軟體：在 `src/middleware/authMiddleware.ts` 中驗證 JWT Token（從 Cookie 讀取）
-- [ ] T018 [P] 實作錯誤處理中介軟體：在 `src/middleware/errorHandler.ts` 中統一處理錯誤並回傳標準格式
-- [ ] T019 [P] 實作 Correlation ID 中介軟體：在 `src/middleware/correlationId.ts` 中為每個請求產生追蹤 ID
+- [x] T017 [P] 實作認證中介軟體：在 `src/middleware/authMiddleware.ts` 中驗證 JWT Token（從 Cookie 讀取）
+- [x] T018 [P] 實作錯誤處理中介軟體：在 `src/middleware/errorHandler.ts` 中統一處理錯誤並回傳標準格式
+- [x] T019 [P] 實作 Correlation ID 中介軟體：在 `src/middleware/correlationIdMiddleware.ts` 中為每個請求產生追蹤 ID
 
 #### WebSocket 基礎（T020）
 
-- [ ] T020 建立 Socket.io 伺服器：在 `src/websocket/SocketServer.ts` 中初始化 Socket.io 並實作認證中介軟體
+- [x] T020 建立 Socket.io 伺服器：在 `src/websocket/SocketServer.ts` 中初始化 Socket.io 並實作認證中介軟體
 
 ### 驗收標準
 
