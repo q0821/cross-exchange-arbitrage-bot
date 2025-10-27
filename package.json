@@ -9,8 +9,8 @@
   },
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
-    "start": "next start",
+    "dev": "tsx watch server.ts",
+    "start": "tsx server.ts",
     "cli": "tsx src/cli/index.ts",
     "test": "vitest",
     "test:watch": "vitest --watch",

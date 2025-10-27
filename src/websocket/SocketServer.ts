@@ -2,6 +2,7 @@ import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { verifyToken, JwtPayload } from '../lib/jwt.js';
 import { logger } from '../lib/logger.js';
+import { OpportunityHandler } from './handlers/OpportunityHandler.js';
 
 /**
  * Socket.io 伺服器初始化
@@ -13,6 +14,9 @@ export interface AuthenticatedSocket extends Socket {
     email: string;
   };
 }
+
+// 全域 OpportunityHandler 實例（供外部使用）
+let globalOpportunityHandler: OpportunityHandler | null = null;
 
 /**
  * 初始化 Socket.io 伺服器
@@ -67,6 +71,10 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
     }
   });
 
+  // 初始化 OpportunityHandler
+  const opportunityHandler = new OpportunityHandler(io);
+  globalOpportunityHandler = opportunityHandler;
+
   // 連線處理
   io.on('connection', (socket: Socket) => {
     const authenticatedSocket = socket as AuthenticatedSocket;
@@ -93,6 +101,9 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
       },
       'Socket joined user room',
     );
+
+    // 註冊 OpportunityHandler
+    opportunityHandler.register(socket);
 
     // 斷線處理
     socket.on('disconnect', (reason) => {
@@ -122,6 +133,13 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
   logger.info('Socket.io server initialized');
 
   return io;
+}
+
+/**
+ * 取得全域 OpportunityHandler 實例
+ */
+export function getOpportunityHandler(): OpportunityHandler | null {
+  return globalOpportunityHandler;
 }
 
 /**

@@ -157,33 +157,33 @@
 
 #### Repository 層（T036）
 
-- [ ] T036 [US2] 建立 ArbitrageOpportunityRepository：在 `src/repositories/ArbitrageOpportunityRepository.ts` 中擴展查詢方法（如果尚未存在）
+- [x] T036 [US2] 建立 ArbitrageOpportunityRepository：在 `src/repositories/ArbitrageOpportunityRepository.ts` 中擴展查詢方法（已存在）
 
 #### WebSocket Handlers（T037-T038）
 
-- [ ] T037 [US2] 實作 OpportunityHandler：在 `src/websocket/handlers/OpportunityHandler.ts` 中處理套利機會訂閱和推送邏輯
-- [ ] T038 [US2] 註冊 WebSocket Handlers：在 `src/websocket/SocketServer.ts` 中註冊 OpportunityHandler
+- [x] T037 [US2] 實作 OpportunityHandler：在 `src/websocket/handlers/OpportunityHandler.ts` 中處理套利機會訂閱和推送邏輯
+- [x] T038 [US2] 註冊 WebSocket Handlers：在 `src/websocket/SocketServer.ts` 中註冊 OpportunityHandler
 
 #### Service 層（T039-T040）
 
-- [ ] T039 [US2] 擴展 OpportunityDetector：在既有的 `src/services/monitor/OpportunityDetector.ts` 中新增 WebSocket 推送邏輯
-- [ ] T040 [US2] 建立 WebSocketChannel：在 `src/services/notification/channels/WebSocketChannel.ts` 中實作 WebSocket 通知渠道
+- [x] T039 [US2] 擴展 OpportunityDetector：在既有的 `src/services/monitor/OpportunityDetector.ts` 中新增 WebSocket 推送邏輯（透過 WebSocketChannel）
+- [x] T040 [US2] 建立 WebSocketChannel：在 `src/services/notification/channels/WebSocketChannel.ts` 中實作 WebSocket 通知渠道
 
 #### API Routes（T041）
 
-- [ ] T041 [US2] 實作套利機會列表 API：在 `app/api/opportunities/route.ts` 中處理 GET /api/opportunities
+- [x] T041 [US2] 實作套利機會列表 API：在 `app/api/opportunities/route.ts` 中處理 GET /api/opportunities
 
 #### 前端頁面和元件（T042-T046，部分可並行）
 
-- [ ] T042 [P] [US2] 建立 useWebSocket Hook：在 `hooks/useWebSocket.ts` 中封裝 Socket.io 客戶端邏輯
-- [ ] T043 [P] [US2] 建立 OpportunityCard 元件：在 `components/opportunities/OpportunityCard.tsx` 中顯示單個套利機會
-- [ ] T044 [P] [US2] 建立 OpportunityList 元件：在 `components/opportunities/OpportunityList.tsx` 中顯示機會列表並監聽 WebSocket 更新
-- [ ] T045 [US2] 建立套利機會列表頁面：在 `app/(dashboard)/opportunities/page.tsx` 中整合 OpportunityList 元件
-- [ ] T046 [US2] 建立套利機會詳情頁面：在 `app/(dashboard)/opportunities/[id]/page.tsx` 中顯示單個機會詳情
+- [x] T042 [P] [US2] 建立 useWebSocket Hook：在 `hooks/useWebSocket.ts` 中封裝 Socket.io 客戶端邏輯
+- [x] T043 [P] [US2] 建立 OpportunityCard 元件：在 `components/opportunities/OpportunityCard.tsx` 中顯示單個套利機會
+- [x] T044 [P] [US2] 建立 OpportunityList 元件：在 `components/opportunities/OpportunityList.tsx` 中顯示機會列表並監聽 WebSocket 更新
+- [x] T045 [US2] 建立套利機會列表頁面：在 `app/(dashboard)/opportunities/page.tsx` 中整合 OpportunityList 元件
+- [x] T046 [US2] 建立套利機會詳情頁面：在 `app/(dashboard)/opportunities/[id]/page.tsx` 中顯示單個機會詳情
 
 #### 自訂 Next.js Server（T047）
 
-- [ ] T047 [US2] 建立自訂 Server：在 `server.ts` 中整合 Next.js 和 Socket.io（共用 port）
+- [x] T047 [US2] 建立自訂 Server：在 `server.ts` 中整合 Next.js 和 Socket.io（共用 port）
 
 ### 驗收標準（獨立可測試）
 
