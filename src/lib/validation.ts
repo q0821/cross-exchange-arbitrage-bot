@@ -14,11 +14,8 @@ export const emailSchema = z
 
 export const passwordSchema = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(100, 'Password must not exceed 100 characters')
-  .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-  .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-  .regex(/[0-9]/, 'Password must contain at least one number');
+  .min(6, 'Password must be at least 6 characters')
+  .max(100, 'Password must not exceed 100 characters');
 
 export const exchangeSchema = z.enum(['binance', 'okx'], {
   errorMap: () => ({ message: 'Exchange must be either binance or okx' }),
