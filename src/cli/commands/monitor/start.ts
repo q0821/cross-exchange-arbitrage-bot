@@ -1,13 +1,16 @@
 import { Command } from 'commander';
 import { PrismaClient } from '@prisma/client';
+import { Decimal } from '@prisma/client/runtime/library';
 import { FundingRateMonitor } from '../../../services/monitor/FundingRateMonitor.js';
 import { FundingRateValidator } from '../../../services/validation/FundingRateValidator.js';
 import { FundingRateValidationRepository } from '../../../repositories/FundingRateValidationRepository.js';
+import { ArbitrageOpportunityRepository } from '../../../repositories/ArbitrageOpportunityRepository.js';
 import { OkxConnectorAdapter } from '../../../adapters/OkxConnectorAdapter.js';
 import { OkxCCXT } from '../../../lib/ccxt/OkxCCXT.js';
 import { OKXConnector } from '../../../connectors/okx.js';
 import { logger } from '../../../lib/logger.js';
 import { MonitorOutputFormatter } from '../../../lib/formatters/MonitorOutputFormatter.js';
+import type { CreateOpportunityData } from '../../../types/opportunity-detection.js';
 
 export function createMonitorStartCommand(): Command {
   const command = new Command('start');
@@ -39,14 +42,16 @@ export function createMonitorStartCommand(): Command {
           enableValidation,
         }, '監控參數');
 
+        // 初始化 Prisma Client 和 Repository（用於儲存套利機會）
+        logger.info('初始化資料庫連線...');
+        const prisma = new PrismaClient();
+        const opportunityRepository = new ArbitrageOpportunityRepository(prisma);
+        logger.info('資料庫連線已建立');
+
         // 建立驗證器（如果啟用）
         let validator: FundingRateValidator | undefined;
-        let prisma: PrismaClient | undefined;
         if (enableValidation) {
           logger.info('初始化資金費率驗證器...');
-
-          // 初始化 Prisma Client
-          prisma = new PrismaClient();
 
           // 建立 OKX Connector（用於驗證）
           const okxConnector = new OKXConnector(isTestnet);
@@ -106,7 +111,7 @@ export function createMonitorStartCommand(): Command {
           formatter.refresh(combinedOutput);
         });
 
-        monitor.on('opportunity-detected', (pair) => {
+        monitor.on('opportunity-detected', async (pair) => {
           // 記錄到日誌檔案
           logger.info({
             symbol: pair.symbol,
@@ -119,6 +124,52 @@ export function createMonitorStartCommand(): Command {
           // 使用格式化的機會報告輸出到終端
           const report = formatter.renderOpportunityReport(pair, threshold * 100);
           console.log(report);
+
+          // 寫入資料庫
+          try {
+            // 判斷哪個交易所費率較高（做空）、哪個較低（做多）
+            const binanceRate = pair.binance.fundingRate;
+            const okxRate = pair.okx.fundingRate;
+
+            const longExchange = binanceRate < okxRate ? 'binance' : 'okx';
+            const shortExchange = binanceRate < okxRate ? 'okx' : 'binance';
+            const longFundingRate = Math.min(binanceRate, okxRate);
+            const shortFundingRate = Math.max(binanceRate, okxRate);
+
+            // 計算費率差異（以小數表示）
+            const rateDifference = Math.abs(binanceRate - okxRate);
+
+            // 計算預期年化收益率（以小數表示）
+            // 資金費率每 8 小時收取一次，一天 3 次，一年 365 天
+            const expectedReturnRate = rateDifference * 3 * 365;
+
+            // 建立套利機會資料
+            const opportunityData: CreateOpportunityData = {
+              symbol: pair.symbol,
+              longExchange,
+              shortExchange,
+              longFundingRate: new Decimal(longFundingRate),
+              shortFundingRate: new Decimal(shortFundingRate),
+              rateDifference: new Decimal(rateDifference),
+              expectedReturnRate: new Decimal(expectedReturnRate),
+              detectedAt: pair.recordedAt,
+            };
+
+            // 儲存到資料庫
+            const savedOpportunity = await opportunityRepository.create(opportunityData);
+
+            logger.info({
+              opportunityId: savedOpportunity.id,
+              symbol: pair.symbol,
+              rateDifference: rateDifference.toFixed(6),
+              expectedReturnRate: (expectedReturnRate * 100).toFixed(2) + '%',
+            }, '套利機會已儲存到資料庫');
+          } catch (error) {
+            logger.error({
+              error: error instanceof Error ? error.message : String(error),
+              symbol: pair.symbol,
+            }, '儲存套利機會失敗');
+          }
         });
 
         monitor.on('error', (error) => {
@@ -153,11 +204,9 @@ export function createMonitorStartCommand(): Command {
           logger.info('正在停止監控服務...');
           await monitor.stop();
 
-          // 如果啟用了驗證，關閉 Prisma 連線
-          if (prisma) {
-            logger.info('關閉資料庫連線...');
-            await prisma.$disconnect();
-          }
+          // 關閉 Prisma 連線
+          logger.info('關閉資料庫連線...');
+          await prisma.$disconnect();
 
           logger.info('監控服務已停止');
           process.exit(0);
