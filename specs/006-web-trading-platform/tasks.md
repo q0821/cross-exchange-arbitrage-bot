@@ -107,11 +107,15 @@
 - [x] T023 [P] [US1] 建立 UserRepository：在 `src/repositories/UserRepository.ts` 中實作用戶 CRUD 操作
 - [x] T024 [P] [US1] 建立 ApiKeyRepository：在 `src/repositories/ApiKeyRepository.ts` 中實作 API Key CRUD 操作
 
-#### Service 層（T025-T027）
+#### Service 層（T025-T027a）
 
 - [x] T025 [US1] 實作 AuthService：在 `src/services/auth/AuthService.ts` 中實作註冊、登入、登出邏輯
 - [x] T026 [US1] 實作 SessionManager：在 `src/services/auth/SessionManager.ts` 中實作 JWT Token 管理
 - [x] T027 [US1] 實作 ApiKeyService：在 `src/services/apikey/ApiKeyService.ts` 中實作 API Key 新增、驗證、加密/解密邏輯
+- [ ] T027a [US1] 實作 ApiKeyValidator：在 `src/services/apikey/ApiKeyValidator.ts` 中實作 API Key 權限驗證邏輯
+  - 驗證 API Key 是否具有必要的交易權限（讀取帳戶資訊、開倉、平倉）- 對應 FR-012
+  - 透過呼叫交易所 API 測試連線並檢查權限（如 Binance `/fapi/v2/account`、OKX `/api/v5/account/balance`）
+  - 記錄驗證結果和權限詳情到 AuditLog
 
 #### API Routes（T028-T032，部分可並行）
 
@@ -225,12 +229,23 @@ socket.on('opportunity:expired', (data) => console.log('Expired:', data));
 - [ ] T049 [US3] 建立 PositionRepository：在 `src/repositories/PositionRepository.ts` 中實作持倉 CRUD 操作
 - [ ] T050 [US3] 建立 AuditLogRepository：在 `src/repositories/AuditLogRepository.ts` 中實作審計日誌記錄
 
-#### Service 層（T051-T054）
+#### Service 層（T051-T054b）
 
 - [ ] T051 [US3] 擴展 ExchangeConnector：改造 `src/connectors/ExchangeConnector.ts` 支援動態注入用戶 API Key
-- [ ] T052 [US3] 實作 PositionValidator：在 `src/services/trading/PositionValidator.ts` 中實作開倉前驗證（餘額、限額、API Key）
+- [ ] T052 [US3] 實作 PositionValidator：在 `src/services/trading/PositionValidator.ts` 中實作開倉前驗證
+  - 餘額驗證：依照 plan.md 的「Trading Parameters & Validation Logic」實作餘額檢查（對應 FR-029）
+  - 限額驗證：檢查單筆倉位和總倉位是否超過用戶配置的上限
+  - API Key 驗證：確認 API Key 有效且具有交易權限
 - [ ] T053 [US3] 實作 TradeOrchestrator：在 `src/services/trading/TradeOrchestrator.ts` 中協調雙邊開倉和補償邏輯（Saga pattern）
 - [ ] T054 [US3] 實作 PositionManager：在 `src/services/trading/PositionManager.ts` 中實作持倉管理邏輯
+- [ ] T054a [US3] 實作 FundingRateAccumulator：在 `src/services/trading/FundingRateAccumulator.ts` 中實作資金費率累計計算服務（對應 FR-044）
+  - 追蹤持倉期間的資金費率結算（每 8 小時）
+  - 計算累計資金費率收支並更新到 Position 記錄
+  - 提供即時查詢接口供 PnL 計算使用
+- [ ] T054b [US3] 實作開倉防抖動機制（對應 FR-034）
+  - 前端：在 OpenPositionDialog 中實作按鈕禁用邏輯（點擊後禁用 5 秒或操作完成）
+  - 後端：在 TradeOrchestrator 中使用 Redis 分散式鎖確保同一用戶同一時間只能執行一次開倉操作
+  - 記錄並發嘗試到 AuditLog
 
 #### API Routes（T055-T056）
 
@@ -382,6 +397,17 @@ socket.on('opportunity:expired', (data) => console.log('Expired:', data));
 - [ ] T076 [P] [US5] 擴展 TradeList 元件：在 `components/trades/TradeList.tsx` 中新增按交易對和日期範圍篩選功能
 - [ ] T077 [P] [US5] 實作交易記錄匯出功能：在交易歷史頁面新增「匯出 CSV」按鈕
 - [ ] T078 [US5] 建立 Dashboard 首頁：在 `app/(dashboard)/page.tsx` 中整合統計摘要和最近交易列表
+
+#### Email 通知服務（T078a-T078b，對應 Constitution Emergency Procedures）
+
+- [ ] T078a [US5] 實作 Email 通知服務：在 `src/services/notification/channels/EmailChannel.ts` 中使用 Nodemailer 實作 Email 發送
+  - 配置 SMTP 連線（支援 Gmail、SendGrid 等）
+  - 實作 Email 模板（開倉成功、平倉成功、錯誤警告、餘額不足警告）
+  - 整合到既有的 NotificationService 作為新的通知渠道
+- [ ] T078b [US5] 添加 Email 通知配置頁面：在 `app/(dashboard)/settings/notifications/page.tsx` 中允許用戶配置
+  - Email 地址設定
+  - 通知類型選擇（開倉成功、平倉成功、錯誤、警告等）
+  - 測試發送功能（發送測試郵件）
 
 ### 驗收標準（獨立可測試）
 
@@ -588,6 +614,74 @@ Phase 8 (Polish) ─────────────────────
 - **交易所 API 穩定性**: 測試時使用 testnet，避免影響真實資金
 - **資料庫遷移失敗**: 在執行遷移前備份資料庫
 - **WebSocket 連線不穩定**: 實作自動重連機制，並在 UI 顯示連線狀態
+
+---
+
+## Phase 8: Future Enhancements（Phase 6+ 未來版本）
+
+**目標**: 實作 Constitution 要求但在 MVP 階段延後的進階功能
+
+**注意**: 這些任務標記為未來版本，不在當前 /implement 範圍內，但記錄在此以確保 Constitution 合規性的完整追蹤。
+
+### Tasks
+
+#### Trading Safety Requirements（對應 Constitution Trading Safety）
+
+- [ ] T099 [FUTURE] 實作自動止損功能
+  - 在 `src/services/trading/StopLossService.ts` 中實作基於百分比或絕對金額的止損觸發邏輯
+  - 持續監控持倉的未實現 PnL，當虧損達到設定門檻時自動觸發平倉
+  - 實作回測驗證機制確保止損邏輯的正確性
+  - 在用戶設定頁面允許配置止損參數（預設 -10%）
+  - **對應需求**: Constitution Trading Safety Requirements - Stop-Loss Enforcement
+
+- [ ] T100 [FUTURE] 實作追蹤止損功能
+  - 在 StopLossService 中擴展支援追蹤止損（trailing stop-loss）
+  - 當 PnL 達到一定獲利後，自動調整止損線以鎖定部分利潤
+  - **對應需求**: Constitution Trading Safety Requirements - Advanced Risk Management
+
+- [ ] T101 [FUTURE] 實作滑點保護和預警機制
+  - 在開倉前檢查預估滑點（基於 order book depth）
+  - 當預估滑點超過門檻（預設 0.5%）時顯示警告並要求二次確認
+  - 記錄實際成交滑點並在 UI 顯示
+  - **對應需求**: Constitution Trading Safety Requirements - Slippage Protection
+
+#### Emergency Procedures（對應 Constitution Emergency Procedures）
+
+- [ ] T102 [FUTURE] 整合 Telegram Bot 通知服務
+  - 在 `src/services/notification/channels/TelegramChannel.ts` 中實作 Telegram Bot API 整合
+  - 實作 Bot Token 和 Chat ID 管理（支援多用戶）
+  - 發送關鍵事件通知（開倉、平倉、錯誤、警告）
+  - 在用戶設定頁面允許配置 Telegram 通知選項
+  - **對應需求**: Constitution Emergency Procedures - Notification Escalation
+
+- [ ] T103 [FUTURE] 實作進階錯誤監控和告警
+  - 整合 Sentry 或類似的錯誤追蹤服務
+  - 實作錯誤聚合和分類邏輯
+  - 當錯誤率超過門檻時觸發緊急通知（Email + Telegram）
+  - **對應需求**: Constitution Emergency Procedures - Circuit Breaker Enhancement
+
+#### Advanced Features（對應 User Feedback）
+
+- [ ] T104 [FUTURE] 支援限價單（Limit Order）
+  - 擴展 TradeOrchestrator 支援限價單類型
+  - 允許用戶在開倉時選擇市價單或限價單
+  - 實作限價單的監控和自動取消邏輯（如價格超時）
+  - **對應需求**: spec.md FR-031 未來版本擴展
+
+- [ ] T105 [FUTURE] 支援可配置槓桿倍數
+  - 在用戶設定頁面允許配置槓桿倍數（1x-10x）
+  - 更新 PositionValidator 的餘額驗證邏輯以支援動態槓桿
+  - 在開倉確認對話框顯示槓桿選項
+  - **對應需求**: spec.md Glossary 和 plan.md Trading Parameters 未來版本擴展
+
+### 驗收標準（未來版本）
+
+這些任務將在 MVP 上線並收集用戶反饋後，根據實際需求優先級決定是否實作。每個任務實作前需要：
+
+1. 用戶需求驗證：確認此功能對實際用戶有價值
+2. 技術方案設計：完成詳細的技術設計和架構評審
+3. 憲法合規檢查：確認實作方案符合 Constitution 所有原則
+4. 測試計畫：制定完整的單元測試、整合測試和 E2E 測試計畫
 
 ---
 

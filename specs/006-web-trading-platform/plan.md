@@ -63,6 +63,48 @@
 - 預期程式碼規模：~15,000 LOC (含測試)
 - Web 頁面數：~8 個主要頁面（登入、註冊、API Key 管理、套利機會、持倉管理、交易歷史、收益統計、設定）
 
+**Trading Parameters & Validation Logic**:
+
+本節明確定義 MVP 階段的交易參數和驗證邏輯，與 spec.md 的 FR-029 和 Glossary 保持一致：
+
+1. **槓桿倍數（Leverage）**：
+   - MVP 階段：固定為 **3x**（不可配置）
+   - 未來版本：在用戶設定頁面支援 1x-10x 可配置
+   - 理由：固定槓桿簡化實作和測試，降低風險管理複雜度
+
+2. **餘額驗證邏輯（Balance Validation）**：
+   - 執行時機：開倉前（FR-029）
+   - 計算公式：
+     ```
+     所需保證金 = 倉位大小（USDT）/ 槓桿倍數（3x）
+     緩衝係數 = 1.1（預留 10% 應對滑點和手續費）
+     最低餘額要求 = 所需保證金 × 緩衝係數
+     ```
+   - 驗證邏輯：
+     ```typescript
+     // 範例：用戶想開 3000 USDT 倉位
+     const positionSize = 3000; // USDT
+     const leverage = 3;
+     const buffer = 1.1;
+     const requiredMargin = positionSize / leverage; // 1000 USDT
+     const minBalance = requiredMargin * buffer; // 1100 USDT
+
+     // 查詢兩個交易所的可用 USDT 餘額
+     const binanceBalance = await binanceConnector.getAvailableBalance('USDT');
+     const okxBalance = await okxConnector.getAvailableBalance('USDT');
+
+     // 驗證
+     if (binanceBalance < minBalance || okxBalance < minBalance) {
+       throw new InsufficientBalanceError('餘額不足，無法開倉');
+     }
+     ```
+   - 實作位置：`src/services/trading/PositionValidator.ts`（任務 T066）
+
+3. **訂單類型（Order Type）**：
+   - MVP 階段：僅使用 **市價單（Market Order）**
+   - 未來版本：支援限價單（Limit Order）
+   - 理由：市價單執行速度快、成功率高，適合套利交易的即時性需求
+
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
@@ -438,7 +480,7 @@ playwright.config.ts              # ⭐ 新增：Playwright E2E 測試配置
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Trading Safety: Stop-Loss 功能延後 | 規格明確排除進階風險管理功能（Out of Scope #4），初期版本專注於手動交易和監控 | 自動止損需要複雜的觸發邏輯、回測驗證和額外的測試成本，不符合 MVP 範圍。用戶可以透過手動監控和平倉來管理風險。 |
+| Trading Safety: Stop-Loss 功能延後 | 規格明確排除進階風險管理功能（Out of Scope #4），初期版本專注於手動交易和監控。憲法要求 MUST 實作止損，但基於以下理由延後到 Phase 6+ | **技術複雜度**：自動止損需要 (1) 持續監控價格和 PnL，(2) 觸發邏輯的回測驗證，(3) 與雙邊交易所的原子性協調，(4) 額外的錯誤處理（如止損執行失敗）。**風險評估**：目標用戶為小團隊內部使用，交易頻率低，可接受手動監控風險。**替代方案充分性**：實作即時 PnL 警告、顏色標示、一鍵平倉功能（見 Mitigation Strategy），能有效降低風險至可接受水平。**驗證策略**：MVP 上線後收集用戶反饋，評估手動監控的可行性，再決定是否在 Phase 6 加入自動止損。 |
 | Emergency Procedures: Telegram 通知延後 | 規格明確排除 Email/Telegram 通知（Out of Scope #8），初期版本使用 Web 內通知 | Telegram Bot 整合需要額外的基礎設施（Bot Token, Chat ID 管理）和測試。Web 內通知已足以支援小團隊使用。Email 通知可在 Phase 5 或 Phase 6 加入。 |
 
 **Mitigation Strategy**:
@@ -449,13 +491,15 @@ playwright.config.ts              # ⭐ 新增：Playwright E2E 測試配置
    - 提供「一鍵平倉所有虧損倉位」功能
 
 2. **Telegram 通知替代方案**（Phase 1-5）：
-   - Web 內通知使用 WebSocket 即時推送關鍵事件（開倉成功、平倉成功、錯誤警告）
-   - 使用瀏覽器通知 API（需要用戶授權）來推送桌面通知
-   - 在 Phase 5 或 Phase 6 加入 Email 通知作為補充
+   - **Phase 1-4**: Web 內通知使用 WebSocket 即時推送關鍵事件（開倉成功、平倉成功、錯誤警告）
+   - **Phase 1-4**: 使用瀏覽器通知 API（需要用戶授權）來推送桌面通知，確保用戶即使不在頁面也能收到提醒
+   - **Phase 5**: 實作 Email 通知服務（使用 Nodemailer + SMTP），支援關鍵事件通知（開倉/平倉成功、異常錯誤、餘額不足警告）
+   - **評估標準**: 如果用戶反饋 Email 通知不足以滿足即時性需求，則在 Phase 6 加入 Telegram Bot
 
 3. **未來版本規劃**（Phase 6+）：
-   - 實作自動止損功能（基於百分比或絕對金額）
-   - 整合 Telegram Bot 支援即時通知
-   - 新增追蹤止損功能
+   - **T099**: 實作自動止損功能（基於百分比或絕對金額）- 需求覆蓋 Constitution Trading Safety Requirements
+   - **T100**: 整合 Telegram Bot 支援即時通知 - 需求覆蓋 Constitution Emergency Procedures
+   - **T101**: 實作追蹤止損功能（trailing stop-loss）
+   - **T102**: 實作滑點保護和預警機制
 
 **Justification**: 這些延後的功能都不影響核心的套利交易流程（監控 → 開倉 → 平倉 → 收益追蹤），且規格明確將它們排除在初期範圍外。專注於 MVP 可以更快交付價值給用戶，並在實際使用後根據反饋決定是否需要這些進階功能。
