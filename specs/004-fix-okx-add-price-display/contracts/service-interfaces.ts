@@ -9,7 +9,6 @@
  */
 
 import { EventEmitter } from 'events';
-import { Decimal } from '@prisma/client/runtime/library';
 
 // ============================================================================
 // Core Data Types

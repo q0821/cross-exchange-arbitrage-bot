@@ -1,7 +1,6 @@
 import pino from 'pino';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
-const isProduction = process.env.NODE_ENV === 'production';
 const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Next.js 環境中使用簡單的 stdout 配置，避免 worker thread 問題

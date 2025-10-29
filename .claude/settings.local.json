@@ -48,7 +48,9 @@
       "Bash(pnpm next telemetry:*)",
       "Bash(git commit:*)",
       "Bash(pnpm prisma generate:*)",
-      "Bash(pnpm prisma db push:*)"
+      "Bash(pnpm prisma db push:*)",
+      "Bash(git rm:*)",
+      "Bash(pnpm build:*)"
     ],
     "deny": [],
     "ask": []

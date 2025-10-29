@@ -26,17 +26,23 @@ export default function FundingRatesPage() {
 
   const loadFundingRates = async () => {
     try {
+      console.log('[FundingRates] Fetching rates for symbol:', symbol);
       const response = await fetch(`/api/funding-rates?symbol=${encodeURIComponent(symbol)}`);
+
+      console.log('[FundingRates] Response status:', response.status);
 
       if (!response.ok) {
         const data = await response.json();
+        console.error('[FundingRates] Error response:', data);
         throw new Error(data.error?.message || 'Failed to load funding rates');
       }
 
       const data = await response.json();
+      console.log('[FundingRates] Received data:', data);
       setRates(data.data.rates);
       setError('');
     } catch (err) {
+      console.error('[FundingRates] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setIsLoading(false);
@@ -74,7 +80,7 @@ export default function FundingRatesPage() {
   };
 
   const calculateSpread = (): string | null => {
-    if (rates.length !== 2 || !rates[0].fundingRate || !rates[1].fundingRate) {
+    if (rates.length !== 2 || !rates[0] || !rates[1] || !rates[0].fundingRate || !rates[1].fundingRate) {
       return null;
     }
     const spread = Math.abs(rates[0].fundingRate - rates[1].fundingRate);
@@ -113,6 +119,22 @@ export default function FundingRatesPage() {
 
   return (
     <div className="space-y-6">
+      {/* 錯誤訊息 */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <p className="font-semibold">錯誤</p>
+          <p>{error}</p>
+          {error.includes('API Key') && (
+            <Link
+              href="/settings/api-keys"
+              className="inline-block mt-2 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm"
+            >
+              前往設定 API Key
+            </Link>
+          )}
+        </div>
+      )}
+
       {/* 標題和控制 */}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">即時資金費率</h1>

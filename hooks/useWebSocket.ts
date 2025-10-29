@@ -32,11 +32,22 @@ interface UseWebSocketOptions {
   onError?: (error: Error) => void;
 }
 
+interface UseWebSocketReturn {
+  socket: Socket | null;
+  isConnected: boolean;
+  error: Error | null;
+  connect: () => void;
+  disconnect: () => void;
+  on: (event: string, handler: (...args: any[]) => void) => void;
+  off: (event: string, handler: (...args: any[]) => void) => void;
+  emit: (event: string, ...args: any[]) => void;
+}
+
 /**
  * WebSocket Hook
  * 封裝 Socket.io 客戶端邏輯
  */
-export function useWebSocket(options: UseWebSocketOptions = {}) {
+export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
   const {
     url = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000',
     autoConnect = true,

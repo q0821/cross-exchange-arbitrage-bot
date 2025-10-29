@@ -1,6 +1,6 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { verifyToken, JwtPayload } from '@lib/jwt';
+import { verifyToken } from '@lib/jwt';
 import { logger } from '@lib/logger';
 import { OpportunityHandler } from './handlers/OpportunityHandler';
 

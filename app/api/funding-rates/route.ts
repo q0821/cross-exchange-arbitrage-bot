@@ -36,8 +36,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // 3. 查詢用戶的 API Keys
     const apiKeys = await prisma.apiKey.findMany({
       where: {
-        user_id: user.userId,
-        is_active: true,
+        userId: user.userId,
+        isActive: true,
       },
     });
 
@@ -58,44 +58,164 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const results = await Promise.all(
       apiKeys.map(async (apiKey) => {
         try {
-          let exchange;
-          const decryptedKey = decrypt(apiKey.api_key);
-          const decryptedSecret = decrypt(apiKey.api_secret);
+          logger.info(
+            {
+              correlationId,
+              exchange: apiKey.exchange,
+              symbol,
+            },
+            'Starting to fetch funding rate',
+          );
+
+          let exchange: ccxt.Exchange;
+          const decryptedKey = decrypt(apiKey.encryptedKey);
+          const decryptedSecret = decrypt(apiKey.encryptedSecret);
+
+          // 判斷是否為測試環境（通過 label 判斷，包含 "test" 或 "測試" 或 "demo" 的視為測試網）
+          const isTestnet = apiKey.label.toLowerCase().includes('test') ||
+                           apiKey.label.includes('測試') ||
+                           apiKey.label.toLowerCase().includes('demo');
 
           if (apiKey.exchange === 'binance') {
-            exchange = new ccxt.binance({
+            const config: any = {
               apiKey: decryptedKey,
               secret: decryptedSecret,
-            });
+              enableRateLimit: true,
+              options: {
+                defaultType: 'future', // 永續合約
+              },
+            };
+
+            // Binance 測試網設定
+            if (isTestnet) {
+              config.options.testnet = true;
+              config.hostname = 'testnet.binancefuture.com';
+            }
+
+            exchange = new (ccxt as any).binance(config);
           } else if (apiKey.exchange === 'okx') {
-            const decryptedPassphrase = apiKey.passphrase
-              ? decrypt(apiKey.passphrase)
+            const decryptedPassphrase = apiKey.encryptedPassphrase
+              ? decrypt(apiKey.encryptedPassphrase)
               : undefined;
-            exchange = new ccxt.okx({
+
+            const config: any = {
               apiKey: decryptedKey,
               secret: decryptedSecret,
               password: decryptedPassphrase,
-            });
+              enableRateLimit: true,
+              options: {
+                defaultType: 'swap', // 永續合約
+              },
+            };
+
+            // OKX 模擬盤設定
+            if (isTestnet) {
+              config.options.sandboxMode = true;
+            }
+
+            exchange = new (ccxt as any).okx(config);
           } else {
             return null;
           }
 
+          logger.info(
+            {
+              correlationId,
+              exchange: apiKey.exchange,
+              isTestnet,
+              label: apiKey.label,
+            },
+            `Using ${isTestnet ? 'TESTNET' : 'MAINNET'} environment`,
+          );
+
+          logger.info(
+            {
+              correlationId,
+              exchange: apiKey.exchange,
+            },
+            'Exchange initialized, loading markets...',
+          );
+
+          // 加載市場數據
+          await exchange.loadMarkets();
+
+          logger.info(
+            {
+              correlationId,
+              exchange: apiKey.exchange,
+            },
+            'Markets loaded successfully',
+          );
+
           // 查詢資金費率和價格
           const [fundingRate, ticker] = await Promise.all([
-            exchange.fetchFundingRate(symbol).catch(() => null),
-            exchange.fetchTicker(symbol).catch(() => null),
+            exchange.fetchFundingRate(symbol).catch((err) => {
+              logger.error(
+                {
+                  correlationId,
+                  exchange: apiKey.exchange,
+                  symbol,
+                  error: err instanceof Error ? err.message : String(err),
+                  stack: err instanceof Error ? err.stack : undefined,
+                },
+                'Failed to fetch funding rate',
+              );
+              return null;
+            }),
+            exchange.fetchTicker(symbol).catch((err) => {
+              logger.error(
+                {
+                  correlationId,
+                  exchange: apiKey.exchange,
+                  symbol,
+                  error: err instanceof Error ? err.message : String(err),
+                  stack: err instanceof Error ? err.stack : undefined,
+                },
+                'Failed to fetch ticker',
+              );
+              return null;
+            }),
           ]);
 
-          return {
+          logger.info(
+            {
+              correlationId,
+              exchange: apiKey.exchange,
+              fundingRateData: fundingRate ? {
+                fundingRate: fundingRate.fundingRate,
+                fundingTimestamp: fundingRate.fundingTimestamp,
+                symbol: fundingRate.symbol,
+              } : null,
+              tickerData: ticker ? {
+                last: ticker.last,
+                symbol: ticker.symbol,
+                hasInfo: !!(ticker as any).info,
+              } : null,
+            },
+            'Fetched data from exchange',
+          );
+
+          const result = {
             exchange: apiKey.exchange,
             label: apiKey.label,
             symbol,
             fundingRate: fundingRate?.fundingRate || null,
             nextFundingTime: fundingRate?.fundingTimestamp || null,
             markPrice: ticker?.last || null,
-            indexPrice: ticker?.info?.indexPrice || null,
+            indexPrice: (ticker as any)?.info?.indexPrice || null,
             timestamp: new Date().toISOString(),
           };
+
+          logger.info(
+            {
+              correlationId,
+              exchange: apiKey.exchange,
+              result,
+            },
+            'Prepared result object',
+          );
+
+          return result;
         } catch (error) {
           logger.error(
             {

@@ -407,17 +407,18 @@ model User {
 
 // ===== API Key 管理 =====
 model ApiKey {
-  id                  String    @id @default(cuid())
+  id                  String         @id @default(cuid())
   userId              String
-  exchange            String    @db.VarChar(50) // "binance" | "okx"
-  label               String    @db.VarChar(100)
-  encryptedKey        String    @db.Text // AES-256-GCM encrypted
-  encryptedSecret     String    @db.Text
-  encryptedPassphrase String?   @db.Text // OKX only
-  isActive            Boolean   @default(true)
-  lastValidatedAt     DateTime? @db.Timestamptz
-  createdAt           DateTime  @default(now()) @db.Timestamptz
-  updatedAt           DateTime  @updatedAt @db.Timestamptz
+  exchange            String         @db.VarChar(50) // "binance" | "okx"
+  environment         ApiEnvironment @default(MAINNET) // 環境：主網或測試網
+  label               String         @db.VarChar(100)
+  encryptedKey        String         @db.Text // AES-256-GCM encrypted
+  encryptedSecret     String         @db.Text
+  encryptedPassphrase String?        @db.Text // OKX only
+  isActive            Boolean        @default(true)
+  lastValidatedAt     DateTime?      @db.Timestamptz
+  createdAt           DateTime       @default(now()) @db.Timestamptz
+  updatedAt           DateTime       @updatedAt @db.Timestamptz
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -426,6 +427,11 @@ model ApiKey {
   @@index([userId, isActive])
   @@index([exchange])
   @@map("api_keys")
+}
+
+enum ApiEnvironment {
+  MAINNET // 主網（真實交易）
+  TESTNET // 測試網（Binance Testnet / OKX Demo Trading）
 }
 
 // ===== 持倉管理 =====

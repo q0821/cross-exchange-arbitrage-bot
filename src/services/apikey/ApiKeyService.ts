@@ -217,9 +217,10 @@ export class ApiKeyService {
    */
   async validateApiKey(apiKeyId: string, userId: string): Promise<boolean> {
     const apiKey = await this.getApiKeyById(apiKeyId, userId);
-    const decrypted = await this.decryptApiKey(apiKeyId, userId);
+    // const decrypted = await this.decryptApiKey(apiKeyId, userId);
 
     // TODO: 根據 exchange 類型，呼叫對應的 CCXT 客戶端進行連線測試
+    // TODO: 使用 decrypted 來進行實際的連線測試
     // 暫時返回 true，待後續實作交易所連線測試
     logger.info(
       {

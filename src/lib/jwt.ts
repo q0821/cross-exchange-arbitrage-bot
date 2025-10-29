@@ -40,10 +40,10 @@ export function generateToken(payload: JwtPayload): string {
   const expiresIn = getJwtExpiresIn();
 
   return jwt.sign(payload, secret, {
-    expiresIn,
+    expiresIn: expiresIn as string | number,
     issuer: 'arbitrage-platform',
     audience: 'arbitrage-users',
-  });
+  } as jwt.SignOptions);
 }
 
 /**

@@ -211,6 +211,16 @@ export default function ApiKeysPage() {
                 placeholder="例如：主帳戶、測試帳戶"
                 required
               />
+              <p className="mt-1 text-sm text-gray-500">
+                💡 提示：使用測試網 API Key 時，請在標籤中包含「測試」、「test」或「demo」，系統會自動連接到測試環境
+              </p>
+              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
+                <p className="font-semibold text-blue-900 mb-1">測試網資訊</p>
+                <ul className="text-blue-800 space-y-1">
+                  <li>• Binance 測試網：<a href="https://testnet.binancefuture.com" target="_blank" rel="noopener noreferrer" className="underline">testnet.binancefuture.com</a></li>
+                  <li>• OKX 模擬盤：在 OKX 設定中選擇「Demo Trading」</li>
+                </ul>
+              </div>
             </div>
 
             <div>

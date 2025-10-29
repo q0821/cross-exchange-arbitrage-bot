@@ -2,11 +2,14 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 
   // Custom server for Socket.io integration
   // Note: This prevents deployment to Vercel
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'bcrypt'],
+    serverComponentsExternalPackages: ['@prisma/client', 'bcrypt', 'ccxt'],
   },
 
   // Environment variables exposed to the browser

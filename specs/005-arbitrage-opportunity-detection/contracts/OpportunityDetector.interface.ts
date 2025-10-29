@@ -234,10 +234,10 @@ export interface IOpportunityDetector extends EventEmitter {
  * 利用 TypeScript 泛型約束事件類型
  */
 export interface TypedEventEmitter<T> {
-  on<K extends keyof T>(event: K, listener: T[K]): this;
-  emit<K extends keyof T>(event: K, ...args: Parameters<T[K]>): boolean;
-  off<K extends keyof T>(event: K, listener: T[K]): this;
-  once<K extends keyof T>(event: K, listener: T[K]): this;
+  on<K extends keyof T>(event: K, listener: T[K] extends (...args: any[]) => any ? T[K] : never): this;
+  emit<K extends keyof T>(event: K, ...args: T[K] extends (...args: infer P) => any ? P : never[]): boolean;
+  off<K extends keyof T>(event: K, listener: T[K] extends (...args: any[]) => any ? T[K] : never): this;
+  once<K extends keyof T>(event: K, listener: T[K] extends (...args: any[]) => any ? T[K] : never): this;
   removeAllListeners<K extends keyof T>(event?: K): this;
 }
 
