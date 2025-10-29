@@ -110,6 +110,7 @@ export class ApiKeyRepository {
         data: {
           userId: data.userId,
           exchange: data.exchange.toLowerCase(),
+          environment: data.environment,
           label: data.label,
           encryptedKey: data.encryptedKey,
           encryptedSecret: data.encryptedSecret,

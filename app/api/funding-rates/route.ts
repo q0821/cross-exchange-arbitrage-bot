@@ -71,10 +71,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           const decryptedKey = decrypt(apiKey.encryptedKey);
           const decryptedSecret = decrypt(apiKey.encryptedSecret);
 
-          // 判斷是否為測試環境（通過 label 判斷，包含 "test" 或 "測試" 或 "demo" 的視為測試網）
-          const isTestnet = apiKey.label.toLowerCase().includes('test') ||
-                           apiKey.label.includes('測試') ||
-                           apiKey.label.toLowerCase().includes('demo');
+          // 判斷是否為測試環境（使用資料庫的 environment 欄位）
+          const isTestnet = apiKey.environment === 'TESTNET';
 
           if (apiKey.exchange === 'binance') {
             const config: any = {
@@ -122,6 +120,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             {
               correlationId,
               exchange: apiKey.exchange,
+              environment: apiKey.environment,
               isTestnet,
               label: apiKey.label,
             },

@@ -102,6 +102,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const apiKey = await apiKeyService.createApiKey({
       userId: user.userId,
       exchange: validatedData.exchange,
+      environment: validatedData.environment,
       label: validatedData.label,
       apiKey: validatedData.apiKey,
       apiSecret: validatedData.apiSecret,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { ApiKeyService } from '@/src/services/apikey/ApiKeyService';
+import { updateApiKeySchema } from '@/src/lib/validation';
 import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
@@ -61,7 +62,7 @@ export async function GET(
 
 /**
  * PATCH /api/api-keys/[id]
- * 更新 API Key（啟用/停用）
+ * 更新 API Key（label 和啟用/停用狀態）
  */
 export async function PATCH(
   request: NextRequest,
@@ -75,36 +76,22 @@ export async function PATCH(
 
     const apiKeyId = params.id;
 
-    // 2. 解析請求 body
+    // 2. 解析並驗證請求 body
     const body = await request.json();
-    const { isActive } = body;
-
-    if (typeof isActive !== 'boolean') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'VALIDATION_ERROR',
-            message: 'isActive must be a boolean',
-            correlationId,
-          },
-        },
-        { status: 400 },
-      );
-    }
+    const validatedData = updateApiKeySchema.parse(body);
 
     logger.info(
       {
         correlationId,
         userId: user.userId,
         apiKeyId,
-        isActive,
+        updates: validatedData,
       },
       'Update API key request received',
     );
 
     // 3. 更新 API Key
-    const apiKey = await apiKeyService.setApiKeyActive(apiKeyId, user.userId, isActive);
+    const apiKey = await apiKeyService.updateApiKey(apiKeyId, user.userId, validatedData);
 
     // 4. 返回結果
     const decryptedKey = decrypt(apiKey.encryptedKey);

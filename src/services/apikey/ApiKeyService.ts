@@ -13,6 +13,7 @@ import { ValidationError, NotFoundError, UnauthorizedError } from '@lib/errors';
 export interface CreateApiKeyRequest {
   userId: string;
   exchange: string;
+  environment: 'MAINNET' | 'TESTNET';
   label: string;
   apiKey: string;
   apiSecret: string;
@@ -30,7 +31,7 @@ export class ApiKeyService {
    * 建立新 API Key
    */
   async createApiKey(request: CreateApiKeyRequest): Promise<ApiKey> {
-    const { userId, exchange, label, apiKey, apiSecret, passphrase } = request;
+    const { userId, exchange, environment, label, apiKey, apiSecret, passphrase } = request;
 
     // 1. 驗證交易所名稱
     const exchangeValidation = ApiKey.validateExchange(exchange);
@@ -72,6 +73,7 @@ export class ApiKeyService {
     const apiKeyData: CreateApiKeyData = {
       userId,
       exchange,
+      environment,
       label,
       encryptedKey,
       encryptedSecret,
@@ -174,6 +176,40 @@ export class ApiKeyService {
       },
       'API key deleted successfully',
     );
+  }
+
+  /**
+   * 更新 API Key（label 或 isActive）
+   */
+  async updateApiKey(
+    apiKeyId: string,
+    userId: string,
+    updates: { label?: string; isActive?: boolean },
+  ): Promise<ApiKey> {
+    // 先驗證權限
+    await this.getApiKeyById(apiKeyId, userId);
+
+    // 驗證 label 格式（如果提供）
+    if (updates.label !== undefined) {
+      const labelValidation = ApiKey.validateLabel(updates.label);
+      if (!labelValidation.valid) {
+        logger.warn({ userId, label: updates.label }, 'Invalid label during API key update');
+        throw new ValidationError(labelValidation.message || 'Invalid label');
+      }
+    }
+
+    const updatedApiKey = await this.apiKeyRepository.update(apiKeyId, updates);
+
+    logger.info(
+      {
+        apiKeyId,
+        userId,
+        updates,
+      },
+      'API key updated successfully',
+    );
+
+    return updatedApiKey;
   }
 
   /**

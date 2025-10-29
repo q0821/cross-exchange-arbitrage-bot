@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 interface ApiKeyDTO {
   id: string;
   exchange: string;
+  environment: string;
   label: string;
   maskedKey: string;
   isActive: boolean;
@@ -23,8 +24,15 @@ export default function ApiKeysPage() {
   const [error, setError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // 編輯表單狀態
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingKey, setEditingKey] = useState<ApiKeyDTO | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+
   // 新增表單狀態
   const [exchange, setExchange] = useState('binance');
+  const [environment, setEnvironment] = useState<'MAINNET' | 'TESTNET'>('TESTNET');
   const [label, setLabel] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
@@ -74,6 +82,7 @@ export default function ApiKeysPage() {
         },
         body: JSON.stringify({
           exchange,
+          environment,
           label,
           apiKey,
           apiSecret,
@@ -153,6 +162,50 @@ export default function ApiKeysPage() {
     }
   };
 
+  // 開啟編輯對話框
+  const handleOpenEdit = (key: ApiKeyDTO) => {
+    setEditingKey(key);
+    setEditLabel(key.label);
+    setShowEditModal(true);
+    setError('');
+  };
+
+  // 提交編輯
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingKey) return;
+
+    setError('');
+    setIsEditSubmitting(true);
+
+    try {
+      const response = await fetch(`/api/api-keys/${editingKey.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ label: editLabel }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error?.message || 'Failed to update API key');
+        setIsEditSubmitting(false);
+        return;
+      }
+
+      // 關閉對話框並重新載入列表
+      setShowEditModal(false);
+      setEditingKey(null);
+      await loadApiKeys();
+    } catch (err) {
+      setError('An unexpected error occurred');
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -200,6 +253,39 @@ export default function ApiKeysPage() {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                環境
+              </label>
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="environment"
+                    value="MAINNET"
+                    checked={environment === 'MAINNET'}
+                    onChange={(e) => setEnvironment(e.target.value as 'MAINNET' | 'TESTNET')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">主網（真實交易）</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    name="environment"
+                    value="TESTNET"
+                    checked={environment === 'TESTNET'}
+                    onChange={(e) => setEnvironment(e.target.value as 'MAINNET' | 'TESTNET')}
+                    className="mr-2"
+                  />
+                  <span className="text-sm text-gray-700">測試網（Demo Trading）</span>
+                </label>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                ⚠️ 重要：主網和測試網的 API Key 來自不同平台，創建後無法修改環境設定
+              </p>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 標籤
               </label>
@@ -208,19 +294,9 @@ export default function ApiKeysPage() {
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                placeholder="例如：主帳戶、測試帳戶"
+                placeholder="例如：主帳戶、備用帳戶"
                 required
               />
-              <p className="mt-1 text-sm text-gray-500">
-                💡 提示：使用測試網 API Key 時，請在標籤中包含「測試」、「test」或「demo」，系統會自動連接到測試環境
-              </p>
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
-                <p className="font-semibold text-blue-900 mb-1">測試網資訊</p>
-                <ul className="text-blue-800 space-y-1">
-                  <li>• Binance 測試網：<a href="https://testnet.binancefuture.com" target="_blank" rel="noopener noreferrer" className="underline">testnet.binancefuture.com</a></li>
-                  <li>• OKX 模擬盤：在 OKX 設定中選擇「Demo Trading」</li>
-                </ul>
-              </div>
             </div>
 
             <div>
@@ -287,6 +363,9 @@ export default function ApiKeysPage() {
                   交易所
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  環境
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   標籤
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -305,6 +384,17 @@ export default function ApiKeysPage() {
                 <tr key={key.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {key.exchange.toUpperCase()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        key.environment === 'MAINNET'
+                          ? 'bg-purple-100 text-purple-800'
+                          : 'bg-blue-100 text-blue-800'
+                      }`}
+                    >
+                      {key.environment === 'MAINNET' ? '主網' : '測試網'}
+                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {key.label}
@@ -325,6 +415,12 @@ export default function ApiKeysPage() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
                     <button
+                      onClick={() => handleOpenEdit(key)}
+                      className="text-indigo-600 hover:text-indigo-800"
+                    >
+                      編輯
+                    </button>
+                    <button
                       onClick={() => handleToggleActive(key.id, key.isActive)}
                       className="text-blue-600 hover:text-blue-800"
                     >
@@ -343,6 +439,86 @@ export default function ApiKeysPage() {
           </table>
         )}
       </div>
+
+      {/* 編輯對話框 */}
+      {showEditModal && editingKey && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-semibold mb-4">編輯 API Key</h2>
+
+            {error && (
+              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  交易所
+                </label>
+                <input
+                  type="text"
+                  value={editingKey.exchange.toUpperCase()}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  環境
+                </label>
+                <input
+                  type="text"
+                  value={editingKey.environment === 'MAINNET' ? '主網（真實交易）' : '測試網（Demo Trading）'}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  環境設定在創建時已固定，無法修改
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  標籤
+                </label>
+                <input
+                  type="text"
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="例如：主帳戶、備用帳戶"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setEditingKey(null);
+                    setError('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                  disabled={isEditSubmitting}
+                >
+                  取消
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditSubmitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                >
+                  {isEditSubmitting ? '儲存中...' : '儲存'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

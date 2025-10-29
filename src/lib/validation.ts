@@ -21,6 +21,10 @@ export const exchangeSchema = z.enum(['binance', 'okx'], {
   errorMap: () => ({ message: 'Exchange must be either binance or okx' }),
 });
 
+export const apiEnvironmentSchema = z.enum(['MAINNET', 'TESTNET'], {
+  errorMap: () => ({ message: 'Environment must be either MAINNET or TESTNET' }),
+});
+
 export const symbolSchema = z
   .string()
   .regex(/^[A-Z0-9]+USDT$/, 'Symbol must be in format: BTCUSDT, ETHUSDT, etc.')
@@ -43,6 +47,7 @@ export const loginSchema = z.object({
 
 export const createApiKeySchema = z.object({
   exchange: exchangeSchema,
+  environment: apiEnvironmentSchema,
   label: z
     .string()
     .min(1, 'Label is required')

@@ -8,6 +8,7 @@ import { ApiKey as PrismaApiKey } from '@prisma/client';
 export interface CreateApiKeyData {
   userId: string;
   exchange: string;
+  environment: 'MAINNET' | 'TESTNET';
   label: string;
   encryptedKey: string;
   encryptedSecret: string;
@@ -18,6 +19,7 @@ export interface ApiKeyDTO {
   id: string;
   userId: string;
   exchange: string;
+  environment: string;
   label: string;
   maskedKey: string;
   isActive: boolean;
@@ -39,6 +41,7 @@ export class ApiKey {
   readonly id: string;
   readonly userId: string;
   readonly exchange: string;
+  readonly environment: string;
   readonly label: string;
   readonly encryptedKey: string;
   readonly encryptedSecret: string;
@@ -52,6 +55,7 @@ export class ApiKey {
     this.id = data.id;
     this.userId = data.userId;
     this.exchange = data.exchange;
+    this.environment = data.environment;
     this.label = data.label;
     this.encryptedKey = data.encryptedKey;
     this.encryptedSecret = data.encryptedSecret;
@@ -87,6 +91,7 @@ export class ApiKey {
       id: this.id,
       userId: this.userId,
       exchange: this.exchange,
+      environment: this.environment,
       label: this.label,
       maskedKey: decryptedKey ? this.getMaskedKey(decryptedKey) : '****',
       isActive: this.isActive,
