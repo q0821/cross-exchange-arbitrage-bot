@@ -50,7 +50,19 @@
       "Bash(pnpm prisma generate:*)",
       "Bash(pnpm prisma db push:*)",
       "Bash(git rm:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(test:*)",
+      "Bash(for file in \"src/models/User.ts\" \"src/models/ApiKey.ts\" \"src/repositories/UserRepository.ts\" \"src/repositories/ApiKeyRepository.ts\")",
+      "Bash(do)",
+      "Bash(if [ -f \"$file\" ])",
+      "Bash(then)",
+      "Bash(echo:*)",
+      "Bash(else)",
+      "Bash(done)",
+      "Bash(for:*)",
+      "Bash(git reset:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

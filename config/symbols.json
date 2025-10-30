@@ -14,7 +14,7 @@
         "DOGEUSDT",
         "AVAXUSDT",
         "DOTUSDT",
-        "MATICUSDT"
+        "LINKUSDT"
       ]
     },
     "top20": {
@@ -29,7 +29,6 @@
         "DOGEUSDT",
         "AVAXUSDT",
         "DOTUSDT",
-        "MATICUSDT",
         "LINKUSDT",
         "TRXUSDT",
         "ATOMUSDT",
@@ -39,7 +38,8 @@
         "ICPUSDT",
         "APTUSDT",
         "FILUSDT",
-        "ETCUSDT"
+        "ETCUSDT",
+        "ARBUSDT"
       ]
     },
     "defi": {
