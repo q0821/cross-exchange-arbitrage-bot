@@ -125,8 +125,24 @@ export function createMonitorStartCommand(): Command {
           const report = formatter.renderOpportunityReport(pair, threshold * 100);
           console.log(report);
 
-          // 寫入資料庫
+          // 寫入資料庫（如果尚未存在）
           try {
+            // 檢查是否已有該 symbol 的 ACTIVE 機會
+            const existing = await prisma.arbitrageOpportunity.findFirst({
+              where: {
+                symbol: pair.symbol,
+                status: 'ACTIVE',
+              },
+            });
+
+            if (existing) {
+              logger.debug({
+                symbol: pair.symbol,
+                existingId: existing.id,
+              }, '機會已存在於資料庫，跳過寫入');
+              return;
+            }
+
             // 判斷哪個交易所費率較高（做空）、哪個較低（做多）
             const binanceRate = pair.binance.fundingRate;
             const okxRate = pair.okx.fundingRate;
@@ -169,6 +185,32 @@ export function createMonitorStartCommand(): Command {
               error: error instanceof Error ? error.message : String(error),
               symbol: pair.symbol,
             }, '儲存套利機會失敗');
+          }
+        });
+
+        monitor.on('opportunity-disappeared', async (symbol) => {
+          // 從資料庫刪除該 symbol 的所有 ACTIVE 機會
+          try {
+            const deletedCount = await prisma.arbitrageOpportunity.deleteMany({
+              where: {
+                symbol,
+                status: 'ACTIVE',
+              },
+            });
+
+            logger.info({
+              symbol,
+              deletedCount: deletedCount.count,
+            }, '套利機會已從資料庫刪除');
+
+            if (deletedCount.count > 0) {
+              console.log(`\n❌ 機會消失：${symbol}（已從資料庫刪除 ${deletedCount.count} 筆）`);
+            }
+          } catch (error) {
+            logger.error({
+              error: error instanceof Error ? error.message : String(error),
+              symbol,
+            }, '刪除套利機會失敗');
           }
         });
 

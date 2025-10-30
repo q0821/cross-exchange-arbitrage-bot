@@ -27,6 +27,7 @@ export interface MonitorStatus {
 export interface MonitorEvents {
   'rate-updated': (pair: FundingRatePair) => void;
   'opportunity-detected': (pair: FundingRatePair) => void;
+  'opportunity-disappeared': (symbol: string) => void;
   'error': (error: Error) => void;
   'status-changed': (status: MonitorStatus) => void;
 }
@@ -289,6 +290,12 @@ export class FundingRateMonitor extends EventEmitter {
       // 機會消失
       this.activeOpportunities.delete(symbol);
       this.statsTracker.setActiveOpportunities(this.activeOpportunities.size);
+
+      logger.info({
+        symbol,
+        spread: pair.spreadPercent,
+      }, 'Arbitrage opportunity disappeared');
+      this.emit('opportunity-disappeared', symbol);
     }
   }
 
