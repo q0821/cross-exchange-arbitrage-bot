@@ -55,19 +55,19 @@ Tasks:
 
 - [ ] T025 [US1] Create src/services/auth/AuthService.ts for registration and login logic
 - [ ] T026 [US1] Create src/services/auth/SessionManager.ts for NextAuth session handling
-- [ ] T027 [P] [US1] Create src/services/apikey/ApiKeyValidator.ts to validate API keys with exchange APIs (FR-010, FR-012)
-- [ ] T028 [P] [US1] Create src/connectors/BinanceConnector.ts wrapper for Binance API (if not exist)
-- [ ] T029 [P] [US1] Create src/connectors/OkxConnector.ts wrapper for OKX API (if not exist)
+- [x] T027 [P] [US1] Create src/services/apikey/ApiKeyValidator.ts to validate API keys with exchange APIs (FR-010, FR-012)
+- [x] T028 [P] [US1] Create src/connectors/BinanceConnector.ts wrapper for Binance API (if not exist)
+- [x] T029 [P] [US1] Create src/connectors/OkxConnector.ts wrapper for OKX API (if not exist)
 
 ### API Routes (US1)
 
-- [ ] T030 [P] [US1] Implement POST /api/auth/register in app/api/auth/register/route.ts per openapi.yaml
-- [ ] T031 [P] [US1] Implement POST /api/auth/login via NextAuth credentials provider
-- [ ] T032 [P] [US1] Implement GET /api/auth/me in app/api/auth/me/route.ts
-- [ ] T033 [P] [US1] Implement GET /api/apikeys in app/api/apikeys/route.ts (list user's API keys)
-- [ ] T034 [P] [US1] Implement POST /api/apikeys in app/api/apikeys/route.ts (add new API key with validation)
-- [ ] T035 [P] [US1] Implement DELETE /api/apikeys/[id]/route.ts (delete API key)
-- [ ] T036 [P] [US1] Implement PATCH /api/apikeys/[id]/route.ts (enable/disable API key)
+- [x] T030 [P] [US1] Implement POST /api/auth/register in app/api/auth/register/route.ts per openapi.yaml
+- [x] T031 [P] [US1] Implement POST /api/auth/login via NextAuth credentials provider
+- [x] T032 [P] [US1] Implement GET /api/auth/me in app/api/auth/me/route.ts
+- [x] T033 [P] [US1] Implement GET /api/apikeys in app/api/apikeys/route.ts (list user's API keys)
+- [x] T034 [P] [US1] Implement POST /api/apikeys in app/api/apikeys/route.ts (add new API key with validation)
+- [x] T035 [P] [US1] Implement DELETE /api/apikeys/[id]/route.ts (delete API key)
+- [x] T036 [P] [US1] Implement PATCH /api/apikeys/[id]/route.ts (enable/disable API key)
 
 ### Frontend Components (US1)
 
