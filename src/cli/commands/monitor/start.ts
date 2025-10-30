@@ -11,12 +11,29 @@ import { OKXConnector } from '../../../connectors/okx.js';
 import { logger } from '../../../lib/logger.js';
 import { MonitorOutputFormatter } from '../../../lib/formatters/MonitorOutputFormatter.js';
 import type { CreateOpportunityData } from '../../../types/opportunity-detection.js';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// 專案根目錄（通過尋找 package.json）
+function findProjectRoot(): string {
+  let currentDir = __dirname;
+
+  // 最多往上找 10 層
+  for (let i = 0; i < 10; i++) {
+    const packageJsonPath = join(currentDir, 'package.json');
+    if (existsSync(packageJsonPath)) {
+      return currentDir;
+    }
+    currentDir = dirname(currentDir);
+  }
+
+  // 如果找不到，使用 process.cwd()
+  return process.cwd();
+}
 
 /**
  * 從交易所 API 自動獲取所有可用的交易對
@@ -130,7 +147,11 @@ async function fetchAvailableSymbols(
  */
 function loadSymbolGroup(groupName: string): string[] {
   try {
-    const configPath = join(__dirname, '../../../../../config/symbols.json');
+    const projectRoot = findProjectRoot();
+    const configPath = join(projectRoot, 'config/symbols.json');
+
+    logger.debug({ configPath }, '載入配置檔案');
+
     const config = JSON.parse(readFileSync(configPath, 'utf-8'));
 
     if (!config.groups[groupName]) {
