@@ -21,7 +21,7 @@ Tasks:
 - [ ] T007 Initialize Prisma schema with database connection and initial configuration
 - [ ] T008 [P] Create src/lib/logger.ts using Pino for structured logging (Constitution Principle II)
 - [ ] T009 [P] Create src/lib/encryption.ts with AES-256-GCM utilities for API key encryption
-- [ ] T010 [P] Create src/lib/redis.ts for Redis client connection
+- [x] T010 [P] Create src/lib/redis.ts for Redis client connection
 - [ ] T011 Run Docker Compose to start database and Redis services
 
 ## Phase 2: Foundational Services (Week 0)
@@ -35,9 +35,9 @@ Tasks:
 - [ ] T015 [P] Create src/middleware/correlationIdMiddleware.ts for request tracing
 - [ ] T016 [P] Create src/middleware/errorHandler.ts for standardized error responses
 - [ ] T017 [P] Create src/types/service-interfaces.ts for common types (ApiResponse, PaginationParams, etc.)
-- [ ] T018 [P] Create src/lib/zod-schemas.ts with validation schemas from data-model.md
-- [ ] T019 [P] Set up NextAuth.js configuration in app/api/auth/[...nextauth]/route.ts with Credentials Provider
-- [ ] T020 Create src/repositories/AuditLogRepository.ts for audit logging (Constitution Principle II)
+- [x] T018 [P] Create src/lib/zod-schemas.ts with validation schemas from data-model.md
+- [x] T019 [P] Set up NextAuth.js configuration in app/api/auth/[...nextauth]/route.ts with Credentials Provider
+- [x] T020 Create src/repositories/AuditLogRepository.ts for audit logging (Constitution Principle II)
 
 ## Phase 3: User Story 1 - User Registration and API Key Setup (Week 1, Priority: P1)
 
