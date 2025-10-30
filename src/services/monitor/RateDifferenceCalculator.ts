@@ -8,8 +8,8 @@ import { logger } from '../../lib/logger.js';
 export class RateDifferenceCalculator {
   private readonly minSpreadThreshold: number;
 
-  constructor(minSpreadThreshold = 0.0005) {
-    // 預設閾值: 0.05% (0.0005)
+  constructor(minSpreadThreshold = 0.0037) {
+    // 預設閾值: 0.37% (0.0037) - 包含所有交易成本
     this.minSpreadThreshold = minSpreadThreshold;
   }
 

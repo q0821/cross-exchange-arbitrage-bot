@@ -19,7 +19,7 @@ export function createMonitorStartCommand(): Command {
     .description('啟動資金費率監控服務')
     .option('-s, --symbols <symbols>', '監控的交易對（逗號分隔）', 'BTCUSDT,ETHUSDT,SOLUSDT')
     .option('-i, --interval <ms>', '更新間隔（毫秒）', '5000')
-    .option('-t, --threshold <percent>', '套利閾值（百分比）', '0.05')
+    .option('-t, --threshold <percent>', '套利閾值（百分比，包含所有交易成本）', '0.37')
     .option('--testnet', '使用測試網', false)
     .option('--format <mode>', '輸出格式 (table|plain|json)', undefined)
     .option('--enable-validation', '啟用 OKX 資金費率雙重驗證（需要資料庫）', false)

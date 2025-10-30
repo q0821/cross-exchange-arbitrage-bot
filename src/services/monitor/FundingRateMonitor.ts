@@ -63,7 +63,7 @@ export class FundingRateMonitor extends EventEmitter {
   constructor(
     symbols: string[] = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
     updateInterval = 5000,
-    minSpreadThreshold = 0.0005,
+    minSpreadThreshold = 0.0037,
     isTestnet = false,
     options?: {
       validator?: IFundingRateValidator;
