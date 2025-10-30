@@ -46,7 +46,7 @@ export class ApiKeyValidator {
         config.hostname = 'testnet.binancefuture.com';
       }
 
-      const exchange = new ccxt.binance(config);
+      const exchange = new (ccxt as any).binance(config);
 
       // Test 1: Fetch account info (read permission)
       const account = await exchange.fapiPrivateV2GetAccount();
@@ -130,7 +130,7 @@ export class ApiKeyValidator {
         config.options.sandboxMode = true;
       }
 
-      const exchange = new ccxt.okx(config);
+      const exchange = new (ccxt as any).okx(config);
 
       // Test 1: Fetch account balance (read permission)
       const balance = await exchange.fetchBalance();
@@ -148,7 +148,7 @@ export class ApiKeyValidator {
       // OKX requires trade permission to access position mode
       let hasTradePermission = false;
       try {
-        const accountConfig = await exchange.privateGetAccountConfig();
+        const accountConfig = await (exchange as any).privateGetAccountConfig();
         hasTradePermission = true; // If this succeeds, we have trade permission
 
         logger.info(

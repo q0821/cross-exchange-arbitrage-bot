@@ -36,7 +36,7 @@ Tasks:
 - [ ] T016 [P] Create src/middleware/errorHandler.ts for standardized error responses
 - [ ] T017 [P] Create src/types/service-interfaces.ts for common types (ApiResponse, PaginationParams, etc.)
 - [x] T018 [P] Create src/lib/zod-schemas.ts with validation schemas from data-model.md
-- [x] T019 [P] Set up NextAuth.js configuration in app/api/auth/[...nextauth]/route.ts with Credentials Provider
+- [x] T019 [P] Set up authentication configuration in app/api/auth/login + register with SessionManager (Custom JWT implementation instead of NextAuth)
 - [x] T020 Create src/repositories/AuditLogRepository.ts for audit logging (Constitution Principle II)
 
 ## Phase 3: User Story 1 - User Registration and API Key Setup (Week 1, Priority: P1)
@@ -46,15 +46,15 @@ Tasks:
 
 ### Database & Models (US1)
 
-- [ ] T021 [P] [US1] Create src/models/User.ts with bcrypt password hashing
-- [ ] T022 [P] [US1] Create src/models/ApiKey.ts with encryption/decryption methods
-- [ ] T023 [P] [US1] Create src/repositories/UserRepository.ts for user CRUD operations
-- [ ] T024 [P] [US1] Create src/repositories/ApiKeyRepository.ts for API key CRUD operations
+- [x] T021 [P] [US1] Create src/models/User.ts with bcrypt password hashing
+- [x] T022 [P] [US1] Create src/models/ApiKey.ts with encryption/decryption methods
+- [x] T023 [P] [US1] Create src/repositories/UserRepository.ts for user CRUD operations
+- [x] T024 [P] [US1] Create src/repositories/ApiKeyRepository.ts for API key CRUD operations
 
 ### Services (US1)
 
-- [ ] T025 [US1] Create src/services/auth/AuthService.ts for registration and login logic
-- [ ] T026 [US1] Create src/services/auth/SessionManager.ts for NextAuth session handling
+- [x] T025 [US1] Create src/services/auth/AuthService.ts for registration and login logic
+- [x] T026 [US1] Create src/services/auth/SessionManager.ts for JWT session handling
 - [x] T027 [P] [US1] Create src/services/apikey/ApiKeyValidator.ts to validate API keys with exchange APIs (FR-010, FR-012)
 - [x] T028 [P] [US1] Create src/connectors/BinanceConnector.ts wrapper for Binance API (if not exist)
 - [x] T029 [P] [US1] Create src/connectors/OkxConnector.ts wrapper for OKX API (if not exist)
@@ -63,20 +63,20 @@ Tasks:
 
 - [x] T030 [P] [US1] Implement POST /api/auth/register in app/api/auth/register/route.ts per openapi.yaml
 - [x] T031 [P] [US1] Implement POST /api/auth/login via NextAuth credentials provider
-- [x] T032 [P] [US1] Implement GET /api/auth/me in app/api/auth/me/route.ts
-- [x] T033 [P] [US1] Implement GET /api/apikeys in app/api/apikeys/route.ts (list user's API keys)
-- [x] T034 [P] [US1] Implement POST /api/apikeys in app/api/apikeys/route.ts (add new API key with validation)
-- [x] T035 [P] [US1] Implement DELETE /api/apikeys/[id]/route.ts (delete API key)
-- [x] T036 [P] [US1] Implement PATCH /api/apikeys/[id]/route.ts (enable/disable API key)
+- [x] T032 [P] [US1] Implement GET /api/auth/me - User info available through session
+- [x] T033 [P] [US1] Implement GET /api/api-keys in app/api/api-keys/route.ts (list user's API keys)
+- [x] T034 [P] [US1] Implement POST /api/api-keys in app/api/api-keys/route.ts (add new API key with validation)
+- [x] T035 [P] [US1] Implement DELETE /api/api-keys/[id]/route.ts (delete API key)
+- [x] T036 [P] [US1] Implement PATCH /api/api-keys/[id]/route.ts (enable/disable API key)
 
 ### Frontend Components (US1)
 
-- [ ] T037 [P] [US1] Create app/(auth)/register/page.tsx for user registration UI
-- [ ] T038 [P] [US1] Create app/(auth)/login/page.tsx for user login UI
-- [ ] T039 [US1] Create app/(dashboard)/layout.tsx with navigation and logout button
-- [ ] T040 [P] [US1] Create app/(dashboard)/settings/api-keys/page.tsx for API key management UI
-- [ ] T041 [P] [US1] Create components/ApiKeyForm.tsx for adding Binance/OKX API keys
-- [ ] T042 [P] [US1] Create components/ApiKeyList.tsx for displaying API key list (masked keys)
+- [x] T037 [P] [US1] Create app/(auth)/register/page.tsx for user registration UI
+- [x] T038 [P] [US1] Create app/(auth)/login/page.tsx for user login UI
+- [x] T039 [US1] Create app/(dashboard)/layout.tsx with navigation and logout button
+- [x] T040 [P] [US1] Create app/(dashboard)/settings/api-keys/page.tsx for API key management UI
+- [x] T041 [P] [US1] Create components/ApiKeyForm.tsx - Implemented inline in api-keys page
+- [x] T042 [P] [US1] Create components/ApiKeyList.tsx - Implemented inline in api-keys page
 
 ### Testing (US1)
 
