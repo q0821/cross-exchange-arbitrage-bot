@@ -11,13 +11,157 @@ import { OKXConnector } from '../../../connectors/okx.js';
 import { logger } from '../../../lib/logger.js';
 import { MonitorOutputFormatter } from '../../../lib/formatters/MonitorOutputFormatter.js';
 import type { CreateOpportunityData } from '../../../types/opportunity-detection.js';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+/**
+ * 從交易所 API 自動獲取所有可用的交易對
+ */
+async function fetchAvailableSymbols(
+  isTestnet: boolean,
+  minVolume: number
+): Promise<string[]> {
+  const ccxt = await import('ccxt');
+
+  logger.info('正在從交易所獲取可用交易對...');
+
+  try {
+    // 1. 獲取 Binance 永續合約交易對
+    const binanceExchange = new (ccxt as any).binance({
+      options: {
+        defaultType: 'future',
+        testnet: isTestnet,
+      },
+    });
+
+    await binanceExchange.loadMarkets();
+    const binanceTickers = await binanceExchange.fetchTickers();
+
+    // 過濾 USDT 永續合約且交易量達標
+    const binanceSymbols = new Set<string>();
+    Object.keys(binanceExchange.markets).forEach((marketId) => {
+      const market = binanceExchange.markets[marketId];
+      if (
+        market.quote === 'USDT' &&
+        market.swap &&
+        market.active
+      ) {
+        // 轉換為標準格式：BTC/USDT:USDT -> BTCUSDT
+        const symbol = market.base + 'USDT';
+
+        // 檢查交易量
+        const ticker = binanceTickers[marketId];
+        const volume = ticker ? ticker.quoteVolume || 0 : 0;
+
+        if (volume >= minVolume) {
+          binanceSymbols.add(symbol);
+        }
+      }
+    });
+
+    logger.info({
+      count: binanceSymbols.size,
+      minVolume,
+    }, 'Binance 可用交易對');
+
+    // 2. 獲取 OKX 永續合約交易對
+    const okxExchange = new (ccxt as any).okx({
+      options: {
+        defaultType: 'swap',
+        sandboxMode: isTestnet,
+      },
+    });
+
+    await okxExchange.loadMarkets();
+    const okxTickers = await okxExchange.fetchTickers();
+
+    const okxSymbols = new Set<string>();
+    Object.keys(okxExchange.markets).forEach((marketId) => {
+      const market = okxExchange.markets[marketId];
+      if (
+        market.quote === 'USDT' &&
+        market.swap &&
+        market.active
+      ) {
+        // 轉換為 Binance 格式：BTC/USDT:USDT -> BTCUSDT
+        const symbol = market.base + 'USDT';
+
+        // 檢查交易量
+        const ticker = okxTickers[marketId];
+        const volume = ticker ? ticker.quoteVolume || 0 : 0;
+
+        if (volume >= minVolume) {
+          okxSymbols.add(symbol);
+        }
+      }
+    });
+
+    logger.info({
+      count: okxSymbols.size,
+      minVolume,
+    }, 'OKX 可用交易對');
+
+    // 3. 取交集（兩個交易所都支援的交易對）
+    const commonSymbols = [...binanceSymbols].filter((symbol) =>
+      okxSymbols.has(symbol)
+    );
+
+    logger.info({
+      total: commonSymbols.length,
+      binance: binanceSymbols.size,
+      okx: okxSymbols.size,
+    }, '兩個交易所共同支援的交易對');
+
+    return commonSymbols.sort();
+  } catch (error) {
+    logger.error({
+      error: error instanceof Error ? error.message : String(error),
+    }, '獲取交易對失敗');
+    throw new Error('無法從交易所獲取交易對，請使用 -s 參數手動指定');
+  }
+}
+
+/**
+ * 從配置檔案讀取交易對群組
+ */
+function loadSymbolGroup(groupName: string): string[] {
+  try {
+    const configPath = join(__dirname, '../../../../../config/symbols.json');
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+
+    if (!config.groups[groupName]) {
+      throw new Error(`找不到群組: ${groupName}。可用群組: ${Object.keys(config.groups).join(', ')}`);
+    }
+
+    logger.info({
+      group: groupName,
+      name: config.groups[groupName].name,
+      count: config.groups[groupName].symbols.length,
+    }, '從配置檔案載入交易對群組');
+
+    return config.groups[groupName].symbols;
+  } catch (error) {
+    logger.error({
+      error: error instanceof Error ? error.message : String(error),
+      groupName,
+    }, '載入交易對群組失敗');
+    throw error;
+  }
+}
 
 export function createMonitorStartCommand(): Command {
   const command = new Command('start');
 
   command
     .description('啟動資金費率監控服務')
-    .option('-s, --symbols <symbols>', '監控的交易對（逗號分隔）', 'BTCUSDT,ETHUSDT,SOLUSDT')
+    .option('-s, --symbols <symbols>', '監控的交易對（逗號分隔，或使用 "auto" 自動獲取）', 'BTCUSDT,ETHUSDT,SOLUSDT')
+    .option('-g, --group <name>', '使用配置檔案的交易對群組（top10, top20, defi, layer1, meme）')
+    .option('--auto-fetch', '自動從交易所 API 獲取所有可用交易對')
+    .option('--min-volume <usdt>', '最小 24 小時交易量過濾（USDT，僅用於 auto-fetch）', '1000000')
     .option('-i, --interval <ms>', '更新間隔（毫秒）', '5000')
     .option('-t, --threshold <percent>', '套利閾值（百分比，包含所有交易成本）', '0.37')
     .option('--testnet', '使用測試網', false)
@@ -27,8 +171,30 @@ export function createMonitorStartCommand(): Command {
       try {
         logger.info('啟動監控服務...');
 
-        // 解析參數
-        const symbols = options.symbols.split(',').map((s: string) => s.trim());
+        // 解析交易對
+        let symbols: string[];
+
+        if (options.autoFetch) {
+          // 自動從交易所 API 獲取
+          const minVolume = parseFloat(options.minVolume);
+          symbols = await fetchAvailableSymbols(options.testnet, minVolume);
+
+          if (symbols.length === 0) {
+            throw new Error('未找到符合條件的交易對');
+          }
+
+          console.log(`\n✅ 自動獲取到 ${symbols.length} 個交易對（最小交易量 >= ${minVolume.toLocaleString()} USDT）`);
+          console.log(`📋 交易對: ${symbols.slice(0, 10).join(', ')}${symbols.length > 10 ? ` ... 等 ${symbols.length} 個` : ''}\n`);
+        } else if (options.group) {
+          // 從配置檔案讀取群組
+          symbols = loadSymbolGroup(options.group);
+          console.log(`\n✅ 使用群組 "${options.group}" (${symbols.length} 個交易對)\n`);
+        } else {
+          // 使用指定的交易對
+          symbols = options.symbols.split(',').map((s: string) => s.trim());
+        }
+
+        // 解析其他參數
         const interval = parseInt(options.interval, 10);
         const threshold = parseFloat(options.threshold) / 100; // 轉換為小數
         const isTestnet = options.testnet;
