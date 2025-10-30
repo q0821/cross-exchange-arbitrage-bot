@@ -4,10 +4,14 @@
  *
  * Feature: 005-arbitrage-opportunity-detection
  * Date: 2025-10-22
+ *
+ * 更新：加入淨收益計算（Feature 006）
+ * Date: 2025-10-30
  */
 
 import type { Decimal } from '@prisma/client/runtime/library'
 import { Decimal as DecimalJS } from 'decimal.js'
+import { TOTAL_COST_RATE } from './cost-constants.js'
 
 /**
  * 計算持續時間（毫秒）
@@ -274,4 +278,141 @@ export function compareDecimal(a: Decimal, b: Decimal): number {
   const aVal = new DecimalJS(a.toString())
   const bVal = new DecimalJS(b.toString())
   return aVal.comparedTo(bVal)
+}
+
+// ============================================
+// 淨收益計算函式（Feature 006）
+// ============================================
+
+/**
+ * 計算淨收益率
+ * 扣除所有交易成本後的實際收益率
+ *
+ * @param rateDifference 費率差異（毛收益）
+ * @returns 淨收益率（費率差異 - 總成本 0.37%）
+ *
+ * @example
+ * ```typescript
+ * const netProfit = calculateNetProfitRate(new Decimal(0.004)) // 0.4%
+ * // 返回: 0.0003 (0.03%) = 0.4% - 0.37%
+ * ```
+ */
+export function calculateNetProfitRate(rateDifference: Decimal): Decimal {
+  const rate = new DecimalJS(rateDifference.toString())
+  const cost = new DecimalJS(TOTAL_COST_RATE)
+  return rate.minus(cost) as unknown as Decimal
+}
+
+/**
+ * 計算淨年化收益率
+ * 基於淨收益計算的年化報酬率
+ *
+ * @param rateDifference 費率差異（毛收益）
+ * @param fundingInterval 資金費率結算間隔（小時），預設 8 小時
+ * @returns 淨年化收益率
+ *
+ * @example
+ * ```typescript
+ * const netAnnualReturn = calculateNetAnnualizedReturn(new Decimal(0.004)) // 0.4%
+ * // 淨收益: 0.03%
+ * // 年化: 0.03% × 1095 = 32.85%
+ * ```
+ */
+export function calculateNetAnnualizedReturn(
+  rateDifference: Decimal,
+  fundingInterval: number = 8
+): Decimal {
+  const netProfit = calculateNetProfitRate(rateDifference)
+  const periodsPerDay = 24 / fundingInterval
+  const periodsPerYear = periodsPerDay * 365
+
+  const rate = new DecimalJS(netProfit.toString())
+  return rate.times(periodsPerYear) as unknown as Decimal
+}
+
+/**
+ * 檢查是否為有效套利機會
+ * 只有淨收益 > 0 才算有效機會
+ *
+ * @param rateDifference 費率差異
+ * @returns true 如果淨收益 > 0，false 否則
+ *
+ * @example
+ * ```typescript
+ * isValidNetOpportunity(new Decimal(0.004)) // true (0.4% > 0.37%)
+ * isValidNetOpportunity(new Decimal(0.003)) // false (0.3% < 0.37%)
+ * ```
+ */
+export function isValidNetOpportunity(rateDifference: Decimal): boolean {
+  const rate = new DecimalJS(rateDifference.toString())
+  const threshold = new DecimalJS(TOTAL_COST_RATE)
+  return rate.greaterThan(threshold)
+}
+
+/**
+ * 計算淨收益金額
+ *
+ * @param rateDifference 費率差異
+ * @param positionSize 倉位大小（USDT），預設 100000
+ * @returns 淨收益金額（USDT）
+ *
+ * @example
+ * ```typescript
+ * const profit = calculateNetProfitAmount(new Decimal(0.004), 100000)
+ * // 返回: 30 USDT = (0.4% - 0.37%) × 100000
+ * ```
+ */
+export function calculateNetProfitAmount(
+  rateDifference: Decimal,
+  positionSize: number = 100000
+): Decimal {
+  const netProfitRate = calculateNetProfitRate(rateDifference)
+  const rate = new DecimalJS(netProfitRate.toString())
+  return rate.times(positionSize) as unknown as Decimal
+}
+
+/**
+ * 格式化淨收益率為百分比字串
+ *
+ * @param rateDifference 費率差異
+ * @param decimals 小數位數，預設 4 位
+ * @returns 格式化的百分比字串（例如：0.0300%）
+ */
+export function formatNetProfitPercent(
+  rateDifference: Decimal,
+  decimals: number = 4
+): string {
+  const netProfit = calculateNetProfitRate(rateDifference)
+  return formatRateDifferencePercent(netProfit, decimals)
+}
+
+/**
+ * 格式化淨年化收益率為百分比字串
+ *
+ * @param rateDifference 費率差異
+ * @param decimals 小數位數，預設 2 位
+ * @returns 格式化的百分比字串（例如：32.85%）
+ */
+export function formatNetAnnualizedPercent(
+  rateDifference: Decimal,
+  decimals: number = 2
+): string {
+  const netAnnual = calculateNetAnnualizedReturn(rateDifference)
+  return formatRateDifferencePercent(netAnnual, decimals)
+}
+
+/**
+ * 取得總成本率
+ * @returns 總成本率 (0.37%)
+ */
+export function getTotalCostRate(): number {
+  return TOTAL_COST_RATE
+}
+
+/**
+ * 取得總成本率（Decimal 格式）
+ * @returns 總成本率 Decimal (0.0037)
+ */
+export function getTotalCostRateDecimal(): Decimal {
+  return new DecimalJS(TOTAL_COST_RATE) as unknown as Decimal
 }

@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { Decimal } from 'decimal.js';
+import { TOTAL_COST_RATE } from '@/src/lib/cost-constants';
 
 export interface OpportunityDTO {
   id: string;
@@ -27,16 +29,21 @@ interface OpportunityCardProps {
  * 顯示單個套利機會的摘要資訊
  */
 export function OpportunityCard({ opportunity }: OpportunityCardProps) {
+  // 計算淨收益率和淨年化收益率
+  const rateDiff = new Decimal(opportunity.rateDifference);
+  const netProfitRate = rateDiff.minus(TOTAL_COST_RATE);
+  const netAnnualizedRate = netProfitRate.times(1095); // 3 settlements/day × 365 days
+
   // 格式化費率為百分比
   const formatRate = (rate: string): string => {
     const rateNum = parseFloat(rate) * 100;
     return rateNum.toFixed(4) + '%';
   };
 
-  // 格式化年化收益率為百分比
-  const formatAnnualReturn = (rate: string): string => {
-    const rateNum = parseFloat(rate) * 100;
-    return rateNum.toFixed(2) + '%';
+  // 格式化百分比（Decimal）
+  const formatRateDecimal = (rate: Decimal, decimals: number = 4): string => {
+    const rateNum = rate.times(100);
+    return rateNum.toFixed(decimals) + '%';
   };
 
   // 格式化持續時間
@@ -49,12 +56,13 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
     return `${hours} 小時 ${remainingMinutes} 分鐘`;
   };
 
-  // 根據年化收益率決定顏色
-  const getReturnColor = (rate: string): string => {
-    const rateNum = parseFloat(rate) * 100;
+  // 根據淨年化收益率決定顏色
+  const getReturnColor = (netRate: Decimal): string => {
+    const rateNum = netRate.times(100).toNumber();
     if (rateNum >= 20) return 'text-green-600 font-bold';
     if (rateNum >= 10) return 'text-green-500';
-    return 'text-gray-700';
+    if (rateNum > 0) return 'text-gray-700';
+    return 'text-red-600'; // 負收益
   };
 
   return (
@@ -103,16 +111,44 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
 
         {/* 收益資訊 */}
         <div className="border-t border-gray-200 pt-4">
+          {/* 費率差異（毛收益）*/}
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-gray-600">費率差異</span>
             <span className="text-sm font-medium text-gray-900">
               {formatRate(opportunity.rateDifference)}
             </span>
           </div>
+
+          {/* 成本明細 */}
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm text-gray-600">
+              總成本
+              <span className="text-xs text-gray-500 ml-1">
+                (手續費 + 滑點 + 價差 + 安全邊際)
+              </span>
+            </span>
+            <span className="text-sm font-medium text-red-600">
+              -{formatRateDecimal(new Decimal(TOTAL_COST_RATE))}
+            </span>
+          </div>
+
+          {/* 淨收益率 */}
+          <div className="flex justify-between items-center mb-3 pb-3 border-b border-gray-100">
+            <span className="text-sm font-semibold text-gray-700">預期淨收益</span>
+            <span
+              className={`text-base font-bold ${
+                netProfitRate.greaterThan(0) ? 'text-green-600' : 'text-red-600'
+              }`}
+            >
+              {formatRateDecimal(netProfitRate)}
+            </span>
+          </div>
+
+          {/* 淨年化收益率 */}
           <div className="flex justify-between items-center">
-            <span className="text-sm text-gray-600">預期年化收益</span>
-            <span className={`text-lg font-bold ${getReturnColor(opportunity.expectedReturnRate)}`}>
-              {formatAnnualReturn(opportunity.expectedReturnRate)}
+            <span className="text-sm text-gray-600">預期淨年化收益</span>
+            <span className={`text-lg font-bold ${getReturnColor(netAnnualizedRate)}`}>
+              {formatRateDecimal(netAnnualizedRate, 2)}
             </span>
           </div>
         </div>

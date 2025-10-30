@@ -4,6 +4,10 @@
  *
  * Feature: 005-arbitrage-opportunity-detection
  * Date: 2025-10-22
+ *
+ * 成本計算：
+ * - 預設閾值 0.37% 涵蓋所有交易成本（手續費、滑點、價差、安全邊際）
+ * - 詳細成本結構見 src/lib/cost-calculator.ts 和 cost-constants.ts
  */
 
 import type { Decimal } from '@prisma/client/runtime/library'
@@ -28,7 +32,7 @@ import { Decimal as DecimalJS } from 'decimal.js'
  * 偵測器配置
  */
 export interface OpportunityDetectorConfig {
-  /** 最小費率差異閾值（預設 0.0005 = 0.05%）*/
+  /** 最小費率差異閾值（預設 0.0037 = 0.37%，包含所有交易成本）*/
   minRateDifference: Decimal
   /** 資金費率結算間隔（小時，預設 8 小時）*/
   fundingInterval: number

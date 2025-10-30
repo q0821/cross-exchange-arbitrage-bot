@@ -69,10 +69,78 @@
 ✅ **Decimal Type**: All financial calculations use Decimal
 
 ### Principle V: Incremental Delivery
-✅ **MVP Scope**: US1-US2 (monitoring) before US3-US5 (trading)  
-✅ **Independent Testing**: Each user story testable independently  
-✅ **Testnet First**: API keys support testnet environment  
+✅ **MVP Scope**: US1-US2 (monitoring) before US3-US5 (trading)
+✅ **Independent Testing**: Each user story testable independently
+✅ **Testnet First**: API keys support testnet environment
 ⚠️ **Deferred**: Stop-loss enforcement - justification below
+
+
+## Cost Calculation Module
+
+### Design Rationale
+To ensure users don't lose money on arbitrage trades, we implement a comprehensive cost calculation system that accounts for:
+- Trading fees (Taker fees on both exchanges)
+- Slippage (market order execution variance)
+- Price differences (mark price variance between exchanges)
+- Safety margin (buffer for unexpected costs)
+
+This module provides **conservative estimates** to ensure profitability even with single 8-hour holding period (1 funding rate settlement).
+
+### Cost Structure
+
+| Cost Type | Rate | Calculation | Example ($100,000) |
+|-----------|------|-------------|-------------------|
+| Trading Fees | 0.2% | Taker Fee 0.05% × 4 (open 2 + close 2) | $200 |
+| Slippage | 0.1% | Conservative market order estimate | $100 |
+| Price Difference | 0.05% | Inter-exchange mark price variance | $50 |
+| Safety Margin | 0.02% | Buffer for unexpected costs | $20 |
+| **Total Cost** | **0.37%** | Sum of all components | **$370** |
+
+### Net Profit Formula
+
+```typescript
+// Net profit calculation
+netProfit = fundingRateDiff - TOTAL_COST;
+
+// Annualized net return
+// (3 settlements/day × 365 days = 1095)
+annualizedNetReturn = netProfit × 1095;
+
+// Valid opportunity check
+isValidOpportunity = netProfit > 0;
+```
+
+### Example Scenarios
+
+| Funding Rate Diff | Net Profit | Annualized Return | Status |
+|------------------|------------|-------------------|--------|
+| 0.37% | 0.00% | 0.00% | Break-even (threshold) |
+| 0.40% | 0.03% | 32.85% | Valid opportunity ✓ |
+| 0.50% | 0.13% | 142.35% | Strong opportunity ✓ |
+| 0.30% | -0.07% | -76.65% | Loss (rejected) ✗ |
+
+### Implementation
+
+**Module**: `src/lib/cost-calculator.ts`
+- `CostBreakdown` interface
+- `calculateTotalCost()` function
+- `calculateNetProfit()` function
+- `calculateNetAnnualizedReturn()` function
+
+**Constants**: `src/lib/cost-constants.ts`
+- `TAKER_FEE_RATE = 0.0005` (0.05%)
+- `SLIPPAGE_RATE = 0.001` (0.1%)
+- `PRICE_DIFF_RATE = 0.0005` (0.05%)
+- `SAFETY_MARGIN_RATE = 0.0002` (0.02%)
+- `TOTAL_COST_RATE = 0.0037` (0.37%)
+- `FUNDING_SETTLEMENTS_PER_YEAR = 1095`
+
+**Integration Points**:
+1. `OpportunityDetector.ts`: Update threshold to `0.0037` (0.37%)
+2. `opportunity-helpers.ts`: Add `calculateNetProfit()` function
+3. `OpportunityCard.tsx`: Display net profit and net annualized return
+4. Database: Store both gross and net profit values
+
 
 ## Complexity Tracking
 
