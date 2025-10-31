@@ -120,7 +120,6 @@ export class RatesCache {
    * 獲取所有費率數據（過濾掉過期數據）
    */
   getAll(): FundingRatePair[] {
-    const now = Date.now();
     const rates: FundingRatePair[] = [];
 
     for (const [symbol, cached] of this.cache.entries()) {

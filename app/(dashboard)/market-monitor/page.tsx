@@ -36,7 +36,7 @@ export default function MarketMonitorPage() {
   const { sortBy, sortDirection, filterStatus, toggleSort, setFilterStatus } = useTableSort();
 
   // 詳情對話框狀態（未來擴展）
-  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  const [_selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
 
   // 處理交易對點擊
   const handleSymbolClick = (symbol: string) => {
