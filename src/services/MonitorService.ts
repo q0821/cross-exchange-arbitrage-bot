@@ -6,8 +6,6 @@
  */
 
 import { FundingRateMonitor } from './monitor/FundingRateMonitor';
-import { FundingRateStore } from '../models/FundingRate';
-import { RateDifferenceCalculator } from './monitor/RateDifferenceCalculator';
 import { logger } from '../lib/logger';
 import { readFileSync } from 'fs';
 import { join } from 'path';
@@ -55,21 +53,14 @@ export async function startMonitorService(): Promise<void> {
     );
 
     // 創建 Monitor 實例
-    const store = new FundingRateStore();
-    const calculator = new RateDifferenceCalculator(0.005); // 0.5% threshold
-
-    monitorInstance = new FundingRateMonitor({
-      binanceApiKey: process.env.BINANCE_API_KEY || '',
-      binanceApiSecret: process.env.BINANCE_API_SECRET || '',
-      okxApiKey: process.env.OKX_API_KEY || '',
-      okxApiSecret: process.env.OKX_API_SECRET || '',
-      okxPassphrase: process.env.OKX_PASSPHRASE || '',
-      symbols,
-      updateInterval: 300000, // 5 分鐘
-      isTestnet: process.env.BINANCE_TESTNET === 'true',
-      store,
-      calculator,
-    });
+    // 注意：FundingRateMonitor 使用位置參數，不是對象參數
+    monitorInstance = new FundingRateMonitor(
+      symbols,                                            // 第1個參數：交易對數組
+      300000,                                             // 第2個參數：更新間隔（5分鐘）
+      0.005,                                              // 第3個參數：最小差價閾值（0.5%）
+      process.env.BINANCE_TESTNET === 'true',            // 第4個參數：是否測試網
+      undefined,                                          // 第5個參數：可選配置（暫不使用）
+    );
 
     // 監聽錯誤
     monitorInstance.on('error', (error) => {
