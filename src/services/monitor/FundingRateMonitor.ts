@@ -64,7 +64,7 @@ export class FundingRateMonitor extends EventEmitter {
   constructor(
     symbols: string[] = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'],
     updateInterval = 5000,
-    minSpreadThreshold = 0.0037,
+    minSpreadThreshold = 0.005,
     isTestnet = false,
     options?: {
       validator?: IFundingRateValidator;
@@ -232,10 +232,12 @@ export class FundingRateMonitor extends EventEmitter {
    * 更新單一交易對的資金費率
    */
   private async updateRateForSymbol(symbol: string): Promise<void> {
-    // 並行獲取兩個交易所的資金費率
-    const [binanceData, okxData] = await Promise.all([
+    // 並行獲取兩個交易所的資金費率和價格
+    const [binanceData, okxData, binancePriceData, okxPriceData] = await Promise.all([
       this.binance.getFundingRate(symbol),
       this.okx.getFundingRate(symbol),
+      this.binance.getPrice(symbol).catch(() => null), // 價格獲取失敗不影響主流程
+      this.okx.getPrice(symbol).catch(() => null),
     ]);
 
     // 建立記錄
@@ -265,13 +267,15 @@ export class FundingRateMonitor extends EventEmitter {
       }
     }
 
-    // 計算差異
-    const pair = this.calculator.calculateDifference(binanceRate, okxRate);
+    // 計算差異（包含價格數據）
+    const binancePrice = binancePriceData?.price;
+    const okxPrice = okxPriceData?.price;
+    const pair = this.calculator.calculateDifference(binanceRate, okxRate, binancePrice, okxPrice);
 
     // 發送事件
     this.emit('rate-updated', pair);
 
-    // 檢查是否有套利機會
+    // 檢查是否有套利機會（包含價差檢查）
     const isOpportunity = this.calculator.isArbitrageOpportunity(pair);
     const wasOpportunity = this.activeOpportunities.has(symbol);
 
@@ -284,6 +288,9 @@ export class FundingRateMonitor extends EventEmitter {
       logger.info({
         symbol,
         spread: pair.spreadPercent,
+        binancePrice,
+        okxPrice,
+        priceDiff: pair.priceDiffPercent,
       }, 'Arbitrage opportunity detected');
       this.emit('opportunity-detected', pair);
     } else if (wasOpportunity) {
@@ -294,6 +301,9 @@ export class FundingRateMonitor extends EventEmitter {
       logger.info({
         symbol,
         spread: pair.spreadPercent,
+        binancePrice,
+        okxPrice,
+        priceDiff: pair.priceDiffPercent,
       }, 'Arbitrage opportunity disappeared');
       this.emit('opportunity-disappeared', symbol);
     }

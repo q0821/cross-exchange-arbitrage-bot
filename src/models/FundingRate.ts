@@ -107,6 +107,10 @@ export interface FundingRatePair {
   spreadPercent: number;
   spreadAnnualized: number;
   recordedAt: Date;
+  // 價格數據（用於價差檢查）
+  binancePrice?: number;
+  okxPrice?: number;
+  priceDiffPercent?: number; // 價差百分比
 }
 
 /**
@@ -114,7 +118,9 @@ export interface FundingRatePair {
  */
 export function createFundingRatePair(
   binance: FundingRateRecord,
-  okx: FundingRateRecord
+  okx: FundingRateRecord,
+  binancePrice?: number,
+  okxPrice?: number
 ): FundingRatePair {
   if (binance.symbol !== okx.symbol) {
     throw new Error(`Symbol mismatch: ${binance.symbol} vs ${okx.symbol}`);
@@ -123,6 +129,13 @@ export function createFundingRatePair(
   const spread = Math.abs(binance.fundingRate - okx.fundingRate);
   const spreadAnnualized = spread * 365 * 3;
 
+  // 計算價差百分比
+  let priceDiffPercent: number | undefined;
+  if (binancePrice && okxPrice) {
+    const avgPrice = (binancePrice + okxPrice) / 2;
+    priceDiffPercent = ((binancePrice - okxPrice) / avgPrice) * 100;
+  }
+
   return {
     symbol: binance.symbol,
     binance,
@@ -130,6 +143,9 @@ export function createFundingRatePair(
     spreadPercent: spread * 100,
     spreadAnnualized: spreadAnnualized * 100,
     recordedAt: new Date(),
+    binancePrice,
+    okxPrice,
+    priceDiffPercent,
   };
 }
 

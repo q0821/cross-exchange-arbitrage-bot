@@ -184,7 +184,7 @@ export function createMonitorStartCommand(): Command {
     .option('--auto-fetch', '自動從交易所 API 獲取所有可用交易對')
     .option('--min-volume <usdt>', '最小 24 小時交易量過濾（USDT，僅用於 auto-fetch）', '1000000')
     .option('-i, --interval <ms>', '更新間隔（毫秒）', '5000')
-    .option('-t, --threshold <percent>', '套利閾值（百分比，包含所有交易成本）', '0.37')
+    .option('-t, --threshold <percent>', '套利閾值（百分比，包含所有交易成本）', '0.5')
     .option('--testnet', '使用測試網', false)
     .option('--format <mode>', '輸出格式 (table|plain|json)', undefined)
     .option('--enable-validation', '啟用 OKX 資金費率雙重驗證（需要資料庫）', false)

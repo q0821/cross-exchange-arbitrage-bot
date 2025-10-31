@@ -29,13 +29,13 @@ export interface CostBreakdown {
   /** Slippage (0.1%) - Market order execution variance */
   slippage: number;
 
-  /** Price difference (0.05%) - Inter-exchange mark price variance */
+  /** Price difference (0.15%) - Inter-exchange mark price variance */
   priceDiff: number;
 
-  /** Safety margin (0.02%) - Buffer for unexpected costs */
+  /** Safety margin (0.05%) - Buffer for unexpected costs */
   safetyMargin: number;
 
-  /** Total cost (0.37%) - Sum of all components */
+  /** Total cost (0.5%) - Sum of all components */
   totalCost: number;
 }
 
@@ -48,7 +48,7 @@ export interface CostBreakdown {
  * @example
  * ```typescript
  * const costs = calculateTotalCost(100000);
- * console.log(costs.totalCost); // 370 (0.37% of 100000)
+ * console.log(costs.totalCost); // 500 (0.5% of 100000)
  * ```
  */
 export function calculateTotalCost(positionSize: number = 100000): CostBreakdown {
@@ -70,10 +70,10 @@ export function calculateTotalCost(positionSize: number = 100000): CostBreakdown
  *
  * @example
  * ```typescript
- * const netProfit = calculateNetProfit(0.004, 100000);
- * // fundingRateDiff: 0.4%
- * // totalCost: 0.37%
- * // netProfit: 0.03% of 100000 = 30 USDT
+ * const netProfit = calculateNetProfit(0.006, 100000);
+ * // fundingRateDiff: 0.6%
+ * // totalCost: 0.5%
+ * // netProfit: 0.1% of 100000 = 100 USDT
  * ```
  */
 export function calculateNetProfit(
@@ -93,8 +93,8 @@ export function calculateNetProfit(
  *
  * @example
  * ```typescript
- * const netProfitRate = calculateNetProfitRate(0.004);
- * // 0.004 - 0.0037 = 0.0003 (0.03%)
+ * const netProfitRate = calculateNetProfitRate(0.006);
+ * // 0.006 - 0.005 = 0.001 (0.1%)
  * ```
  */
 export function calculateNetProfitRate(fundingRateDiff: number): number {
@@ -112,9 +112,9 @@ export function calculateNetProfitRate(fundingRateDiff: number): number {
  *
  * @example
  * ```typescript
- * const annualReturn = calculateNetAnnualizedReturn(0.004);
- * // netProfit: 0.03%
- * // annualReturn: 0.03% × 1095 = 32.85%
+ * const annualReturn = calculateNetAnnualizedReturn(0.006);
+ * // netProfit: 0.1%
+ * // annualReturn: 0.1% × 1095 = 109.5%
  * ```
  */
 export function calculateNetAnnualizedReturn(fundingRateDiff: number): number {
@@ -130,8 +130,8 @@ export function calculateNetAnnualizedReturn(fundingRateDiff: number): number {
  *
  * @example
  * ```typescript
- * isValidOpportunity(0.004); // true (0.4% > 0.37%)
- * isValidOpportunity(0.003); // false (0.3% < 0.37%)
+ * isValidOpportunity(0.006); // true (0.6% > 0.5%)
+ * isValidOpportunity(0.004); // false (0.4% < 0.5%)
  * ```
  */
 export function isValidOpportunity(fundingRateDiff: number): boolean {
@@ -141,7 +141,7 @@ export function isValidOpportunity(fundingRateDiff: number): boolean {
 /**
  * Calculate break-even funding rate difference
  *
- * @returns Break-even rate (0.37%)
+ * @returns Break-even rate (0.5%)
  */
 export function getBreakEvenRate(): number {
   return TOTAL_COST_RATE;
@@ -164,37 +164,37 @@ export function formatPercentage(value: number, decimals: number = 2): string {
 export const EXAMPLES = {
   // Example 1: Break-even scenario
   breakEven: {
-    fundingRateDiff: 0.0037,
-    netProfit: calculateNetProfit(0.0037, 100000), // 0 USDT
-    netProfitRate: calculateNetProfitRate(0.0037), // 0%
-    annualReturn: calculateNetAnnualizedReturn(0.0037), // 0%
-    isValid: isValidOpportunity(0.0037), // false (equal to threshold)
+    fundingRateDiff: 0.005,
+    netProfit: calculateNetProfit(0.005, 100000), // 0 USDT
+    netProfitRate: calculateNetProfitRate(0.005), // 0%
+    annualReturn: calculateNetAnnualizedReturn(0.005), // 0%
+    isValid: isValidOpportunity(0.005), // false (equal to threshold)
   },
 
   // Example 2: Small profitable opportunity
   smallProfit: {
-    fundingRateDiff: 0.004,
-    netProfit: calculateNetProfit(0.004, 100000), // 30 USDT
-    netProfitRate: calculateNetProfitRate(0.004), // 0.03%
-    annualReturn: calculateNetAnnualizedReturn(0.004), // 32.85%
-    isValid: isValidOpportunity(0.004), // true
+    fundingRateDiff: 0.006,
+    netProfit: calculateNetProfit(0.006, 100000), // 100 USDT
+    netProfitRate: calculateNetProfitRate(0.006), // 0.1%
+    annualReturn: calculateNetAnnualizedReturn(0.006), // 109.5%
+    isValid: isValidOpportunity(0.006), // true
   },
 
   // Example 3: Strong opportunity
   strongProfit: {
-    fundingRateDiff: 0.005,
-    netProfit: calculateNetProfit(0.005, 100000), // 130 USDT
-    netProfitRate: calculateNetProfitRate(0.005), // 0.13%
-    annualReturn: calculateNetAnnualizedReturn(0.005), // 142.35%
-    isValid: isValidOpportunity(0.005), // true
+    fundingRateDiff: 0.007,
+    netProfit: calculateNetProfit(0.007, 100000), // 200 USDT
+    netProfitRate: calculateNetProfitRate(0.007), // 0.2%
+    annualReturn: calculateNetAnnualizedReturn(0.007), // 219.0%
+    isValid: isValidOpportunity(0.007), // true
   },
 
   // Example 4: Loss scenario (below threshold)
   loss: {
-    fundingRateDiff: 0.003,
-    netProfit: calculateNetProfit(0.003, 100000), // -70 USDT
-    netProfitRate: calculateNetProfitRate(0.003), // -0.07%
-    annualReturn: calculateNetAnnualizedReturn(0.003), // -76.65%
-    isValid: isValidOpportunity(0.003), // false
+    fundingRateDiff: 0.004,
+    netProfit: calculateNetProfit(0.004, 100000), // -100 USDT
+    netProfitRate: calculateNetProfitRate(0.004), // -0.1%
+    annualReturn: calculateNetAnnualizedReturn(0.004), // -109.5%
+    isValid: isValidOpportunity(0.004), // false
   },
 };
