@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { RatesTable } from './components/RatesTable';
 import { StatsCard } from './components/StatsCard';
 import { SymbolSelector } from './components/SymbolSelector';
@@ -30,10 +30,57 @@ export default function MarketMonitorPage() {
     selectedGroup,
     isLoading: groupsLoading,
     setSelectedGroup,
+    getSelectedSymbols,
   } = useSymbolGroups();
 
   // 表格排序和篩選
   const { sortBy, sortDirection, filterStatus, toggleSort, setFilterStatus } = useTableSort();
+
+  // 根據選中的群組過濾費率數據
+  const filteredRates = useMemo(() => {
+    if (!selectedGroup || selectedGroup === 'all') {
+      return rates;
+    }
+
+    const selectedSymbols = getSelectedSymbols();
+    if (selectedSymbols.length === 0) {
+      return rates;
+    }
+
+    // 只顯示選中群組的交易對
+    return rates.filter((rate) => selectedSymbols.includes(rate.symbol));
+  }, [rates, selectedGroup, getSelectedSymbols]);
+
+  // 計算過濾後的統計數據
+  const filteredStats = useMemo(() => {
+    if (!stats || filteredRates.length === rates.length) {
+      return stats; // 如果沒有過濾，直接使用原始統計
+    }
+
+    // 重新計算過濾後的統計
+    const opportunityCount = filteredRates.filter((r) => r.status === 'opportunity').length;
+    const approachingCount = filteredRates.filter((r) => r.status === 'approaching').length;
+
+    let maxSpread: { symbol: string; spread: string } | null = null;
+    filteredRates.forEach((rate) => {
+      const spread = parseFloat(rate.spreadPercent);
+      if (!maxSpread || spread > parseFloat(maxSpread.spread)) {
+        maxSpread = {
+          symbol: rate.symbol,
+          spread: rate.spreadPercent,
+        };
+      }
+    });
+
+    return {
+      totalSymbols: filteredRates.length,
+      opportunityCount,
+      approachingCount,
+      maxSpread,
+      uptime: stats.uptime,
+      lastUpdate: stats.lastUpdate,
+    };
+  }, [stats, filteredRates, rates.length]);
 
   // 詳情對話框狀態（未來擴展）
   const [_selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
@@ -107,7 +154,7 @@ export default function MarketMonitorPage() {
       </div>
 
       {/* 統計卡片 */}
-      <StatsCard stats={stats} isLoading={false} />
+      <StatsCard stats={filteredStats} isLoading={false} />
 
       {/* 交易對選擇器和篩選器 */}
       <SymbolSelector
@@ -122,7 +169,7 @@ export default function MarketMonitorPage() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            即時費率 {rates.length > 0 && `(${rates.length} 個交易對)`}
+            即時費率 {filteredRates.length > 0 && `(${filteredRates.length} 個交易對)`}
           </h2>
 
           {/* 表格操作按鈕（未來擴展）*/}
@@ -138,7 +185,7 @@ export default function MarketMonitorPage() {
         </div>
 
         <RatesTable
-          rates={rates}
+          rates={filteredRates}
           sortBy={sortBy}
           sortDirection={sortDirection}
           filterStatus={filterStatus}
