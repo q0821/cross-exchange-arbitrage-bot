@@ -30,9 +30,12 @@ export class SessionManager {
 
     const token = generateToken(payload);
 
-    // 設定 HttpOnly Cookie
+    // 設定 Cookie
+    // 注意：在開發環境下不使用 httpOnly，以便 Socket.io 客戶端可以讀取
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
     response.cookies.set(this.COOKIE_NAME, token, {
-      httpOnly: true,
+      httpOnly: !isDevelopment, // 開發環境允許 JS 讀取，生產環境使用 httpOnly
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: this.COOKIE_MAX_AGE,
