@@ -60,6 +60,17 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
+  // 使用 ref 儲存回調函數，避免不必要的重新連線
+  const onConnectRef = useRef(onConnect);
+  const onDisconnectRef = useRef(onDisconnect);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => {
+    onConnectRef.current = onConnect;
+    onDisconnectRef.current = onDisconnect;
+    onErrorRef.current = onError;
+  }, [onConnect, onDisconnect, onError]);
+
   // 連線到 WebSocket 伺服器
   const connect = useCallback(() => {
     if (socketRef.current?.connected) {
@@ -75,24 +86,24 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       console.log('[WebSocket] Connected to server');
       setIsConnected(true);
       setError(null);
-      onConnect?.();
+      onConnectRef.current?.();
     });
 
     socket.on('disconnect', (reason) => {
       console.log('[WebSocket] Disconnected:', reason);
       setIsConnected(false);
-      onDisconnect?.();
+      onDisconnectRef.current?.();
     });
 
     socket.on('connect_error', (err) => {
       console.error('[WebSocket] Connection error:', err);
       setError(err);
       setIsConnected(false);
-      onError?.(err);
+      onErrorRef.current?.(err);
     });
 
     socketRef.current = socket;
-  }, [url, onConnect, onDisconnect, onError]);
+  }, [url]);
 
   // 斷開連線
   const disconnect = useCallback(() => {
@@ -139,9 +150,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     }
 
     return () => {
-      disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        setIsConnected(false);
+      }
     };
-  }, [autoConnect, connect, disconnect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoConnect]);
 
   return {
     socket: socketRef.current,
