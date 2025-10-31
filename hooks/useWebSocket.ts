@@ -77,9 +77,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
       return; // 已經連線
     }
 
+    console.log('[WebSocket] Attempting to connect to:', url);
+
     const socket = io(url, {
-      withCredentials: true, // 包含 Cookie 認證
-      transports: ['websocket', 'polling'],
+      withCredentials: true, // 包含 Cookie 認證（httpOnly cookies 會自動攜帶）
+      transports: ['polling', 'websocket'], // 先用 polling（可以攜帶 cookie），再升級到 websocket
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     socket.on('connect', () => {
@@ -97,9 +102,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
 
     socket.on('connect_error', (err) => {
       console.error('[WebSocket] Connection error:', err);
+      console.error('[WebSocket] Error details:', {
+        message: err.message,
+        type: err.constructor.name,
+        stack: err.stack,
+      });
       setError(err);
       setIsConnected(false);
       onErrorRef.current?.(err);
+    });
+
+    socket.on('error', (err) => {
+      console.error('[WebSocket] Socket error:', err);
     });
 
     socketRef.current = socket;

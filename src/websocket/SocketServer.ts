@@ -24,12 +24,18 @@ let globalMarketRatesHandler: MarketRatesHandler | null = null;
  * 初始化 Socket.io 伺服器
  */
 export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000',
+      origin: isDevelopment
+        ? ['http://localhost:3000', 'http://127.0.0.1:3000']
+        : (process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000'),
       credentials: true,
+      methods: ['GET', 'POST'],
     },
-    transports: ['websocket', 'polling'],
+    transports: ['polling', 'websocket'], // 先使用 polling，再升級到 websocket
+    allowEIO3: true, // 允許舊版客戶端
   });
 
   // 認證中介軟體
@@ -39,7 +45,15 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
       const token = extractTokenFromSocket(socket);
 
       if (!token) {
-        logger.warn({ socketId: socket.id }, 'WebSocket connection rejected: No token provided');
+        logger.warn(
+          {
+            socketId: socket.id,
+            headers: socket.handshake.headers,
+            auth: socket.handshake.auth,
+            query: socket.handshake.query,
+          },
+          'WebSocket connection rejected: No token provided',
+        );
         return next(new Error('Authentication error: No token provided'));
       }
 
