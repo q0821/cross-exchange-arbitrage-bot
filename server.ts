@@ -3,6 +3,7 @@ import { parse } from 'url';
 import next from 'next';
 import { initializeSocketServer } from './src/websocket/SocketServer';
 import { logger } from './src/lib/logger';
+import { startMonitorService, stopMonitorService } from './src/services/MonitorService';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || 'localhost';
@@ -29,7 +30,7 @@ app.prepare().then(() => {
   const io = initializeSocketServer(httpServer);
 
   // 啟動伺服器
-  httpServer.listen(port, () => {
+  httpServer.listen(port, async () => {
     logger.info(
       {
         port,
@@ -40,11 +41,24 @@ app.prepare().then(() => {
     );
     console.log(`> Ready on http://${hostname}:${port}`);
     console.log(`> Socket.io enabled`);
+
+    // 啟動內建的資金費率監控服務
+    try {
+      await startMonitorService();
+      console.log(`> Funding rate monitor enabled`);
+    } catch (error) {
+      logger.error({ error }, 'Failed to start monitor service');
+      console.error('> Warning: Funding rate monitor failed to start');
+    }
   });
 
   // 優雅關閉
-  const shutdown = () => {
+  const shutdown = async () => {
     logger.info('Shutting down server...');
+
+    // 停止監控服務
+    await stopMonitorService();
+
     io.close(() => {
       logger.info('Socket.io server closed');
       httpServer.close(() => {
