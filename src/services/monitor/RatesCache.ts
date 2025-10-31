@@ -7,8 +7,8 @@
  * Feature: 006-web-trading-platform (User Story 2.5)
  */
 
-import type { FundingRatePair } from '../../models/FundingRate.js';
-import { logger } from '../../lib/logger.js';
+import type { FundingRatePair } from '../../models/FundingRate';
+import { logger } from '../../lib/logger';
 
 /**
  * 快取的費率數據（包含時間戳）

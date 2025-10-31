@@ -1,6 +1,6 @@
-import { FundingRateRecord, FundingRatePair, createFundingRatePair } from '../../models/FundingRate.js';
-import { logger } from '../../lib/logger.js';
-import { MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF } from '../../lib/cost-constants.js';
+import { FundingRateRecord, FundingRatePair, createFundingRatePair } from '../../models/FundingRate';
+import { logger } from '../../lib/logger';
+import { MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF } from '../../lib/cost-constants';
 
 /**
  * 資金費率差異計算器

@@ -1,13 +1,13 @@
 import { EventEmitter } from 'events';
-import { createExchange } from '../../connectors/factory.js';
-import type { IExchangeConnector } from '../../connectors/types.js';
-import { FundingRateRecord, FundingRateStore, FundingRatePair } from '../../models/FundingRate.js';
-import { RateDifferenceCalculator } from './RateDifferenceCalculator.js';
-import { MonitorStatsTracker } from './MonitorStats.js';
-import type { MonitorStats } from './MonitorStats.js';
-import { logger } from '../../lib/logger.js';
-import type { IFundingRateValidator } from '../../types/service-interfaces.js';
-import { ratesCache } from './RatesCache.js';
+import { createExchange } from '../../connectors/factory';
+import type { IExchangeConnector } from '../../connectors/types';
+import { FundingRateRecord, FundingRateStore, FundingRatePair } from '../../models/FundingRate';
+import { RateDifferenceCalculator } from './RateDifferenceCalculator';
+import { MonitorStatsTracker } from './MonitorStats';
+import type { MonitorStats } from './MonitorStats';
+import { logger } from '../../lib/logger';
+import type { IFundingRateValidator } from '../../types/service-interfaces';
+import { ratesCache } from './RatesCache';
 
 /**
  * 監控狀態
