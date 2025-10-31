@@ -1,8 +1,8 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { initializeSocketServer } from './src/websocket/SocketServer.js';
-import { logger } from './src/lib/logger.js';
+import { initializeSocketServer } from './src/websocket/SocketServer';
+import { logger } from './src/lib/logger';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || 'localhost';

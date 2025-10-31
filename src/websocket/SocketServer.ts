@@ -80,6 +80,9 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
   const marketRatesHandler = new MarketRatesHandler(io);
   globalMarketRatesHandler = marketRatesHandler;
 
+  // 啟動市場監控的定期廣播
+  marketRatesHandler.startBroadcasting();
+
   // 連線處理
   io.on('connection', (socket: Socket) => {
     const authenticatedSocket = socket as AuthenticatedSocket;
