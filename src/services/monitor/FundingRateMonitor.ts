@@ -7,6 +7,7 @@ import { MonitorStatsTracker } from './MonitorStats.js';
 import type { MonitorStats } from './MonitorStats.js';
 import { logger } from '../../lib/logger.js';
 import type { IFundingRateValidator } from '../../types/service-interfaces.js';
+import { ratesCache } from './RatesCache.js';
 
 /**
  * 監控狀態
@@ -117,6 +118,9 @@ export class FundingRateMonitor extends EventEmitter {
       this.status.connectedExchanges = ['binance', 'okx'];
       this.isRunning = true;
       this.status.isRunning = true;
+
+      // 標記 RatesCache 啟動時間
+      ratesCache.markStart();
 
       // 立即執行一次更新
       await this.updateRates();
@@ -271,6 +275,9 @@ export class FundingRateMonitor extends EventEmitter {
     const binancePrice = binancePriceData?.price;
     const okxPrice = okxPriceData?.price;
     const pair = this.calculator.calculateDifference(binanceRate, okxRate, binancePrice, okxPrice);
+
+    // 更新全局快取（用於 Web API）
+    ratesCache.set(symbol, pair);
 
     // 發送事件
     this.emit('rate-updated', pair);

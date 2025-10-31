@@ -3,6 +3,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { verifyToken } from '@lib/jwt';
 import { logger } from '@lib/logger';
 import { OpportunityHandler } from './handlers/OpportunityHandler';
+import { MarketRatesHandler } from './handlers/MarketRatesHandler';
 
 /**
  * Socket.io 伺服器初始化
@@ -15,8 +16,9 @@ export interface AuthenticatedSocket extends Socket {
   };
 }
 
-// 全域 OpportunityHandler 實例（供外部使用）
+// 全域 Handler 實例（供外部使用）
 let globalOpportunityHandler: OpportunityHandler | null = null;
+let globalMarketRatesHandler: MarketRatesHandler | null = null;
 
 /**
  * 初始化 Socket.io 伺服器
@@ -71,9 +73,12 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
     }
   });
 
-  // 初始化 OpportunityHandler
+  // 初始化 Handlers
   const opportunityHandler = new OpportunityHandler(io);
   globalOpportunityHandler = opportunityHandler;
+
+  const marketRatesHandler = new MarketRatesHandler(io);
+  globalMarketRatesHandler = marketRatesHandler;
 
   // 連線處理
   io.on('connection', (socket: Socket) => {
@@ -102,8 +107,9 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
       'Socket joined user room',
     );
 
-    // 註冊 OpportunityHandler
+    // 註冊 Handlers
     opportunityHandler.register(socket);
+    marketRatesHandler.register(socket);
 
     // 斷線處理
     socket.on('disconnect', (reason) => {
@@ -140,6 +146,13 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
  */
 export function getOpportunityHandler(): OpportunityHandler | null {
   return globalOpportunityHandler;
+}
+
+/**
+ * 取得全域 MarketRatesHandler 實例
+ */
+export function getMarketRatesHandler(): MarketRatesHandler | null {
+  return globalMarketRatesHandler;
 }
 
 /**
