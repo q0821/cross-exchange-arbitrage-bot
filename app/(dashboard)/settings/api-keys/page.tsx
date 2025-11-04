@@ -249,6 +249,8 @@ export default function ApiKeysPage() {
                 <option value="binance">Binance</option>
                 <option value="okx">OKX</option>
                 <option value="bybit">Bybit</option>
+                <option value="mexc">MEXC</option>
+                <option value="gateio">Gate.io</option>
               </select>
             </div>
 
