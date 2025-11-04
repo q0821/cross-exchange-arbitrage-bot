@@ -33,7 +33,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navLinks = [
     { href: '/opportunities', label: '套利機會' },
     { href: '/market-monitor', label: '市場監控' },
-    { href: '/funding-rates', label: '即時資金費率' },
     { href: '/settings/api-keys', label: 'API 金鑰管理' },
   ];
 
