@@ -49,13 +49,16 @@ export function StatsCard({ stats, isLoading = false }: StatsCardProps) {
   const formatLastUpdate = (timestamp: string | null): string => {
     if (!timestamp) return '從未更新';
     const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSecs = Math.floor(diffMs / 1000);
 
-    if (diffSecs < 60) return `${diffSecs} 秒前`;
-    if (diffSecs < 3600) return `${Math.floor(diffSecs / 60)} 分鐘前`;
-    return date.toLocaleString('zh-TW');
+    // 格式化為 YYYY-MM-DD HH:mm:ss
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
   if (isLoading) {

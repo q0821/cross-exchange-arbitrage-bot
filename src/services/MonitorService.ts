@@ -54,12 +54,21 @@ export async function startMonitorService(): Promise<void> {
 
     // 創建 Monitor 實例
     // 注意：FundingRateMonitor 使用位置參數，不是對象參數
+    const updateInterval = parseInt(process.env.FUNDING_RATE_CHECK_INTERVAL_MS || '300000', 10);
+    const minSpreadThreshold = parseFloat(process.env.MIN_SPREAD_THRESHOLD || '0.005');
+
+    // 從環境變數讀取要監控的交易所列表（逗號分隔），預設為所有 4 個交易所
+    const exchangesEnv = process.env.MONITORED_EXCHANGES || 'binance,okx,mexc,gateio';
+    const exchanges = exchangesEnv.split(',').map((e) => e.trim()) as ('binance' | 'okx' | 'mexc' | 'gateio')[];
+
     monitorInstance = new FundingRateMonitor(
       symbols,                                            // 第1個參數：交易對數組
-      300000,                                             // 第2個參數：更新間隔（5分鐘）
-      0.005,                                              // 第3個參數：最小差價閾值（0.5%）
+      updateInterval,                                     // 第2個參數：更新間隔（從環境變數讀取）
+      minSpreadThreshold,                                 // 第3個參數：最小差價閾值（從環境變數讀取）
       process.env.BINANCE_TESTNET === 'true',            // 第4個參數：是否測試網
-      undefined,                                          // 第5個參數：可選配置（暫不使用）
+      {
+        exchanges,                                        // 指定要監控的交易所列表
+      },
     );
 
     // 監聽錯誤

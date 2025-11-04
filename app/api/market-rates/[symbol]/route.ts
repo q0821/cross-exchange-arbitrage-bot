@@ -60,7 +60,7 @@ export async function GET(
 
     // 3. 計算詳細資訊
     const TOTAL_COST_RATE = 0.005; // 0.5%
-    const spreadPercent = rate.spreadPercent;
+    const spreadPercent = rate.bestPair?.spreadPercent ?? 0;
     const netSpread = (spreadPercent / 100) - TOTAL_COST_RATE;
     const netAnnualized = netSpread * 365 * 3 * 100;
 
@@ -74,10 +74,35 @@ export async function GET(
       status = 'normal';
     }
 
-    // 判斷套利方向
-    const shouldLongOnBinance = rate.binance.fundingRate < rate.okx.fundingRate;
-    const longExchange = shouldLongOnBinance ? 'binance' : 'okx';
-    const shortExchange = shouldLongOnBinance ? 'okx' : 'binance';
+    // 使用 bestPair 的套利方向
+    const longExchange = rate.bestPair?.longExchange || null;
+    const shortExchange = rate.bestPair?.shortExchange || null;
+
+    // 構建所有交易所的詳細資訊
+    const exchangesDetail: Record<string, any> = {};
+    for (const [exchangeName, exchangeData] of rate.exchanges) {
+      exchangesDetail[exchangeName] = {
+        rate: exchangeData.rate.fundingRate,
+        ratePercent: (exchangeData.rate.fundingRate * 100).toFixed(4),
+        annualized: (exchangeData.rate.getAnnualizedRate() * 100).toFixed(2),
+        price: exchangeData.price || exchangeData.rate.markPrice,
+        nextFundingTime: exchangeData.rate.nextFundingTime.toISOString(),
+        timeUntilFunding: exchangeData.rate.getTimeUntilNextFunding(),
+      };
+    }
+
+    // 計算價差（使用 bestPair 的兩個交易所）
+    let priceDiffAbsolute: number | null = null;
+    if (longExchange && shortExchange) {
+      const longData = rate.exchanges.get(longExchange);
+      const shortData = rate.exchanges.get(shortExchange);
+      const longPrice = longData?.price || longData?.rate.markPrice;
+      const shortPrice = shortData?.price || shortData?.rate.markPrice;
+
+      if (longPrice && shortPrice) {
+        priceDiffAbsolute = Math.abs(longPrice - shortPrice);
+      }
+    }
 
     // 4. 返回詳細資訊
     const response = NextResponse.json(
@@ -85,33 +110,16 @@ export async function GET(
         success: true,
         data: {
           symbol: rate.symbol,
-          binance: {
-            rate: rate.binance.fundingRate,
-            ratePercent: (rate.binance.fundingRate * 100).toFixed(4),
-            annualized: (rate.binance.getAnnualizedRate() * 100).toFixed(2),
-            price: rate.binancePrice || rate.binance.markPrice,
-            nextFundingTime: rate.binance.nextFundingTime.toISOString(),
-            timeUntilFunding: rate.binance.getTimeUntilNextFunding(),
-          },
-          okx: {
-            rate: rate.okx.fundingRate,
-            ratePercent: (rate.okx.fundingRate * 100).toFixed(4),
-            annualized: (rate.okx.getAnnualizedRate() * 100).toFixed(2),
-            price: rate.okxPrice || rate.okx.markPrice,
-            nextFundingTime: rate.okx.nextFundingTime.toISOString(),
-            timeUntilFunding: rate.okx.getTimeUntilNextFunding(),
-          },
+          exchanges: exchangesDetail,
           spread: {
             absolute: spreadPercent / 100,
             percent: spreadPercent.toFixed(4),
-            annualized: rate.spreadAnnualized.toFixed(2),
+            annualized: rate.bestPair?.spreadAnnualized.toFixed(2) || '0.00',
             netAnnualized: netAnnualized.toFixed(2),
           },
           priceDiff: {
-            absolute: rate.binancePrice && rate.okxPrice
-              ? Math.abs(rate.binancePrice - rate.okxPrice)
-              : null,
-            percent: rate.priceDiffPercent?.toFixed(4) || null,
+            absolute: priceDiffAbsolute,
+            percent: rate.bestPair?.priceDiffPercent?.toFixed(4) || null,
           },
           arbitrage: {
             status,

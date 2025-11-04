@@ -180,6 +180,16 @@ export const apiKeys = {
     passphrase: process.env.OKX_PASSPHRASE || '',
     testnet: process.env.OKX_TESTNET === 'true',
   },
+  mexc: {
+    apiKey: process.env.MEXC_API_KEY || '',
+    apiSecret: process.env.MEXC_API_SECRET || '',
+    testnet: process.env.MEXC_TESTNET === 'true',
+  },
+  gateio: {
+    apiKey: process.env.GATEIO_API_KEY || '',
+    apiSecret: process.env.GATEIO_API_SECRET || '',
+    testnet: process.env.GATEIO_TESTNET === 'true',
+  },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
     chatId: process.env.TELEGRAM_CHAT_ID || '',

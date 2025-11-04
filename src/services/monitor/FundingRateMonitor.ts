@@ -1,7 +1,12 @@
 import { EventEmitter } from 'events';
 import { createExchange } from '../../connectors/factory';
-import type { IExchangeConnector } from '../../connectors/types';
-import { FundingRateRecord, FundingRateStore, FundingRatePair } from '../../models/FundingRate';
+import type { IExchangeConnector, ExchangeName } from '../../connectors/types';
+import {
+  FundingRateRecord,
+  FundingRateStore,
+  FundingRatePair,
+  ExchangeRateData,
+} from '../../models/FundingRate';
 import { RateDifferenceCalculator } from './RateDifferenceCalculator';
 import { MonitorStatsTracker } from './MonitorStats';
 import type { MonitorStats } from './MonitorStats';
@@ -35,11 +40,11 @@ export interface MonitorEvents {
 
 /**
  * 資金費率監控服務
- * 負責定期從交易所獲取資金費率並計算差異
+ * 負責定期從多個交易所獲取資金費率並計算差異
  */
 export class FundingRateMonitor extends EventEmitter {
-  private binance: IExchangeConnector;
-  private okx: IExchangeConnector;
+  private exchanges: Map<ExchangeName, IExchangeConnector> = new Map();
+  private exchangeNames: ExchangeName[];
   private store: FundingRateStore;
   private calculator: RateDifferenceCalculator;
   private statsTracker: MonitorStatsTracker;
@@ -70,6 +75,7 @@ export class FundingRateMonitor extends EventEmitter {
     options?: {
       validator?: IFundingRateValidator;
       enableValidation?: boolean;
+      exchanges?: ExchangeName[]; // 支持自定義交易所列表
     }
   ) {
     super();
@@ -77,8 +83,15 @@ export class FundingRateMonitor extends EventEmitter {
     this.symbols = symbols;
     this.updateInterval = updateInterval;
 
-    this.binance = createExchange('binance', isTestnet);
-    this.okx = createExchange('okx', isTestnet);
+    // 從選項中獲取交易所列表，預設為 binance, okx, mexc, gateio
+    this.exchangeNames = options?.exchanges || ['binance', 'okx', 'mexc', 'gateio'];
+
+    // 創建所有交易所的連接器
+    for (const exchangeName of this.exchangeNames) {
+      const connector = createExchange(exchangeName, isTestnet);
+      this.exchanges.set(exchangeName, connector);
+    }
+
     this.store = new FundingRateStore();
     this.calculator = new RateDifferenceCalculator(minSpreadThreshold);
     this.statsTracker = new MonitorStatsTracker();
@@ -95,6 +108,7 @@ export class FundingRateMonitor extends EventEmitter {
       updateInterval,
       minSpreadThreshold,
       isTestnet,
+      exchanges: this.exchangeNames,
       enableValidation: this.enableValidation,
     }, 'FundingRateMonitor initialized');
   }
@@ -111,11 +125,26 @@ export class FundingRateMonitor extends EventEmitter {
     try {
       logger.info('Starting funding rate monitor...');
 
-      // 連接交易所
-      await this.binance.connect();
-      await this.okx.connect();
+      // 並行連接所有交易所
+      const connectionPromises = Array.from(this.exchanges.entries()).map(
+        async ([name, connector]) => {
+          try {
+            await connector.connect();
+            logger.info({ exchange: name }, 'Exchange connected');
+            return name;
+          } catch (error) {
+            logger.error({
+              exchange: name,
+              error: error instanceof Error ? error.message : String(error),
+            }, 'Failed to connect exchange');
+            throw error;
+          }
+        }
+      );
 
-      this.status.connectedExchanges = ['binance', 'okx'];
+      await Promise.all(connectionPromises);
+
+      this.status.connectedExchanges = this.exchangeNames;
       this.isRunning = true;
       this.status.isRunning = true;
 
@@ -138,6 +167,7 @@ export class FundingRateMonitor extends EventEmitter {
       logger.info({
         symbols: this.symbols,
         interval: this.updateInterval,
+        exchanges: this.exchangeNames,
       }, 'Funding rate monitor started');
 
       this.emit('status-changed', this.getStatus());
@@ -168,9 +198,22 @@ export class FundingRateMonitor extends EventEmitter {
       this.intervalId = null;
     }
 
-    // 斷開交易所連線
-    await this.binance.disconnect();
-    await this.okx.disconnect();
+    // 並行斷開所有交易所連線
+    const disconnectionPromises = Array.from(this.exchanges.entries()).map(
+      async ([name, connector]) => {
+        try {
+          await connector.disconnect();
+          logger.info({ exchange: name }, 'Exchange disconnected');
+        } catch (error) {
+          logger.error({
+            exchange: name,
+            error: error instanceof Error ? error.message : String(error),
+          }, 'Failed to disconnect exchange');
+        }
+      }
+    );
+
+    await Promise.allSettled(disconnectionPromises);
 
     this.isRunning = false;
     this.status.isRunning = false;
@@ -233,27 +276,60 @@ export class FundingRateMonitor extends EventEmitter {
   }
 
   /**
-   * 更新單一交易對的資金費率
+   * 更新單一交易對的資金費率（多交易所版本）
    */
   private async updateRateForSymbol(symbol: string): Promise<void> {
-    // 並行獲取兩個交易所的資金費率和價格
-    const [binanceData, okxData, binancePriceData, okxPriceData] = await Promise.all([
-      this.binance.getFundingRate(symbol),
-      this.okx.getFundingRate(symbol),
-      this.binance.getPrice(symbol).catch(() => null), // 價格獲取失敗不影響主流程
-      this.okx.getPrice(symbol).catch(() => null),
-    ]);
+    // 並行獲取所有交易所的資金費率和價格
+    const dataPromises = Array.from(this.exchanges.entries()).map(
+      async ([exchangeName, connector]) => {
+        try {
+          const [rateData, priceData] = await Promise.all([
+            connector.getFundingRate(symbol),
+            connector.getPrice(symbol).catch(() => null), // 價格獲取失敗不影響主流程
+          ]);
 
-    // 建立記錄
-    const binanceRate = new FundingRateRecord(binanceData);
-    const okxRate = new FundingRateRecord(okxData);
+          const rate = new FundingRateRecord(rateData);
+          const price = priceData?.price;
 
-    // 儲存到記憶體
-    this.store.save(binanceRate);
-    this.store.save(okxRate);
+          // 儲存到記憶體
+          this.store.save(rate);
 
-    // 執行 OKX 資金費率驗證（如果啟用）
-    if (this.enableValidation && this.validator) {
+          return {
+            exchangeName,
+            data: { rate, price } as ExchangeRateData,
+          };
+        } catch (error) {
+          logger.warn({
+            exchange: exchangeName,
+            symbol,
+            error: error instanceof Error ? error.message : String(error),
+          }, 'Failed to fetch rate for exchange');
+          return null;
+        }
+      }
+    );
+
+    const results = await Promise.all(dataPromises);
+
+    // 過濾掉失敗的請求，建立 exchangesData Map
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    for (const result of results) {
+      if (result) {
+        exchangesData.set(result.exchangeName, result.data);
+      }
+    }
+
+    // 至少需要 2 個交易所的數據才能計算套利
+    if (exchangesData.size < 2) {
+      logger.warn({
+        symbol,
+        availableExchanges: exchangesData.size,
+      }, 'Not enough exchanges data to calculate arbitrage');
+      return;
+    }
+
+    // 執行 OKX 資金費率驗證（如果啟用且 OKX 數據可用）
+    if (this.enableValidation && this.validator && exchangesData.has('okx')) {
       try {
         // 轉換符號格式：BTCUSDT -> BTC-USDT-SWAP
         const okxSymbol = this.toOKXSymbol(symbol);
@@ -271,10 +347,8 @@ export class FundingRateMonitor extends EventEmitter {
       }
     }
 
-    // 計算差異（包含價格數據）
-    const binancePrice = binancePriceData?.price;
-    const okxPrice = okxPriceData?.price;
-    const pair = this.calculator.calculateDifference(binanceRate, okxRate, binancePrice, okxPrice);
+    // 使用新的多交易所計算方法
+    const pair = this.calculator.calculateMultiExchangeDifference(symbol, exchangesData);
 
     // 更新全局快取（用於 Web API）
     ratesCache.set(symbol, pair);
@@ -282,11 +356,11 @@ export class FundingRateMonitor extends EventEmitter {
     // 發送事件
     this.emit('rate-updated', pair);
 
-    // 檢查是否有套利機會（包含價差檢查）
+    // 檢查是否有套利機會
     const isOpportunity = this.calculator.isArbitrageOpportunity(pair);
     const wasOpportunity = this.activeOpportunities.has(symbol);
 
-    if (isOpportunity) {
+    if (isOpportunity && pair.bestPair) {
       if (!wasOpportunity) {
         // 新機會出現
         this.activeOpportunities.add(symbol);
@@ -294,10 +368,10 @@ export class FundingRateMonitor extends EventEmitter {
       }
       logger.info({
         symbol,
-        spread: pair.spreadPercent,
-        binancePrice,
-        okxPrice,
-        priceDiff: pair.priceDiffPercent,
+        longExchange: pair.bestPair.longExchange,
+        shortExchange: pair.bestPair.shortExchange,
+        spread: pair.bestPair.spreadPercent,
+        priceDiff: pair.bestPair.priceDiffPercent,
       }, 'Arbitrage opportunity detected');
       this.emit('opportunity-detected', pair);
     } else if (wasOpportunity) {
@@ -307,10 +381,7 @@ export class FundingRateMonitor extends EventEmitter {
 
       logger.info({
         symbol,
-        spread: pair.spreadPercent,
-        binancePrice,
-        okxPrice,
-        priceDiff: pair.priceDiffPercent,
+        spread: pair.bestPair?.spreadPercent,
       }, 'Arbitrage opportunity disappeared');
       this.emit('opportunity-disappeared', symbol);
     }
@@ -360,12 +431,20 @@ export class FundingRateMonitor extends EventEmitter {
     const pairs: FundingRatePair[] = [];
 
     for (const symbol of this.symbols) {
-      const binanceRate = this.store.getLatest('binance', symbol);
-      const okxRate = this.store.getLatest('okx', symbol);
+      // 收集所有交易所的最新資料
+      const exchangesData = new Map<ExchangeName, ExchangeRateData>();
 
-      if (binanceRate && okxRate) {
+      for (const exchangeName of this.exchangeNames) {
+        const rate = this.store.getLatest(exchangeName, symbol);
+        if (rate) {
+          exchangesData.set(exchangeName, { rate });
+        }
+      }
+
+      // 至少需要 2 個交易所的數據
+      if (exchangesData.size >= 2) {
         try {
-          const pair = this.calculator.calculateDifference(binanceRate, okxRate);
+          const pair = this.calculator.calculateMultiExchangeDifference(symbol, exchangesData);
           pairs.push(pair);
         } catch (error) {
           logger.error({
@@ -382,7 +461,7 @@ export class FundingRateMonitor extends EventEmitter {
   /**
    * 取得歷史記錄
    */
-  getHistory(symbol: string, exchange: 'binance' | 'okx', limit = 10): FundingRateRecord[] {
+  getHistory(symbol: string, exchange: ExchangeName, limit = 10): FundingRateRecord[] {
     return this.store.getHistory(exchange, symbol, limit);
   }
 

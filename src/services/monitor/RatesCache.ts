@@ -75,7 +75,9 @@ export class RatesCache {
 
     logger.debug({
       symbol,
-      spread: rate.spreadPercent,
+      spread: rate.bestPair?.spreadPercent ?? rate.spreadPercent ?? 0,
+      longExchange: rate.bestPair?.longExchange,
+      shortExchange: rate.bestPair?.shortExchange,
     }, 'Rate cached');
   }
 
@@ -144,7 +146,8 @@ export class RatesCache {
     let maxSpread: { symbol: string; spread: number } | null = null;
 
     rates.forEach((rate) => {
-      const spreadPercent = rate.spreadPercent;
+      // 使用 bestPair 的利差數據，如果不存在則回退到舊的屬性
+      const spreadPercent = rate.bestPair?.spreadPercent ?? rate.spreadPercent ?? 0;
 
       // 統計機會和接近閾值的數量
       if (spreadPercent >= threshold) {

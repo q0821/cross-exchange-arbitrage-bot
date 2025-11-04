@@ -10,23 +10,30 @@
 import React from 'react';
 import { StatusBadge, OpportunityStatus } from './StatusBadge';
 
+// 交易所名稱類型
+export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
+
+// 單個交易所的費率數據
+export interface ExchangeRate {
+  rate: number;
+  ratePercent?: string;
+  price?: number | null;
+}
+
+// 最佳套利對信息
+export interface BestArbitragePair {
+  longExchange: ExchangeName;   // 做多的交易所
+  shortExchange: ExchangeName;  // 做空的交易所
+  spread: number;               // 利差（小數）
+  spreadPercent: number;        // 利差百分比
+  annualizedReturn: number;     // 年化收益
+}
+
+// 市場費率數據（支持多交易所）
 export interface MarketRate {
   symbol: string;
-  binance: {
-    rate: number;
-    ratePercent?: string;
-    price?: number;
-  };
-  okx: {
-    rate: number;
-    ratePercent?: string;
-    price?: number;
-  };
-  spread: number;
-  spreadPercent?: string;
-  annualizedReturn?: string;
-  netReturn?: string;
-  priceDiffPercent?: string | null;
+  exchanges: Record<ExchangeName, ExchangeRate>;  // 所有交易所的費率
+  bestPair: BestArbitragePair | null;             // 最佳套利對
   status: OpportunityStatus;
   timestamp: string;
 }
@@ -65,7 +72,7 @@ export const RateRow = React.memo(function RateRow({
   };
 
   // 格式化價格顯示
-  const formatPrice = (price?: number) => {
+  const formatPrice = (price?: number | null) => {
     if (!price) return '-';
     return price.toLocaleString(undefined, {
       minimumFractionDigits: 2,
@@ -85,6 +92,61 @@ export const RateRow = React.memo(function RateRow({
     }
   };
 
+  // 交易所列表（固定順序）
+  const exchangeList: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio'];
+
+  // 交易所顯示名稱
+  const exchangeDisplayNames: Record<ExchangeName, string> = {
+    binance: 'Binance',
+    okx: 'OKX',
+    mexc: 'MEXC',
+    gateio: 'Gate.io',
+  };
+
+  // 渲染交易所費率單元格
+  const renderExchangeCell = (exchangeName: ExchangeName) => {
+    const exchangeData = rate.exchanges[exchangeName];
+
+    // 如果沒有該交易所的數據，顯示 "-"
+    if (!exchangeData) {
+      return (
+        <td key={exchangeName} className="px-4 py-3 text-right">
+          <span className="text-gray-400">-</span>
+        </td>
+      );
+    }
+
+    // 判斷是否為做多或做空交易所
+    const isLong = rate.bestPair?.longExchange === exchangeName;
+    const isShort = rate.bestPair?.shortExchange === exchangeName;
+
+    return (
+      <td key={exchangeName} className="px-4 py-3 text-right">
+        <div className="flex flex-col items-end gap-1">
+          {/* 做多/做空標籤 */}
+          {isLong && (
+            <span className="inline-block px-2 py-0.5 text-xs font-medium text-white bg-green-600 rounded">
+              做多
+            </span>
+          )}
+          {isShort && (
+            <span className="inline-block px-2 py-0.5 text-xs font-medium text-white bg-red-600 rounded">
+              做空
+            </span>
+          )}
+
+          {/* 費率 */}
+          <span className="font-mono text-sm">{formatRate(exchangeData.rate)}</span>
+
+          {/* 價格 */}
+          {exchangeData.price && (
+            <span className="text-xs text-gray-500">${formatPrice(exchangeData.price)}</span>
+          )}
+        </div>
+      </td>
+    );
+  };
+
   return (
     <tr className={`border-b transition-colors ${getRowBgColor()}`}>
       {/* 交易對名稱 */}
@@ -97,25 +159,8 @@ export const RateRow = React.memo(function RateRow({
         </button>
       </td>
 
-      {/* Binance 費率 */}
-      <td className="px-4 py-3 text-right">
-        <div className="flex flex-col items-end">
-          <span className="font-mono text-sm">{formatRate(rate.binance.rate)}</span>
-          {rate.binance.price && (
-            <span className="text-xs text-gray-500">${formatPrice(rate.binance.price)}</span>
-          )}
-        </div>
-      </td>
-
-      {/* OKX 費率 */}
-      <td className="px-4 py-3 text-right">
-        <div className="flex flex-col items-end">
-          <span className="font-mono text-sm">{formatRate(rate.okx.rate)}</span>
-          {rate.okx.price && (
-            <span className="text-xs text-gray-500">${formatPrice(rate.okx.price)}</span>
-          )}
-        </div>
-      </td>
+      {/* 4 個交易所的費率列 */}
+      {exchangeList.map((exchange) => renderExchangeCell(exchange))}
 
       {/* 費率差異 */}
       <td className="px-4 py-3 text-right">
@@ -128,25 +173,14 @@ export const RateRow = React.memo(function RateRow({
               : 'text-gray-600'
           }`}
         >
-          {rate.spreadPercent || (rate.spread * 100).toFixed(4) + '%'}
+          {rate.bestPair ? rate.bestPair.spreadPercent.toFixed(4) + '%' : '-'}
         </span>
       </td>
 
       {/* 年化收益 */}
       <td className="px-4 py-3 text-right">
-        <span className="font-mono text-sm">{rate.annualizedReturn || '-'}</span>
-      </td>
-
-      {/* 淨收益 */}
-      <td className="px-4 py-3 text-right">
-        <span
-          className={`font-mono text-sm font-semibold ${
-            rate.netReturn && parseFloat(rate.netReturn) > 0
-              ? 'text-green-600'
-              : 'text-red-600'
-          }`}
-        >
-          {rate.netReturn || '-'}
+        <span className="font-mono text-sm">
+          {rate.bestPair ? rate.bestPair.annualizedReturn.toFixed(2) + '%' : '-'}
         </span>
       </td>
 
@@ -154,7 +188,7 @@ export const RateRow = React.memo(function RateRow({
       <td className="px-4 py-3">
         <StatusBadge
           status={rate.status}
-          spreadPercent={parseFloat(rate.spreadPercent || '0')}
+          spreadPercent={rate.bestPair?.spreadPercent || 0}
         />
       </td>
 

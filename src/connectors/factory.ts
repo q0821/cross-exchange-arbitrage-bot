@@ -1,6 +1,8 @@
 import { IExchangeConnector, IExchangeFactory, ExchangeName } from './types.js';
 import { BinanceConnector } from './binance.js';
 import { OKXConnector } from './okx.js';
+import { MexcConnector } from './mexc.js';
+import { GateioConnector } from './gateio.js';
 import { logger } from '../lib/logger.js';
 
 export class ExchangeFactory implements IExchangeFactory {
@@ -23,6 +25,12 @@ export class ExchangeFactory implements IExchangeFactory {
         break;
       case 'okx':
         connector = new OKXConnector(isTestnet);
+        break;
+      case 'mexc':
+        connector = new MexcConnector(isTestnet);
+        break;
+      case 'gateio':
+        connector = new GateioConnector(isTestnet);
         break;
       default:
         throw new Error(`Unsupported exchange: ${exchange}`);

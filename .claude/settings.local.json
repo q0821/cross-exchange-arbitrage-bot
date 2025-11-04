@@ -62,7 +62,9 @@
       "Bash(done)",
       "Bash(for:*)",
       "Bash(git reset:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(pnpm test:*)",
+      "Bash(node test-websocket-auth.js:*)"
     ],
     "deny": [],
     "ask": []

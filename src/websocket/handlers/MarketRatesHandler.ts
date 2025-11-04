@@ -246,7 +246,8 @@ export class MarketRatesHandler {
    */
   private formatRates(rates: any[]): any[] {
     return rates.map((rate) => {
-      const spreadPercent = rate.spreadPercent;
+      // 使用 bestPair 的差價數據
+      const spreadPercent = rate.bestPair?.spreadPercent ?? 0;
 
       // 判斷狀態
       let status: 'opportunity' | 'approaching' | 'normal';
@@ -258,18 +259,30 @@ export class MarketRatesHandler {
         status = 'normal';
       }
 
+      // 構建所有交易所的數據
+      const exchanges: Record<string, any> = {};
+      for (const [exchangeName, exchangeData] of rate.exchanges) {
+        exchanges[exchangeName] = {
+          rate: exchangeData.rate.fundingRate,
+          price: exchangeData.price || exchangeData.rate.markPrice || null,
+        };
+      }
+
+      // 構建 bestPair 信息
+      const bestPair = rate.bestPair
+        ? {
+            longExchange: rate.bestPair.longExchange,
+            shortExchange: rate.bestPair.shortExchange,
+            spread: rate.bestPair.spreadPercent / 100,
+            spreadPercent: rate.bestPair.spreadPercent,
+            annualizedReturn: rate.bestPair.spreadAnnualized,
+          }
+        : null;
+
       return {
         symbol: rate.symbol,
-        binance: {
-          rate: rate.binance.fundingRate,
-          price: rate.binancePrice || rate.binance.markPrice || null,
-        },
-        okx: {
-          rate: rate.okx.fundingRate,
-          price: rate.okxPrice || rate.okx.markPrice || null,
-        },
-        spread: spreadPercent / 100, // 轉換為小數
-        annualizedReturn: rate.spreadAnnualized,
+        exchanges,
+        bestPair,
         status,
         timestamp: rate.recordedAt.toISOString(),
       };

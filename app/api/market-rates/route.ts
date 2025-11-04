@@ -45,7 +45,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // 4. 轉換數據格式為 API 響應格式
     const formattedRates = rates.map((rate) => {
-      const spreadPercent = rate.spreadPercent;
+      // 使用 bestPair 的差價數據
+      const spreadPercent = rate.bestPair?.spreadPercent ?? 0;
 
       // 判斷狀態
       let status: 'opportunity' | 'approaching' | 'normal';
@@ -62,25 +63,33 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const netSpread = (spreadPercent / 100) - TOTAL_COST_RATE;
       const netAnnualized = netSpread * 365 * 3 * 100; // 轉換為百分比
 
+      // 構建所有交易所的數據
+      const exchanges: Record<string, any> = {};
+      for (const [exchangeName, exchangeData] of rate.exchanges) {
+        exchanges[exchangeName] = {
+          rate: exchangeData.rate.fundingRate,
+          ratePercent: (exchangeData.rate.fundingRate * 100).toFixed(4),
+          price: exchangeData.price || exchangeData.rate.markPrice,
+          nextFundingTime: exchangeData.rate.nextFundingTime.toISOString(),
+        };
+      }
+
+      // 構建 bestPair 信息
+      const bestPair = rate.bestPair
+        ? {
+            longExchange: rate.bestPair.longExchange,
+            shortExchange: rate.bestPair.shortExchange,
+            spreadPercent: rate.bestPair.spreadPercent.toFixed(4),
+            annualizedReturn: rate.bestPair.spreadAnnualized.toFixed(2),
+            netReturn: netAnnualized.toFixed(2),
+            priceDiffPercent: rate.bestPair.priceDiffPercent?.toFixed(4) || null,
+          }
+        : null;
+
       return {
         symbol: rate.symbol,
-        binance: {
-          rate: rate.binance.fundingRate,
-          ratePercent: (rate.binance.fundingRate * 100).toFixed(4),
-          price: rate.binancePrice || rate.binance.markPrice,
-          nextFundingTime: rate.binance.nextFundingTime.toISOString(),
-        },
-        okx: {
-          rate: rate.okx.fundingRate,
-          ratePercent: (rate.okx.fundingRate * 100).toFixed(4),
-          price: rate.okxPrice || rate.okx.markPrice,
-          nextFundingTime: rate.okx.nextFundingTime.toISOString(),
-        },
-        spread: spreadPercent / 100, // 轉換為小數
-        spreadPercent: spreadPercent.toFixed(4),
-        annualizedReturn: rate.spreadAnnualized.toFixed(2),
-        netReturn: netAnnualized.toFixed(2),
-        priceDiffPercent: rate.priceDiffPercent?.toFixed(4) || null,
+        exchanges,
+        bestPair,
         status,
         timestamp: rate.recordedAt.toISOString(),
       };

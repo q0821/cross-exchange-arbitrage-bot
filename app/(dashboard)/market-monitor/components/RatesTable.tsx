@@ -11,7 +11,7 @@ import React, { useMemo } from 'react';
 import { RateRow, MarketRate } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
 
-type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'netReturn';
+type SortField = 'symbol' | 'spread' | 'annualizedReturn';
 type SortDirection = 'asc' | 'desc';
 
 interface RatesTableProps {
@@ -56,16 +56,12 @@ export function RatesTable({
           bValue = b.symbol;
           break;
         case 'spread':
-          aValue = a.spread;
-          bValue = b.spread;
+          aValue = a.bestPair?.spreadPercent ?? 0;
+          bValue = b.bestPair?.spreadPercent ?? 0;
           break;
         case 'annualizedReturn':
-          aValue = parseFloat(a.annualizedReturn || '0');
-          bValue = parseFloat(b.annualizedReturn || '0');
-          break;
-        case 'netReturn':
-          aValue = parseFloat(a.netReturn || '0');
-          bValue = parseFloat(b.netReturn || '0');
+          aValue = a.bestPair?.annualizedReturn ?? 0;
+          bValue = b.bestPair?.annualizedReturn ?? 0;
           break;
         default:
           return 0;
@@ -138,6 +134,16 @@ export function RatesTable({
               OKX 費率
             </th>
 
+            {/* MEXC 費率 */}
+            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              MEXC 費率
+            </th>
+
+            {/* Gate.io 費率 */}
+            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Gate.io 費率
+            </th>
+
             {/* 費率差異 */}
             <th
               className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
@@ -157,17 +163,6 @@ export function RatesTable({
               <div className="flex items-center justify-end gap-1">
                 <span>年化收益</span>
                 {getSortIcon('annualizedReturn')}
-              </div>
-            </th>
-
-            {/* 淨收益 */}
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => handleSort('netReturn')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                <span>淨收益</span>
-                {getSortIcon('netReturn')}
               </div>
             </th>
 

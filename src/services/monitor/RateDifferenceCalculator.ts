@@ -1,10 +1,17 @@
-import { FundingRateRecord, FundingRatePair, createFundingRatePair } from '../../models/FundingRate';
+import {
+  FundingRateRecord,
+  FundingRatePair,
+  createFundingRatePair,
+  createMultiExchangeFundingRatePair,
+  ExchangeName,
+  ExchangeRateData,
+} from '../../models/FundingRate';
 import { logger } from '../../lib/logger';
 import { MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF } from '../../lib/cost-constants';
 
 /**
  * 資金費率差異計算器
- * 負責計算兩個交易所之間的資金費率差異，並判斷是否有套利機會
+ * 負責計算多個交易所之間的資金費率差異，並判斷是否有套利機會
  */
 export class RateDifferenceCalculator {
   private readonly minSpreadThreshold: number;
@@ -15,7 +22,42 @@ export class RateDifferenceCalculator {
   }
 
   /**
-   * 計算資金費率差異
+   * 計算多交易所資金費率差異（新版本）
+   * 自動找出所有交易所中利差最大的兩個交易所
+   */
+  calculateMultiExchangeDifference(
+    symbol: string,
+    exchangesData: Map<ExchangeName, ExchangeRateData>
+  ): FundingRatePair {
+    try {
+      const pair = createMultiExchangeFundingRatePair(symbol, exchangesData);
+
+      if (pair.bestPair) {
+        logger.debug({
+          symbol: pair.symbol,
+          longExchange: pair.bestPair.longExchange,
+          shortExchange: pair.bestPair.shortExchange,
+          spread: pair.bestPair.spreadPercent,
+          priceDiff: pair.bestPair.priceDiffPercent,
+        }, 'Calculated multi-exchange funding rate difference');
+      } else {
+        logger.warn({ symbol }, 'No best pair found for symbol');
+      }
+
+      return pair;
+    } catch (error) {
+      logger.error({
+        error: error instanceof Error ? error.message : String(error),
+        symbol,
+        exchangeCount: exchangesData.size,
+      }, 'Failed to calculate multi-exchange rate difference');
+      throw error;
+    }
+  }
+
+  /**
+   * 計算資金費率差異（向後兼容版本）
+   * @deprecated 使用 calculateMultiExchangeDifference 替代
    */
   calculateDifference(
     binanceRate: FundingRateRecord,
@@ -51,35 +93,105 @@ export class RateDifferenceCalculator {
    * 判斷是否達到套利閾值（包含資金費率差和價差檢查）
    */
   isArbitrageOpportunity(pair: FundingRatePair): boolean {
+    // 沒有最佳套利對，不是機會
+    if (!pair.bestPair) {
+      return false;
+    }
+
     // 1. 檢查資金費率差是否達到閾值
-    const spreadDecimal = pair.spreadPercent / 100;
+    const spreadDecimal = pair.bestPair.spreadPercent / 100;
     if (spreadDecimal < this.minSpreadThreshold) {
       return false;
     }
 
     // 2. 如果沒有價格數據，只根據資金費率判斷
-    if (!pair.binancePrice || !pair.okxPrice) {
+    const longData = pair.exchanges.get(pair.bestPair.longExchange);
+    const shortData = pair.exchanges.get(pair.bestPair.shortExchange);
+
+    if (!longData?.price || !shortData?.price) {
       logger.warn({
         symbol: pair.symbol,
+        longExchange: pair.bestPair.longExchange,
+        shortExchange: pair.bestPair.shortExchange,
         reason: 'No price data available, using funding rate only',
       }, 'Price data missing for arbitrage opportunity check');
       return true;
     }
 
     // 3. 檢查價差方向是否有利
-    return this.isPriceDiffFavorable(pair);
+    return this.isPriceDiffFavorableForBestPair(pair);
   }
 
   /**
-   * 檢查價差是否有利於套利
+   * 檢查價差是否有利於套利（新版本，支持任意交易所對）
+   */
+  private isPriceDiffFavorableForBestPair(pair: FundingRatePair): boolean {
+    if (!pair.bestPair) {
+      return false;
+    }
+
+    const longData = pair.exchanges.get(pair.bestPair.longExchange);
+    const shortData = pair.exchanges.get(pair.bestPair.shortExchange);
+
+    if (!longData?.price || !shortData?.price) {
+      return true; // 無價格數據時，不拒絕機會
+    }
+
+    const longPrice = longData.price;
+    const shortPrice = shortData.price;
+
+    // 做空的交易所價格應該 >= 做多的交易所價格（或略低於可接受範圍內）
+    // 這樣在平倉時才不會虧損
+    const priceDiffRate = (shortPrice - longPrice) / shortPrice;
+
+    if (priceDiffRate >= 0) {
+      // 價差有利（做空交易所價格較高）
+      logger.debug({
+        symbol: pair.symbol,
+        direction: `Short ${pair.bestPair.shortExchange.toUpperCase()}, Long ${pair.bestPair.longExchange.toUpperCase()}`,
+        shortPrice,
+        longPrice,
+        priceDiffRate: (priceDiffRate * 100).toFixed(4) + '%',
+        result: 'Favorable',
+      }, 'Price difference check');
+      return true;
+    } else if (Math.abs(priceDiffRate) <= MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF) {
+      // 價差略微不利，但在可接受範圍內
+      logger.debug({
+        symbol: pair.symbol,
+        direction: `Short ${pair.bestPair.shortExchange.toUpperCase()}, Long ${pair.bestPair.longExchange.toUpperCase()}`,
+        shortPrice,
+        longPrice,
+        priceDiffRate: (priceDiffRate * 100).toFixed(4) + '%',
+        result: 'Acceptable (within tolerance)',
+      }, 'Price difference check');
+      return true;
+    } else {
+      // 價差明顯不利
+      logger.info({
+        symbol: pair.symbol,
+        direction: `Short ${pair.bestPair.shortExchange.toUpperCase()}, Long ${pair.bestPair.longExchange.toUpperCase()}`,
+        shortPrice,
+        longPrice,
+        priceDiffRate: (priceDiffRate * 100).toFixed(4) + '%',
+        maxAcceptable: (MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF * 100).toFixed(2) + '%',
+        result: 'Rejected (adverse price diff)',
+      }, 'Price difference check failed');
+      return false;
+    }
+  }
+
+  /**
+   * 檢查價差是否有利於套利（向後兼容版本）
    *
    * 邏輯：
    * - 如果 Binance 資金費率較高（做空），則 Binance 價格應 >= OKX 價格
    * - 如果 OKX 資金費率較高（做空），則 OKX 價格應 >= Binance 價格
    * - 允許少量反向價差（MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF）
+   * @deprecated 使用 isPriceDiffFavorableForBestPair 替代
    */
   private isPriceDiffFavorable(pair: FundingRatePair): boolean {
-    if (!pair.binancePrice || !pair.okxPrice) {
+    if (!pair.binancePrice || !pair.okxPrice || !pair.binance || !pair.okx) {
       return true; // 無價格數據時，不拒絕機會
     }
 
@@ -181,8 +293,11 @@ export class RateDifferenceCalculator {
    * @returns 預期年化收益（USDT）
    */
   calculateExpectedReturn(pair: FundingRatePair, positionSize: number): number {
+    if (!pair.bestPair) {
+      return 0;
+    }
     // 年化利差 * 倉位大小
-    const annualReturn = (pair.spreadAnnualized / 100) * positionSize;
+    const annualReturn = (pair.bestPair.spreadAnnualized / 100) * positionSize;
     return annualReturn;
   }
 
@@ -193,35 +308,34 @@ export class RateDifferenceCalculator {
    * @returns 單次結算收益（USDT）
    */
   calculateSingleFundingReturn(pair: FundingRatePair, positionSize: number): number {
-    const spreadDecimal = pair.spreadPercent / 100;
+    if (!pair.bestPair) {
+      return 0;
+    }
+    const spreadDecimal = pair.bestPair.spreadPercent / 100;
     return spreadDecimal * positionSize;
   }
 
   /**
-   * 取得套利方向建議
+   * 取得套利方向建議（新版本）
    * @returns { long: 做多的交易所, short: 做空的交易所 }
    */
   getArbitrageDirection(pair: FundingRatePair): {
-    long: 'binance' | 'okx';
-    short: 'binance' | 'okx';
+    long: ExchangeName;
+    short: ExchangeName;
     reason: string;
-  } {
-    if (pair.binance.fundingRate > pair.okx.fundingRate) {
-      // Binance 費率較高（正向），應在 OKX 做多、Binance 做空
-      // 這樣 OKX 收取資金費率，Binance 支付資金費率
-      return {
-        long: 'okx',
-        short: 'binance',
-        reason: 'Binance 資金費率較高，在 OKX 做多可收取費率，在 Binance 做空需支付費率',
-      };
-    } else {
-      // OKX 費率較高，應在 Binance 做多、OKX 做空
-      return {
-        long: 'binance',
-        short: 'okx',
-        reason: 'OKX 資金費率較高，在 Binance 做多可收取費率，在 OKX 做空需支付費率',
-      };
+  } | null {
+    if (!pair.bestPair) {
+      return null;
     }
+
+    const longExchange = pair.bestPair.longExchange;
+    const shortExchange = pair.bestPair.shortExchange;
+
+    return {
+      long: longExchange,
+      short: shortExchange,
+      reason: `${shortExchange.toUpperCase()} 資金費率較高，在 ${longExchange.toUpperCase()} 做多可收取費率，在 ${shortExchange.toUpperCase()} 做空需支付費率`,
+    };
   }
 
   /**
@@ -239,24 +353,39 @@ export class RateDifferenceCalculator {
       `時間: ${pair.recordedAt.toLocaleString()}`,
       ``,
       `資金費率:`,
-      `  Binance: ${pair.binance.getFundingRatePercent()}`,
-      `  OKX: ${pair.okx.getFundingRatePercent()}`,
-      `  利差: ${pair.spreadPercent.toFixed(4)}%`,
-      ``,
-      `年化利差: ${pair.spreadAnnualized.toFixed(2)}%`,
-      ``,
-      `倉位: ${positionSize} USDT`,
-      `預期年化收益: ${expectedReturn.toFixed(2)} USDT`,
-      `單次結算收益: ${singleFundingReturn.toFixed(2)} USDT`,
-      ``,
-      `套利建議:`,
-      `  ${direction.long.toUpperCase()} 做多`,
-      `  ${direction.short.toUpperCase()} 做空`,
-      `  原因: ${direction.reason}`,
-      ``,
-      `是否達到閾值: ${isOpportunity ? '✅ 是' : '❌ 否'} (閾值: ${(this.minSpreadThreshold * 100).toFixed(2)}%)`,
-      `==================`,
     ];
+
+    // 列出所有交易所的資金費率
+    for (const [exchange, data] of pair.exchanges.entries()) {
+      lines.push(`  ${exchange.toUpperCase()}: ${data.rate.getFundingRatePercent()}`);
+    }
+
+    if (pair.bestPair) {
+      lines.push(``);
+      lines.push(`最佳套利對: ${pair.bestPair.shortExchange.toUpperCase()} <-> ${pair.bestPair.longExchange.toUpperCase()}`);
+      lines.push(`  利差: ${pair.bestPair.spreadPercent.toFixed(4)}%`);
+      lines.push(`  年化利差: ${pair.bestPair.spreadAnnualized.toFixed(2)}%`);
+    } else {
+      lines.push(``);
+      lines.push(`未找到套利對`);
+    }
+
+    lines.push(``);
+    lines.push(`倉位: ${positionSize} USDT`);
+    lines.push(`預期年化收益: ${expectedReturn.toFixed(2)} USDT`);
+    lines.push(`單次結算收益: ${singleFundingReturn.toFixed(2)} USDT`);
+
+    if (direction) {
+      lines.push(``);
+      lines.push(`套利建議:`);
+      lines.push(`  ${direction.long.toUpperCase()} 做多`);
+      lines.push(`  ${direction.short.toUpperCase()} 做空`);
+      lines.push(`  原因: ${direction.reason}`);
+    }
+
+    lines.push(``);
+    lines.push(`是否達到閾值: ${isOpportunity ? '✅ 是' : '❌ 否'} (閾值: ${(this.minSpreadThreshold * 100).toFixed(2)}%)`);
+    lines.push(`==================`);
 
     return lines.join('\n');
   }
