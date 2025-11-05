@@ -44,9 +44,9 @@
 - [ ] T007 [P] 建立 `FundingRateValidation` 資料模型於 `src/models/FundingRateValidation.ts`
 - [ ] T008 [P] 建立 `ArbitrageAssessment` 資料模型於 `src/models/ArbitrageAssessment.ts`
 - [ ] T009 [P] 建立 Zod schema 驗證於 `src/lib/validation/schemas.ts`（驗證 API 回應資料）
-- [ ] T010 [P] 建立 `FundingRateValidationRepository` 於 `src/repositories/FundingRateValidationRepository.ts`
+- [x] T010 [P] 建立 `FundingRateValidationRepository` 於 `src/repositories/FundingRateValidationRepository.ts` ✅
 - [ ] T011 [P] 建立錯誤類型定義於 `src/lib/errors/index.ts`（`APIError`, `WebSocketError`, `ValidationError`）
-- [ ] T012 測試 repository 的資料庫寫入功能於 `tests/integration/FundingRateValidationRepository.test.ts`
+- [x] T012 測試 repository 的資料庫寫入功能於 `tests/integration/FundingRateValidationRepository.test.ts` ✅ (已修復非同步問題)
 
 **Checkpoint**: 基礎設施已就緒，用戶故事實作可並行開始
 
