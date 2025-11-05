@@ -12,9 +12,10 @@ export default defineConfig({
       '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
       '**/*.spec.ts', // 排除 Playwright E2E 測試
     ],
-    // 只執行 .test.ts 檔案
-    include: ['**/*.test.ts'],
-    environment: 'node',
+    // 執行 .test.ts 和 .test.tsx 檔案
+    include: ['**/*.test.ts', '**/*.test.tsx'],
+    // 使用 jsdom 環境支援 React 元件測試
+    environment: 'jsdom',
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
