@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -8,6 +8,10 @@ import Link from 'next/link';
  * 註冊頁面
  */
 export default function RegisterPage() {
+  // 設定頁面標題
+  useEffect(() => {
+    document.title = '註冊 | Arbitrage Trading Platform';
+  }, []);
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -49,8 +53,8 @@ export default function RegisterPage() {
         return;
       }
 
-      // 註冊成功，跳轉到首頁
-      router.push('/');
+      // 註冊成功，跳轉到登入頁面
+      router.push('/login');
     } catch (err) {
       setError('An unexpected error occurred');
       setIsLoading(false);

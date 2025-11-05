@@ -14,7 +14,6 @@ export default defineConfig({
     ],
     // 只執行 .test.ts 檔案
     include: ['**/*.test.ts'],
-    globals: true,
     environment: 'node',
     coverage: {
       provider: 'v8',

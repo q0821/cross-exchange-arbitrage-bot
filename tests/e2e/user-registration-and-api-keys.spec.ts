@@ -66,14 +66,14 @@ test.describe('US1: 用戶註冊和 API Key 管理', () => {
 
       await test.step('5. 提交登入', async () => {
         await page.click('button[type="submit"]');
-        await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+        await page.waitForURL(/\/opportunities/, { timeout: 10000 });
       });
     }
 
     await test.step('6. 驗證登入成功', async () => {
       // 檢查是否顯示用戶郵箱或登出按鈕
-      const dashboard = page.locator('text=/dashboard|儀表板/i').or(page.locator('button:has-text("登出")'));
-      await expect(dashboard.first()).toBeVisible({ timeout: 5000 });
+      // 檢查是否成功導航到套利機會頁面
+      await expect(page).toHaveURL(/\/opportunities/, { timeout: 5000 });
     });
 
     // ========================================
@@ -160,7 +160,7 @@ test.describe('US1: 用戶註冊和 API Key 管理', () => {
       await page.fill('input[name="email"], input[type="email"]', testUser.email);
       await page.fill('input[name="password"], input[type="password"]', testUser.password);
       await page.click('button[type="submit"]');
-      await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+      await page.waitForURL(/\/opportunities/, { timeout: 10000 });
     }
 
     // 前往 API Key 管理頁面
@@ -225,7 +225,7 @@ test.describe('US1: 用戶註冊和 API Key 管理', () => {
       await page.fill('input[name="email"], input[type="email"]', testUser.email);
       await page.fill('input[name="password"], input[type="password"]', testUser.password);
       await page.click('button[type="submit"]');
-      await page.waitForURL(/\/dashboard/, { timeout: 10000 });
+      await page.waitForURL(/\/opportunities/, { timeout: 10000 });
     }
 
     // 前往 API Key 管理頁面
