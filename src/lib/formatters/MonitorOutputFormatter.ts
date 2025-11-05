@@ -186,8 +186,8 @@ export class MonitorOutputFormatter {
    * @returns 格式化後的機會報告字串
    */
   renderOpportunityReport(pair: FundingRatePair, threshold: number): string {
-    const binanceRate = pair.binance.fundingRate
-    const okxRate = pair.okx.fundingRate
+    const binanceRate = pair.binance?.fundingRate ?? 0
+    const okxRate = pair.okx?.fundingRate ?? 0
     const spread = binanceRate - okxRate
     const spreadPercent = Math.abs(spread) * 100
     const spreadAnnualized = Math.abs(spread) * 365 * 3 * 100 // 假設 8 小時結算 (365 * 3)

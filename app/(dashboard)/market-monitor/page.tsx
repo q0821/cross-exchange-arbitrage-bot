@@ -63,12 +63,14 @@ export default function MarketMonitorPage() {
 
     let maxSpread: { symbol: string; spread: string } | null = null;
     filteredRates.forEach((rate) => {
-      const spread = parseFloat(rate.spreadPercent);
-      if (!maxSpread || spread > parseFloat(maxSpread.spread)) {
-        maxSpread = {
-          symbol: rate.symbol,
-          spread: rate.spreadPercent,
-        };
+      if (rate.bestPair) {
+        const spread = rate.bestPair.spreadPercent;
+        if (!maxSpread || spread > parseFloat(maxSpread.spread)) {
+          maxSpread = {
+            symbol: rate.symbol,
+            spread: rate.bestPair.spreadPercent.toFixed(4),
+          };
+        }
       }
     });
 
@@ -96,7 +98,8 @@ export default function MarketMonitorPage() {
   const handleQuickOpen = (rate: MarketRate) => {
     console.log('[MarketMonitor] Quick open:', rate);
     // TODO: 打開開倉對話框
-    alert(`快速開倉功能開發中\n交易對: ${rate.symbol}\n費率差異: ${rate.spreadPercent}%`);
+    const spreadPercent = rate.bestPair?.spreadPercent.toFixed(4) || '0';
+    alert(`快速開倉功能開發中\n交易對: ${rate.symbol}\n費率差異: ${spreadPercent}%`);
   };
 
   // 載入狀態

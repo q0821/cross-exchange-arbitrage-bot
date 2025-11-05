@@ -95,14 +95,6 @@ export const RateRow = React.memo(function RateRow({
   // 交易所列表（固定順序）
   const exchangeList: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio'];
 
-  // 交易所顯示名稱
-  const exchangeDisplayNames: Record<ExchangeName, string> = {
-    binance: 'Binance',
-    okx: 'OKX',
-    mexc: 'MEXC',
-    gateio: 'Gate.io',
-  };
-
   // 渲染交易所費率單元格
   const renderExchangeCell = (exchangeName: ExchangeName) => {
     const exchangeData = rate.exchanges[exchangeName];

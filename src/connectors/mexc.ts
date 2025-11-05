@@ -39,7 +39,7 @@ export class MexcConnector extends BaseExchangeConnector {
         });
       }
 
-      this.client = new ccxt.mexc({
+      this.client = new (ccxt as any).mexc({
         apiKey,
         secret: apiSecret,
         enableRateLimit: true,
@@ -47,7 +47,7 @@ export class MexcConnector extends BaseExchangeConnector {
           defaultType: 'swap', // 使用永續合約
           ...(testnet && { sandboxMode: true }),
         },
-      });
+      }) as ccxt.Exchange;
 
       // 測試連線
       await this.testConnection();

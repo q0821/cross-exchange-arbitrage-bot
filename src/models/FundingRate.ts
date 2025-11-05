@@ -169,8 +169,8 @@ export function createMultiExchangeFundingRatePair(
   const exchanges = Array.from(exchangesData.keys());
   for (let i = 0; i < exchanges.length; i++) {
     for (let j = i + 1; j < exchanges.length; j++) {
-      const exchange1 = exchanges[i];
-      const exchange2 = exchanges[j];
+      const exchange1 = exchanges[i] as ExchangeName;
+      const exchange2 = exchanges[j] as ExchangeName;
       const data1 = exchangesData.get(exchange1)!;
       const data2 = exchangesData.get(exchange2)!;
 
@@ -183,8 +183,8 @@ export function createMultiExchangeFundingRatePair(
 
         // 確定做多和做空的交易所
         // 費率高的交易所做空（支付資金費率），費率低的交易所做多（收取資金費率）
-        const longExchange = rate1 > rate2 ? exchange2 : exchange1;
-        const shortExchange = rate1 > rate2 ? exchange1 : exchange2;
+        const longExchange: ExchangeName = rate1 > rate2 ? exchange2 : exchange1;
+        const shortExchange: ExchangeName = rate1 > rate2 ? exchange1 : exchange2;
 
         // 計算價差百分比
         let priceDiffPercent: number | undefined;

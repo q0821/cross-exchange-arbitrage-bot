@@ -39,7 +39,7 @@ export class GateioConnector extends BaseExchangeConnector {
         });
       }
 
-      this.client = new ccxt.gateio({
+      this.client = new (ccxt as any).gateio({
         apiKey,
         secret: apiSecret,
         enableRateLimit: true,
@@ -47,7 +47,7 @@ export class GateioConnector extends BaseExchangeConnector {
           defaultType: 'swap', // 使用永續合約
           ...(testnet && { sandboxMode: true }),
         },
-      });
+      }) as ccxt.Exchange;
 
       // 測試連線
       await this.testConnection();

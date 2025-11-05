@@ -11,7 +11,7 @@ import React, { useMemo } from 'react';
 import { RateRow, MarketRate } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
 
-type SortField = 'symbol' | 'spread' | 'annualizedReturn';
+type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'netReturn';
 type SortDirection = 'asc' | 'desc';
 
 interface RatesTableProps {
