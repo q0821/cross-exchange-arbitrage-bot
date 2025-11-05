@@ -7,7 +7,7 @@ import { z } from 'zod';
 
 // Zod 驗證 Schema
 export const FundingRateSchema = z.object({
-  exchange: z.enum(['binance', 'okx']),
+  exchange: z.enum(['binance', 'okx', 'mexc', 'gateio']),
   symbol: z.string().min(1),
   fundingRate: z.number(),
   nextFundingTime: z.date(),
@@ -18,10 +18,11 @@ export const FundingRateSchema = z.object({
 
 // TypeScript 型別定義
 export type FundingRate = z.infer<typeof FundingRateSchema>;
+export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
 
 // 資金費率記錄類別
 export class FundingRateRecord implements FundingRate {
-  exchange: 'binance' | 'okx';
+  exchange: ExchangeName;
   symbol: string;
   fundingRate: number;
   nextFundingTime: Date;
@@ -97,40 +98,156 @@ export class FundingRateRecord implements FundingRate {
 }
 
 /**
- * 資金費率配對
- * 用於比較兩個交易所的資金費率
+ * 單一交易所的資金費率和價格數據
  */
-export interface FundingRatePair {
-  symbol: string;
-  binance: FundingRateRecord;
-  okx: FundingRateRecord;
-  spreadPercent: number;
-  spreadAnnualized: number;
-  recordedAt: Date;
+export interface ExchangeRateData {
+  rate: FundingRateRecord;
+  price?: number;
 }
 
 /**
- * 建立資金費率配對
+ * 最佳套利對資訊
+ */
+export interface BestArbitragePair {
+  longExchange: ExchangeName;   // 做多的交易所
+  shortExchange: ExchangeName;  // 做空的交易所
+  spreadPercent: number;         // 利差百分比
+  spreadAnnualized: number;      // 年化利差百分比
+  priceDiffPercent?: number;     // 價差百分比
+}
+
+/**
+ * 資金費率配對（多交易所版本）
+ * 用於比較多個交易所的資金費率，並標示最佳套利對
+ */
+export interface FundingRatePair {
+  symbol: string;
+  // 所有交易所的數據
+  exchanges: Map<ExchangeName, ExchangeRateData>;
+  // 最佳套利對（從所有交易所中計算得出）
+  bestPair?: BestArbitragePair;
+  recordedAt: Date;
+
+  // ===== 向後兼容屬性（已棄用，僅供過渡期使用）=====
+  /** @deprecated 使用 exchanges.get('binance') */
+  binance?: FundingRateRecord;
+  /** @deprecated 使用 exchanges.get('okx') */
+  okx?: FundingRateRecord;
+  /** @deprecated 使用 bestPair.spreadPercent */
+  spreadPercent?: number;
+  /** @deprecated 使用 bestPair.spreadAnnualized */
+  spreadAnnualized?: number;
+  /** @deprecated 使用 exchanges.get('binance')?.price */
+  binancePrice?: number;
+  /** @deprecated 使用 exchanges.get('okx')?.price */
+  okxPrice?: number;
+  /** @deprecated 使用 bestPair.priceDiffPercent */
+  priceDiffPercent?: number;
+}
+
+/**
+ * 建立多交易所資金費率配對
+ * @param symbol 交易對符號
+ * @param exchangesData Map of exchange data (exchange name -> { rate, price })
+ * @returns FundingRatePair with best arbitrage pair calculated
+ */
+export function createMultiExchangeFundingRatePair(
+  symbol: string,
+  exchangesData: Map<ExchangeName, ExchangeRateData>
+): FundingRatePair {
+  // 驗證所有 symbol 一致
+  for (const [exchange, data] of exchangesData.entries()) {
+    if (data.rate.symbol !== symbol) {
+      throw new Error(`Symbol mismatch for ${exchange}: expected ${symbol}, got ${data.rate.symbol}`);
+    }
+  }
+
+  // 計算所有交易所兩兩之間的利差，找出最佳套利對
+  let bestPair: BestArbitragePair | undefined;
+  let maxSpread = 0;
+
+  const exchanges = Array.from(exchangesData.keys());
+  for (let i = 0; i < exchanges.length; i++) {
+    for (let j = i + 1; j < exchanges.length; j++) {
+      const exchange1 = exchanges[i];
+      const exchange2 = exchanges[j];
+      const data1 = exchangesData.get(exchange1)!;
+      const data2 = exchangesData.get(exchange2)!;
+
+      const rate1 = data1.rate.fundingRate;
+      const rate2 = data2.rate.fundingRate;
+      const spread = Math.abs(rate1 - rate2);
+
+      if (spread > maxSpread) {
+        maxSpread = spread;
+
+        // 確定做多和做空的交易所
+        // 費率高的交易所做空（支付資金費率），費率低的交易所做多（收取資金費率）
+        const longExchange = rate1 > rate2 ? exchange2 : exchange1;
+        const shortExchange = rate1 > rate2 ? exchange1 : exchange2;
+
+        // 計算價差百分比
+        let priceDiffPercent: number | undefined;
+        const price1 = data1.price;
+        const price2 = data2.price;
+        if (price1 && price2) {
+          const avgPrice = (price1 + price2) / 2;
+          // 價差方向：做空的交易所價格 - 做多的交易所價格
+          const shortPrice = shortExchange === exchange1 ? price1 : price2;
+          const longPrice = shortExchange === exchange1 ? price2 : price1;
+          priceDiffPercent = ((shortPrice - longPrice) / avgPrice) * 100;
+        }
+
+        bestPair = {
+          longExchange,
+          shortExchange,
+          spreadPercent: spread * 100,
+          spreadAnnualized: spread * 365 * 3 * 100,
+          priceDiffPercent,
+        };
+      }
+    }
+  }
+
+  // 建立向後兼容的屬性（如果 binance 和 okx 都存在）
+  const binanceData = exchangesData.get('binance');
+  const okxData = exchangesData.get('okx');
+
+  return {
+    symbol,
+    exchanges: exchangesData,
+    bestPair,
+    recordedAt: new Date(),
+    // 向後兼容
+    binance: binanceData?.rate,
+    okx: okxData?.rate,
+    binancePrice: binanceData?.price,
+    okxPrice: okxData?.price,
+    spreadPercent: bestPair?.spreadPercent,
+    spreadAnnualized: bestPair?.spreadAnnualized,
+    priceDiffPercent: bestPair?.priceDiffPercent,
+  };
+}
+
+/**
+ * 建立資金費率配對（向後兼容函數）
+ * @deprecated 使用 createMultiExchangeFundingRatePair 替代
  */
 export function createFundingRatePair(
   binance: FundingRateRecord,
-  okx: FundingRateRecord
+  okx: FundingRateRecord,
+  binancePrice?: number,
+  okxPrice?: number
 ): FundingRatePair {
   if (binance.symbol !== okx.symbol) {
     throw new Error(`Symbol mismatch: ${binance.symbol} vs ${okx.symbol}`);
   }
 
-  const spread = Math.abs(binance.fundingRate - okx.fundingRate);
-  const spreadAnnualized = spread * 365 * 3;
+  const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+  exchangesData.set('binance', { rate: binance, price: binancePrice });
+  exchangesData.set('okx', { rate: okx, price: okxPrice });
 
-  return {
-    symbol: binance.symbol,
-    binance,
-    okx,
-    spreadPercent: spread * 100,
-    spreadAnnualized: spreadAnnualized * 100,
-    recordedAt: new Date(),
-  };
+  return createMultiExchangeFundingRatePair(binance.symbol, exchangesData);
 }
 
 /**

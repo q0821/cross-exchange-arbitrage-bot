@@ -1,6 +1,6 @@
 // 交易所通用類型定義
 
-export type ExchangeName = 'binance' | 'okx';
+export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
 
 export type OrderSide = 'LONG' | 'SHORT';
 export type OrderType = 'MARKET' | 'LIMIT';

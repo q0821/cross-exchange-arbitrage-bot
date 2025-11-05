@@ -1,28 +1,21 @@
 import pino from 'pino';
-import { mkdirSync } from 'fs';
-import { dirname } from 'path';
 
 const logLevel = process.env.LOG_LEVEL || 'info';
+const isDevelopment = process.env.NODE_ENV === 'development';
 
-// 確保 logs 目錄存在
-const logFilePath = 'logs/monitor.log';
-mkdirSync(dirname(logFilePath), { recursive: true });
-
+// Next.js 環境中使用簡單的 stdout 配置，避免 worker thread 問題
 export const logger = pino({
   level: logLevel,
-  transport: {
-    target: 'pino/file',
-    options: {
-      destination: logFilePath,
-      mkdir: true
-    }
-  },
   formatters: {
     level: (label: string) => {
       return { level: label };
     },
   },
   timestamp: pino.stdTimeFunctions.isoTime,
+  // 開發環境使用 pretty print，但不使用 transport（避免 worker thread）
+  ...(isDevelopment && !process.env.NEXT_RUNTIME && {
+    transport: undefined,
+  }),
 }) as pino.Logger;
 
 // 建立子 logger 的輔助函式

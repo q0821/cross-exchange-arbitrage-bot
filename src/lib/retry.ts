@@ -1,5 +1,5 @@
-import { logger } from './logger.js';
-import { ExchangeRateLimitError } from './errors.js';
+import { logger } from './logger';
+import { ExchangeRateLimitError } from './errors';
 
 export interface RetryOptions {
   maxAttempts?: number;

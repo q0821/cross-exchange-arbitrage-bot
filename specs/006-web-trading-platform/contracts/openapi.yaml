@@ -1,0 +1,131 @@
+openapi: 3.0.3
+info:
+  title: Cross-Exchange Arbitrage Platform API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000/api
+
+security:
+  - sessionAuth: []
+
+paths:
+  /auth/register:
+    post:
+      summary: Register new user
+      tags: [Authentication]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User registered
+
+  /auth/login:
+    post:
+      summary: Login user
+      tags: [Authentication]
+      security: []
+      responses:
+        '200':
+          description: Login successful
+
+  /apikeys:
+    get:
+      summary: List API keys
+      tags: [API Keys]
+      responses:
+        '200':
+          description: API keys list
+    post:
+      summary: Add API key
+      tags: [API Keys]
+      responses:
+        '201':
+          description: API key added
+
+  /opportunities:
+    get:
+      summary: Get opportunities
+      tags: [Opportunities]
+      responses:
+        '200':
+          description: Opportunities list
+
+  /positions:
+    get:
+      summary: Get positions
+      tags: [Positions]
+      responses:
+        '200':
+          description: Positions list
+    post:
+      summary: Open position
+      tags: [Positions]
+      responses:
+        '201':
+          description: Position opened
+
+  /positions/{id}/close:
+    post:
+      summary: Close position
+      tags: [Positions]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Position closed
+
+  /trades:
+    get:
+      summary: Get trade history
+      tags: [Trades]
+      responses:
+        '200':
+          description: Trades list
+
+  /trades/stats:
+    get:
+      summary: Get statistics
+      tags: [Trades]
+      responses:
+        '200':
+          description: Statistics
+
+  /health:
+    get:
+      summary: Health check
+      tags: [System]
+      security: []
+      responses:
+        '200':
+          description: System healthy
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+
+tags:
+  - name: Authentication
+  - name: API Keys
+  - name: Opportunities
+  - name: Positions
+  - name: Trades
+  - name: System

@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { EventEmitter } from 'events';
-import { wsLogger as logger } from './logger.js';
-import { ExchangeConnectionError } from './errors.js';
+import { wsLogger as logger } from './logger';
+import { ExchangeConnectionError } from './errors';
 
 export interface WSConfig {
   url: string;

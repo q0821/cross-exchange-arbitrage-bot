@@ -537,3 +537,44 @@ export class ValidationError extends Error {
     this.name = 'ValidationError';
   }
 }
+
+// ============================================================================
+// Notification Channel Interfaces (Web Platform)
+// ============================================================================
+
+/**
+ * 通知事件類型
+ */
+export type NotificationEventType =
+  | 'OPPORTUNITY_DETECTED'
+  | 'OPPORTUNITY_UPDATED'
+  | 'OPPORTUNITY_EXPIRED'
+  | 'POSITION_OPENED'
+  | 'POSITION_CLOSED'
+  | 'TRADE_EXECUTED';
+
+/**
+ * 通知 Payload
+ */
+export interface NotificationPayload {
+  /** 事件類型 */
+  eventType: NotificationEventType;
+  /** 事件數據 */
+  data: unknown;
+  /** 時間戳 */
+  timestamp?: Date;
+}
+
+/**
+ * 通知渠道介面
+ */
+export interface INotificationChannel {
+  /** 渠道名稱 */
+  readonly name: string;
+
+  /**
+   * 發送通知
+   * @param payload 通知 Payload
+   */
+  send(payload: NotificationPayload): Promise<void>;
+}

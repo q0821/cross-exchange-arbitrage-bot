@@ -1,4 +1,4 @@
-import { logger } from './logger.js';
+import { logger } from './logger';
 
 // 基礎錯誤類別
 export class BaseError extends Error {
@@ -186,6 +186,135 @@ export class ValidationError extends BaseError {
   constructor(message: string, public readonly field?: string, context?: Record<string, unknown>) {
     super(message, 'VALIDATION_ERROR', 400, false, { ...context, field });
   }
+}
+
+// ===== Web 平台錯誤 (Feature 006) =====
+
+// 認證錯誤
+export class AuthError extends BaseError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'AUTH_ERROR', 401, true, context);
+  }
+}
+
+export class UnauthorizedError extends AuthError {
+  constructor(message: string = 'Unauthorized') {
+    super(message);
+    this.code = 'UNAUTHORIZED';
+  }
+}
+
+export class InvalidCredentialsError extends AuthError {
+  constructor(message: string = 'Invalid email or password') {
+    super(message);
+    this.code = 'INVALID_CREDENTIALS';
+  }
+}
+
+export class TokenExpiredError extends AuthError {
+  constructor(message: string = 'Token has expired') {
+    super(message);
+    this.code = 'TOKEN_EXPIRED';
+  }
+}
+
+export class InvalidTokenError extends AuthError {
+  constructor(message: string = 'Invalid token') {
+    super(message);
+    this.code = 'INVALID_TOKEN';
+  }
+}
+
+// 資源錯誤
+export class NotFoundError extends BaseError {
+  constructor(resource: string, identifier?: string) {
+    const message = identifier
+      ? `${resource} with identifier ${identifier} not found`
+      : `${resource} not found`;
+    super(message, 'NOT_FOUND', 404, true, { resource, identifier });
+  }
+}
+
+export class ForbiddenError extends BaseError {
+  constructor(message: string = 'Forbidden') {
+    super(message, 'FORBIDDEN', 403, true);
+  }
+}
+
+export class DuplicateError extends ValidationError {
+  constructor(message: string, field?: string) {
+    super(message, field);
+    this.code = 'DUPLICATE_ERROR';
+    this.statusCode = 409;
+  }
+}
+
+// 持倉錯誤
+export class PositionError extends BaseError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'POSITION_ERROR', 500, true, context);
+  }
+}
+
+export class PositionOpenError extends PositionError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, context);
+    this.code = 'POSITION_OPEN_ERROR';
+  }
+}
+
+export class PositionCloseError extends PositionError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, context);
+    this.code = 'POSITION_CLOSE_ERROR';
+  }
+}
+
+export class PositionNotFoundError extends NotFoundError {
+  constructor(positionId: string) {
+    super('Position', positionId);
+    this.code = 'POSITION_NOT_FOUND';
+  }
+}
+
+export class InvalidPositionStateError extends PositionError {
+  constructor(currentState: string, expectedState: string) {
+    super(
+      `Invalid position state: expected ${expectedState}, got ${currentState}`,
+      { currentState, expectedState },
+    );
+    this.code = 'INVALID_POSITION_STATE';
+    this.statusCode = 400;
+  }
+}
+
+// 速率限制錯誤
+export class RateLimitError extends BaseError {
+  constructor(message: string = 'Rate limit exceeded', retryAfter?: number) {
+    super(message, 'RATE_LIMIT_EXCEEDED', 429, true, { retryAfter });
+  }
+}
+
+// 錯誤工具函式
+export function isAppError(error: unknown): error is BaseError {
+  return error instanceof BaseError;
+}
+
+export function toAppError(error: unknown): BaseError {
+  if (isAppError(error)) {
+    return error;
+  }
+
+  if (error instanceof Error) {
+    return new BaseError(error.message, 'INTERNAL_ERROR', 500, true, {
+      originalError: error.message,
+      stack: error.stack,
+    });
+  }
+
+  return new BaseError('An unknown error occurred', 'UNKNOWN_ERROR', 500, true, {
+    originalError: String(error),
+  });
 }
 
 // 錯誤處理器

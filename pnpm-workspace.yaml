@@ -1,0 +1,10 @@
+ignoredBuiltDependencies:
+  - ccxt
+  - esbuild
+  - unrs-resolver
+
+onlyBuiltDependencies:
+  - '@prisma/client'
+  - '@prisma/engines'
+  - bcrypt
+  - prisma

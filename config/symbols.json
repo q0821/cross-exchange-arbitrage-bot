@@ -1,0 +1,92 @@
+{
+  "description": "套利監控交易對配置",
+  "lastUpdate": "2025-10-30",
+  "groups": {
+    "top10": {
+      "name": "市值前 10 大幣種",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT",
+        "ADAUSDT",
+        "DOGEUSDT",
+        "AVAXUSDT",
+        "DOTUSDT",
+        "LINKUSDT"
+      ]
+    },
+    "top20": {
+      "name": "市值前 20 大幣種",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT",
+        "ADAUSDT",
+        "DOGEUSDT",
+        "AVAXUSDT",
+        "DOTUSDT",
+        "LINKUSDT",
+        "TRXUSDT",
+        "ATOMUSDT",
+        "LTCUSDT",
+        "NEARUSDT",
+        "UNIUSDT",
+        "ICPUSDT",
+        "APTUSDT",
+        "FILUSDT",
+        "ETCUSDT",
+        "ARBUSDT"
+      ]
+    },
+    "defi": {
+      "name": "DeFi 相關幣種",
+      "symbols": [
+        "UNIUSDT",
+        "AAVEUSDT",
+        "LINKUSDT",
+        "CRVUSDT",
+        "MKRUSDT",
+        "COMPUSDT",
+        "SUSHIUSDT",
+        "SNXUSDT"
+      ]
+    },
+    "layer1": {
+      "name": "Layer 1 公鏈",
+      "symbols": [
+        "ETHUSDT",
+        "BNBUSDT",
+        "SOLUSDT",
+        "ADAUSDT",
+        "AVAXUSDT",
+        "DOTUSDT",
+        "ATOMUSDT",
+        "NEARUSDT",
+        "APTUSDT",
+        "SUIUSDT"
+      ]
+    },
+    "meme": {
+      "name": "Meme 幣",
+      "symbols": [
+        "DOGEUSDT",
+        "SHIBUSDT",
+        "PEPEUSDT",
+        "FLOKIUSDT",
+        "BONKUSDT"
+      ]
+    },
+    "default": {
+      "name": "預設監控組",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT"
+      ]
+    }
+  }
+}
