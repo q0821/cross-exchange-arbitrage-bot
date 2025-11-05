@@ -24,11 +24,11 @@
 
 **Purpose**: 專案初始化和基本依賴安裝
 
-- [ ] T001 安裝 Radix UI Tooltip 依賴：`pnpm add @radix-ui/react-tooltip`
-- [ ] T002 [P] 複製類型定義檔案從 `specs/008-specify-scripts-bash/contracts/types.ts` 到 `src/types/exchange-links.ts`
-- [ ] T003 [P] 驗證類型定義檔案已正確匯出並可被 TypeScript 編譯器識別
+- [x] T001 安裝 Radix UI Tooltip 依賴：`pnpm add @radix-ui/react-tooltip` ✅
+- [x] T002 [P] 複製類型定義檔案從 `specs/008-specify-scripts-bash/contracts/types.ts` 到 `src/types/exchange-links.ts` ✅
+- [x] T003 [P] 驗證類型定義檔案已正確匯出並可被 TypeScript 編譯器識別 ✅
 
-**Checkpoint**: 依賴已安裝，類型定義已就位
+**Checkpoint**: 依賴已安裝，類型定義已就位 ✅
 
 ---
 
@@ -38,13 +38,13 @@
 
 **⚠️ CRITICAL**: 此階段完成前，用戶故事無法開始實作
 
-- [ ] T004 [P] 建立 URL Builder 模組於 `src/lib/exchanges/url-builder.ts`（包含 `getExchangeContractUrl` 函數）
-- [ ] T005 [P] 建立交易所配置常數於 `src/lib/exchanges/constants.ts`（包含 `EXCHANGE_CONFIGS` 映射）
-- [ ] T006 [P] 匯出 URL Builder 公共 API 於 `src/lib/exchanges/index.ts`
-- [ ] T007 撰寫 URL Builder 單元測試於 `tests/unit/lib/url-builder.test.ts`（測試所有 4 個交易所的 URL 生成）
-- [ ] T008 驗證單元測試通過：`pnpm test url-builder.test.ts`
+- [x] T004 [P] 建立 URL Builder 模組於 `src/lib/exchanges/url-builder.ts`（包含 `getExchangeContractUrl` 函數） ✅
+- [x] T005 [P] 建立交易所配置常數於 `src/lib/exchanges/constants.ts`（包含 `EXCHANGE_CONFIGS` 映射） ✅
+- [x] T006 [P] 匯出 URL Builder 公共 API 於 `src/lib/exchanges/index.ts` ✅
+- [x] T007 撰寫 URL Builder 單元測試於 `tests/unit/lib/url-builder.test.ts`（測試所有 4 個交易所的 URL 生成） ✅
+- [x] T008 驗證單元測試通過：`pnpm test url-builder.test.ts` ✅ (21/21 tests passed)
 
-**Checkpoint**: 基礎設施已就緒，用戶故事實作可並行開始
+**Checkpoint**: 基礎設施已就緒，用戶故事實作可並行開始 ✅
 
 ---
 
@@ -56,13 +56,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] 建立 ExchangeLink 元件於 `src/components/market/ExchangeLink.tsx`（包含 Tooltip 和圖示）
-- [ ] T010 [P] [US1] 匯出 ExchangeLink 元件於 `src/components/market/index.ts`
-- [ ] T011 [US1] 整合 ExchangeLink 到 RateRow 元件於 `app/(dashboard)/market-monitor/components/RateRow.tsx`（在 Binance 費率旁新增連結）
-- [ ] T012 [US1] 整合 ExchangeLink 到 RateRow 元件於 `app/(dashboard)/market-monitor/components/RateRow.tsx`（在 OKX 費率旁新增連結）
-- [ ] T013 [US1] 整合 ExchangeLink 到 RateRow 元件於 `app/(dashboard)/market-monitor/components/RateRow.tsx`（在 MEXC 費率旁新增連結）
-- [ ] T014 [US1] 整合 ExchangeLink 到 RateRow 元件於 `app/(dashboard)/market-monitor/components/RateRow.tsx`（在 Gate.io 費率旁新增連結）
-- [ ] T015 [US1] 處理不可用狀態：當交易所資料為空或不可用時，ExchangeLink 顯示為灰色且不可點擊
+- [x] T009 [P] [US1] 建立 ExchangeLink 元件於 `src/components/market/ExchangeLink.tsx`（包含 Tooltip 和圖示） ✅
+- [x] T010 [P] [US1] 匯出 ExchangeLink 元件於 `src/components/market/index.ts` ✅
+- [x] T011 [US1] 整合 ExchangeLink 到 RateRow 元件於 `app/(dashboard)/market-monitor/components/RateRow.tsx`（在 Binance 費率旁新增連結） ✅
+- [x] T012 [US1] 整合 ExchangeLink 到 RateRow 元件於 `app/(dashboard)/market-monitor/components/RateRow.tsx`（在 OKX 費率旁新增連結） ✅
+- [x] T013 [US1] 整合 ExchangeLink 到 RateRow 元件於 `app/(dashboard)/market-monitor/components/RateRow.tsx`（在 MEXC 費率旁新增連結） ✅
+- [x] T014 [US1] 整合 ExchangeLink 到 RateRow 元件於 `app/(dashboard)/market-monitor/components/RateRow.tsx`（在 Gate.io 費率旁新增連結） ✅
+- [x] T015 [US1] 處理不可用狀態：當交易所資料為空或不可用時，ExchangeLink 顯示為灰色且不可點擊 ✅ (已在 ExchangeLink 元件中實作)
 - [ ] T016 [US1] 本地測試驗證：啟動 `pnpm dev` 並手動測試所有 4 個交易所的連結功能
 
 ### Tests for User Story 1
