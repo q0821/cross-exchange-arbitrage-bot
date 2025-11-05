@@ -209,25 +209,43 @@ describe('FundingRateValidationRepository Integration Tests', () => {
       // Arrange
       const symbol = 'TEST-PASSRATE-SWAP';
 
-      // 建立 2 筆 PASS 記錄
-      await repository.create(
-        createValidationResult({ symbol, okxRate: 0.0001, ccxtRate: 0.0001 })
-      );
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // 先清理該 symbol 的所有記錄，並等待完成
+      await prisma.fundingRateValidation.deleteMany({
+        where: { symbol },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-      await repository.create(
-        createValidationResult({ symbol, okxRate: 0.0002, ccxtRate: 0.0002 })
-      );
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // 建立 2 筆 PASS 記錄，逐一等待完成
+      const pass1 = createValidationResult({ symbol, okxRate: 0.0001, ccxtRate: 0.0001 });
+      await repository.create(pass1);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const pass2 = createValidationResult({ symbol, okxRate: 0.0002, ccxtRate: 0.0002 });
+      await repository.create(pass2);
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // 建立 1 筆 FAIL 記錄
-      await repository.create(
-        createValidationResult({ symbol, okxRate: 0.0001, ccxtRate: 0.0002 })
-      );
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      const fail1 = createValidationResult({ symbol, okxRate: 0.0001, ccxtRate: 0.0002 });
+      await repository.create(fail1);
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // 建立 1 筆 ERROR 記錄（不計入）
-      await repository.create(createValidationError(symbol, 'Error'));
+      const error1 = createValidationError(symbol, 'Error');
+      await repository.create(error1);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // 驗證資料正確建立
+      const allRecords = await prisma.fundingRateValidation.findMany({
+        where: { symbol },
+      });
+      const passCount = allRecords.filter((r) => r.validationStatus === 'PASS').length;
+      const failCount = allRecords.filter((r) => r.validationStatus === 'FAIL').length;
+      const errorCount = allRecords.filter((r) => r.validationStatus === 'ERROR').length;
+
+      expect(allRecords.length).toBe(4);
+      expect(passCount).toBe(2);
+      expect(failCount).toBe(1);
+      expect(errorCount).toBe(1);
 
       // Act
       const passRate = await repository.calculatePassRate(symbol, 1);
