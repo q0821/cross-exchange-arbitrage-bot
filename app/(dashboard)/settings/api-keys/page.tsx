@@ -241,6 +241,7 @@ export default function ApiKeysPage() {
                 交易所
               </label>
               <select
+                name="exchange"
                 value={exchange}
                 onChange={(e) => setExchange(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
@@ -292,6 +293,7 @@ export default function ApiKeysPage() {
                 標籤
               </label>
               <input
+                name="label"
                 type="text"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
@@ -306,6 +308,7 @@ export default function ApiKeysPage() {
                 API Key
               </label>
               <input
+                name="apiKey"
                 type="text"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
@@ -319,6 +322,7 @@ export default function ApiKeysPage() {
                 API Secret
               </label>
               <input
+                name="apiSecret"
                 type="password"
                 value={apiSecret}
                 onChange={(e) => setApiSecret(e.target.value)}
@@ -333,6 +337,7 @@ export default function ApiKeysPage() {
                   Passphrase (OKX 專用)
                 </label>
                 <input
+                  name="passphrase"
                   type="password"
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}

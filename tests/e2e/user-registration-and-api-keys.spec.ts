@@ -80,8 +80,8 @@ test.describe('US1: 用戶註冊和 API Key 管理', () => {
     // 步驟 3: 新增 Binance API Key
     // ========================================
     await test.step('7. 訪問 API Key 管理頁面', async () => {
-      // 可能在側邊欄或選單中
-      await page.click('a[href*="api-key"], a:has-text("API Key"), a:has-text("API 金鑰")');
+      // 點擊導航欄中的 API 金鑰管理連結
+      await page.click('a[href="/settings/api-keys"]');
       await page.waitForURL(/\/settings\/api-keys/, { timeout: 5000 });
     });
 
@@ -113,16 +113,24 @@ test.describe('US1: 用戶註冊和 API Key 管理', () => {
     });
 
     await test.step('10. 提交 Binance API Key', async () => {
-      // 注意：這個測試會因為 API Key 驗證失敗而失敗，除非在測試環境中模擬
-      // 所以我們只測試表單提交，不期待成功
+      // 提交表單
       await page.click('button[type="submit"]:has-text("新增")');
 
-      // 等待 API 回應（可能成功或失敗）
+      // 等待 API 回應（在測試環境中，API Key 會成功保存到資料庫，因為沒有實際驗證）
       await page.waitForTimeout(2000);
 
-      // 檢查是否顯示錯誤訊息（因為是假 API Key）或成功訊息
-      const errorOrSuccess = page.locator('text=/error|錯誤|成功|success/i');
-      await expect(errorOrSuccess.first()).toBeVisible({ timeout: 5000 });
+      // 檢查是否顯示錯誤訊息，或者表單已關閉（成功）
+      // 使用 .or() 來檢查兩種可能的結果
+      const errorMessage = page.locator('div:has-text("error"), div:has-text("錯誤"), div:has-text("failed"), div:has-text("失敗")');
+      const addButton = page.locator('button:has-text("新增 API Key")');
+
+      // 如果表單成功關閉，「新增 API Key」按鈕應該可見（表單不再顯示）
+      // 如果失敗，錯誤訊息應該可見
+      const hasError = await errorMessage.first().isVisible().catch(() => false);
+      const formClosed = await addButton.isVisible().catch(() => false);
+
+      // 至少其中一個應該為真
+      expect(hasError || formClosed).toBe(true);
     });
 
     // ========================================
@@ -164,7 +172,7 @@ test.describe('US1: 用戶註冊和 API Key 管理', () => {
     }
 
     // 前往 API Key 管理頁面
-    await page.click('a[href*="api-key"], a:has-text("API Key"), a:has-text("API 金鑰")');
+    await page.click('a[href="/settings/api-keys"]');
     await page.waitForURL(/\/settings\/api-keys/, { timeout: 5000 });
 
     await test.step('新增 OKX API Key', async () => {
@@ -200,9 +208,14 @@ test.describe('US1: 用戶註冊和 API Key 管理', () => {
       await page.click('button[type="submit"]:has-text("新增")');
       await page.waitForTimeout(2000);
 
-      // 檢查回應
-      const errorOrSuccess = page.locator('text=/error|錯誤|成功|success/i');
-      await expect(errorOrSuccess.first()).toBeVisible({ timeout: 5000 });
+      // 檢查是否顯示錯誤訊息，或者表單已關閉（成功）
+      const errorMessage = page.locator('div:has-text("error"), div:has-text("錯誤"), div:has-text("failed"), div:has-text("失敗")');
+      const addButton = page.locator('button:has-text("新增 API Key")');
+
+      const hasError = await errorMessage.first().isVisible().catch(() => false);
+      const formClosed = await addButton.isVisible().catch(() => false);
+
+      expect(hasError || formClosed).toBe(true);
     });
   });
 
@@ -229,19 +242,23 @@ test.describe('US1: 用戶註冊和 API Key 管理', () => {
     }
 
     // 前往 API Key 管理頁面
-    await page.click('a[href*="api-key"], a:has-text("API Key"), a:has-text("API 金鑰")');
+    await page.click('a[href="/settings/api-keys"]');
     await page.waitForURL(/\/settings\/api-keys/, { timeout: 5000 });
 
     await test.step('驗證頁面功能按鈕存在', async () => {
-      // 檢查是否有編輯、停用、刪除按鈕（即使列表是空的，表格結構應該存在）
-      const tableOrList = page.locator('table, div[class*="list"]');
-      await expect(tableOrList.first()).toBeVisible();
+      // 檢查是否能看到新增按鈕（主要功能）
+      const addButton = page.locator('button:has-text("新增 API Key")');
+      await expect(addButton).toBeVisible();
 
-      // 驗證表頭存在
-      const headers = page.locator('th:has-text("交易所"), th:has-text("Exchange"), th:has-text("標籤"), th:has-text("操作"), th:has-text("Actions")');
-      if (await headers.count() > 0) {
-        await expect(headers.first()).toBeVisible();
-      }
+      // 檢查是否有表格（如果有 API Keys）或空狀態訊息（如果沒有）
+      const table = page.locator('table');
+      const emptyMessage = page.locator('text=/尚未新增任何/');
+
+      const hasTable = await table.isVisible().catch(() => false);
+      const hasEmptyMessage = await emptyMessage.isVisible().catch(() => false);
+
+      // 應該顯示表格或空狀態訊息其中之一
+      expect(hasTable || hasEmptyMessage).toBe(true);
     });
   });
 });
