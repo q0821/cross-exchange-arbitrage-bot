@@ -67,12 +67,12 @@
 
 ### Tests for User Story 1
 
-- [ ] T017 [P] [US1] 撰寫 ExchangeLink 元件測試於 `tests/unit/components/ExchangeLink.test.tsx`（測試正常渲染和禁用狀態）
-- [ ] T018 [P] [US1] 撰寫 E2E 測試於 `tests/e2e/market-monitor-exchange-links.spec.ts`（測試 Binance 連結點擊）
-- [ ] T019 [P] [US1] 撰寫 E2E 測試於 `tests/e2e/market-monitor-exchange-links.spec.ts`（測試 OKX 連結點擊）
-- [ ] T020 [P] [US1] 撰寫 E2E 測試於 `tests/e2e/market-monitor-exchange-links.spec.ts`（測試 MEXC 連結點擊）
-- [ ] T021 [P] [US1] 撰寫 E2E 測試於 `tests/e2e/market-monitor-exchange-links.spec.ts`（測試 Gate.io 連結點擊）
-- [ ] T022 [US1] 執行所有測試並確保通過：`pnpm test && pnpm test:e2e market-monitor-exchange-links.spec.ts`
+- [x] T017 [P] [US1] 撰寫 ExchangeLink 元件測試於 `tests/unit/components/ExchangeLink.test.tsx`（測試正常渲染和禁用狀態） ✅
+- [x] T018 [P] [US1] 撰寫 E2E 測試於 `tests/e2e/market-monitor-exchange-links.spec.ts`（測試 Binance 連結點擊） ✅
+- [x] T019 [P] [US1] 撰寫 E2E 測試於 `tests/e2e/market-monitor-exchange-links.spec.ts`（測試 OKX 連結點擊） ✅
+- [x] T020 [P] [US1] 撰寫 E2E 測試於 `tests/e2e/market-monitor-exchange-links.spec.ts`（測試 MEXC 連結點擊） ✅
+- [x] T021 [P] [US1] 撰寫 E2E 測試於 `tests/e2e/market-monitor-exchange-links.spec.ts`（測試 Gate.io 連結點擊） ✅
+- [ ] T022 [US1] 執行所有測試並確保通過：`pnpm test && pnpm test:e2e market-monitor-exchange-links.spec.ts` (需要在開發環境執行)
 
 **Checkpoint**: 用戶故事 1 完成，所有 4 個交易所的連結功能可用且測試通過
 
