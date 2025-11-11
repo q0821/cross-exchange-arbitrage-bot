@@ -27,8 +27,12 @@
 - 圖示載入時間 < 50ms（inline SVG）
 - Tooltip 顯示延遲 200ms（Radix UI 預設）
 **Constraints**:
-- 圖示尺寸 16x16px 以避免視覺混亂
-- 必須符合 WCAG 無障礙標準
+- 圖示尺寸 16x16px (桌面) 以避免視覺混亂
+- 行動裝置觸控目標：使用 padding 擴展可點擊區域至 44x44px (符合 WCAG 2.5.5)
+  - 實作策略：SVG 圖示保持 16x16px，但連結元素添加 `p-2` (8px padding) 達到 32x32px
+  - 或在行動裝置上使用 `p-3` (12px padding) 達到 40x40px
+  - 使用 Tailwind 響應式類別：`p-2 md:p-1` 實現桌面/行動差異化
+- 必須符合 WCAG 2.1 Level AA 無障礙標準
 - 必須使用 `rel="noopener noreferrer"` 確保安全性
 - 必須支援鍵盤導航
 **Scale/Scope**:
@@ -359,6 +363,10 @@ Run `/speckit.tasks` command to generate detailed task breakdown.
 - **2.1.1 Keyboard**: 可通過 Tab 鍵訪問
 - **2.4.4 Link Purpose**: aria-label 清楚描述連結目的
 - **2.4.7 Focus Visible**: 提供 focus indicator（Tailwind focus:ring）
+- **2.5.5 Target Size**: 觸控目標至少 44x44px（透過 padding 實現）
+  - **桌面實作**: 16x16px 圖示 + 最小 padding = 視覺簡潔
+  - **行動實作**: 16x16px 圖示 + 14px padding = 44x44px 觸控區域
+  - **響應式策略**: `className="p-3 md:p-1"` 或動態調整
 - **3.2.2 On Input**: 點擊行為可預測（開啟新分頁）
 
 ### Screen Reader Support
