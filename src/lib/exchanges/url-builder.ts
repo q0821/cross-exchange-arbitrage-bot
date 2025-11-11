@@ -20,16 +20,16 @@ import { EXCHANGE_CONFIGS } from './constants';
 /**
  * Validate symbol format
  *
- * @param symbol - Trading pair symbol (e.g., "BTC/USDT" or "BTCUSDT")
+ * @param symbol - Trading pair symbol in BASEQUOTE format (e.g., "BTCUSDT")
  * @returns Validation result with base and quote currencies
  *
  * @example
  * ```typescript
- * validateSymbol('BTC/USDT');
- * // Returns: { isValid: true, base: 'BTC', quote: 'USDT' }
- *
  * validateSymbol('BTCUSDT');
  * // Returns: { isValid: true, base: 'BTC', quote: 'USDT' }
+ *
+ * validateSymbol('ETHUSDT');
+ * // Returns: { isValid: true, base: 'ETH', quote: 'USDT' }
  * ```
  */
 export function validateSymbol(symbol: string): SymbolValidationResult {
@@ -40,40 +40,26 @@ export function validateSymbol(symbol: string): SymbolValidationResult {
     };
   }
 
-  // If symbol already has the correct format (BASE/QUOTE)
-  if (SYMBOL_FORMAT_REGEX.test(symbol)) {
-    const [base, quote] = symbol.split('/');
-    return {
-      isValid: true,
-      base,
-      quote,
-    };
-  }
-
-  // Try to parse format without slash (e.g., "BTCUSDT" -> "BTC/USDT")
+  // Parse BASEQUOTE format (e.g., "BTCUSDT" -> base: "BTC", quote: "USDT")
   // Common quote currencies in order of priority
   const commonQuotes = ['USDT', 'USDC', 'BUSD', 'USD', 'BTC', 'ETH', 'BNB'];
 
   for (const quote of commonQuotes) {
     if (symbol.endsWith(quote)) {
       const base = symbol.slice(0, -quote.length);
-      if (base.length > 0) {
-        // Validate the constructed symbol
-        const constructedSymbol = `${base}/${quote}`;
-        if (SYMBOL_FORMAT_REGEX.test(constructedSymbol)) {
-          return {
-            isValid: true,
-            base,
-            quote,
-          };
-        }
+      if (base.length > 0 && /^[A-Z0-9]+$/.test(base)) {
+        return {
+          isValid: true,
+          base,
+          quote,
+        };
       }
     }
   }
 
   return {
     isValid: false,
-    error: `Invalid symbol format: ${symbol}. Expected format: BASE/QUOTE (e.g., BTC/USDT) or BASEQUOTE (e.g., BTCUSDT)`,
+    error: `Invalid symbol format: ${symbol}. Expected format: BASEQUOTE (e.g., BTCUSDT, ETHUSDT)`,
   };
 }
 
@@ -81,20 +67,12 @@ export function validateSymbol(symbol: string): SymbolValidationResult {
  * Generate exchange contract page URL
  *
  * @param exchange - Exchange identifier (e.g., 'binance', 'okx')
- * @param symbol - Trading pair symbol in "BASE/QUOTE" or "BASEQUOTE" format
+ * @param symbol - Trading pair symbol in BASEQUOTE format (e.g., "BTCUSDT")
  * @returns URL builder result with URL and metadata
  *
  * @example
  * ```typescript
- * const result = getExchangeContractUrl('binance', 'BTC/USDT');
- * // Returns: {
- * //   url: 'https://www.binance.com/zh-TC/futures/BTCUSDT',
- * //   formattedSymbol: 'BTCUSDT',
- * //   isValid: true
- * // }
- *
- * // Also accepts format without slash
- * const result2 = getExchangeContractUrl('binance', 'BTCUSDT');
+ * const result = getExchangeContractUrl('binance', 'BTCUSDT');
  * // Returns: {
  * //   url: 'https://www.binance.com/zh-TC/futures/BTCUSDT',
  * //   formattedSymbol: 'BTCUSDT',
@@ -116,7 +94,7 @@ export function getExchangeContractUrl(
     };
   }
 
-  // Validate symbol (handles both "BTC/USDT" and "BTCUSDT" formats)
+  // Validate symbol (BASEQUOTE format, e.g., "BTCUSDT")
   const symbolValidation = validateSymbol(symbol);
   if (!symbolValidation.isValid) {
     return {
@@ -169,7 +147,7 @@ export function getExchangeContractUrl(
  *
  * @example
  * ```typescript
- * const urls = buildExchangeUrls('BTC/USDT', ['binance', 'okx']);
+ * const urls = buildExchangeUrls('BTCUSDT', ['binance', 'okx']);
  * // Returns: {
  * //   binance: { url: 'https://...', formattedSymbol: 'BTCUSDT', isValid: true },
  * //   okx: { url: 'https://...', formattedSymbol: 'BTC-USDT-SWAP', isValid: true }

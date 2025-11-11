@@ -26,7 +26,7 @@ describe('ExchangeLink Component', () => {
     it('should render link for Binance', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: true,
       });
 
@@ -43,7 +43,7 @@ describe('ExchangeLink Component', () => {
     it('should render link for OKX', () => {
       renderWithTooltip({
         exchange: 'okx',
-        symbol: 'ETH/USDT',
+        symbol: 'ETHUSDT',
         isAvailable: true,
       });
 
@@ -57,7 +57,7 @@ describe('ExchangeLink Component', () => {
     it('should render link for MEXC', () => {
       renderWithTooltip({
         exchange: 'mexc',
-        symbol: 'SOL/USDT',
+        symbol: 'SOLUSDT',
         isAvailable: true,
       });
 
@@ -71,7 +71,7 @@ describe('ExchangeLink Component', () => {
     it('should render link for Gate.io', () => {
       renderWithTooltip({
         exchange: 'gateio',
-        symbol: 'BNB/USDT',
+        symbol: 'BNBUSDT',
         isAvailable: true,
       });
 
@@ -85,21 +85,21 @@ describe('ExchangeLink Component', () => {
     it('should have correct aria-label', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: true,
       });
 
       const link = screen.getByRole('link');
       expect(link).toHaveAttribute(
         'aria-label',
-        '前往 Binance 查看 BTC/USDT 永續合約'
+        '前往 Binance 查看 BTCUSDT 永續合約'
       );
     });
 
     it('should accept custom aria-label', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: true,
         ariaLabel: 'Custom label',
       });
@@ -111,7 +111,7 @@ describe('ExchangeLink Component', () => {
     it('should accept custom className', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: true,
         className: 'custom-class',
       });
@@ -124,7 +124,7 @@ describe('ExchangeLink Component', () => {
       const handleClick = vi.fn();
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: true,
         onClick: handleClick,
       });
@@ -132,7 +132,7 @@ describe('ExchangeLink Component', () => {
       const link = screen.getByRole('link');
       link.click();
 
-      expect(handleClick).toHaveBeenCalledWith('binance', 'BTC/USDT');
+      expect(handleClick).toHaveBeenCalledWith('binance', 'BTCUSDT');
     });
   });
 
@@ -140,7 +140,7 @@ describe('ExchangeLink Component', () => {
     it('should render disabled state when isAvailable is false', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: false,
       });
 
@@ -157,7 +157,7 @@ describe('ExchangeLink Component', () => {
     it('should have tabIndex -1 when disabled', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: false,
       });
 
@@ -180,7 +180,7 @@ describe('ExchangeLink Component', () => {
       const handleClick = vi.fn();
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: false,
         onClick: handleClick,
       });
@@ -196,7 +196,7 @@ describe('ExchangeLink Component', () => {
     it('should have proper ARIA attributes for enabled state', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: true,
       });
 
@@ -208,7 +208,7 @@ describe('ExchangeLink Component', () => {
     it('should have proper ARIA attributes for disabled state', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: false,
       });
 
@@ -220,7 +220,7 @@ describe('ExchangeLink Component', () => {
     it('should be keyboard accessible when enabled', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
         isAvailable: true,
       });
 
@@ -233,7 +233,7 @@ describe('ExchangeLink Component', () => {
     it('should handle symbol with numbers', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: '1000PEPE/USDT',
+        symbol: '1000PEPEUSDT',
         isAvailable: true,
       });
 
@@ -247,7 +247,7 @@ describe('ExchangeLink Component', () => {
     it('should default to isAvailable=true when not specified', () => {
       renderWithTooltip({
         exchange: 'binance',
-        symbol: 'BTC/USDT',
+        symbol: 'BTCUSDT',
       });
 
       const link = screen.getByRole('link');

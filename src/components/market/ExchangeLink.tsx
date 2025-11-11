@@ -20,7 +20,7 @@ import { EXCHANGE_DISPLAY_NAMES } from '@/types/exchange-links';
  * Renders a clickable icon that opens the exchange's contract page in a new tab
  *
  * @param exchange - Exchange identifier (e.g., 'binance', 'okx')
- * @param symbol - Trading pair symbol in "BASE/QUOTE" format (e.g., "BTC/USDT")
+ * @param symbol - Trading pair symbol in BASEQUOTE format (e.g., "BTCUSDT", "ETHUSDT")
  * @param isAvailable - Whether the link should be enabled (default: true)
  * @param className - Additional CSS classes
  * @param ariaLabel - Custom aria-label (auto-generated if not provided)

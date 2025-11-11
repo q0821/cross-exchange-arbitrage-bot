@@ -13,8 +13,8 @@ import {
 } from '@/lib/exchanges/url-builder';
 
 describe('validateSymbol', () => {
-  it('should validate correct symbol format', () => {
-    const result = validateSymbol('BTC/USDT');
+  it('should validate correct BASEQUOTE symbol format', () => {
+    const result = validateSymbol('BTCUSDT');
     expect(result.isValid).toBe(true);
     expect(result.base).toBe('BTC');
     expect(result.quote).toBe('USDT');
@@ -22,7 +22,7 @@ describe('validateSymbol', () => {
   });
 
   it('should validate symbol with numbers', () => {
-    const result = validateSymbol('1000PEPE/USDT');
+    const result = validateSymbol('1000PEPEUSDT');
     expect(result.isValid).toBe(true);
     expect(result.base).toBe('1000PEPE');
     expect(result.quote).toBe('USDT');
@@ -32,13 +32,6 @@ describe('validateSymbol', () => {
     const result = validateSymbol('');
     expect(result.isValid).toBe(false);
     expect(result.error).toContain('empty');
-  });
-
-  it('should accept symbol without slash and parse correctly', () => {
-    const result = validateSymbol('BTCUSDT');
-    expect(result.isValid).toBe(true);
-    expect(result.base).toBe('BTC');
-    expect(result.quote).toBe('USDT');
   });
 
   it('should accept symbol with multiple quote currencies', () => {
@@ -54,12 +47,18 @@ describe('validateSymbol', () => {
   });
 
   it('should reject lowercase symbol', () => {
-    const result = validateSymbol('btc/usdt');
+    const result = validateSymbol('btcusdt');
     expect(result.isValid).toBe(false);
     expect(result.error).toContain('Invalid symbol format');
   });
 
-  it('should reject symbol with wrong separator', () => {
+  it('should reject symbol with slash separator', () => {
+    const result = validateSymbol('BTC/USDT');
+    expect(result.isValid).toBe(false);
+    expect(result.error).toContain('Invalid symbol format');
+  });
+
+  it('should reject symbol with dash separator', () => {
     const result = validateSymbol('BTC-USDT');
     expect(result.isValid).toBe(false);
     expect(result.error).toContain('Invalid symbol format');
@@ -68,8 +67,8 @@ describe('validateSymbol', () => {
 
 describe('getExchangeContractUrl', () => {
   describe('Binance', () => {
-    it('should generate correct URL for BTC/USDT', () => {
-      const result = getExchangeContractUrl('binance', 'BTC/USDT');
+    it('should generate correct URL for BTCUSDT', () => {
+      const result = getExchangeContractUrl('binance', 'BTCUSDT');
       expect(result.isValid).toBe(true);
       expect(result.url).toBe(
         'https://www.binance.com/zh-TC/futures/BTCUSDT'
@@ -78,8 +77,8 @@ describe('getExchangeContractUrl', () => {
       expect(result.error).toBeUndefined();
     });
 
-    it('should generate correct URL for ETH/USDT', () => {
-      const result = getExchangeContractUrl('binance', 'ETH/USDT');
+    it('should generate correct URL for ETHUSDT', () => {
+      const result = getExchangeContractUrl('binance', 'ETHUSDT');
       expect(result.isValid).toBe(true);
       expect(result.url).toBe(
         'https://www.binance.com/zh-TC/futures/ETHUSDT'
@@ -87,16 +86,16 @@ describe('getExchangeContractUrl', () => {
       expect(result.formattedSymbol).toBe('ETHUSDT');
     });
 
-    it('should generate correct URL for 1000PEPE/USDT', () => {
-      const result = getExchangeContractUrl('binance', '1000PEPE/USDT');
+    it('should generate correct URL for 1000PEPEUSDT', () => {
+      const result = getExchangeContractUrl('binance', '1000PEPEUSDT');
       expect(result.isValid).toBe(true);
       expect(result.formattedSymbol).toBe('1000PEPEUSDT');
     });
   });
 
   describe('OKX', () => {
-    it('should generate correct URL for BTC/USDT', () => {
-      const result = getExchangeContractUrl('okx', 'BTC/USDT');
+    it('should generate correct URL for BTCUSDT', () => {
+      const result = getExchangeContractUrl('okx', 'BTCUSDT');
       expect(result.isValid).toBe(true);
       expect(result.url).toBe(
         'https://www.okx.com/zh-hant/trade-swap/BTC-USDT-SWAP'
@@ -104,8 +103,8 @@ describe('getExchangeContractUrl', () => {
       expect(result.formattedSymbol).toBe('BTC-USDT-SWAP');
     });
 
-    it('should generate correct URL for ETH/USDT', () => {
-      const result = getExchangeContractUrl('okx', 'ETH/USDT');
+    it('should generate correct URL for ETHUSDT', () => {
+      const result = getExchangeContractUrl('okx', 'ETHUSDT');
       expect(result.isValid).toBe(true);
       expect(result.url).toBe(
         'https://www.okx.com/zh-hant/trade-swap/ETH-USDT-SWAP'
@@ -115,8 +114,8 @@ describe('getExchangeContractUrl', () => {
   });
 
   describe('MEXC', () => {
-    it('should generate correct URL for BTC/USDT', () => {
-      const result = getExchangeContractUrl('mexc', 'BTC/USDT');
+    it('should generate correct URL for BTCUSDT', () => {
+      const result = getExchangeContractUrl('mexc', 'BTCUSDT');
       expect(result.isValid).toBe(true);
       expect(result.url).toBe(
         'https://futures.mexc.com/zh-TW/exchange/BTC_USDT'
@@ -124,8 +123,8 @@ describe('getExchangeContractUrl', () => {
       expect(result.formattedSymbol).toBe('BTC_USDT');
     });
 
-    it('should generate correct URL for SOL/USDT', () => {
-      const result = getExchangeContractUrl('mexc', 'SOL/USDT');
+    it('should generate correct URL for SOLUSDT', () => {
+      const result = getExchangeContractUrl('mexc', 'SOLUSDT');
       expect(result.isValid).toBe(true);
       expect(result.url).toBe(
         'https://futures.mexc.com/zh-TW/exchange/SOL_USDT'
@@ -135,8 +134,8 @@ describe('getExchangeContractUrl', () => {
   });
 
   describe('Gate.io', () => {
-    it('should generate correct URL for BTC/USDT', () => {
-      const result = getExchangeContractUrl('gateio', 'BTC/USDT');
+    it('should generate correct URL for BTCUSDT', () => {
+      const result = getExchangeContractUrl('gateio', 'BTCUSDT');
       expect(result.isValid).toBe(true);
       expect(result.url).toBe(
         'https://www.gate.io/zh-tw/futures_trade/USDT/BTC_USDT'
@@ -144,8 +143,8 @@ describe('getExchangeContractUrl', () => {
       expect(result.formattedSymbol).toBe('BTC_USDT');
     });
 
-    it('should generate correct URL for BNB/USDT', () => {
-      const result = getExchangeContractUrl('gateio', 'BNB/USDT');
+    it('should generate correct URL for BNBUSDT', () => {
+      const result = getExchangeContractUrl('gateio', 'BNBUSDT');
       expect(result.isValid).toBe(true);
       expect(result.url).toBe(
         'https://www.gate.io/zh-tw/futures_trade/USDT/BNB_USDT'
@@ -156,17 +155,17 @@ describe('getExchangeContractUrl', () => {
 
   describe('Error Handling', () => {
     it('should reject unsupported exchange', () => {
-      const result = getExchangeContractUrl('unknown', 'BTC/USDT');
+      const result = getExchangeContractUrl('unknown', 'BTCUSDT');
       expect(result.isValid).toBe(false);
       expect(result.url).toBe('');
       expect(result.error).toContain('Unsupported exchange');
     });
 
-    it('should accept symbol without slash format', () => {
-      const result = getExchangeContractUrl('binance', 'BTCUSDT');
-      expect(result.isValid).toBe(true);
-      expect(result.url).toBe('https://www.binance.com/zh-TC/futures/BTCUSDT');
-      expect(result.formattedSymbol).toBe('BTCUSDT');
+    it('should reject symbol with slash format', () => {
+      const result = getExchangeContractUrl('binance', 'BTC/USDT');
+      expect(result.isValid).toBe(false);
+      expect(result.url).toBe('');
+      expect(result.error).toContain('Invalid symbol format');
     });
 
     it('should reject truly invalid symbol format', () => {
@@ -187,7 +186,7 @@ describe('getExchangeContractUrl', () => {
 
 describe('buildExchangeUrls', () => {
   it('should build URLs for all exchanges', () => {
-    const results = buildExchangeUrls('BTC/USDT');
+    const results = buildExchangeUrls('BTCUSDT');
 
     expect(results.binance.isValid).toBe(true);
     expect(results.binance.url).toContain('binance.com');
@@ -207,7 +206,7 @@ describe('buildExchangeUrls', () => {
   });
 
   it('should build URLs for specific exchanges', () => {
-    const results = buildExchangeUrls('ETH/USDT', ['binance', 'okx']);
+    const results = buildExchangeUrls('ETHUSDT', ['binance', 'okx']);
 
     expect(results.binance).toBeDefined();
     expect(results.okx).toBeDefined();
