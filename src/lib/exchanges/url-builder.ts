@@ -10,10 +10,7 @@ import type {
   SymbolValidationResult,
 } from '@/types/exchange-links';
 import {
-  SYMBOL_FORMAT_REGEX,
   isSupportedExchange,
-  ExchangeLinkError,
-  ExchangeLinkErrorCode,
 } from '@/types/exchange-links';
 import { EXCHANGE_CONFIGS } from './constants';
 

@@ -83,6 +83,7 @@
     "src/test-*.ts",
     "test-*.ts",
     "tests/**/*",
-    "scripts/test-*.ts"
+    "scripts/test-*.ts",
+    "specs/**/*"
   ]
 }
