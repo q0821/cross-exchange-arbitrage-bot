@@ -7,6 +7,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - TypeScript 5.3+ with Node.js 20.x LTS (004-fix-okx-add-price-display)
 - PostgreSQL 15 + TimescaleDB extension (已配置於 Docker Compose) (004-fix-okx-add-price-display)
 - PostgreSQL 15+ with TimescaleDB extension (existing), Redis 7+ (rate limiting & locks) (006-web-trading-platform)
+- TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Tailwind CSS, Radix UI Tooltip, Lucide Reac (008-specify-scripts-bash)
+- N/A（純前端功能，無資料持久化） (008-specify-scripts-bash)
 
 ## Project Structure
 ```
@@ -21,9 +23,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 008-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Tailwind CSS, Radix UI Tooltip, Lucide Reac
 - 006-web-trading-platform: Added TypeScript 5.3+ with Node.js 20.x LTS
 - 006-web-trading-platform: Added TypeScript 5.3+ with Node.js 20.x LTS
-- 005-arbitrage-opportunity-detection: Added TypeScript 5.3+ with Node.js 20.x LTS
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

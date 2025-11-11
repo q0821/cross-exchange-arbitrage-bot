@@ -9,6 +9,7 @@
 
 import React from 'react';
 import { StatusBadge, OpportunityStatus } from './StatusBadge';
+import { ExchangeLink } from '@/components/market';
 
 // 交易所名稱類型
 export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
@@ -127,8 +128,15 @@ export const RateRow = React.memo(function RateRow({
             </span>
           )}
 
-          {/* 費率 */}
-          <span className="font-mono text-sm">{formatRate(exchangeData.rate)}</span>
+          {/* 費率與交易所連結 */}
+          <div className="flex items-center gap-1 justify-end">
+            <span className="font-mono text-sm">{formatRate(exchangeData.rate)}</span>
+            <ExchangeLink
+              exchange={exchangeName}
+              symbol={rate.symbol}
+              isAvailable={!!exchangeData.rate}
+            />
+          </div>
 
           {/* 價格 */}
           {exchangeData.price && (
