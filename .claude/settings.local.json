@@ -66,9 +66,24 @@
       "Bash(pnpm test:*)",
       "Bash(node test-websocket-auth.js:*)",
       "Bash(pnpm dev)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(node --version:*)",
+      "Bash(pnpm --version:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(pnpm test:e2e:*)",
+      "Bash(tree:*)",
+      "Bash(git checkout:*)",
+      "Bash(git branch:*)",
+      "SlashCommand(/speckit.implement)",
+      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/008-specify-scripts-bash/checklists\" ])",
+      "Bash(then echo \"EXISTS\")",
+      "Bash(else echo \"NOT_EXISTS\")",
+      "Bash(git rev-parse:*)",
+      "Bash(jobs:*)",
+      "Bash(pnpm list:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "default"
 }

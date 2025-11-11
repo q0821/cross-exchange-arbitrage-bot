@@ -34,10 +34,23 @@ describe('validateSymbol', () => {
     expect(result.error).toContain('empty');
   });
 
-  it('should reject symbol without slash', () => {
+  it('should accept symbol without slash and parse correctly', () => {
     const result = validateSymbol('BTCUSDT');
-    expect(result.isValid).toBe(false);
-    expect(result.error).toContain('Invalid symbol format');
+    expect(result.isValid).toBe(true);
+    expect(result.base).toBe('BTC');
+    expect(result.quote).toBe('USDT');
+  });
+
+  it('should accept symbol with multiple quote currencies', () => {
+    const resultUsdt = validateSymbol('LINKUSDT');
+    expect(resultUsdt.isValid).toBe(true);
+    expect(resultUsdt.base).toBe('LINK');
+    expect(resultUsdt.quote).toBe('USDT');
+
+    const resultUsdc = validateSymbol('BTCUSDC');
+    expect(resultUsdc.isValid).toBe(true);
+    expect(resultUsdc.base).toBe('BTC');
+    expect(resultUsdc.quote).toBe('USDC');
   });
 
   it('should reject lowercase symbol', () => {
@@ -149,8 +162,15 @@ describe('getExchangeContractUrl', () => {
       expect(result.error).toContain('Unsupported exchange');
     });
 
-    it('should reject invalid symbol format', () => {
+    it('should accept symbol without slash format', () => {
       const result = getExchangeContractUrl('binance', 'BTCUSDT');
+      expect(result.isValid).toBe(true);
+      expect(result.url).toBe('https://www.binance.com/zh-TC/futures/BTCUSDT');
+      expect(result.formattedSymbol).toBe('BTCUSDT');
+    });
+
+    it('should reject truly invalid symbol format', () => {
+      const result = getExchangeContractUrl('binance', 'INVALID');
       expect(result.isValid).toBe(false);
       expect(result.url).toBe('');
       expect(result.error).toContain('Invalid symbol format');

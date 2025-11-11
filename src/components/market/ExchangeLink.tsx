@@ -59,59 +59,55 @@ export function ExchangeLink({
   // Render disabled state
   if (isDisabled) {
     return (
-      <Tooltip.Provider>
-        <Tooltip.Root>
-          <Tooltip.Trigger asChild>
-            <span
-              className={`inline-flex items-center opacity-40 cursor-not-allowed ${className}`}
-              aria-label={accessibilityLabel}
-              tabIndex={-1}
-            >
-              <ExternalLink className="w-4 h-4 text-gray-400" />
-            </span>
-          </Tooltip.Trigger>
-          <Tooltip.Portal>
-            <Tooltip.Content
-              className="bg-gray-900 text-white text-sm px-3 py-2 rounded shadow-lg z-50"
-              sideOffset={5}
-            >
-              {isAvailable
-                ? `無法生成 ${exchangeName} 連結`
-                : `此交易所不支援 ${symbol}`}
-              <Tooltip.Arrow className="fill-gray-900" />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        </Tooltip.Root>
-      </Tooltip.Provider>
-    );
-  }
-
-  // Render active link
-  return (
-    <Tooltip.Provider>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <a
-            href={urlResult.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`inline-flex items-center text-gray-500 hover:text-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded ${className}`}
+          <span
+            className={`inline-flex items-center opacity-40 cursor-not-allowed ${className}`}
             aria-label={accessibilityLabel}
-            onClick={handleClick}
+            tabIndex={-1}
           >
-            <ExternalLink className="w-4 h-4" />
-          </a>
+            <ExternalLink className="w-4 h-4 text-gray-400" />
+          </span>
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
             className="bg-gray-900 text-white text-sm px-3 py-2 rounded shadow-lg z-50"
             sideOffset={5}
           >
-            前往 {exchangeName} 查看 {symbol}
+            {isAvailable
+              ? `無法生成 ${exchangeName} 連結`
+              : `此交易所不支援 ${symbol}`}
             <Tooltip.Arrow className="fill-gray-900" />
           </Tooltip.Content>
         </Tooltip.Portal>
       </Tooltip.Root>
-    </Tooltip.Provider>
+    );
+  }
+
+  // Render active link
+  return (
+    <Tooltip.Root>
+      <Tooltip.Trigger asChild>
+        <a
+          href={urlResult.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`inline-flex items-center text-gray-500 hover:text-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded ${className}`}
+          aria-label={accessibilityLabel}
+          onClick={handleClick}
+        >
+          <ExternalLink className="w-4 h-4" />
+        </a>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          className="bg-gray-900 text-white text-sm px-3 py-2 rounded shadow-lg z-50"
+          sideOffset={5}
+        >
+          前往 {exchangeName} 查看 {symbol}
+          <Tooltip.Arrow className="fill-gray-900" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }

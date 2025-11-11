@@ -8,6 +8,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { RateRow, MarketRate } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
 
@@ -109,85 +110,87 @@ export function RatesTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            {/* 交易對 */}
-            <th
-              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => handleSort('symbol')}
-            >
-              <div className="flex items-center gap-1">
-                <span>交易對</span>
-                {getSortIcon('symbol')}
-              </div>
-            </th>
+    <Tooltip.Provider>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              {/* 交易對 */}
+              <th
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort('symbol')}
+              >
+                <div className="flex items-center gap-1">
+                  <span>交易對</span>
+                  {getSortIcon('symbol')}
+                </div>
+              </th>
 
-            {/* Binance 費率 */}
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Binance 費率
-            </th>
+              {/* Binance 費率 */}
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Binance 費率
+              </th>
 
-            {/* OKX 費率 */}
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              OKX 費率
-            </th>
+              {/* OKX 費率 */}
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                OKX 費率
+              </th>
 
-            {/* MEXC 費率 */}
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              MEXC 費率
-            </th>
+              {/* MEXC 費率 */}
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                MEXC 費率
+              </th>
 
-            {/* Gate.io 費率 */}
-            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Gate.io 費率
-            </th>
+              {/* Gate.io 費率 */}
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Gate.io 費率
+              </th>
 
-            {/* 費率差異 */}
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => handleSort('spread')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                <span>費率差異</span>
-                {getSortIcon('spread')}
-              </div>
-            </th>
+              {/* 費率差異 */}
+              <th
+                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort('spread')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <span>費率差異</span>
+                  {getSortIcon('spread')}
+                </div>
+              </th>
 
-            {/* 年化收益 */}
-            <th
-              className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-              onClick={() => handleSort('annualizedReturn')}
-            >
-              <div className="flex items-center justify-end gap-1">
-                <span>年化收益</span>
-                {getSortIcon('annualizedReturn')}
-              </div>
-            </th>
+              {/* 年化收益 */}
+              <th
+                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort('annualizedReturn')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <span>年化收益</span>
+                  {getSortIcon('annualizedReturn')}
+                </div>
+              </th>
 
-            {/* 狀態 */}
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              狀態
-            </th>
+              {/* 狀態 */}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                狀態
+              </th>
 
-            {/* 操作 */}
-            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              操作
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {processedRates.map((rate) => (
-            <RateRow
-              key={rate.symbol}
-              rate={rate}
-              onSymbolClick={onSymbolClick}
-              onQuickOpen={onQuickOpen}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+              {/* 操作 */}
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                操作
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {processedRates.map((rate) => (
+              <RateRow
+                key={rate.symbol}
+                rate={rate}
+                onSymbolClick={onSymbolClick}
+                onQuickOpen={onQuickOpen}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Tooltip.Provider>
   );
 }
