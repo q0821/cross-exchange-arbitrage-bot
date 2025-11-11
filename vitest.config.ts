@@ -16,6 +16,8 @@ export default defineConfig({
     include: ['**/*.test.ts', '**/*.test.tsx'],
     // 使用 jsdom 環境支援 React 元件測試
     environment: 'jsdom',
+    // Setup files to run before each test file
+    setupFiles: ['./tests/setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

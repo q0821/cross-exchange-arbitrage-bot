@@ -7,6 +7,7 @@
 
 'use client';
 
+import React from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { ExternalLink } from 'lucide-react';
 import { getExchangeContractUrl } from '@/lib/exchanges';
