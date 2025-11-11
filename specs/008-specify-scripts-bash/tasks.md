@@ -84,11 +84,16 @@
 
 **Independent Test**: 在市場監控頁面上，將滑鼠移到交易所圖示上，驗證是否顯示 Tooltip 並有 hover 效果
 
+> **📝 Note**: T023-T025 的實作功能已在 US1 開發時完成（commit: 05483e6, dedece3），US2 主要剩餘測試任務（T026-T030）。ExchangeLink 元件已包含完整的 hover 效果、focus indicator 和 Tooltip 實作。
+
 ### Implementation for User Story 2
 
-- [ ] T023 [P] [US2] 實作 hover 視覺效果於 `src/components/market/ExchangeLink.tsx`（滑鼠游標變為手指、顏色變化）
-- [ ] T024 [P] [US2] 實作 focus indicator 於 `src/components/market/ExchangeLink.tsx`（鍵盤導航時的 focus ring）
-- [ ] T025 [US2] 實作 Tooltip 內容於 `src/components/market/ExchangeLink.tsx`（顯示「前往 [交易所] 查看 [交易對]」）
+- [x] T023 [P] [US2] 實作 hover 視覺效果於 `src/components/market/ExchangeLink.tsx`（滑鼠游標變為手指、顏色變化）
+  > ✅ 已在 US1 實作（commit: 05483e6）：使用 `hover:text-blue-600` 和 `transition-colors duration-200` 實現顏色變化，`<a>` 標籤自動提供 `cursor: pointer`
+- [x] T024 [P] [US2] 實作 focus indicator 於 `src/components/market/ExchangeLink.tsx`（鍵盤導航時的 focus ring）
+  > ✅ 已在 US1 實作（commit: 05483e6）：使用 `focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2` 實現符合 WCAG 標準的 focus ring
+- [x] T025 [US2] 實作 Tooltip 內容於 `src/components/market/ExchangeLink.tsx`（顯示「前往 [交易所] 查看 [交易對]」）
+  > ✅ 已在 US1 實作（commit: 05483e6, dedece3）：使用 Radix UI Tooltip 完整實作，包含啟用和禁用狀態的不同提示訊息
 - [ ] T026 [US2] 測試 Tooltip 顯示和隱藏行為（hover 200ms 後顯示，移開後隱藏）
 - [ ] T027 [US2] 驗證無障礙屬性：`aria-label` 正確設置，鍵盤可導航
 
