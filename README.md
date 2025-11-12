@@ -8,8 +8,8 @@
 
 ## 🎯 專案狀態
 
-**當前版本**: v0.4.0 (MVP 核心功能 100% 完成)
-**最後更新**: 2025-10-23
+**當前版本**: v0.4.0 (MVP 核心功能完成 + Feature 004 部分完成)
+**最後更新**: 2025-11-12
 
 ### ✅ 已完成功能 (Phase 1-3)
 
@@ -60,6 +60,37 @@
   - 161 個單元測試（現有功能）
 - ✅ **測試覆蓋率**: Phase 1-3 核心功能 100%
 
+#### Feature 004: OKX 驗證與套利評估 ⚠️（部分完成 38%）
+
+- ✅ **User Story 1: OKX 資金費率驗證**（核心完成）
+  - FundingRateValidator - 雙重驗證服務（OKX Native API + CCXT 備援）
+  - FundingRateValidationRepository - 驗證記錄持久化（TimescaleDB）
+  - 整合測試 - OKX API + CCXT 驗證流程驗證
+
+- ⚠️ **User Story 2: 價格監控**（部分完成）
+  - PriceMonitor - REST 輪詢價格監控服務（每 5 秒更新）
+  - PriceCache - LRU 快取機制（100 個交易對）
+  - BinanceConnector / OkxConnector - getPrices() 方法實作
+  - 🔄 **延後**: WebSocket 即時訂閱（REST 已滿足需求）
+
+- ✅ **User Story 3: 套利可行性評估**（完整實作）
+  - ArbitrageAssessor - 套利評估引擎（362 行）
+    - 手續費計算（Maker/Taker/Mixed 三種模式）
+    - 淨收益計算（利差 - 雙邊手續費）
+    - 可行性判斷（淨收益 > 最小利潤閾值）
+    - 極端價差檢測（預設閾值 5%）
+  - CLI 參數支援 - `--enable-arbitrage-assessment`, `--arbitrage-capital`, `--maker-fee`, `--taker-fee`, `--min-profit`
+  - 整合到 FundingRateMonitor - 發出 `arbitrage-feasible` 事件
+
+- ✅ **測試**: 284 個測試通過（包含 Feature 004 測試）
+  - 17 個 ArbitrageAssessor 單元測試
+  - 6 個套利評估整合測試
+
+- ✅ **系統架構調整**: 新增 Constitution Principle VI
+  - CLI 職責: 後台監控 + 數據計算 + 寫入 DB
+  - Web 職責: 查詢 DB + 即時更新 + 使用者互動
+  - 資料流向: CLI Monitor → Database → Web API → Web UI
+
 ### 🔄 計畫功能 (Phase 4-7)
 
 - 🔜 **Phase 4**: 多幣別機會排序與優先級
@@ -69,12 +100,16 @@
 
 ## 功能特色
 
-- 🔍 **即時監控**: 每 5 秒更新 Binance 和 OKX 的資金費率
+- 🔍 **即時監控**: 每 5 秒更新 Binance 和 OKX 的資金費率與價格
 - 📊 **智能偵測**: 自動識別套利機會並計算年化收益率
+- ✅ **雙重驗證**: OKX 資金費率使用 Native API + CCXT 雙重驗證確保準確性
+- 💰 **套利評估**: 自動計算淨收益（利差 - 手續費），判斷套利可行性
+- 🎯 **極端價差檢測**: 自動檢測異常價差（預設 >5%）並發出警告
 - 🎨 **彩色輸出**: 終端機彩色顯示不同嚴重性的通知
 - 🛡️ **防抖動**: 30 秒窗口防止通知轟炸
 - 📈 **歷史記錄**: 完整的機會生命週期追蹤與統計
 - ⚡ **高精確度**: 使用 Decimal.js 確保金融計算精確
+- 🏗️ **架構分離**: CLI 負責監控計算，Web 負責顯示互動
 
 ## 技術架構
 

@@ -7,10 +7,103 @@
 ## [Unreleased]
 
 ### 計畫中
-- Phase 4: User Story 2 剩餘任務 (閾值判斷、收益計算、CLI 指令)
+- Feature 004 剩餘任務 (WebSocket 即時訂閱、CLI 界面增強)
+- Web 界面開發 (套利機會顯示、即時價格顯示、資金費率顯示)
 - Phase 5-7: 交易執行、平倉管理、風險控制
-- 單元測試與整合測試
 - Telegram Bot 和 Webhook 通知渠道
+
+---
+
+## [0.4.0] - 2025-11-12
+
+### 新增
+#### Feature 004: OKX 資金費率驗證與套利評估系統（部分完成 38%）
+
+**核心功能完成**：
+
+- **User Story 1 - OKX 資金費率驗證** (✅ 核心完成 - 9/9 任務)
+  - `FundingRateValidator` - 雙重驗證服務 (OKX Native API + CCXT 備援)
+  - `FundingRateValidationRepository` - Prisma + TimescaleDB 持久化
+  - 整合測試：OKX API + CCXT 驗證流程
+  - 資料庫遷移：`funding_rate_validations` 表（10 個欄位）
+
+- **User Story 3 - 套利可行性評估** (✅ 完整實作 - 7/7 任務)
+  - `ArbitrageAssessor` - 套利評估服務（362 行）
+    - 手續費計算（Maker/Taker/Mixed 三種模式）
+    - 淨收益計算（利差金額 - 雙邊手續費）
+    - 可行性判斷（淨收益 > 最小利潤閾值）
+    - 極端價差檢測（預設閾值 5%）
+  - CLI 參數支援：
+    - `--enable-arbitrage-assessment`（啟用評估）
+    - `--arbitrage-capital <usdt>`（資金量，預設 10000）
+    - `--maker-fee <rate>`, `--taker-fee <rate>`（手續費率）
+    - `--min-profit <rate>`（最小利潤閾值）
+  - 整合到 `FundingRateMonitor`：
+    - 新增 `arbitrageAssessor` 可選屬性
+    - 發出 `arbitrage-feasible` 事件
+    - 詳細日誌記錄（可行性、淨收益、警告）
+
+- **User Story 2 - 價格監控** (⚠️ 部分完成 - 9/15 任務)
+  - `PriceMonitor` - REST 輪詢價格監控服務
+  - `PriceCache` - LRU 快取（最多 100 個交易對）
+  - `RestPoller` - 定期輪詢機制（預設 5 秒）
+  - `BinanceConnector.getPrices()` 和 `OkxConnector.getPrices()` 方法
+  - **延後功能**：WebSocket 即時訂閱（REST 輪詢已滿足基本需求）
+
+### 測試
+
+**單元測試**（全數通過）：
+- `ArbitrageAssessor.test.ts` - 17 個測試
+  - 手續費計算（3 種模式）
+  - 淨收益計算（正收益、負收益）
+  - 完整評估流程（可行、不可行、極端價差）
+  - 配置更新
+
+**整合測試**（全數通過）：
+- `arbitrage-assessment.test.ts` - 6 個測試
+  - 完整套利評估流程（4 個交易所）
+  - 不可行套利（利差太小）
+  - 極端價差警告檢測
+  - 不同手續費類型測試
+  - 邊界條件（零資金量、無價格資料）
+- `okx-funding-rate-validation.test.ts` - OKX 驗證整合測試
+- `FundingRateValidationRepository.test.ts` - Repository 測試
+
+**測試統計**：
+- 總測試數：284 passed | 1 skipped (285)
+- 建置狀態：✅ 成功
+- 類型檢查：✅ 無錯誤
+
+### 架構調整
+
+**系統架構邊界原則（Constitution Principle VI）**：
+- **CLI 職責**：後台監控 + 數據計算 + 寫入 DB + 日誌記錄
+- **Web 職責**：查詢 DB + 即時更新 + 使用者互動 + 數據視覺化
+- **資料流向**：CLI Monitor → Database → Web API → Web UI
+- **安全性**：API 金鑰僅存在於 CLI 環境
+
+### 延後功能
+- **WebSocket 即時訂閱**（6 個任務）：REST 輪詢已滿足需求，WebSocket 延後實作
+- **CLI 界面增強**（7 個任務）：改由 Web 界面實作
+- **部分 Polish 任務**（6 個任務）：環境變數驗證、程式碼重構等延後
+
+### 統計
+- **新增程式碼**: ~994 行 TypeScript
+  - `ArbitrageAssessor.ts`: 362 行
+  - `ArbitrageAssessor.test.ts`: 280 行
+  - `arbitrage-assessment.test.ts`: 352 行
+- **修改檔案**: 2 個核心服務
+  - `FundingRateMonitor.ts`: 71 行新增
+  - `start.ts` (CLI): 24 行新增
+- **完成進度**: 23/60 任務（38%）
+- **Commits**:
+  - `85fce39` - docs: 更新 Feature 004 狀態為部分完成
+  - `875c448` - docs: 修訂 Constitution 至 v1.1.0
+
+### 文件更新
+- `specs/004-fix-okx-add-price-display/spec.md` - 狀態更新為 Partially Completed
+- `specs/004-fix-okx-add-price-display/tasks.md` - 任務進度標記
+- `.specify/memory/constitution.md` - 新增 Principle VI (v1.0.0 → v1.1.0)
 
 ---
 
@@ -205,15 +298,16 @@
 3. **額外實體**: 新增 OpportunityHistory, NotificationLog (增強可觀測性)
 
 ### 憲法合規性
-- ✅ 所有實作都符合 constitution.md v1.0.0 的 5 個核心原則
+- ✅ 所有實作都符合 constitution.md v1.1.0 的 6 個核心原則
 - ✅ Trading Safety: Saga Pattern 已規劃於 Phase 5
 - ✅ Observability: Pino 日誌 + NotificationLog 完整追蹤
 - ✅ Defensive: 重試機制、WebSocket 重連已實作
 - ✅ Data Integrity: Prisma migrations + Decimal 類型
 - ✅ Incremental Delivery: MVP (US1+US2) 優先，測試網驗證
+- ✅ System Architecture Boundaries: CLI 監控 + Web 顯示分離（v1.1.0 新增）
 
 ---
 
 **維護者**: Claude Code
 **專案啟動日期**: 2025-10-17
-**最後更新**: 2025-10-22
+**最後更新**: 2025-11-12
