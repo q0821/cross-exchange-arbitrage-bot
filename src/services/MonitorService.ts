@@ -37,19 +37,30 @@ export async function startMonitorService(): Promise<void> {
     const config: SymbolsConfig = JSON.parse(configContent);
 
     // 使用 top100_oi 群組的交易對（OI 前 100，每 30 分鐘自動更新）
-    const symbols = config.groups.top100_oi?.symbols || [];
+    // 如果為空，fallback 到 top30 群組
+    let symbols = config.groups.top100_oi?.symbols || [];
+    let groupUsed = 'top100_oi';
 
     if (symbols.length === 0) {
-      logger.warn('No symbols configured for monitoring');
-      return;
+      logger.warn('top100_oi group is empty, falling back to top30');
+      symbols = config.groups.top30?.symbols || [];
+      groupUsed = 'top30';
+    }
+
+    if (symbols.length === 0) {
+      logger.warn('No symbols configured for monitoring in both top100_oi and top30 groups');
+      // 使用最小的預設交易對確保服務能啟動
+      symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+      groupUsed = 'default_fallback';
+      logger.info('Using minimal default symbols: BTCUSDT, ETHUSDT, SOLUSDT');
     }
 
     logger.info(
       {
         symbols: symbols.length,
-        group: 'top100_oi',
+        group: groupUsed,
       },
-      'Starting built-in funding rate monitor with OI top 100',
+      `Starting built-in funding rate monitor with ${groupUsed} group`,
     );
 
     // 創建 Monitor 實例

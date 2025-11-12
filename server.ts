@@ -53,12 +53,18 @@ app.prepare().then(() => {
     }
 
     // 啟動 OI 快取自動更新服務
-    try {
-      await startOIRefreshService();
-      console.log(`> OI cache refresh service enabled`);
-    } catch (error) {
-      logger.error({ error }, 'Failed to start OI refresh service');
-      console.error('> Warning: OI refresh service failed to start');
+    // 暫時禁用：在 Binance API 被地理限制的環境中無法使用
+    // TODO: 實作使用 OKX API 獲取 OI 數據的替代方案
+    if (process.env.ENABLE_OI_REFRESH === 'true') {
+      try {
+        await startOIRefreshService();
+        console.log(`> OI cache refresh service enabled`);
+      } catch (error) {
+        logger.error({ error }, 'Failed to start OI refresh service');
+        console.error('> Warning: OI refresh service failed to start');
+      }
+    } else {
+      console.log(`> OI cache refresh service disabled (set ENABLE_OI_REFRESH=true to enable)`);
     }
   });
 
