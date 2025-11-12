@@ -8,9 +8,173 @@
 
 ### 計畫中
 - Feature 004 剩餘任務 (WebSocket 即時訂閱、CLI 界面增強)
-- Web 界面開發 (套利機會顯示、即時價格顯示、資金費率顯示)
+- Feature 006 剩餘任務 (手動開倉、手動平倉、歷史記錄查詢)
 - Phase 5-7: 交易執行、平倉管理、風險控制
 - Telegram Bot 和 Webhook 通知渠道
+
+---
+
+## [0.5.0] - 2025-11-12
+
+### 新增
+
+#### Feature 006: Web 多用戶套利交易平台（部分完成 36%）
+
+**已完成核心功能**：
+
+**1. User Story 1 - 用戶註冊和 API Key 設定**（完成 - 20/20 任務）
+- **認證系統**
+  - 自定義 JWT Token 實作（SessionManager）
+  - Email/Password 登入和註冊
+  - HttpOnly Cookies + JWT Session 管理
+  - 註冊頁面：`app/(auth)/register/page.tsx`
+  - 登入頁面：`app/(auth)/login/page.tsx`
+
+- **API Key 管理**
+  - API Key 管理頁面：`app/(dashboard)/settings/api-keys/page.tsx` (531 行)
+  - 支援 5 個交易所：Binance、OKX、Bybit、MEXC、Gate.io
+  - 環境選擇：主網（MAINNET）、測試網（TESTNET）
+  - AES-256-GCM 加密儲存
+  - API Key 驗證服務（與交易所 API 驗證有效性）
+  - 完整 CRUD 操作：新增、編輯標籤、啟用/停用、刪除
+
+**2. User Story 2 - 即時套利機會監控**（完成 - 15/15 任務）
+- **套利機會列表**
+  - 機會列表頁面：`app/(dashboard)/opportunities/page.tsx`
+  - 機會卡片組件：`components/opportunities/OpportunityCard.tsx` (167 行)
+  - 機會詳情頁面：`app/(dashboard)/opportunities/[id]/page.tsx`
+  - WebSocket 即時更新（3 個事件：new、update、expired）
+  - 連線狀態指示器（綠色脈動動畫）
+
+- **收益計算**
+  - 使用 Decimal.js 進行精確計算
+  - 成本計算和淨利潤率展示
+  - 年化收益率計算
+  - 費率差異百分比顯示
+
+**3. User Story 2.5 - 多交易所多交易對資金費率監控**（完成）
+- **市場監控頁面**
+  - 主頁面：`app/(dashboard)/market-monitor/page.tsx` (211 行)
+  - 表格形式顯示多個交易對（支援 top10、all 群組）
+  - 同時顯示 4 個交易所：Binance、OKX、MEXC、Gate.io
+  - 費率行組件：`RateRow.tsx` - 支援 4 個交易所欄位
+  - 費率表格組件：`RatesTable.tsx`
+
+- **即時數據更新**
+  - WebSocket 定期廣播（每 5 秒更新）
+  - 資金費率和即時價格顯示
+  - 最佳套利對自動計算和標示（BUY/SELL 標籤）
+  - 費率差異狀態指示：🔔 機會 / ⚠️ 接近 / ➖ 正常
+
+- **交互功能**
+  - 交易對群組篩選（SymbolSelector）
+  - 表格排序和篩選
+  - 統計卡片（機會數、最高年化收益）
+  - 年化收益顯示
+
+**4. Feature 008 - 交易所快速連結**（完成）
+- **核心組件**
+  - ExchangeLink 組件：`src/components/market/ExchangeLink.tsx` (115 行)
+  - URL Builder：`src/lib/exchanges/url-builder.ts`
+  - URL 常數配置：`src/lib/exchanges/constants.ts`
+
+- **功能特性**
+  - 支援 4 個交易所 URL 生成（Binance、OKX、MEXC、Gate.io）
+  - 統一符號格式處理（BTCUSDT → 各交易所格式）
+  - 新分頁開啟（target="_blank" + rel="noopener noreferrer"）
+  - Radix UI Tooltip 提示說明
+  - Hover 效果和無障礙設計（aria-label）
+  - Lucide React ExternalLink 圖標
+  - 禁用狀態處理（無數據時自動禁用）
+  - 整合到市場監控頁面 RateRow 組件
+
+**符號格式轉換**：
+- 內部格式：`BTCUSDT`（統一標準）
+- Binance：`BTCUSDT`
+- OKX：`BTC-USDT-SWAP`
+- MEXC：`BTC_USDT`
+- Gate.io：`BTC_USDT`
+
+### 基礎設施
+
+**前端框架**：
+- Next.js 14 App Router
+- TypeScript 5.6
+- React 18
+- Tailwind CSS
+- Radix UI（Tooltip）
+- Lucide React（圖標）
+
+**WebSocket 整合**：
+- Socket.io WebSocket 伺服器：`src/websocket/SocketServer.ts` (248 行)
+- JWT Token 認證中介軟體
+- 用戶房間管理（`user:{userId}`）
+- MarketRatesHandler：`src/websocket/handlers/MarketRatesHandler.ts` (291 行)
+- OpportunityHandler：`src/websocket/handlers/OpportunityHandler.ts` (182 行)
+- 客戶端 Hook：`hooks/useWebSocket.ts` (187 行)
+
+**後端服務**：
+- Prisma ORM + PostgreSQL 15 + TimescaleDB
+- Redis 連線設定
+- Pino 結構化日誌
+- API 路由（認證、API Keys、機會、市場費率）
+
+**自定義 Hooks**：
+- `useWebSocket` - Socket.io 客戶端封裝（自動重連）
+- `useMarketRates` - WebSocket 訂閱和狀態管理
+- `useSymbolGroups` - 交易對群組管理
+- `useTableSort` - 表格排序邏輯
+
+### 延後功能
+
+**User Story 3 - 手動開倉**（未開始）
+- 持倉驗證服務（餘額檢查）
+- TradeOrchestrator（Saga Pattern 協調）
+- 分散式鎖服務（Redis）
+- 開倉 API 和前端界面
+
+**User Story 4 - 手動平倉**（未開始）
+- 平倉服務和 API
+- 實現 PnL 計算
+- 平倉前端界面
+
+**User Story 5 - 歷史記錄查詢**（未開始）
+- 歷史收益查詢 API
+- 開關倉記錄查詢 API
+- 歷史記錄前端界面
+
+### 統計
+
+**Feature 006**：
+- **進度**: 44/121 任務完成（36%）
+- **新增程式碼**: ~3,500 行 TypeScript/TSX
+- **主要頁面**: 5 個（register、login、api-keys、opportunities、market-monitor）
+- **API 路由**: 8+ 個
+- **WebSocket Handlers**: 2 個
+- **自定義 Hooks**: 4+ 個
+- **組件**: 10+ 個
+
+**Feature 008**：
+- **進度**: 23/57 任務完成（40% - 核心功能完成）
+- **新增程式碼**: ~350 行 TypeScript
+- **核心檔案**: 3 個（ExchangeLink、url-builder、constants）
+
+### 文件更新
+
+- `specs/006-web-trading-platform/spec.md` - 狀態更新為 Partially Completed
+- `specs/006-web-trading-platform/tasks.md` - 任務進度標記
+- `specs/008-specify-scripts-bash/spec.md` - 狀態更新為 Completed（核心功能）
+- `specs/008-specify-scripts-bash/tasks.md` - 任務進度標記
+
+### 技術亮點
+
+1. **完整的 WebSocket 架構**：Socket.io + JWT 認證 + Room 管理 + 定期廣播
+2. **精確的費率計算**：使用 Decimal.js 避免浮點數精度問題
+3. **優化的組件性能**：React.memo 防止不必要重新渲染
+4. **無障礙設計**：完整的 Tooltip、aria-label 支援
+5. **統一的交易所 URL 處理**：支援多種符號格式自動轉換
+6. **安全的 API Key 管理**：AES-256-GCM 加密 + 環境隔離
+7. **實時連線狀態指示**：視覺反饋提升用戶體驗
 
 ---
 
