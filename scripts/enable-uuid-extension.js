@@ -5,7 +5,8 @@
  * This script must be run before prisma db push
  */
 
-const { Client } = require('pg');
+import pg from 'pg';
+const { Client } = pg;
 
 async function enableUuidExtension() {
   const client = new Client({
