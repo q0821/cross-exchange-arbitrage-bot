@@ -33,9 +33,9 @@ const STORAGE_KEY_SORT_BY = 'market-monitor:sort-by';
 const STORAGE_KEY_SORT_DIR = 'market-monitor:sort-direction';
 const STORAGE_KEY_FILTER = 'market-monitor:filter-status';
 
-// 預設值
-const DEFAULT_SORT_BY: SortField = 'spread';
-const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
+// 預設值 (Feature 009: 改為字母順序)
+const DEFAULT_SORT_BY: SortField = 'symbol';
+const DEFAULT_SORT_DIRECTION: SortDirection = 'asc';
 const DEFAULT_FILTER_STATUS: OpportunityStatus | 'all' = 'all';
 
 /**

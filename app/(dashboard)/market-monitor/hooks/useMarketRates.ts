@@ -26,8 +26,8 @@ interface StatsUpdateEvent {
 }
 
 interface UseMarketRatesReturn {
-  /** 即時費率數據 */
-  rates: MarketRate[];
+  /** 即時費率數據 (Map for O(1) lookups) */
+  ratesMap: Map<string, MarketRate>;
   /** 統計資訊 */
   stats: MarketStats | null;
   /** WebSocket 連線狀態 */
@@ -45,7 +45,7 @@ interface UseMarketRatesReturn {
  * 自動訂閱 WebSocket 事件並管理即時費率數據
  */
 export function useMarketRates(): UseMarketRatesReturn {
-  const [rates, setRates] = useState<MarketRate[]>([]);
+  const [ratesMap, setRatesMap] = useState<Map<string, MarketRate>>(new Map());
   const [stats, setStats] = useState<MarketStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -66,10 +66,16 @@ export function useMarketRates(): UseMarketRatesReturn {
     },
   });
 
-  // 處理費率更新
+  // 處理費率更新 (只更新 Map 中的值，不改變結構)
   const handleRatesUpdate = useCallback((event: RatesUpdateEvent) => {
     console.log('[useMarketRates] Rates updated:', event.data.rates.length, 'rates');
-    setRates(event.data.rates);
+    setRatesMap((prev) => {
+      const next = new Map(prev);
+      event.data.rates.forEach((rate) => {
+        next.set(rate.symbol, rate); // O(1) update per symbol
+      });
+      return next;
+    });
     setIsLoading(false);
     setError(null);
   }, []);
@@ -110,7 +116,12 @@ export function useMarketRates(): UseMarketRatesReturn {
 
       const data = await response.json();
       if (data.success) {
-        setRates(data.data.rates);
+        // Convert array to Map
+        const newMap = new Map<string, MarketRate>();
+        data.data.rates.forEach((rate: MarketRate) => {
+          newMap.set(rate.symbol, rate);
+        });
+        setRatesMap(newMap);
         setStats(data.data.stats);
       } else {
         throw new Error(data.error?.message || 'Failed to fetch rates');
@@ -130,7 +141,7 @@ export function useMarketRates(): UseMarketRatesReturn {
   }, []); // 只在組件掛載時執行一次
 
   return {
-    rates,
+    ratesMap,
     stats,
     isConnected,
     isLoading,
