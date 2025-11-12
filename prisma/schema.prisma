@@ -7,9 +7,10 @@ generator client {
 }
 
 datasource db {
-  provider   = "postgresql"
-  url        = env("DATABASE_URL")
-  extensions = [timescaledb]
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Note: TimescaleDB extension removed for easier deployment
+  // See docs/deployment/upgrade-to-timescaledb.md for production upgrade guide
 }
 
 // ===== 資金費率記錄 (TimescaleDB Hypertable) =====

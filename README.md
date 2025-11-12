@@ -327,6 +327,46 @@ pnpm build
 pnpm start
 ```
 
+## 🚀 部署指南
+
+### 快速部署到雲端平台
+
+本專案支援部署到多個雲端平台。推薦使用 **Zeabur** 進行快速部署。
+
+#### 推薦平台
+
+| 平台 | 難度 | 成本 | 特色 |
+|------|------|------|------|
+| [Zeabur](docs/deployment/README.md#zeabur-部署) ⭐⭐⭐⭐⭐ | ⭐ 簡單 | $5-20/月 | 中文介面、自動部署、內建資料庫 |
+| [Railway](docs/deployment/railway-guide.md) | ⭐⭐ 中等 | $5-15/月 | 簡單易用、$5 免費額度 |
+| [VPS 自建](docs/deployment/upgrade-to-timescaledb.md#方案-1-vps--docker-詳細步驟) | ⭐⭐⭐ 較難 | $5-20/月 | 完整控制、長期穩定 |
+
+#### 詳細文件
+
+📖 **[完整部署指南](docs/deployment/README.md)** - 一步步教您部署到生產環境
+
+包含：
+- ✅ Zeabur 部署步驟（推薦）
+- ✅ Railway 部署步驟
+- ✅ 環境變數配置說明
+- ✅ 資料庫設定指南
+- ✅ 常見問題排解
+
+#### 長期營運優化
+
+📊 **[升級到 TimescaleDB](docs/deployment/upgrade-to-timescaledb.md)** - 當資料量增大時的效能優化方案
+
+- 何時需要升級（資料量 > 10 萬筆）
+- 3 種升級方案比較
+- 詳細的升級步驟
+- 驗證和測試指南
+
+#### 環境變數說明
+
+📝 **[環境變數完整說明](docs/deployment/environment-variables.md)** - 所有環境變數的用途和配置方法
+
+---
+
 ## 使用指南
 
 ### 快速開始
