@@ -1,16 +1,25 @@
 <!--
-Sync Impact Report - Constitution v1.0.0
+Sync Impact Report - Constitution v1.1.0
 Created: 2025-10-19
-Changes:
+Last Updated: 2025-11-12
+
+Changes in v1.1.0:
+- Added Principle VI: System Architecture Boundaries
+  - Defines CLI vs Web responsibility separation
+  - Establishes data flow pattern (CLI → DB → Web)
+  - Enforces single source of truth (Database)
+  - Prevents security issues (API keys only in CLI)
+- Templates requiring updates:
+  ✅ plan-template.md - no changes needed (architecture boundaries are feature-specific)
+  ✅ spec-template.md - no changes needed (specs should follow Principle VI)
+  ✅ tasks-template.md - no changes needed (tasks should respect boundaries)
+- Follow-up TODOs: None
+
+Changes in v1.0.0 (Initial):
 - Initial constitution established (from template)
 - Added 5 core principles for trading platform
 - Added Trading Safety section
 - Added Development Workflow section
-- Templates requiring updates:
-  ✅ plan-template.md - no changes needed (constitution check section already present)
-  ✅ spec-template.md - no changes needed (requirements already align)
-  ✅ tasks-template.md - no changes needed (task organization supports principles)
-- Follow-up TODOs: None
 -->
 
 # Cross-Exchange Arbitrage Bot Constitution
@@ -80,6 +89,51 @@ Changes:
 - No feature deployment without successful end-to-end testing in test environment
 
 **Rationale**: Trading platforms require thorough validation. Rushing to production without proper testing risks capital.
+
+### VI. System Architecture Boundaries
+
+**MUST** requirements for CLI vs Web separation:
+
+- **CLI Responsibilities**:
+  - Background monitoring (funding rates, prices, arbitrage opportunities)
+  - Data collection and calculation (validation, assessment, metrics)
+  - Writing results to database (opportunities, validations, price data)
+  - Logging and error tracking
+  - NO complex UI display (simple status logs only)
+
+- **Web Responsibilities**:
+  - Query database for display (arbitrage opportunities, historical data)
+  - Real-time updates via WebSocket (price tickers, funding rate changes)
+  - User interactions (manual trading, configuration)
+  - Data visualization (charts, tables, dashboards)
+  - NO business logic or calculations (read-only data consumption)
+
+**Data Flow Pattern**:
+
+```
+CLI Monitor → Database (Single Source of Truth) → Web API → Web UI
+     ↓                      ↑                          ↓
+  Connectors          Prisma ORM                 WebSocket Server
+     ↓                      ↑                          ↓
+Exchange APIs         TimescaleDB                 React Client
+```
+
+**MUST** requirements for data flow:
+
+- CLI MUST write all calculated results to database (no direct CLI-to-Web communication)
+- Web MUST read from database only (no direct exchange API calls from Web)
+- WebSocket updates MUST be triggered by database changes or scheduled polling
+- Database is the single source of truth for all application state
+- API keys and credentials MUST only exist in CLI environment (never exposed to Web)
+
+**SHOULD** guidelines:
+
+- Prefer database triggers or event emitters for real-time Web updates
+- Prefer REST API for historical data queries
+- Prefer WebSocket for live price/rate streaming
+- Cache frequently accessed data in Web backend (with TTL)
+
+**Rationale**: Clear separation of concerns prevents complexity creep. CLI focuses on reliable data collection, Web focuses on user experience. Database acts as the contract between both systems, enabling independent development and scaling.
 
 ## Trading Safety Requirements
 
@@ -182,4 +236,4 @@ Before merging to main branch:
 - Principles should be challenged if they block necessary improvements
 - But convenience is not sufficient justification for weakening safety (Principle I)
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-19 | **Last Amended**: 2025-10-19
+**Version**: 1.1.0 | **Ratified**: 2025-10-19 | **Last Amended**: 2025-11-12
