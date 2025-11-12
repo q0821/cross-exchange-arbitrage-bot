@@ -80,7 +80,9 @@
       "Bash(else echo \"NOT_EXISTS\")",
       "Bash(git rev-parse:*)",
       "Bash(jobs:*)",
-      "Bash(pnpm list:*)"
+      "Bash(pnpm list:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
