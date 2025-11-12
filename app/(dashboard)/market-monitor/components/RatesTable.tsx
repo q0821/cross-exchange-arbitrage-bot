@@ -3,6 +3,7 @@
  * 顯示多個交易對的即時費率資訊
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
+ * Feature: 009-specify-scripts-bash (穩定排序改進)
  */
 
 'use client';
@@ -11,12 +12,11 @@ import React, { useMemo } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { RateRow, MarketRate } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
-
-type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'netReturn';
-type SortDirection = 'asc' | 'desc';
+import { stableSortComparator } from '../utils/sortComparator';
+import type { SortField, SortDirection } from '../types';
 
 interface RatesTableProps {
-  rates: MarketRate[];
+  ratesMap: Map<string, MarketRate>;
   sortBy?: SortField;
   sortDirection?: SortDirection;
   filterStatus?: OpportunityStatus | 'all';
@@ -28,61 +28,52 @@ interface RatesTableProps {
 /**
  * RatesTable 組件
  * 支援排序、篩選和點擊事件
+ * 實作快照排序 (Snapshot Sorting) 模式：
+ * - sortedSymbols 只依賴 sortBy 和 sortDirection
+ * - WebSocket 更新不觸發重新排序
+ * - 顯示時從 ratesMap 提取最新值
  */
 export function RatesTable({
-  rates,
-  sortBy = 'spread',
-  sortDirection = 'desc',
+  ratesMap,
+  sortBy = 'symbol',
+  sortDirection = 'asc',
   filterStatus = 'all',
   onSort,
   onSymbolClick,
   onQuickOpen,
 }: RatesTableProps) {
-  // 篩選和排序邏輯
-  const processedRates = useMemo(() => {
-    // 1. 篩選
-    let filtered = rates;
-    if (filterStatus !== 'all') {
-      filtered = rates.filter((rate) => rate.status === filterStatus);
-    }
+  // 快照排序：只在排序條件改變時重新計算順序
+  const sortedSymbols = useMemo(() => {
+    const symbols = Array.from(ratesMap.keys());
 
-    // 2. 排序
-    const sorted = [...filtered].sort((a, b) => {
-      let aValue: number | string;
-      let bValue: number | string;
+    // 篩選
+    const filtered =
+      filterStatus === 'all'
+        ? symbols
+        : symbols.filter((symbol) => {
+            const rate = ratesMap.get(symbol);
+            return rate?.status === filterStatus;
+          });
 
-      switch (sortBy) {
-        case 'symbol':
-          aValue = a.symbol;
-          bValue = b.symbol;
-          break;
-        case 'spread':
-          aValue = a.bestPair?.spreadPercent ?? 0;
-          bValue = b.bestPair?.spreadPercent ?? 0;
-          break;
-        case 'annualizedReturn':
-          aValue = a.bestPair?.annualizedReturn ?? 0;
-          bValue = b.bestPair?.annualizedReturn ?? 0;
-          break;
-        default:
-          return 0;
-      }
+    // 排序 (使用穩定排序比較函數)
+    return filtered.sort((symbolA, symbolB) => {
+      const rateA = ratesMap.get(symbolA);
+      const rateB = ratesMap.get(symbolB);
 
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
+      // 如果資料不存在，將其排到後面
+      if (!rateA) return 1;
+      if (!rateB) return -1;
 
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-
-      return 0;
+      return stableSortComparator(rateA, rateB, sortBy, sortDirection);
     });
+  }, [sortBy, sortDirection, filterStatus]); // ✅ 不依賴 ratesMap
 
-    return sorted;
-  }, [rates, sortBy, sortDirection, filterStatus]);
+  // 根據固定順序提取最新資料進行渲染
+  const displayRates = useMemo(() => {
+    return sortedSymbols
+      .map((symbol) => ratesMap.get(symbol))
+      .filter((rate): rate is MarketRate => rate !== undefined);
+  }, [sortedSymbols, ratesMap]);
 
   // 排序圖標
   const getSortIcon = (field: SortField) => {
@@ -99,7 +90,7 @@ export function RatesTable({
     }
   };
 
-  if (processedRates.length === 0) {
+  if (displayRates.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">
@@ -180,7 +171,7 @@ export function RatesTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {processedRates.map((rate) => (
+            {displayRates.map((rate) => (
               <RateRow
                 key={rate.symbol}
                 rate={rate}

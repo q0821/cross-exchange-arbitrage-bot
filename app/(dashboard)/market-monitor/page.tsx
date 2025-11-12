@@ -21,8 +21,8 @@ import type { MarketRate } from './components/RateRow';
  * 市場監控主頁面
  */
 export default function MarketMonitorPage() {
-  // 數據訂閱
-  const { rates, stats, isConnected, isLoading, error } = useMarketRates();
+  // 數據訂閱 (Feature 009: 使用 Map 而非 array)
+  const { ratesMap, stats, isConnected, isLoading, error } = useMarketRates();
 
   // 交易對群組管理
   const {
@@ -36,33 +36,41 @@ export default function MarketMonitorPage() {
   // 表格排序和篩選
   const { sortBy, sortDirection, filterStatus, toggleSort, setFilterStatus } = useTableSort();
 
-  // 根據選中的群組過濾費率數據
-  const filteredRates = useMemo(() => {
+  // 根據選中的群組過濾費率數據 (Feature 009: 使用 Map)
+  const filteredRatesMap = useMemo(() => {
     if (!selectedGroup || selectedGroup === 'all') {
-      return rates;
+      return ratesMap;
     }
 
     const selectedSymbols = getSelectedSymbols();
     if (selectedSymbols.length === 0) {
-      return rates;
+      return ratesMap;
     }
 
     // 只顯示選中群組的交易對
-    return rates.filter((rate) => selectedSymbols.includes(rate.symbol));
-  }, [rates, selectedGroup, getSelectedSymbols]);
+    const filtered = new Map<string, MarketRate>();
+    selectedSymbols.forEach((symbol) => {
+      const rate = ratesMap.get(symbol);
+      if (rate) {
+        filtered.set(symbol, rate);
+      }
+    });
+    return filtered;
+  }, [ratesMap, selectedGroup, getSelectedSymbols]);
 
-  // 計算過濾後的統計數據
+  // 計算過濾後的統計數據 (Feature 009: 使用 Map)
   const filteredStats = useMemo(() => {
-    if (!stats || filteredRates.length === rates.length) {
+    if (!stats || filteredRatesMap.size === ratesMap.size) {
       return stats; // 如果沒有過濾，直接使用原始統計
     }
 
     // 重新計算過濾後的統計
-    const opportunityCount = filteredRates.filter((r) => r.status === 'opportunity').length;
-    const approachingCount = filteredRates.filter((r) => r.status === 'approaching').length;
+    const filteredRatesArray = Array.from(filteredRatesMap.values());
+    const opportunityCount = filteredRatesArray.filter((r) => r.status === 'opportunity').length;
+    const approachingCount = filteredRatesArray.filter((r) => r.status === 'approaching').length;
 
     let maxSpread: { symbol: string; spread: string } | null = null;
-    filteredRates.forEach((rate) => {
+    filteredRatesArray.forEach((rate) => {
       if (rate.bestPair) {
         const spread = rate.bestPair.spreadPercent;
         if (!maxSpread || spread > parseFloat(maxSpread.spread)) {
@@ -75,14 +83,14 @@ export default function MarketMonitorPage() {
     });
 
     return {
-      totalSymbols: filteredRates.length,
+      totalSymbols: filteredRatesArray.length,
       opportunityCount,
       approachingCount,
       maxSpread,
       uptime: stats.uptime,
       lastUpdate: stats.lastUpdate,
     };
-  }, [stats, filteredRates, rates.length]);
+  }, [stats, filteredRatesMap, ratesMap.size]);
 
   // 詳情對話框狀態（未來擴展）
   const [_selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
@@ -172,7 +180,7 @@ export default function MarketMonitorPage() {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            即時費率 {filteredRates.length > 0 && `(${filteredRates.length} 個交易對)`}
+            即時費率 {filteredRatesMap.size > 0 && `(${filteredRatesMap.size} 個交易對)`}
           </h2>
 
           {/* 表格操作按鈕（未來擴展）*/}
@@ -188,7 +196,7 @@ export default function MarketMonitorPage() {
         </div>
 
         <RatesTable
-          rates={filteredRates}
+          ratesMap={filteredRatesMap}
           sortBy={sortBy}
           sortDirection={sortDirection}
           filterStatus={filterStatus}

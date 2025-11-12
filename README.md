@@ -158,6 +158,42 @@
 - MEXC：BTC_USDT
 - Gate.io：BTC_USDT
 
+#### Feature 009: 市場監控頁面穩定排序 ✅（完成 100% - 27/27 任務）
+
+- ✅ **快照排序 (Snapshot Sorting) 模式**
+  - 列表順序固定，WebSocket 更新不觸發重新排序
+  - 位置穩定性達 100%
+  - 只有數值更新，交易對位置保持不變
+  - 預設按交易對字母順序排列（升序）
+
+- ✅ **用戶自訂排序**
+  - 支援按交易對名稱、費率差異、年化收益排序
+  - 點擊欄位標題切換排序方向
+  - 視覺排序指示器（↑ 升序 / ↓ 降序 / ↕ 未排序）
+  - 排序後列表保持穩定
+
+- ✅ **排序偏好記憶**
+  - localStorage 自動儲存排序設定
+  - 頁面重新載入後自動恢復排序
+  - 優雅降級處理（私密瀏覽模式下功能照常運作）
+
+- ✅ **技術實作**
+  - Map-based 資料儲存（O(1) 查找和更新）
+  - 穩定排序演算法（次要排序鍵確保穩定性）
+  - useMemo 精確控制依賴（避免不必要的重新計算）
+  - 完整的 localStorage 錯誤處理
+
+**新增檔案**：
+- `app/(dashboard)/market-monitor/types.ts` - 排序類型定義
+- `app/(dashboard)/market-monitor/utils/sortComparator.ts` - 穩定排序比較器
+- `app/(dashboard)/market-monitor/utils/localStorage.ts` - localStorage 工具
+
+**修改組件**：
+- `useMarketRates.ts` - 改用 Map 儲存資料
+- `RatesTable.tsx` - 實作快照排序
+- `useTableSort.ts` - 預設排序改為字母順序
+- `page.tsx` - 整合 ratesMap 和過濾邏輯
+
 ### 🔄 計畫功能 (Phase 4-7)
 
 - 🔜 **Phase 4**: 多幣別機會排序與優先級
