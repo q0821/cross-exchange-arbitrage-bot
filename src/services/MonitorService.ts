@@ -36,8 +36,8 @@ export async function startMonitorService(): Promise<void> {
     const configContent = readFileSync(configPath, 'utf-8');
     const config: SymbolsConfig = JSON.parse(configContent);
 
-    // 使用 top30 群組的交易對
-    const symbols = config.groups.top30?.symbols || [];
+    // 使用 top100_oi 群組的交易對（OI 前 100，每 30 分鐘自動更新）
+    const symbols = config.groups.top100_oi?.symbols || [];
 
     if (symbols.length === 0) {
       logger.warn('No symbols configured for monitoring');
@@ -47,9 +47,9 @@ export async function startMonitorService(): Promise<void> {
     logger.info(
       {
         symbols: symbols.length,
-        group: 'top10',
+        group: 'top100_oi',
       },
-      'Starting built-in funding rate monitor',
+      'Starting built-in funding rate monitor with OI top 100',
     );
 
     // 創建 Monitor 實例

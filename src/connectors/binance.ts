@@ -1,5 +1,6 @@
 import { Spot } from '@binance/connector';
 import axios from 'axios';
+import pLimit from 'p-limit';
 import { BaseExchangeConnector } from './base.js';
 import {
   FundingRateData,
@@ -14,6 +15,12 @@ import {
   WSSubscriptionType,
   OrderSide,
 } from './types.js';
+import {
+  OpenInterestRecord,
+  OpenInterestUSD,
+  TradingPairRanking,
+  validateOpenInterestRecords,
+} from '../types/open-interest.js';
 import { apiKeys } from '../lib/config.js';
 import { exchangeLogger as logger } from '../lib/logger.js';
 import {
@@ -393,6 +400,227 @@ export class BinanceConnector extends BaseExchangeConnector {
   async unsubscribeWS(_type: WSSubscriptionType, _symbol?: string): Promise<void> {
     // TODO: 實作 WebSocket 取消訂閱
     logger.warn('WebSocket unsubscription not yet implemented for Binance');
+  }
+
+  // ============================================================================
+  // Open Interest Methods (Feature 010)
+  // ============================================================================
+
+  /**
+   * 獲取所有 USDT 永續合約交易對
+   * @returns Array of USDT perpetual symbols
+   */
+  async getUSDTPerpetualSymbols(): Promise<string[]> {
+    this.ensureConnected();
+
+    return retryApiCall(async () => {
+      try {
+        const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/exchangeInfo`);
+        const symbols = response.data.symbols
+          .filter((s: { symbol: string; quoteAsset: string; contractType: string; status: string }) =>
+            s.quoteAsset === 'USDT' &&
+            s.contractType === 'PERPETUAL' &&
+            s.status === 'TRADING'
+          )
+          .map((s: { symbol: string }) => s.symbol);
+
+        logger.debug({ count: symbols.length }, 'Fetched USDT perpetual symbols from Binance');
+        return symbols;
+      } catch (error) {
+        throw this.handleApiError(error);
+      }
+    }, 'binance', 'getUSDTPerpetualSymbols');
+  }
+
+  /**
+   * 獲取單一交易對的 Open Interest
+   * @param symbol Trading pair symbol (e.g., "BTCUSDT")
+   * @returns Open Interest data
+   */
+  async getOpenInterestForSymbol(symbol: string): Promise<OpenInterestRecord> {
+    this.ensureConnected();
+
+    return retryApiCall(async () => {
+      try {
+        const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/openInterest`, {
+          params: { symbol },
+        });
+
+        const data = response.data;
+        const record: OpenInterestRecord = {
+          symbol: data.symbol,
+          openInterest: data.openInterest,
+          time: data.time,
+        };
+
+        // Validate using Zod schema
+        validateOpenInterestRecords([record]);
+
+        return record;
+      } catch (error) {
+        throw this.handleApiError(error);
+      }
+    }, 'binance', 'getOpenInterestForSymbol');
+  }
+
+  /**
+   * 獲取多個交易對的標記價格（批量）
+   * @param symbols Array of symbols (empty array = all symbols)
+   * @returns Map of symbol to mark price
+   */
+  async getMarkPrices(symbols?: string[]): Promise<Map<string, number>> {
+    this.ensureConnected();
+
+    return retryApiCall(async () => {
+      try {
+        const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/premiumIndex`);
+        const allData = Array.isArray(response.data) ? response.data : [response.data];
+
+        const filtered = symbols && symbols.length > 0
+          ? allData.filter((item: { symbol: string }) => symbols.includes(item.symbol))
+          : allData;
+
+        const priceMap = new Map<string, number>();
+        filtered.forEach((item: { symbol: string; markPrice: string }) => {
+          priceMap.set(item.symbol, parseFloat(item.markPrice));
+        });
+
+        logger.debug({ count: priceMap.size }, 'Fetched mark prices from Binance');
+        return priceMap;
+      } catch (error) {
+        throw this.handleApiError(error);
+      }
+    }, 'binance', 'getMarkPrices');
+  }
+
+  /**
+   * 獲取所有 USDT 永續合約的 Open Interest（轉換為 USD 價值）
+   * 使用 p-limit 控制並發請求數量，避免觸發速率限制
+   * @returns Array of Open Interest data in USD
+   */
+  async getAllOpenInterest(): Promise<OpenInterestUSD[]> {
+    this.ensureConnected();
+
+    return retryApiCall(async () => {
+      try {
+        // 1. 獲取所有 USDT 永續合約交易對
+        const symbols = await this.getUSDTPerpetualSymbols();
+        logger.info({ totalSymbols: symbols.length }, 'Fetching Open Interest for all USDT perpetuals');
+
+        // 2. 並發獲取所有交易對的 OI 資料和標記價格
+        // Note: Binance 沒有批量 OI 端點，需要逐個獲取
+        const [oiDataMap, markPrices] = await Promise.all([
+          this.getBatchOpenInterest(symbols),
+          this.getMarkPrices(symbols),
+        ]);
+
+        // 3. 計算 OI USD 價值
+        const results: OpenInterestUSD[] = [];
+        for (const [symbol, oiContracts] of oiDataMap.entries()) {
+          const markPrice = markPrices.get(symbol);
+          if (!markPrice) {
+            logger.warn({ symbol }, 'Mark price not found, skipping symbol');
+            continue;
+          }
+
+          results.push({
+            symbol,
+            openInterestUSD: oiContracts * markPrice,
+            openInterestContracts: oiContracts,
+            markPrice,
+            timestamp: Date.now(),
+          });
+        }
+
+        logger.info({
+          totalSymbols: results.length,
+          topSymbol: results[0]?.symbol,
+          topOI: results[0]?.openInterestUSD,
+        }, 'Successfully fetched all Open Interest data');
+
+        return results;
+      } catch (error) {
+        logger.error({ error }, 'Failed to fetch all Open Interest');
+        throw this.handleApiError(error);
+      }
+    }, 'binance', 'getAllOpenInterest');
+  }
+
+  /**
+   * 批量獲取 Open Interest（使用並發控制）
+   * @param symbols Array of symbols
+   * @returns Map of symbol to OI contracts
+   */
+  private async getBatchOpenInterest(symbols: string[]): Promise<Map<string, number>> {
+    const limit = pLimit(10); // 限制並發數為 10
+    const oiMap = new Map<string, number>();
+
+    const tasks = symbols.map(symbol =>
+      limit(async () => {
+        try {
+          const record = await this.getOpenInterestForSymbol(symbol);
+          oiMap.set(symbol, parseFloat(record.openInterest));
+        } catch (error) {
+          logger.warn({ symbol, error }, 'Failed to fetch OI for symbol, skipping');
+        }
+      })
+    );
+
+    await Promise.all(tasks);
+    return oiMap;
+  }
+
+  /**
+   * 獲取 Open Interest 排名前 N 的交易對
+   * @param topN Number of top symbols to return
+   * @param minOI Optional minimum OI threshold in USD
+   * @returns Trading pair ranking with top N symbols
+   */
+  async getTopSymbolsByOI(topN: number = 50, minOI?: number): Promise<TradingPairRanking> {
+    this.ensureConnected();
+
+    logger.info({ topN, minOI }, 'Fetching top symbols by Open Interest');
+
+    try {
+      // 1. 獲取所有 OI 資料
+      const allOI = await this.getAllOpenInterest();
+
+      // 2. 過濾掉低於最小 OI 門檻的交易對
+      let filtered = allOI;
+      if (minOI !== undefined && minOI > 0) {
+        filtered = allOI.filter(oi => oi.openInterestUSD >= minOI);
+        logger.debug({
+          original: allOI.length,
+          filtered: filtered.length,
+          minOI,
+        }, 'Filtered symbols by minimum OI');
+      }
+
+      // 3. 按 OI 降序排序
+      const sorted = filtered.sort((a, b) => b.openInterestUSD - a.openInterestUSD);
+
+      // 4. 取前 N 個
+      const topSymbols = sorted.slice(0, topN);
+
+      const ranking: TradingPairRanking = {
+        rankings: topSymbols,
+        totalSymbols: allOI.length,
+        topN,
+        generatedAt: Date.now(),
+      };
+
+      logger.info({
+        totalSymbols: ranking.totalSymbols,
+        selectedSymbols: topSymbols.length,
+        topSymbol: topSymbols[0]?.symbol,
+        topOI: topSymbols[0]?.openInterestUSD,
+      }, 'Generated trading pair ranking by OI');
+
+      return ranking;
+    } catch (error) {
+      logger.error({ error, topN, minOI }, 'Failed to get top symbols by OI');
+      throw error;
+    }
   }
 
   // 輔助方法
