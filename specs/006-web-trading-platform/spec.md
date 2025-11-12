@@ -2,8 +2,88 @@
 
 **Feature Branch**: `006-web-trading-platform`
 **Created**: 2025-10-27
-**Status**: Draft
+**Status**: Partially Completed
+**Completion**: 36% (44/121 tasks completed)
+**Last Updated**: 2025-11-12
 **Input**: User description: "將現有的 CLI 套利監控工具重構為一個完整的 Web 多用戶平台，支援用戶註冊登入、API Key 管理、即時套利機會監控（WebSocket 推送）、手動開倉平倉交易執行、歷史收益和開關倉記錄追蹤。技術棧：Next.js 14 全棧 + Socket.io + Email/Password 認證。"
+
+## Implementation Status
+
+### ✅ 已完成功能
+
+**User Story 1 - 用戶註冊和 API Key 設定**（完成）
+- ✅ 用戶註冊和登入系統（Email/Password + JWT Token）
+- ✅ Session 管理（HttpOnly Cookies + JWT）
+- ✅ API Key 管理頁面（新增、編輯、刪除、啟用/停用）
+- ✅ 支援 5 個交易所：Binance、OKX、Bybit、MEXC、Gate.io
+- ✅ API Key 加密儲存（AES-256-GCM）
+- ✅ API Key 驗證服務（與交易所 API 驗證）
+- ✅ 環境選擇（主網/測試網）
+
+**User Story 2 - 即時套利機會監控**（完成）
+- ✅ 套利機會列表頁面（網格卡片展示）
+- ✅ WebSocket 即時更新（3 個事件：new、update、expired）
+- ✅ 機會詳情頁面
+- ✅ 成本計算和淨利潤率展示
+- ✅ 年化收益計算（Decimal.js 精確計算）
+- ✅ 連線狀態指示器
+
+**User Story 2.5 - 多交易所多交易對資金費率監控**（完成）
+- ✅ 市場監控頁面（表格形式，4 個交易所）
+- ✅ 即時資金費率和價格顯示
+- ✅ 最佳套利對自動計算和標示（BUY/SELL 標籤）
+- ✅ WebSocket 定期廣播（每 5 秒更新）
+- ✅ 費率差異狀態指示（opportunity、approaching、normal）
+- ✅ 交易對群組篩選（top10、all 等）
+- ✅ 表格排序和篩選功能
+- ✅ 年化收益顯示
+- ✅ 統計卡片（機會數、最高年化收益）
+
+**Feature 008 - 交易所快速連結**（完成）
+- ✅ 交易所圖示點擊快速跳轉
+- ✅ 支援 4 個交易所 URL 生成
+- ✅ Tooltip 提示說明
+- ✅ 無障礙設計（aria-label）
+- ✅ 統一的符號格式處理（BTCUSDT → 各交易所格式）
+
+### 🔧 基礎設施
+
+- ✅ Next.js 14 App Router 專案結構
+- ✅ TypeScript 5.6 配置
+- ✅ Prisma ORM + PostgreSQL + TimescaleDB
+- ✅ Redis 連線設定
+- ✅ Socket.io WebSocket 伺服器（JWT 認證、Room 管理）
+- ✅ Pino 結構化日誌
+- ✅ API 路由（認證、API Keys、機會、市場費率）
+- ✅ 自定義 Hooks（useWebSocket、useMarketRates、useSymbolGroups）
+- ✅ Tailwind CSS + Radix UI（Tooltip）
+- ✅ Lucide React 圖標
+
+### ⏸️ 延後或未開始功能
+
+**User Story 3 - 手動開倉**（未開始）
+- ⏸️ 持倉驗證服務（餘額檢查）
+- ⏸️ TradeOrchestrator（Saga Pattern 協調）
+- ⏸️ 分散式鎖服務（Redis）
+- ⏸️ 開倉 API 和前端界面
+
+**User Story 4 - 手動平倉**（未開始）
+- ⏸️ 平倉服務和 API
+- ⏸️ 實現 PnL 計算
+- ⏸️ 平倉前端界面
+
+**User Story 5 - 歷史記錄查詢**（未開始）
+- ⏸️ 歷史收益查詢 API
+- ⏸️ 開關倉記錄查詢 API
+- ⏸️ 歷史記錄前端界面
+
+### 🎯 實作決策
+
+1. **認證系統**：使用自定義 JWT Token 實作（SessionManager），未使用 NextAuth 5，因為需要更靈活的 Session 管理
+2. **WebSocket 整合**：Socket.io 整合到 Next.js（使用自定義 server.ts），支援 JWT 認證中介軟體
+3. **精確計算**：使用 Decimal.js 進行費率和收益計算，避免浮點數精度問題
+4. **交易所支援擴充**：API Key 管理支援 5 個交易所（新增 Bybit），為未來擴充做準備
+5. **符號格式統一**：內部統一使用 BTCUSDT 格式（無斜線），轉換規則集中在 url-builder.ts
 
 ## Glossary *(mandatory)*
 
