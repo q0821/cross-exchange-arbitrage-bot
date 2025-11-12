@@ -80,6 +80,41 @@
         "BONKUSDT"
       ]
     },
+    "top30": {
+      "name": "市值前 30 大及高流動性幣種",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT",
+        "ADAUSDT",
+        "DOGEUSDT",
+        "AVAXUSDT",
+        "DOTUSDT",
+        "LINKUSDT",
+        "TRXUSDT",
+        "ATOMUSDT",
+        "LTCUSDT",
+        "NEARUSDT",
+        "UNIUSDT",
+        "ICPUSDT",
+        "APTUSDT",
+        "FILUSDT",
+        "ETCUSDT",
+        "ARBUSDT",
+        "SHIBUSDT",
+        "PEPEUSDT",
+        "AAVEUSDT",
+        "CRVUSDT",
+        "MKRUSDT",
+        "COMPUSDT",
+        "SUSHIUSDT",
+        "SNXUSDT",
+        "SUIUSDT",
+        "FLOKIUSDT"
+      ]
+    },
     "default": {
       "name": "預設監控組",
       "symbols": [

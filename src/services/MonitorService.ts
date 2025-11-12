@@ -36,8 +36,8 @@ export async function startMonitorService(): Promise<void> {
     const configContent = readFileSync(configPath, 'utf-8');
     const config: SymbolsConfig = JSON.parse(configContent);
 
-    // 使用 top10 群組的交易對
-    const symbols = config.groups.top10?.symbols || [];
+    // 使用 top30 群組的交易對
+    const symbols = config.groups.top30?.symbols || [];
 
     if (symbols.length === 0) {
       logger.warn('No symbols configured for monitoring');
