@@ -188,6 +188,7 @@ export function createMonitorStartCommand(): Command {
     .option('--testnet', '使用測試網', false)
     .option('--format <mode>', '輸出格式 (table|plain|json)', undefined)
     .option('--enable-validation', '啟用 OKX 資金費率雙重驗證（需要資料庫）', false)
+    .option('--enable-price-monitor', '啟用即時價格監控（REST 輪詢）', false)
     .action(async (options) => {
       try {
         logger.info('啟動監控服務...');
@@ -220,6 +221,7 @@ export function createMonitorStartCommand(): Command {
         const threshold = parseFloat(options.threshold) / 100; // 轉換為小數
         const isTestnet = options.testnet;
         const enableValidation = options.enableValidation;
+        const enablePriceMonitor = options.enablePriceMonitor;
 
         logger.info({
           symbols,
@@ -227,6 +229,7 @@ export function createMonitorStartCommand(): Command {
           threshold: (threshold * 100).toFixed(2) + '%',
           testnet: isTestnet,
           enableValidation,
+          enablePriceMonitor,
         }, '監控參數');
 
         // 初始化 Prisma Client 和 Repository（用於儲存套利機會）
@@ -263,6 +266,7 @@ export function createMonitorStartCommand(): Command {
         const monitor = new FundingRateMonitor(symbols, interval, threshold, isTestnet, {
           validator,
           enableValidation,
+          enablePriceMonitor,
         });
 
         // 建立輸出格式化器

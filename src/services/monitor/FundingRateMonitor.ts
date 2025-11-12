@@ -11,8 +11,9 @@ import { RateDifferenceCalculator } from './RateDifferenceCalculator';
 import { MonitorStatsTracker } from './MonitorStats';
 import type { MonitorStats } from './MonitorStats';
 import { logger } from '../../lib/logger';
-import type { IFundingRateValidator } from '../../types/service-interfaces';
+import type { IFundingRateValidator, PriceData } from '../../types/service-interfaces';
 import { ratesCache } from './RatesCache';
+import { PriceMonitor } from './PriceMonitor.js';
 
 /**
  * 監控狀態
@@ -49,6 +50,7 @@ export class FundingRateMonitor extends EventEmitter {
   private calculator: RateDifferenceCalculator;
   private statsTracker: MonitorStatsTracker;
   private validator?: IFundingRateValidator; // 可選的資金費率驗證器
+  private priceMonitor?: PriceMonitor; // 可選的價格監控器
 
   private symbols: string[];
   private updateInterval: number; // 毫秒
@@ -56,6 +58,7 @@ export class FundingRateMonitor extends EventEmitter {
   private intervalId: NodeJS.Timeout | null = null;
   private activeOpportunities = new Set<string>(); // 追蹤當前活躍的套利機會
   private enableValidation = false; // 驗證功能開關
+  private enablePriceMonitor = false; // 價格監控開關
 
   private status: MonitorStatus = {
     isRunning: false,
@@ -75,6 +78,7 @@ export class FundingRateMonitor extends EventEmitter {
     options?: {
       validator?: IFundingRateValidator;
       enableValidation?: boolean;
+      enablePriceMonitor?: boolean; // 啟用價格監控
       exchanges?: ExchangeName[]; // 支持自定義交易所列表
     }
   ) {
@@ -100,6 +104,31 @@ export class FundingRateMonitor extends EventEmitter {
     this.validator = options?.validator;
     this.enableValidation = options?.enableValidation ?? false;
 
+    // 設定價格監控器
+    this.enablePriceMonitor = options?.enablePriceMonitor ?? false;
+    if (this.enablePriceMonitor) {
+      const connectors = Array.from(this.exchanges.values());
+      this.priceMonitor = new PriceMonitor(connectors, symbols, {
+        enableWebSocket: false, // 目前只使用 REST
+        restPollingIntervalMs: updateInterval,
+      });
+
+      // 監聽價格更新事件
+      this.priceMonitor.on('price', (priceData: PriceData) => {
+        logger.debug({
+          exchange: priceData.exchange,
+          symbol: priceData.symbol,
+          lastPrice: priceData.lastPrice,
+        }, 'Price updated from PriceMonitor');
+      });
+
+      this.priceMonitor.on('error', (error: Error) => {
+        logger.error({
+          error: error.message,
+        }, 'PriceMonitor error');
+      });
+    }
+
     this.status.symbols = symbols;
     this.status.updateInterval = updateInterval;
 
@@ -110,6 +139,7 @@ export class FundingRateMonitor extends EventEmitter {
       isTestnet,
       exchanges: this.exchangeNames,
       enableValidation: this.enableValidation,
+      enablePriceMonitor: this.enablePriceMonitor,
     }, 'FundingRateMonitor initialized');
   }
 
@@ -150,6 +180,12 @@ export class FundingRateMonitor extends EventEmitter {
 
       // 標記 RatesCache 啟動時間
       ratesCache.markStart();
+
+      // 啟動價格監控器（如果啟用）
+      if (this.enablePriceMonitor && this.priceMonitor) {
+        await this.priceMonitor.start();
+        logger.info('PriceMonitor started');
+      }
 
       // 立即執行一次更新
       await this.updateRates();
@@ -196,6 +232,12 @@ export class FundingRateMonitor extends EventEmitter {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
+    }
+
+    // 停止價格監控器（如果啟用）
+    if (this.enablePriceMonitor && this.priceMonitor) {
+      await this.priceMonitor.stop();
+      logger.info('PriceMonitor stopped');
     }
 
     // 並行斷開所有交易所連線

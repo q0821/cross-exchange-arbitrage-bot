@@ -15,9 +15,9 @@ import { IFundingRateValidationRepository } from '../../types/service-interfaces
 import { createValidationResult, createValidationError } from '../../models/FundingRateValidation.js';
 import { logger } from '../../lib/logger.js';
 
-// 這些會在後續任務中實作
+// OKX Connector 介面定義
 interface IOkxConnector {
-  getFundingRate(symbol: string): Promise<{
+  getFundingRateNative(symbol: string): Promise<{
     fundingRate: number;
     nextFundingRate?: number;
     fundingTime?: Date;
@@ -161,7 +161,7 @@ export class FundingRateValidator implements IFundingRateValidator {
     fundingTime?: Date;
   }> {
     try {
-      const result = await this.okxConnector.getFundingRate(symbol);
+      const result = await this.okxConnector.getFundingRateNative(symbol);
       return result;
     } catch (error) {
       logger.error(

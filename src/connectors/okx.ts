@@ -110,6 +110,62 @@ export class OKXConnector extends BaseExchangeConnector {
     }, 'okx', 'getFundingRate');
   }
 
+  /**
+   * 使用 OKX Native API 獲取資金費率（用於驗證）
+   * Feature: 004-fix-okx-add-price-display (T017)
+   * Endpoint: /api/v5/public/funding-rate
+   */
+  async getFundingRateNative(symbol: string): Promise<{
+    fundingRate: number;
+    nextFundingRate?: number;
+    fundingTime?: Date;
+  }> {
+    // OKX API 需要 instId 格式: BTC-USDT-SWAP
+    const instId = this.toOkxInstId(symbol);
+
+    const axios = require('axios');
+    const baseUrl = this.isTestnet
+      ? 'https://www.okx.com'  // OKX 測試網 URL
+      : 'https://www.okx.com';
+
+    try {
+      const response = await axios.get(`${baseUrl}/api/v5/public/funding-rate`, {
+        params: {
+          instId,
+        },
+        timeout: 5000,
+      });
+
+      const data = response.data;
+
+      // 驗證回應格式
+      if (data.code !== '0' || !Array.isArray(data.data) || data.data.length === 0) {
+        throw new Error(`Invalid OKX API response: ${JSON.stringify(data)}`);
+      }
+
+      const rateData = data.data[0];
+
+      return {
+        fundingRate: parseFloat(rateData.fundingRate),
+        nextFundingRate: rateData.nextFundingRate ? parseFloat(rateData.nextFundingRate) : undefined,
+        fundingTime: rateData.fundingTime ? new Date(parseInt(rateData.fundingTime)) : undefined,
+      };
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error({ error: err.message, symbol, instId }, 'Failed to fetch OKX funding rate via Native API');
+      throw err;
+    }
+  }
+
+  /**
+   * 轉換為 OKX instId 格式
+   * BTCUSDT -> BTC-USDT-SWAP
+   */
+  private toOkxInstId(symbol: string): string {
+    const base = symbol.replace('USDT', '');
+    return `${base}-USDT-SWAP`;
+  }
+
   async getFundingRates(symbols: string[]): Promise<FundingRateData[]> {
     this.ensureConnected();
 

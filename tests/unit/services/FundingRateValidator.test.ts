@@ -27,18 +27,21 @@ describe('FundingRateValidator Unit Tests', () => {
     mockRepository = {
       create: vi.fn().mockResolvedValue(undefined),
       createBatch: vi.fn().mockResolvedValue(undefined),
+      findByTimeRange: vi.fn(),
+      findFailures: vi.fn(),
+      calculatePassRate: vi.fn(),
     };
 
     mockOkxConnector = {
-      getFundingRate: vi.fn(),
+      getFundingRateNative: vi.fn(),
     };
 
     mockCCXT = {
       fetchFundingRate: vi.fn(),
     };
 
-    // 建立 validator 實例（實作完成後會注入 mock dependencies）
-    // validator = new FundingRateValidator(mockRepository, mockOkxConnector, mockCCXT);
+    // 建立 validator 實例
+    validator = new FundingRateValidator(mockRepository, mockOkxConnector, mockCCXT);
   });
 
   afterEach(() => {
@@ -52,7 +55,7 @@ describe('FundingRateValidator Unit Tests', () => {
       const okxRate = 0.0001;
       const ccxtRate = 0.0001; // 完全一致
 
-      mockOkxConnector.getFundingRate.mockResolvedValue({
+      mockOkxConnector.getFundingRateNative.mockResolvedValue({
         fundingRate: okxRate,
         nextFundingRate: 0.00012,
         fundingTime: new Date(),
@@ -64,17 +67,14 @@ describe('FundingRateValidator Unit Tests', () => {
       });
 
       // Act
-      // const result = await validator.validate(symbol);
+      const result = await validator.validate(symbol);
 
       // Assert
-      // expect(result.validationStatus).toBe('PASS');
-      // expect(result.okxRate).toBe(okxRate);
-      // expect(result.ccxtRate).toBe(ccxtRate);
-      // expect(result.discrepancyPercent).toBe(0);
-      // expect(mockRepository.create).toHaveBeenCalledTimes(1);
-
-      // TODO: 實作 FundingRateValidator 後啟用此測試
-      expect(true).toBe(true); // Placeholder
+      expect(result.validationStatus).toBe('PASS');
+      expect(result.okxRate).toBe(okxRate);
+      expect(result.ccxtRate).toBe(ccxtRate);
+      expect(result.discrepancyPercent).toBe(0);
+      expect(mockRepository.create).toHaveBeenCalledTimes(1);
     });
 
     it('應該返回 FAIL 狀態（OKX 和 CCXT 數據差異超過閾值）', async () => {
@@ -83,7 +83,7 @@ describe('FundingRateValidator Unit Tests', () => {
       const okxRate = 0.0001;
       const ccxtRate = 0.0002; // 差異 100%，遠超閾值
 
-      mockOkxConnector.getFundingRate.mockResolvedValue({
+      mockOkxConnector.getFundingRateNative.mockResolvedValue({
         fundingRate: okxRate,
       });
 
@@ -92,22 +92,19 @@ describe('FundingRateValidator Unit Tests', () => {
       });
 
       // Act
-      // const result = await validator.validate(symbol);
+      const result = await validator.validate(symbol);
 
       // Assert
-      // expect(result.validationStatus).toBe('FAIL');
-      // expect(result.discrepancyPercent).toBeGreaterThan(0.000001);
-      // expect(mockRepository.create).toHaveBeenCalledTimes(1);
-
-      // TODO: 實作後啟用
-      expect(true).toBe(true);
+      expect(result.validationStatus).toBe('FAIL');
+      expect(result.discrepancyPercent).toBeGreaterThan(0.000001);
+      expect(mockRepository.create).toHaveBeenCalledTimes(1);
     });
 
     it('應該返回 N/A 狀態（僅有 OKX 數據，CCXT 無數據）', async () => {
       // Arrange
       const symbol = 'BTC-USDT-SWAP';
 
-      mockOkxConnector.getFundingRate.mockResolvedValue({
+      mockOkxConnector.getFundingRateNative.mockResolvedValue({
         fundingRate: 0.0001,
       });
 
@@ -130,7 +127,7 @@ describe('FundingRateValidator Unit Tests', () => {
       // Arrange
       const symbol = 'BTC-USDT-SWAP';
 
-      mockOkxConnector.getFundingRate.mockRejectedValue(
+      mockOkxConnector.getFundingRateNative.mockRejectedValue(
         new Error('OKX API timeout')
       );
 
@@ -150,7 +147,7 @@ describe('FundingRateValidator Unit Tests', () => {
       // Arrange
       const symbol = 'BTC-USDT-SWAP';
 
-      mockOkxConnector.getFundingRate.mockResolvedValue({
+      mockOkxConnector.getFundingRateNative.mockResolvedValue({
         fundingRate: 0.0001,
       });
 
@@ -176,7 +173,7 @@ describe('FundingRateValidator Unit Tests', () => {
       // Arrange
       const symbols = ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'];
 
-      mockOkxConnector.getFundingRate
+      mockOkxConnector.getFundingRateNative
         .mockResolvedValueOnce({ fundingRate: 0.0001 })
         .mockResolvedValueOnce({ fundingRate: 0.0002 });
 
