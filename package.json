@@ -27,6 +27,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "update-oi-symbols": "tsx src/scripts/update-oi-symbols.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f"
@@ -70,6 +71,7 @@
     "log-update": "^7.0.1",
     "lucide-react": "^0.548.0",
     "next": "^14.2.33",
+    "p-limit": "^7.2.0",
     "pino": "^9.4.0",
     "pino-pretty": "^11.2.2",
     "postcss": "^8.5.6",

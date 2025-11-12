@@ -8,8 +8,8 @@
 
 ## 🎯 專案狀態
 
-**當前版本**: v0.4.0 (MVP 核心功能 100% 完成)
-**最後更新**: 2025-10-23
+**當前版本**: v0.5.0 (CLI 監控 + Web 多用戶平台)
+**最後更新**: 2025-11-12
 
 ### ✅ 已完成功能 (Phase 1-3)
 
@@ -60,6 +60,140 @@
   - 161 個單元測試（現有功能）
 - ✅ **測試覆蓋率**: Phase 1-3 核心功能 100%
 
+#### Feature 004: OKX 驗證與套利評估 ⚠️（部分完成 38%）
+
+- ✅ **User Story 1: OKX 資金費率驗證**（核心完成）
+  - FundingRateValidator - 雙重驗證服務（OKX Native API + CCXT 備援）
+  - FundingRateValidationRepository - 驗證記錄持久化（TimescaleDB）
+  - 整合測試 - OKX API + CCXT 驗證流程驗證
+
+- ⚠️ **User Story 2: 價格監控**（部分完成）
+  - PriceMonitor - REST 輪詢價格監控服務（每 5 秒更新）
+  - PriceCache - LRU 快取機制（100 個交易對）
+  - BinanceConnector / OkxConnector - getPrices() 方法實作
+  - 🔄 **延後**: WebSocket 即時訂閱（REST 已滿足需求）
+
+- ✅ **User Story 3: 套利可行性評估**（完整實作）
+  - ArbitrageAssessor - 套利評估引擎（362 行）
+    - 手續費計算（Maker/Taker/Mixed 三種模式）
+    - 淨收益計算（利差 - 雙邊手續費）
+    - 可行性判斷（淨收益 > 最小利潤閾值）
+    - 極端價差檢測（預設閾值 5%）
+  - CLI 參數支援 - `--enable-arbitrage-assessment`, `--arbitrage-capital`, `--maker-fee`, `--taker-fee`, `--min-profit`
+  - 整合到 FundingRateMonitor - 發出 `arbitrage-feasible` 事件
+
+- ✅ **測試**: 284 個測試通過（包含 Feature 004 測試）
+  - 17 個 ArbitrageAssessor 單元測試
+  - 6 個套利評估整合測試
+
+- ✅ **系統架構調整**: 新增 Constitution Principle VI
+  - CLI 職責: 後台監控 + 數據計算 + 寫入 DB
+  - Web 職責: 查詢 DB + 即時更新 + 使用者互動
+  - 資料流向: CLI Monitor → Database → Web API → Web UI
+
+#### Feature 006: Web 多用戶套利交易平台 ⚠️（部分完成 36%）
+
+**已完成核心功能**：
+
+- ✅ **User Story 1: 用戶註冊和 API Key 設定**（完成）
+  - 自定義 JWT Token 認證（SessionManager）
+  - Email/Password 登入和註冊
+  - API Key 管理頁面（支援 5 個交易所：Binance、OKX、Bybit、MEXC、Gate.io）
+  - AES-256-GCM 加密儲存
+  - 環境選擇（主網/測試網）
+  - 完整 CRUD 操作（新增、編輯、啟用/停用、刪除）
+
+- ✅ **User Story 2: 即時套利機會監控**（完成）
+  - 套利機會列表頁面（網格卡片展示）
+  - WebSocket 即時更新（new、update、expired 事件）
+  - 機會詳情頁面
+  - 成本計算和淨利潤率展示（Decimal.js 精確計算）
+  - 年化收益率計算
+  - 連線狀態指示器（綠色脈動動畫）
+
+- ✅ **User Story 2.5: 多交易所市場監控**（完成）
+  - 市場監控頁面（表格形式，同時顯示 4 個交易所）
+  - 即時資金費率和價格顯示
+  - 最佳套利對自動計算和標示（BUY/SELL 標籤）
+  - WebSocket 定期廣播（每 5 秒更新）
+  - 費率差異狀態指示（🔔 機會 / ⚠️ 接近 / ➖ 正常）
+  - 交易對群組篩選和排序
+  - 統計卡片（機會數、最高年化收益）
+
+**技術實作**：
+- Next.js 14 App Router + React 18 + TypeScript 5.6
+- Socket.io WebSocket（JWT 認證、Room 管理）
+- Prisma + PostgreSQL + TimescaleDB + Redis
+- Tailwind CSS + Radix UI + Lucide React
+- 5 個主要頁面（register、login、api-keys、opportunities、market-monitor）
+- 8+ 個 API 路由
+- 2 個 WebSocket Handlers（MarketRatesHandler、OpportunityHandler）
+- 4+ 個自定義 Hooks（useWebSocket、useMarketRates 等）
+- 10+ 個組件
+
+**延後功能**：
+- ⏸️ User Story 3: 手動開倉（TradeOrchestrator、Saga Pattern）
+- ⏸️ User Story 4: 手動平倉（PnL 計算）
+- ⏸️ User Story 5: 歷史記錄查詢
+
+#### Feature 008: 交易所快速連結 ✅（核心功能完成 40%）
+
+- ✅ **ExchangeLink 組件**（115 行）
+  - 支援 4 個交易所 URL 生成（Binance、OKX、MEXC、Gate.io）
+  - URL Builder 服務（統一符號格式處理：BTCUSDT → 各交易所格式）
+  - 新分頁開啟（target="_blank" + rel="noopener noreferrer"）
+  - 整合到市場監控頁面 RateRow 組件
+
+- ✅ **視覺化和無障礙**
+  - Radix UI Tooltip 提示說明
+  - Hover 效果（opacity-70）
+  - Lucide React ExternalLink 圖標
+  - 完整的 aria-label 支援
+  - 禁用狀態處理（無數據時自動禁用）
+
+**符號格式轉換**：
+- 內部格式：BTCUSDT（統一標準）
+- Binance：BTCUSDT
+- OKX：BTC-USDT-SWAP
+- MEXC：BTC_USDT
+- Gate.io：BTC_USDT
+
+#### Feature 009: 市場監控頁面穩定排序 ✅（完成 100% - 27/27 任務）
+
+- ✅ **快照排序 (Snapshot Sorting) 模式**
+  - 列表順序固定，WebSocket 更新不觸發重新排序
+  - 位置穩定性達 100%
+  - 只有數值更新，交易對位置保持不變
+  - 預設按交易對字母順序排列（升序）
+
+- ✅ **用戶自訂排序**
+  - 支援按交易對名稱、費率差異、年化收益排序
+  - 點擊欄位標題切換排序方向
+  - 視覺排序指示器（↑ 升序 / ↓ 降序 / ↕ 未排序）
+  - 排序後列表保持穩定
+
+- ✅ **排序偏好記憶**
+  - localStorage 自動儲存排序設定
+  - 頁面重新載入後自動恢復排序
+  - 優雅降級處理（私密瀏覽模式下功能照常運作）
+
+- ✅ **技術實作**
+  - Map-based 資料儲存（O(1) 查找和更新）
+  - 穩定排序演算法（次要排序鍵確保穩定性）
+  - useMemo 精確控制依賴（避免不必要的重新計算）
+  - 完整的 localStorage 錯誤處理
+
+**新增檔案**：
+- `app/(dashboard)/market-monitor/types.ts` - 排序類型定義
+- `app/(dashboard)/market-monitor/utils/sortComparator.ts` - 穩定排序比較器
+- `app/(dashboard)/market-monitor/utils/localStorage.ts` - localStorage 工具
+
+**修改組件**：
+- `useMarketRates.ts` - 改用 Map 儲存資料
+- `RatesTable.tsx` - 實作快照排序
+- `useTableSort.ts` - 預設排序改為字母順序
+- `page.tsx` - 整合 ratesMap 和過濾邏輯
+
 ### 🔄 計畫功能 (Phase 4-7)
 
 - 🔜 **Phase 4**: 多幣別機會排序與優先級
@@ -69,15 +203,38 @@
 
 ## 功能特色
 
-- 🔍 **即時監控**: 每 5 秒更新 Binance 和 OKX 的資金費率
+### CLI 監控系統
+- 🔍 **即時監控**: 每 5 秒更新 Binance 和 OKX 的資金費率與價格
 - 📊 **智能偵測**: 自動識別套利機會並計算年化收益率
-- 🎨 **彩色輸出**: 終端機彩色顯示不同嚴重性的通知
+- ✅ **雙重驗證**: OKX 資金費率使用 Native API + CCXT 雙重驗證確保準確性
+- 💰 **套利評估**: 自動計算淨收益（利差 - 手續費），判斷套利可行性
+- 🎯 **極端價差檢測**: 自動檢測異常價差（預設 >5%）並發出警告
 - 🛡️ **防抖動**: 30 秒窗口防止通知轟炸
-- 📈 **歷史記錄**: 完整的機會生命週期追蹤與統計
 - ⚡ **高精確度**: 使用 Decimal.js 確保金融計算精確
+
+### Web 多用戶平台
+- 👤 **多用戶系統**: Email/Password 註冊登入 + JWT Token 認證
+- 🔐 **API Key 管理**: 支援 5 個交易所（Binance、OKX、Bybit、MEXC、Gate.io）
+- 🔒 **安全加密**: AES-256-GCM 加密儲存 API Keys
+- 🌐 **環境隔離**: 主網/測試網環境分離管理
+- 📊 **即時更新**: WebSocket 推送套利機會（new、update、expired 事件）
+- 🗺️ **市場全景**: 4 個交易所資金費率一覽表（Binance、OKX、MEXC、Gate.io）
+- 🎯 **智能標示**: 自動計算並標示最佳套利對（BUY/SELL 標籤）
+- 📈 **收益分析**: 年化收益率、淨利潤率即時計算
+- 🔗 **快速跳轉**: 一鍵開啟交易所對應交易對頁面
+- 🎨 **現代 UI**: Next.js 14 + Tailwind CSS + Radix UI
+- 📱 **響應式設計**: 支援桌面和行動裝置
+- ♿ **無障礙設計**: 完整的 aria-label 和 Tooltip 支援
+
+### 架構特色
+- 🏗️ **職責分離**: CLI 負責監控計算，Web 負責顯示互動
+- 🗄️ **單一真相來源**: 資料庫作為 CLI 和 Web 之間的契約
+- 🔄 **即時同步**: WebSocket 確保多用戶即時數據同步
+- 📈 **歷史追蹤**: 完整的機會生命週期追蹤與統計
 
 ## 技術架構
 
+### CLI 監控系統
 - **語言**: TypeScript 5.3+
 - **運行環境**: Node.js 20.x LTS
 - **數據庫**: PostgreSQL 15+ with TimescaleDB extension
@@ -87,10 +244,26 @@
 - **CLI 框架**: Commander.js
 - **終端機輸出**: Chalk (彩色顯示)
 
+### Web 多用戶平台
+- **前端框架**: Next.js 14 App Router
+- **UI 框架**: React 18
+- **語言**: TypeScript 5.6
+- **樣式**: Tailwind CSS
+- **組件庫**: Radix UI (Tooltip)
+- **圖標**: Lucide React
+- **即時通訊**: Socket.io v4 (WebSocket + polling)
+- **認證**: JWT Token + HttpOnly Cookies
+- **資料庫**: Prisma 5.x + PostgreSQL 15 + TimescaleDB
+- **快取**: Redis 7+
+- **精確計算**: Decimal.js
+
 ### 交易所整合
 
 - **Binance**: Binance Futures API (直接調用 `/fapi/v1/premiumIndex`)
-- **OKX**: `ccxt` v4.x (統一介面)
+- **OKX**: OKX Native API + `ccxt` v4.x (雙重驗證)
+- **MEXC**: `ccxt` v4.x
+- **Gate.io**: `ccxt` v4.x
+- **Bybit**: `ccxt` v4.x (API Key 管理支援)
 
 ## 系統需求
 

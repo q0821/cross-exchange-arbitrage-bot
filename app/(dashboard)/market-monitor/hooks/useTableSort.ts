@@ -10,7 +10,7 @@
 import { useState, useCallback } from 'react';
 import type { OpportunityStatus } from '../components/StatusBadge';
 
-export type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'netReturn';
+export type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'priceDiff' | 'netReturn';
 export type SortDirection = 'asc' | 'desc';
 
 interface UseTableSortReturn {
@@ -33,9 +33,9 @@ const STORAGE_KEY_SORT_BY = 'market-monitor:sort-by';
 const STORAGE_KEY_SORT_DIR = 'market-monitor:sort-direction';
 const STORAGE_KEY_FILTER = 'market-monitor:filter-status';
 
-// 預設值
-const DEFAULT_SORT_BY: SortField = 'spread';
-const DEFAULT_SORT_DIRECTION: SortDirection = 'desc';
+// 預設值 (Feature 009: 改為字母順序)
+const DEFAULT_SORT_BY: SortField = 'symbol';
+const DEFAULT_SORT_DIRECTION: SortDirection = 'asc';
 const DEFAULT_FILTER_STATUS: OpportunityStatus | 'all' = 'all';
 
 /**
@@ -48,7 +48,7 @@ export function useTableSort(): UseTableSortReturn {
     if (typeof window === 'undefined') return DEFAULT_SORT_BY;
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SORT_BY);
-      if (saved && ['symbol', 'spread', 'annualizedReturn', 'netReturn'].includes(saved)) {
+      if (saved && ['symbol', 'spread', 'annualizedReturn', 'priceDiff', 'netReturn'].includes(saved)) {
         return saved as SortField;
       }
     } catch (err) {

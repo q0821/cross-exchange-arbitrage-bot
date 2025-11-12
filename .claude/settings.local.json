@@ -80,7 +80,14 @@
       "Bash(else echo \"NOT_EXISTS\")",
       "Bash(git rev-parse:*)",
       "Bash(jobs:*)",
-      "Bash(pnpm list:*)"
+      "Bash(pnpm list:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/010-open-interest-selection/checklists\" ])",
+      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/011-price-spread-net-return/checklists\" ])",
+      "Bash(then for file in /Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/011-price-spread-net-return/checklists/*.md)",
+      "Bash(do if [ -f \"$file\" ])",
+      "Bash(then basename \"$file\" grep -E \"^- \\[([ Xx])\\]\" \"$file\")"
     ],
     "deny": [],
     "ask": []

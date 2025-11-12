@@ -13,6 +13,7 @@ import { authenticate } from '@/src/middleware/authMiddleware';
 import { handleError } from '@/src/middleware/errorHandler';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
+import { getTopOISymbols } from '@/src/services/openInterestService';
 
 /**
  * 交易對群組配置結構
@@ -82,13 +83,35 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // 2. 讀取配置
     const config = loadSymbolsConfig();
 
-    // 3. 轉換為 API 響應格式
-    const groups = Object.entries(config.groups).map(([groupId, groupData]) => ({
-      id: groupId,
-      name: groupData.name,
-      symbolCount: groupData.symbols.length,
-      symbols: groupData.symbols,
-    }));
+    // 3. 轉換為 API 響應格式，並處理動態群組
+    const groups = await Promise.all(
+      Object.entries(config.groups).map(async ([groupId, groupData]) => {
+        // 特殊處理：動態獲取 OI 前 100
+        if (groupId === 'top100_oi') {
+          const dynamicSymbols = await getTopOISymbols(100);
+          // 如果動態獲取失敗，使用靜態配置作為備份
+          const symbols = dynamicSymbols.length > 0 ? dynamicSymbols : groupData.symbols;
+
+          return {
+            id: groupId,
+            name: groupData.name,
+            symbolCount: symbols.length,
+            symbols,
+            isDynamic: true, // 標記為動態群組
+            lastUpdated: Date.now(),
+          };
+        }
+
+        // 靜態群組
+        return {
+          id: groupId,
+          name: groupData.name,
+          symbolCount: groupData.symbols.length,
+          symbols: groupData.symbols,
+          isDynamic: false,
+        };
+      })
+    );
 
     // 4. 返回結果
     const response = NextResponse.json(

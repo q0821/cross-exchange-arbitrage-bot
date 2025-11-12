@@ -6,34 +6,49 @@
  * Task: T014
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+
+// Mock ccxt to avoid initialization issues
+vi.mock('ccxt', () => {
+  return {
+    default: {
+      okx: class MockOKX {
+        constructor() {}
+      },
+    },
+  };
+});
 import { PrismaClient } from '@prisma/client';
 import { FundingRateValidator } from '../../src/services/validation/FundingRateValidator';
 import { FundingRateValidationRepository } from '../../src/repositories/FundingRateValidationRepository';
-import { OkxConnector } from '../../src/connectors/OkxConnector';
-import { OkxCCXT } from '../../src/lib/ccxt/OkxCCXT';
+import { OKXConnector } from '../../src/connectors/okx';
+import { OkxConnectorAdapter } from '../../src/adapters/OkxConnectorAdapter';
 
 describe('OKX Funding Rate Validation Integration Tests', () => {
   let prisma: PrismaClient;
   let validator: FundingRateValidator;
   let repository: FundingRateValidationRepository;
-  let okxConnector: OkxConnector;
-  let okxCCXT: OkxCCXT;
+  let okxConnectorAdapter: OkxConnectorAdapter;
+  let okxCCXT: any; // Mock CCXT client
 
   beforeAll(() => {
     // 初始化依賴
     prisma = new PrismaClient();
     repository = new FundingRateValidationRepository(prisma);
 
-    // TODO: 實作完成後初始化
-    // okxConnector = new OkxConnector({
-    //   apiKey: process.env.OKX_API_KEY || '',
-    //   secretKey: process.env.OKX_SECRET_KEY || '',
-    //   passphrase: process.env.OKX_PASSPHRASE || '',
-    //   baseUrl: process.env.OKX_BASE_URL || 'https://www.okx.com',
-    // });
-    // okxCCXT = new OkxCCXT();
-    // validator = new FundingRateValidator(repository, okxConnector, okxCCXT);
+    // 初始化 OKX connector（使用 testnet）
+    const okxConnector = new OKXConnector(true); // testnet mode
+    okxConnectorAdapter = new OkxConnectorAdapter(okxConnector);
+
+    // Mock CCXT client to avoid initialization issues in test environment
+    okxCCXT = {
+      fetchFundingRate: async () => null, // Return null to test N/A handling
+    } as any;
+
+    // 建立 validator 並禁用 CCXT（只測試 OKX Native API）
+    validator = new FundingRateValidator(repository, okxConnectorAdapter, okxCCXT, {
+      enableCCXT: false, // Disable CCXT for this test
+    });
   });
 
   afterAll(async () => {
@@ -54,30 +69,28 @@ describe('OKX Funding Rate Validation Integration Tests', () => {
       const symbol = 'BTC-USDT-SWAP';
 
       // Act
-      // const result = await validator.validate(symbol);
+      const result = await validator.validate(symbol);
 
       // Assert
-      // expect(result.symbol).toBe(symbol);
-      // expect(result.okxRate).toBeDefined();
-      // expect(typeof result.okxRate).toBe('number');
-      // expect(result.validationStatus).toMatch(/^(PASS|FAIL|N\/A|ERROR)$/);
+      expect(result.symbol).toBe(symbol);
+      expect(result.okxRate).toBeDefined();
+      expect(typeof result.okxRate).toBe('number');
+      expect(result.validationStatus).toMatch(/^(PASS|FAIL|N\/A|ERROR)$/);
 
       // 如果有 CCXT 數據，驗證差異百分比
-      // if (result.ccxtRate !== undefined) {
-      //   expect(result.discrepancyPercent).toBeDefined();
-      //   expect(typeof result.discrepancyPercent).toBe('number');
-      // }
+      if (result.ccxtRate !== undefined) {
+        expect(result.discrepancyPercent).toBeDefined();
+        expect(typeof result.discrepancyPercent).toBe('number');
+      }
 
       // 驗證記錄已儲存到資料庫
-      // const saved = await prisma.fundingRateValidation.findFirst({
-      //   where: { symbol },
-      //   orderBy: { timestamp: 'desc' },
-      // });
-      // expect(saved).toBeDefined();
-      // expect(saved?.okxRate.toNumber()).toBe(result.okxRate);
-
-      // TODO: 實作後啟用
-      expect(true).toBe(true);
+      const saved = await prisma.fundingRateValidation.findFirst({
+        where: { symbol },
+        orderBy: { timestamp: 'desc' },
+      });
+      expect(saved).toBeDefined();
+      // Use toBeCloseTo for floating point comparison (precision loss in DB)
+      expect(saved?.okxRate.toNumber()).toBeCloseTo(result.okxRate, 5);
     }, 10000); // 10 秒 timeout
 
     it('應該成功驗證 ETH-USDT-SWAP 資金費率', async () => {
@@ -85,14 +98,13 @@ describe('OKX Funding Rate Validation Integration Tests', () => {
       const symbol = 'ETH-USDT-SWAP';
 
       // Act
-      // const result = await validator.validate(symbol);
+      const result = await validator.validate(symbol);
 
       // Assert
-      // expect(result.symbol).toBe(symbol);
-      // expect(result.okxRate).toBeDefined();
-
-      // TODO: 實作後啟用
-      expect(true).toBe(true);
+      expect(result.symbol).toBe(symbol);
+      expect(result.okxRate).toBeDefined();
+      expect(typeof result.okxRate).toBe('number');
+      expect(result.validationStatus).toMatch(/^(PASS|FAIL|N\/A|ERROR)$/);
     }, 10000);
 
     it.skip('應該處理不存在的交易對（跳過此測試避免 API 錯誤）', async () => {
@@ -112,26 +124,23 @@ describe('OKX Funding Rate Validation Integration Tests', () => {
       const symbols = ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'];
 
       // Act
-      // const results = await validator.validateBatch(symbols);
+      const results = await validator.validateBatch(symbols);
 
       // Assert
-      // expect(results.length).toBe(2);
-      // results.forEach((result) => {
-      //   expect(symbols).toContain(result.symbol);
-      //   expect(result.okxRate).toBeDefined();
-      // });
+      expect(results.length).toBe(2);
+      results.forEach((result) => {
+        expect(symbols).toContain(result.symbol);
+        expect(result.okxRate).toBeDefined();
+      });
 
       // 驗證批量記錄已儲存
-      // const count = await prisma.fundingRateValidation.count({
-      //   where: {
-      //     symbol: { in: symbols },
-      //     timestamp: { gte: new Date(Date.now() - 60000) }, // 最近 1 分鐘
-      //   },
-      // });
-      // expect(count).toBeGreaterThanOrEqual(2);
-
-      // TODO: 實作後啟用
-      expect(true).toBe(true);
+      const count = await prisma.fundingRateValidation.count({
+        where: {
+          symbol: { in: symbols },
+          timestamp: { gte: new Date(Date.now() - 60000) }, // 最近 1 分鐘
+        },
+      });
+      expect(count).toBeGreaterThanOrEqual(2);
     }, 15000); // 15 秒 timeout
   });
 
@@ -153,14 +162,14 @@ describe('OKX Funding Rate Validation Integration Tests', () => {
       const symbol = 'BTC-USDT-SWAP';
 
       // Act
-      // const result = await validator.validate(symbol);
+      const result = await validator.validate(symbol);
 
-      // Assert - 使用 Zod schema 驗證
-      // const { FundingRateValidationResultSchema } = await import('../../src/lib/validation/schemas');
-      // expect(() => FundingRateValidationResultSchema.parse(result)).not.toThrow();
-
-      // TODO: 實作後啟用
-      expect(true).toBe(true);
+      // Assert - 驗證結果結構
+      expect(result).toHaveProperty('symbol');
+      expect(result).toHaveProperty('okxRate');
+      expect(result).toHaveProperty('validationStatus');
+      expect(result).toHaveProperty('timestamp');
+      expect(result.timestamp).toBeInstanceOf(Date);
     });
   });
 });

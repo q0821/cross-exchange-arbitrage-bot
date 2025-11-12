@@ -5,6 +5,10 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    // Ignore specs directory to prevent type conflicts
+    tsconfigPath: './tsconfig.json',
+  },
 
   // Custom server for Socket.io integration
   // Note: This prevents deployment to Vercel

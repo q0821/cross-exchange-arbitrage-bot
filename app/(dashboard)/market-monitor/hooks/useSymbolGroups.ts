@@ -34,7 +34,7 @@ const STORAGE_KEY = 'market-monitor:selected-group';
  */
 export function useSymbolGroups(): UseSymbolGroupsReturn {
   const [groups, setGroups] = useState<SymbolGroup[]>([]);
-  const [selectedGroup, setSelectedGroupState] = useState<string>('top10');
+  const [selectedGroup, setSelectedGroupState] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -64,14 +64,24 @@ export function useSymbolGroups(): UseSymbolGroupsReturn {
 
         const data = await response.json();
         if (data.success) {
-          setGroups(data.data.groups);
+          // 新增 "全部" 選項
+          // 計算所有唯一交易對的數量
+          const allSymbols = new Set(
+            data.data.groups.flatMap((g: SymbolGroup) => g.symbols)
+          );
+          const allGroup: SymbolGroup = {
+            id: 'all',
+            name: '全部交易對',
+            symbolCount: allSymbols.size,
+            symbols: [],
+          };
 
-          // 如果當前選中的群組不存在，切換到第一個群組
-          const groupIds = data.data.groups.map((g: SymbolGroup) => g.id);
+          setGroups([allGroup, ...data.data.groups]);
+
+          // 如果當前選中的群組不存在，切換到 "全部"
+          const groupIds = ['all', ...data.data.groups.map((g: SymbolGroup) => g.id)];
           if (selectedGroup && !groupIds.includes(selectedGroup)) {
-            if (groupIds.length > 0) {
-              setSelectedGroupState(groupIds[0]);
-            }
+            setSelectedGroupState('all');
           }
         } else {
           throw new Error(data.error?.message || 'Failed to fetch groups');

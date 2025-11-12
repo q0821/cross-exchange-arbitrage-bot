@@ -9,6 +9,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { AuthenticatedSocket } from '../SocketServer';
 import { ratesCache } from '../../services/monitor/RatesCache';
 import { logger } from '@lib/logger';
+import { calculateNetReturn } from '@lib/net-return-calculator';
 
 /**
  * MarketRatesHandler
@@ -131,7 +132,14 @@ export class MarketRatesHandler {
       const stats = ratesCache.getStats(this.DEFAULT_THRESHOLD);
 
       if (rates.length === 0) {
-        logger.debug('No rates to broadcast');
+        logger.warn(
+          {
+            cacheSize: ratesCache.size(),
+            lastUpdate: stats.lastUpdate?.toISOString() || 'never',
+            uptime: stats.uptime,
+          },
+          'No rates to broadcast - cache may be stale or empty',
+        );
         return;
       }
 
@@ -165,13 +173,23 @@ export class MarketRatesHandler {
         },
       });
 
-      logger.debug(
+      logger.info(
         {
           room,
           rateCount: rates.length,
           opportunityCount: stats.opportunityCount,
+          subscriberCount: this.io.sockets.adapter.rooms.get(room)?.size || 0,
+          lastUpdate: stats.lastUpdate?.toISOString() || null,
+          sampleRateWithNetReturn: formattedRates[0]?.bestPair
+            ? {
+                symbol: formattedRates[0].symbol,
+                spreadPercent: formattedRates[0].bestPair.spreadPercent,
+                priceDiffPercent: formattedRates[0].bestPair.priceDiffPercent,
+                netReturn: formattedRates[0].bestPair.netReturn,
+              }
+            : null,
         },
-        'Broadcasted market rates update',
+        'Broadcasted market rates update with price spread and net return',
       );
     } catch (error) {
       logger.error(
@@ -192,7 +210,14 @@ export class MarketRatesHandler {
       const stats = ratesCache.getStats(this.DEFAULT_THRESHOLD);
 
       if (rates.length === 0) {
-        logger.debug({ socketId: socket.id }, 'No rates to send');
+        logger.warn(
+          {
+            socketId: socket.id,
+            cacheSize: ratesCache.size(),
+            lastUpdate: stats.lastUpdate?.toISOString() || 'never',
+          },
+          'No rates to send - cache may be stale or empty',
+        );
         return;
       }
 
@@ -276,6 +301,11 @@ export class MarketRatesHandler {
             spread: rate.bestPair.spreadPercent / 100,
             spreadPercent: rate.bestPair.spreadPercent,
             annualizedReturn: rate.bestPair.spreadAnnualized,
+            priceDiffPercent: rate.bestPair.priceDiffPercent ?? null,
+            netReturn: calculateNetReturn(
+              rate.bestPair.spreadPercent,
+              rate.bestPair.priceDiffPercent,
+            ),
           }
         : null;
 

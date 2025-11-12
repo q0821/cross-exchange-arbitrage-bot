@@ -3,6 +3,7 @@
  * 顯示多個交易對的即時費率資訊
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
+ * Feature: 009-specify-scripts-bash (穩定排序改進)
  */
 
 'use client';
@@ -11,12 +12,11 @@ import React, { useMemo } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { RateRow, MarketRate } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
-
-type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'netReturn';
-type SortDirection = 'asc' | 'desc';
+import { stableSortComparator } from '../utils/sortComparator';
+import type { SortField, SortDirection } from '../types';
 
 interface RatesTableProps {
-  rates: MarketRate[];
+  ratesMap: Map<string, MarketRate>;
   sortBy?: SortField;
   sortDirection?: SortDirection;
   filterStatus?: OpportunityStatus | 'all';
@@ -28,61 +28,52 @@ interface RatesTableProps {
 /**
  * RatesTable 組件
  * 支援排序、篩選和點擊事件
+ * 實作快照排序 (Snapshot Sorting) 模式：
+ * - sortedSymbols 只依賴 sortBy 和 sortDirection
+ * - WebSocket 更新不觸發重新排序
+ * - 顯示時從 ratesMap 提取最新值
  */
 export function RatesTable({
-  rates,
-  sortBy = 'spread',
-  sortDirection = 'desc',
+  ratesMap,
+  sortBy = 'symbol',
+  sortDirection = 'asc',
   filterStatus = 'all',
   onSort,
   onSymbolClick,
   onQuickOpen,
 }: RatesTableProps) {
-  // 篩選和排序邏輯
-  const processedRates = useMemo(() => {
-    // 1. 篩選
-    let filtered = rates;
-    if (filterStatus !== 'all') {
-      filtered = rates.filter((rate) => rate.status === filterStatus);
-    }
+  // 快照排序：只在排序條件改變時重新計算順序
+  const sortedSymbols = useMemo(() => {
+    const symbols = Array.from(ratesMap.keys());
 
-    // 2. 排序
-    const sorted = [...filtered].sort((a, b) => {
-      let aValue: number | string;
-      let bValue: number | string;
+    // 篩選
+    const filtered =
+      filterStatus === 'all'
+        ? symbols
+        : symbols.filter((symbol) => {
+            const rate = ratesMap.get(symbol);
+            return rate?.status === filterStatus;
+          });
 
-      switch (sortBy) {
-        case 'symbol':
-          aValue = a.symbol;
-          bValue = b.symbol;
-          break;
-        case 'spread':
-          aValue = a.bestPair?.spreadPercent ?? 0;
-          bValue = b.bestPair?.spreadPercent ?? 0;
-          break;
-        case 'annualizedReturn':
-          aValue = a.bestPair?.annualizedReturn ?? 0;
-          bValue = b.bestPair?.annualizedReturn ?? 0;
-          break;
-        default:
-          return 0;
-      }
+    // 排序 (使用穩定排序比較函數)
+    return filtered.sort((symbolA, symbolB) => {
+      const rateA = ratesMap.get(symbolA);
+      const rateB = ratesMap.get(symbolB);
 
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc'
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
+      // 如果資料不存在，將其排到後面
+      if (!rateA) return 1;
+      if (!rateB) return -1;
 
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-
-      return 0;
+      return stableSortComparator(rateA, rateB, sortBy, sortDirection);
     });
+  }, [sortBy, sortDirection, filterStatus]); // ✅ 不依賴 ratesMap
 
-    return sorted;
-  }, [rates, sortBy, sortDirection, filterStatus]);
+  // 根據固定順序提取最新資料進行渲染
+  const displayRates = useMemo(() => {
+    return sortedSymbols
+      .map((symbol) => ratesMap.get(symbol))
+      .filter((rate): rate is MarketRate => rate !== undefined);
+  }, [sortedSymbols, ratesMap]);
 
   // 排序圖標
   const getSortIcon = (field: SortField) => {
@@ -99,7 +90,7 @@ export function RatesTable({
     }
   };
 
-  if (processedRates.length === 0) {
+  if (displayRates.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">
@@ -111,6 +102,25 @@ export function RatesTable({
 
   return (
     <Tooltip.Provider>
+      {/* 指標說明區塊 */}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="text-sm font-semibold text-blue-900 mb-2">關鍵指標說明</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-blue-800">
+          <div>
+            <span className="font-semibold">年化收益：</span>
+            <span className="ml-1">費率差異 × 365 × 3（每 8 小時結算，一年 1095 次）</span>
+          </div>
+          <div>
+            <span className="font-semibold">價差：</span>
+            <span className="ml-1">(做空價格 - 做多價格) / 平均價格 × 100，正值有利</span>
+          </div>
+          <div>
+            <span className="font-semibold">淨收益：</span>
+            <span className="ml-1">費率差異 - |價差| - 手續費 (0.3%)，扣除所有成本後的真實獲利</span>
+          </div>
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -162,10 +172,92 @@ export function RatesTable({
                 className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => handleSort('annualizedReturn')}
               >
-                <div className="flex items-center justify-end gap-1">
-                  <span>年化收益</span>
-                  {getSortIcon('annualizedReturn')}
-                </div>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className="flex items-center justify-end gap-1">
+                      <span>年化收益</span>
+                      {getSortIcon('annualizedReturn')}
+                    </div>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+                      sideOffset={5}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-semibold">計算公式：</div>
+                        <div>年化收益 = 費率差異 × 365 × 3</div>
+                        <div className="text-gray-300 text-[11px] mt-1">
+                          （資金費率每 8 小時結算一次，一年 1095 次）
+                        </div>
+                      </div>
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </th>
+
+              {/* 價差 */}
+              <th
+                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort('priceDiff')}
+              >
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className="flex items-center justify-end gap-1">
+                      <span>價差</span>
+                      {getSortIcon('priceDiff')}
+                    </div>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+                      sideOffset={5}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-semibold">計算公式：</div>
+                        <div>價差 = (做空價格 - 做多價格) / 平均價格 × 100</div>
+                        <div className="text-gray-300 text-[11px] mt-1">
+                          正值表示有利（做空價格較高），負值表示不利
+                        </div>
+                      </div>
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </th>
+
+              {/* 淨收益 */}
+              <th
+                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort('netReturn')}
+              >
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className="flex items-center justify-end gap-1">
+                      <span>淨收益</span>
+                      {getSortIcon('netReturn')}
+                    </div>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+                      sideOffset={5}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-semibold">計算公式：</div>
+                        <div>淨收益 = 費率差異 - |價差| - 手續費 (0.3%)</div>
+                        <div className="text-gray-300 text-[11px] mt-1">
+                          扣除價差成本和交易手續費後的真實獲利
+                        </div>
+                        <div className="text-gray-300 text-[11px]">
+                          綠色 &gt; 0.1% | 黃色 -0.05% ~ 0.1% | 紅色 &lt; -0.05%
+                        </div>
+                      </div>
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
               </th>
 
               {/* 狀態 */}
@@ -180,7 +272,7 @@ export function RatesTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {processedRates.map((rate) => (
+            {displayRates.map((rate) => (
               <RateRow
                 key={rate.symbol}
                 rate={rate}

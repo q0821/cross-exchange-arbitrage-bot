@@ -28,6 +28,8 @@ export interface BestArbitragePair {
   spread: number;               // 利差（小數）
   spreadPercent: number;        // 利差百分比
   annualizedReturn: number;     // 年化收益
+  priceDiffPercent?: number | null;  // 價差百分比（正值表示有利，負值表示不利）
+  netReturn?: number | null;     // 淨收益百分比（扣除價差和手續費後的真實獲利）
 }
 
 // 市場費率數據（支持多交易所）
@@ -72,12 +74,25 @@ export const RateRow = React.memo(function RateRow({
     return (rateValue * 100).toFixed(4) + '%';
   };
 
-  // 格式化價格顯示
+  // 格式化價格顯示（根據價格大小自動調整精度）
   const formatPrice = (price?: number | null) => {
     if (!price) return '-';
+
+    // 根據價格大小決定小數位數
+    let decimals = 2;
+    if (price >= 1000) {
+      decimals = 2; // 高價幣：BTC, ETH 等，顯示 2 位小數
+    } else if (price >= 1) {
+      decimals = 4; // 中價幣：顯示 4 位小數
+    } else if (price >= 0.01) {
+      decimals = 6; // 低價幣：顯示 6 位小數
+    } else {
+      decimals = 8; // 極低價幣：顯示 8 位小數
+    }
+
     return price.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     });
   };
 
@@ -182,6 +197,35 @@ export const RateRow = React.memo(function RateRow({
         <span className="font-mono text-sm">
           {rate.bestPair ? rate.bestPair.annualizedReturn.toFixed(2) + '%' : '-'}
         </span>
+      </td>
+
+      {/* 價差 */}
+      <td className="px-4 py-3 text-right">
+        <span className="font-mono text-sm">
+          {rate.bestPair?.priceDiffPercent != null && !isNaN(rate.bestPair.priceDiffPercent)
+            ? `${rate.bestPair.priceDiffPercent >= 0 ? '+' : ''}${rate.bestPair.priceDiffPercent.toFixed(2)}%`
+            : 'N/A'}
+        </span>
+      </td>
+
+      {/* 淨收益 */}
+      <td className="px-4 py-3 text-right">
+        {rate.bestPair?.netReturn != null && !isNaN(rate.bestPair.netReturn) ? (
+          <span
+            className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
+              rate.bestPair.netReturn > 0.1
+                ? 'bg-green-100 text-green-800'
+                : rate.bestPair.netReturn >= -0.05 && rate.bestPair.netReturn <= 0.1
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {rate.bestPair.netReturn >= 0 ? '+' : ''}
+            {rate.bestPair.netReturn.toFixed(2)}%
+          </span>
+        ) : (
+          <span className="font-mono text-sm text-gray-400">N/A</span>
+        )}
       </td>
 
       {/* 狀態 */}

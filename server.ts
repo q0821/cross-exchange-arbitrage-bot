@@ -4,6 +4,7 @@ import next from 'next';
 import { initializeSocketServer } from './src/websocket/SocketServer';
 import { logger } from './src/lib/logger';
 import { startMonitorService, stopMonitorService } from './src/services/MonitorService';
+import { startOIRefreshService, stopOIRefreshService } from './src/services/OIRefreshService';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || 'localhost';
@@ -50,14 +51,24 @@ app.prepare().then(() => {
       logger.error({ error }, 'Failed to start monitor service');
       console.error('> Warning: Funding rate monitor failed to start');
     }
+
+    // 啟動 OI 快取自動更新服務
+    try {
+      await startOIRefreshService();
+      console.log(`> OI cache refresh service enabled`);
+    } catch (error) {
+      logger.error({ error }, 'Failed to start OI refresh service');
+      console.error('> Warning: OI refresh service failed to start');
+    }
   });
 
   // 優雅關閉
   const shutdown = async () => {
     logger.info('Shutting down server...');
 
-    // 停止監控服務
+    // 停止背景服務
     await stopMonitorService();
+    await stopOIRefreshService();
 
     io.close(() => {
       logger.info('Socket.io server closed');

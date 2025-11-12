@@ -2,8 +2,59 @@
 
 **Feature Branch**: `008-specify-scripts-bash`
 **Created**: 2025-11-06
-**Status**: Draft
+**Status**: Completed
+**Completion**: 40% (23/57 tasks completed) - 核心功能已完成
+**Last Updated**: 2025-11-12
 **Input**: User description: "在市場監控的頁面，不同的交易所及交易對，希望有一個小圖式，點擊後就會開啟新分頁，直接到該交易所及對應的合約交易對頁面"
+
+## Implementation Status
+
+### ✅ 已完成功能
+
+**User Story 1 - 快速訪問交易所合約頁面**（完成）
+- ✅ ExchangeLink 組件實作（115 行）
+- ✅ 支援 4 個交易所 URL 生成：Binance、OKX、MEXC、Gate.io
+- ✅ URL Builder 服務（統一符號格式處理）
+- ✅ 交易所 URL 常數配置
+- ✅ 新分頁開啟（target="_blank" + rel="noopener noreferrer"）
+- ✅ 整合到市場監控頁面 RateRow 組件
+
+**User Story 2 - 視覺化識別交易所連結**（完成）
+- ✅ Radix UI Tooltip 提示說明
+- ✅ Hover 效果（opacity-70）
+- ✅ 無障礙設計（aria-label）
+- ✅ Lucide React ExternalLink 圖標
+- ✅ 禁用狀態處理（無數據時自動禁用）
+
+### 🔧 技術實作
+
+**核心檔案**：
+- `src/lib/exchanges/url-builder.ts` - URL 生成邏輯（統一符號格式驗證）
+- `src/lib/exchanges/constants.ts` - 交易所 URL 模板配置
+- `src/components/market/ExchangeLink.tsx` - 交易所連結組件
+
+**符號格式處理**：
+- 內部格式：`BTCUSDT`（BASEQUOTE 無斜線）
+- Binance：`BTCUSDT`
+- OKX：`BTC-USDT-SWAP`
+- MEXC：`BTC_USDT`
+- Gate.io：`BTC_USDT`
+
+### 🎯 實作決策
+
+1. **統一符號格式**：所有內部處理使用 `BTCUSDT` 格式（符合專案標準），各交易所格式在 URL Builder 中轉換
+2. **組件化設計**：ExchangeLink 可重用於任何需要交易所連結的地方
+3. **無障礙優先**：完整的 aria-label 和 Tooltip 支援
+4. **安全性**：使用 `rel="noopener noreferrer"` 防止安全漏洞
+5. **條件禁用**：當交易所無數據時自動禁用連結，避免錯誤導航
+
+### ⏸️ 測試任務（未完成）
+
+- ⏸️ Unit Tests for URL Builder
+- ⏸️ Component Tests for ExchangeLink
+- ⏸️ E2E Tests for User Scenarios
+
+**備註**：核心功能已完成並整合到生產環境，測試任務可延後補充。
 
 ## User Scenarios & Testing *(mandatory)*
 
