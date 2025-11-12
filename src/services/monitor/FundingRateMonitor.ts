@@ -14,6 +14,7 @@ import { logger } from '../../lib/logger';
 import type { IFundingRateValidator, PriceData } from '../../types/service-interfaces';
 import { ratesCache } from './RatesCache';
 import { PriceMonitor } from './PriceMonitor.js';
+import { ArbitrageAssessor, type ArbitrageConfig, type ArbitrageAssessment } from '../assessment/ArbitrageAssessor.js';
 
 /**
  * 監控狀態
@@ -35,6 +36,7 @@ export interface MonitorEvents {
   'rate-updated': (pair: FundingRatePair) => void;
   'opportunity-detected': (pair: FundingRatePair) => void;
   'opportunity-disappeared': (symbol: string) => void;
+  'arbitrage-feasible': (assessment: ArbitrageAssessment) => void;
   'error': (error: Error) => void;
   'status-changed': (status: MonitorStatus) => void;
 }
@@ -51,6 +53,7 @@ export class FundingRateMonitor extends EventEmitter {
   private statsTracker: MonitorStatsTracker;
   private validator?: IFundingRateValidator; // 可選的資金費率驗證器
   private priceMonitor?: PriceMonitor; // 可選的價格監控器
+  private arbitrageAssessor?: ArbitrageAssessor; // 可選的套利評估器
 
   private symbols: string[];
   private updateInterval: number; // 毫秒
@@ -59,6 +62,8 @@ export class FundingRateMonitor extends EventEmitter {
   private activeOpportunities = new Set<string>(); // 追蹤當前活躍的套利機會
   private enableValidation = false; // 驗證功能開關
   private enablePriceMonitor = false; // 價格監控開關
+  private enableArbitrageAssessment = false; // 套利評估開關
+  private arbitrageCapital = 10000; // 預設資金量（USDT）
 
   private status: MonitorStatus = {
     isRunning: false,
@@ -79,6 +84,9 @@ export class FundingRateMonitor extends EventEmitter {
       validator?: IFundingRateValidator;
       enableValidation?: boolean;
       enablePriceMonitor?: boolean; // 啟用價格監控
+      enableArbitrageAssessment?: boolean; // 啟用套利評估
+      arbitrageCapital?: number; // 套利資金量（USDT）
+      arbitrageConfig?: Partial<ArbitrageConfig>; // 套利配置
       exchanges?: ExchangeName[]; // 支持自定義交易所列表
     }
   ) {
@@ -129,6 +137,16 @@ export class FundingRateMonitor extends EventEmitter {
       });
     }
 
+    // 設定套利評估器
+    this.enableArbitrageAssessment = options?.enableArbitrageAssessment ?? false;
+    this.arbitrageCapital = options?.arbitrageCapital ?? 10000;
+    if (this.enableArbitrageAssessment) {
+      this.arbitrageAssessor = new ArbitrageAssessor(options?.arbitrageConfig);
+      logger.info({
+        arbitrageCapital: this.arbitrageCapital,
+      }, 'Arbitrage assessment enabled');
+    }
+
     this.status.symbols = symbols;
     this.status.updateInterval = updateInterval;
 
@@ -140,6 +158,7 @@ export class FundingRateMonitor extends EventEmitter {
       exchanges: this.exchangeNames,
       enableValidation: this.enableValidation,
       enablePriceMonitor: this.enablePriceMonitor,
+      enableArbitrageAssessment: this.enableArbitrageAssessment,
     }, 'FundingRateMonitor initialized');
   }
 
@@ -416,6 +435,47 @@ export class FundingRateMonitor extends EventEmitter {
         priceDiff: pair.bestPair.priceDiffPercent,
       }, 'Arbitrage opportunity detected');
       this.emit('opportunity-detected', pair);
+
+      // 執行套利評估（如果啟用）
+      if (this.enableArbitrageAssessment && this.arbitrageAssessor) {
+        try {
+          const assessment = this.arbitrageAssessor.assess(
+            pair,
+            this.arbitrageCapital,
+            'maker' // 預設使用 Maker 費率
+          );
+
+          logger.debug({
+            symbol: assessment.symbol,
+            isFeasible: assessment.isFeasible,
+            netProfit: assessment.netProfit,
+            netProfitPercent: assessment.netProfitPercent,
+            warnings: assessment.warnings,
+          }, 'Arbitrage assessment completed');
+
+          // 發出可行套利事件
+          if (assessment.isFeasible) {
+            logger.info({
+              symbol: assessment.symbol,
+              longExchange: assessment.longExchange,
+              shortExchange: assessment.shortExchange,
+              netProfit: assessment.netProfit,
+              netProfitPercent: (assessment.netProfitPercent * 100).toFixed(3) + '%',
+            }, 'Feasible arbitrage opportunity detected');
+            this.emit('arbitrage-feasible', assessment);
+          } else {
+            logger.debug({
+              symbol: assessment.symbol,
+              reason: assessment.reason,
+            }, 'Arbitrage not feasible');
+          }
+        } catch (error) {
+          logger.error({
+            symbol,
+            error: error instanceof Error ? error.message : String(error),
+          }, 'Failed to assess arbitrage opportunity');
+        }
+      }
     } else if (wasOpportunity) {
       // 機會消失
       this.activeOpportunities.delete(symbol);

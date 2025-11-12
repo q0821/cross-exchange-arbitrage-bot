@@ -189,6 +189,11 @@ export function createMonitorStartCommand(): Command {
     .option('--format <mode>', '輸出格式 (table|plain|json)', undefined)
     .option('--enable-validation', '啟用 OKX 資金費率雙重驗證（需要資料庫）', false)
     .option('--enable-price-monitor', '啟用即時價格監控（REST 輪詢）', false)
+    .option('--enable-arbitrage-assessment', '啟用套利可行性評估', false)
+    .option('--arbitrage-capital <usdt>', '套利使用的資金量（USDT）', '10000')
+    .option('--maker-fee <rate>', 'Maker 手續費率（例如：0.0002 = 0.02%）', '0.0002')
+    .option('--taker-fee <rate>', 'Taker 手續費率（例如：0.0005 = 0.05%）', '0.0005')
+    .option('--min-profit <rate>', '最小利潤閾值（例如：0.0001 = 0.01%）', '0.0001')
     .action(async (options) => {
       try {
         logger.info('啟動監控服務...');
@@ -222,6 +227,11 @@ export function createMonitorStartCommand(): Command {
         const isTestnet = options.testnet;
         const enableValidation = options.enableValidation;
         const enablePriceMonitor = options.enablePriceMonitor;
+        const enableArbitrageAssessment = options.enableArbitrageAssessment;
+        const arbitrageCapital = parseFloat(options.arbitrageCapital);
+        const makerFee = parseFloat(options.makerFee);
+        const takerFee = parseFloat(options.takerFee);
+        const minProfit = parseFloat(options.minProfit);
 
         logger.info({
           symbols,
@@ -230,6 +240,9 @@ export function createMonitorStartCommand(): Command {
           testnet: isTestnet,
           enableValidation,
           enablePriceMonitor,
+          enableArbitrageAssessment,
+          arbitrageCapital: enableArbitrageAssessment ? arbitrageCapital : undefined,
+          fees: enableArbitrageAssessment ? { makerFee, takerFee, minProfit } : undefined,
         }, '監控參數');
 
         // 初始化 Prisma Client 和 Repository（用於儲存套利機會）
@@ -267,6 +280,13 @@ export function createMonitorStartCommand(): Command {
           validator,
           enableValidation,
           enablePriceMonitor,
+          enableArbitrageAssessment,
+          arbitrageCapital,
+          arbitrageConfig: enableArbitrageAssessment ? {
+            makerFeeRate: makerFee,
+            takerFeeRate: takerFee,
+            minProfitThreshold: minProfit,
+          } : undefined,
         });
 
         // 建立輸出格式化器
