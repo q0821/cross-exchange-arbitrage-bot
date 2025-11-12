@@ -8,8 +8,9 @@ export interface MarketRate {
   bestPair?: {
     spreadPercent: number;
     annualizedReturn: number;
+    priceDiffPercent?: number | null;
+    netReturn?: number | null;
   } | null;
-  netReturn?: number;
 }
 
 /**
@@ -47,9 +48,15 @@ export function stableSortComparator(
       result = returnA - returnB;
       break;
 
+    case 'priceDiff':
+      const priceDiffA = a.bestPair?.priceDiffPercent ?? 0;
+      const priceDiffB = b.bestPair?.priceDiffPercent ?? 0;
+      result = priceDiffA - priceDiffB;
+      break;
+
     case 'netReturn':
-      const netA = a.netReturn ?? 0;
-      const netB = b.netReturn ?? 0;
+      const netA = a.bestPair?.netReturn ?? 0;
+      const netB = b.bestPair?.netReturn ?? 0;
       result = netA - netB;
       break;
 

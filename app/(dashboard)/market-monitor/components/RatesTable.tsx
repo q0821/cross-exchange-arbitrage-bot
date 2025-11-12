@@ -102,6 +102,25 @@ export function RatesTable({
 
   return (
     <Tooltip.Provider>
+      {/* 指標說明區塊 */}
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <h3 className="text-sm font-semibold text-blue-900 mb-2">關鍵指標說明</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-blue-800">
+          <div>
+            <span className="font-semibold">年化收益：</span>
+            <span className="ml-1">費率差異 × 365 × 3（每 8 小時結算，一年 1095 次）</span>
+          </div>
+          <div>
+            <span className="font-semibold">價差：</span>
+            <span className="ml-1">(做空價格 - 做多價格) / 平均價格 × 100，正值有利</span>
+          </div>
+          <div>
+            <span className="font-semibold">淨收益：</span>
+            <span className="ml-1">費率差異 - |價差| - 手續費 (0.3%)，扣除所有成本後的真實獲利</span>
+          </div>
+        </div>
+      </div>
+
       <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -153,10 +172,92 @@ export function RatesTable({
                 className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => handleSort('annualizedReturn')}
               >
-                <div className="flex items-center justify-end gap-1">
-                  <span>年化收益</span>
-                  {getSortIcon('annualizedReturn')}
-                </div>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className="flex items-center justify-end gap-1">
+                      <span>年化收益</span>
+                      {getSortIcon('annualizedReturn')}
+                    </div>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+                      sideOffset={5}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-semibold">計算公式：</div>
+                        <div>年化收益 = 費率差異 × 365 × 3</div>
+                        <div className="text-gray-300 text-[11px] mt-1">
+                          （資金費率每 8 小時結算一次，一年 1095 次）
+                        </div>
+                      </div>
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </th>
+
+              {/* 價差 */}
+              <th
+                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort('priceDiff')}
+              >
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className="flex items-center justify-end gap-1">
+                      <span>價差</span>
+                      {getSortIcon('priceDiff')}
+                    </div>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+                      sideOffset={5}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-semibold">計算公式：</div>
+                        <div>價差 = (做空價格 - 做多價格) / 平均價格 × 100</div>
+                        <div className="text-gray-300 text-[11px] mt-1">
+                          正值表示有利（做空價格較高），負值表示不利
+                        </div>
+                      </div>
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              </th>
+
+              {/* 淨收益 */}
+              <th
+                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                onClick={() => handleSort('netReturn')}
+              >
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <div className="flex items-center justify-end gap-1">
+                      <span>淨收益</span>
+                      {getSortIcon('netReturn')}
+                    </div>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+                      sideOffset={5}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-semibold">計算公式：</div>
+                        <div>淨收益 = 費率差異 - |價差| - 手續費 (0.3%)</div>
+                        <div className="text-gray-300 text-[11px] mt-1">
+                          扣除價差成本和交易手續費後的真實獲利
+                        </div>
+                        <div className="text-gray-300 text-[11px]">
+                          綠色 &gt; 0.1% | 黃色 -0.05% ~ 0.1% | 紅色 &lt; -0.05%
+                        </div>
+                      </div>
+                      <Tooltip.Arrow className="fill-gray-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
               </th>
 
               {/* 狀態 */}

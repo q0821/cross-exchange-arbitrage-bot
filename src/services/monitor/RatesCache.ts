@@ -47,7 +47,7 @@ export class RatesCache {
   private static instance: RatesCache | null = null;
 
   private cache = new Map<string, CachedRatePair>();
-  private readonly staleThresholdMs = 10000; // 10 秒未更新視為過期
+  private readonly staleThresholdMs = 600000; // 10 分鐘未更新視為過期（配合 5 分鐘更新間隔）
   private startTime: Date | null = null;
 
   private constructor() {

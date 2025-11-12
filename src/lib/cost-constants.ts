@@ -72,3 +72,16 @@ export const MIN_FUNDING_RATE_DIFF = TOTAL_COST_RATE;
  * we allow up to this amount before rejecting the opportunity
  */
 export const MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF = 0.0005;
+
+/**
+ * Total trading cost rate for Web UI net return calculation (0.3%)
+ * Simplified cost estimate for user-facing displays:
+ * - Trading Fees: ~0.14% (Maker 0.02% + Taker 0.05% × 2 operations)
+ * - Slippage: ~0.15% (conservative market order execution variance)
+ * - Safety Margin: ~0.01% (buffer for unexpected costs)
+ *
+ * Note: This is lower than TOTAL_COST_RATE (0.5%) used for opportunity
+ * validation, as Web UI shows net return for informational purposes,
+ * while opportunity validation requires more conservative thresholds.
+ */
+export const TOTAL_TRADING_COST_RATE = 0.003; // 0.3%

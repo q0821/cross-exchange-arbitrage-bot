@@ -2,7 +2,7 @@
  * Sorting configuration types for market monitor table
  */
 
-export type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'netReturn';
+export type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'priceDiff' | 'netReturn';
 export type SortDirection = 'asc' | 'desc';
 
 export interface SortPreference {
@@ -17,6 +17,7 @@ export const VALID_SORT_FIELDS: SortField[] = [
   'symbol',
   'spread',
   'annualizedReturn',
+  'priceDiff',
   'netReturn',
 ];
 
