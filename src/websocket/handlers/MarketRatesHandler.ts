@@ -75,6 +75,54 @@ export class MarketRatesHandler {
       });
     });
 
+    // NEW: 設定時間基準偏好
+    socket.on('set-time-basis', (data: { timeBasis: 1 | 8 | 24 }) => {
+      try {
+        const { timeBasis } = data;
+
+        // 驗證 timeBasis
+        if (![1, 8, 24].includes(timeBasis)) {
+          socket.emit('error', {
+            message: 'Invalid time basis',
+            code: 'INVALID_INPUT',
+            details: { received: timeBasis, expected: [1, 8, 24] },
+          });
+          return;
+        }
+
+        // TODO: 儲存用戶偏好（目前暫存在 socket.data）
+        authenticatedSocket.data.timeBasis = timeBasis;
+
+        logger.info(
+          {
+            socketId: socket.id,
+            userId,
+            timeBasis,
+          },
+          'User updated time basis preference',
+        );
+
+        // 發送確認（可選）
+        socket.emit('time-basis-updated', {
+          success: true,
+          timeBasis,
+        });
+      } catch (error) {
+        logger.error(
+          {
+            socketId: socket.id,
+            userId,
+            error: error instanceof Error ? error.message : String(error),
+          },
+          'Failed to set time basis',
+        );
+        socket.emit('error', {
+          message: 'Failed to set time basis',
+          code: 'INTERNAL_ERROR',
+        });
+      }
+    });
+
     logger.debug(
       {
         socketId: socket.id,
@@ -290,6 +338,10 @@ export class MarketRatesHandler {
         exchanges[exchangeName] = {
           rate: exchangeData.rate.fundingRate,
           price: exchangeData.price || exchangeData.rate.markPrice || null,
+          // NEW: Normalized rate data (optional)
+          normalizedRate: exchangeData.normalizedRate,
+          originalFundingInterval: exchangeData.originalFundingInterval,
+          targetTimeBasis: exchangeData.targetTimeBasis,
         };
       }
 

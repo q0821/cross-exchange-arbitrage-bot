@@ -103,6 +103,10 @@ export class FundingRateRecord implements FundingRate {
 export interface ExchangeRateData {
   rate: FundingRateRecord;
   price?: number;
+  // NEW: Normalized rate data (optional for backward compatibility)
+  normalizedRate?: number;
+  originalFundingInterval?: number;
+  targetTimeBasis?: number;
 }
 
 /**

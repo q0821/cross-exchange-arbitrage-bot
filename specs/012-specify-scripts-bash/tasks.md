@@ -63,12 +63,12 @@ description: "Task list for implementing standardized funding rate and net profi
 - [X] T011 [P] [US1] Add funding interval detection for OKX in `src/connectors/okx.ts` (completed in T006)
 - [X] T012 [P] [US1] Add funding interval detection for MEXC in `src/connectors/mexc.ts` (completed in T006)
 - [X] T013 [P] [US1] Add funding interval detection for Gate.io in `src/connectors/gateio.ts` (completed in T006)
-- [ ] T014 [US1] Update `RatesCache` to store normalized rates in `src/services/monitor/RatesCache.ts`
+- [X] T014 [US1] Update `ExchangeRateData` to store normalized rates in `src/models/FundingRate.ts`
 
 **WebSocket Server**:
 
-- [ ] T015 [US1] Extend `market-rates-update` event payload in `src/services/websocket/MarketRatesHandler.ts` to include `normalizedRate`, `originalFundingInterval`, `targetTimeBasis`
-- [ ] T016 [US1] Add `set-time-basis` event handler in `src/services/websocket/MarketRatesHandler.ts`
+- [X] T015 [US1] Extend `market-rates-update` event payload in `src/websocket/handlers/MarketRatesHandler.ts` to include `normalizedRate`, `originalFundingInterval`, `targetTimeBasis`
+- [X] T016 [US1] Add `set-time-basis` event handler in `src/websocket/handlers/MarketRatesHandler.ts`
 
 **Frontend (React)**:
 
