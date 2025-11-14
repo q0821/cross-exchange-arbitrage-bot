@@ -116,7 +116,7 @@ export function RatesTable({
           </div>
           <div>
             <span className="font-semibold">淨收益：</span>
-            <span className="ml-1">費率差異 - |價差| - 手續費 (0.3%)，扣除所有成本後的真實獲利</span>
+            <span className="ml-1">費率差異 - 手續費 (0.2%)，扣除交易成本後的真實獲利</span>
           </div>
         </div>
       </div>
@@ -246,9 +246,12 @@ export function RatesTable({
                     >
                       <div className="space-y-1">
                         <div className="font-semibold">計算公式：</div>
-                        <div>淨收益 = 費率差異 - |價差| - 手續費 (0.3%)</div>
+                        <div>淨收益 = 費率差異 - 手續費 (0.2%)</div>
                         <div className="text-gray-300 text-[11px] mt-1">
-                          扣除價差成本和交易手續費後的真實獲利
+                          手續費 = 4 筆交易 × 0.05% taker fee
+                        </div>
+                        <div className="text-gray-300 text-[11px] mt-1">
+                          扣除交易成本後的真實獲利
                         </div>
                         <div className="text-gray-300 text-[11px]">
                           綠色 &gt; 0.1% | 黃色 -0.05% ~ 0.1% | 紅色 &lt; -0.05%

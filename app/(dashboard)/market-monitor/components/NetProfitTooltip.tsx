@@ -83,8 +83,12 @@ export function NetProfitTooltip({
 
             {priceDiffPercent != null && !isNaN(priceDiffPercent) && (
               <>
+                <div className="border-t border-gray-700 my-2"></div>
+                <div className="text-[11px] text-gray-400 mb-1">
+                  💡 價差資訊（僅供參考）：
+                </div>
                 <div className="flex justify-between gap-4">
-                  <span className="text-gray-300">價差影響：</span>
+                  <span className="text-gray-300">交易所價差：</span>
                   <span
                     className={`font-mono ${
                       priceDiffPercent >= 0 ? 'text-green-400' : 'text-red-400'
@@ -95,7 +99,7 @@ export function NetProfitTooltip({
                   </span>
                 </div>
                 <div className="text-[11px] text-gray-400">
-                  ({priceDiffPercent >= 0 ? '有利' : '不利'})
+                  ({priceDiffPercent >= 0 ? '做空價較高（有利）' : '做空價較低（不利）'})
                 </div>
               </>
             )}
