@@ -1,8 +1,11 @@
 import { z } from 'zod';
+import { netProfitCalculator } from '../services/calculation/NetProfitCalculator';
 
 /**
  * 資金費率資料模型
  * 用於儲存和驗證從交易所獲取的資金費率資訊
+ *
+ * Feature 012: 整合 NetProfitCalculator 計算淨收益
  */
 
 // Zod 驗證 Schema
@@ -118,6 +121,7 @@ export interface BestArbitragePair {
   spreadPercent: number;         // 利差百分比
   spreadAnnualized: number;      // 年化利差百分比
   priceDiffPercent?: number;     // 價差百分比
+  netReturn?: number;            // Feature 012: 淨收益百分比（扣除所有成本）
 }
 
 /**
@@ -202,12 +206,34 @@ export function createMultiExchangeFundingRatePair(
           priceDiffPercent = ((shortPrice - longPrice) / avgPrice) * 100;
         }
 
+        // Feature 012: Calculate net return using NetProfitCalculator
+        let netReturn: number | undefined;
+        try {
+          const longRate = (longExchange === exchange1 ? rate1 : rate2).toString();
+          const shortRate = (shortExchange === exchange1 ? rate1 : rate2).toString();
+
+          const netProfitResult = netProfitCalculator.calculate(
+            symbol,
+            longExchange,
+            shortExchange,
+            longRate,
+            shortRate
+          );
+
+          // Convert to percentage for consistency with other fields
+          netReturn = parseFloat(netProfitResult.netProfit.mul(100).toFixed(4));
+        } catch (error) {
+          // If calculation fails, netReturn remains undefined
+          console.error('Failed to calculate net return:', error);
+        }
+
         bestPair = {
           longExchange,
           shortExchange,
           spreadPercent: spread * 100,
           spreadAnnualized: spread * 365 * 3 * 100,
           priceDiffPercent,
+          netReturn,
         };
       }
     }
