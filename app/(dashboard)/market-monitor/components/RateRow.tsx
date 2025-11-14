@@ -201,16 +201,73 @@ export const RateRow = React.memo(function RateRow({
     );
   };
 
+  // Feature 012 T041: Determine if this is a top opportunity
+  const isTopOpportunity = rate.status === 'opportunity' &&
+    rate.bestPair?.netReturn !== undefined &&
+    rate.bestPair.netReturn > 0.5; // Top if net return > 0.5%
+
+  // Feature 012 T044: Check if data is stale (older than 30 seconds)
+  const isStale = (() => {
+    try {
+      const timestamp = new Date(rate.timestamp);
+      const now = new Date();
+      const ageInSeconds = (now.getTime() - timestamp.getTime()) / 1000;
+      return ageInSeconds > 30;
+    } catch {
+      return false;
+    }
+  })();
+
   return (
     <tr className={`border-b transition-colors ${getRowBgColor()}`}>
       {/* 交易對名稱 */}
       <td className="px-4 py-3">
-        <button
-          onClick={handleSymbolClick}
-          className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
-        >
-          {rate.symbol}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleSymbolClick}
+            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            {rate.symbol}
+          </button>
+          {/* Feature 012 T041: Visual indicator for best opportunities */}
+          {isTopOpportunity && (
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-400 text-yellow-900 rounded-full text-xs font-bold cursor-help">
+                  ⭐
+                </span>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+                  sideOffset={5}
+                >
+                  高收益機會！淨收益 &gt; 0.5%
+                  <Tooltip.Arrow className="fill-gray-900" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          )}
+          {/* Feature 012 T044: Stale data indicator */}
+          {isStale && (
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <span className="inline-flex items-center px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded cursor-help">
+                  陳舊
+                </span>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+                  sideOffset={5}
+                >
+                  數據可能已過時（超過 30 秒未更新）
+                  <Tooltip.Arrow className="fill-gray-900" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          )}
+        </div>
       </td>
 
       {/* 4 個交易所的費率列 */}
