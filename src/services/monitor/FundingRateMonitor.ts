@@ -15,6 +15,8 @@ import type { IFundingRateValidator, PriceData } from '../../types/service-inter
 import { ratesCache } from './RatesCache';
 import { PriceMonitor } from './PriceMonitor.js';
 import { ArbitrageAssessor, type ArbitrageConfig, type ArbitrageAssessment } from '../assessment/ArbitrageAssessor.js';
+import { fundingRateNormalizer } from './FundingRateNormalizer';
+import type { TimeBasis } from '../../lib/validation/fundingRateSchemas';
 
 /**
  * 監控狀態
@@ -64,6 +66,7 @@ export class FundingRateMonitor extends EventEmitter {
   private enablePriceMonitor = false; // 價格監控開關
   private enableArbitrageAssessment = false; // 套利評估開關
   private arbitrageCapital = 10000; // 預設資金量（USDT）
+  private timeBasis: TimeBasis = 8; // 標準化時間基準（小時）
 
   private status: MonitorStatus = {
     isRunning: false,
@@ -88,6 +91,7 @@ export class FundingRateMonitor extends EventEmitter {
       arbitrageCapital?: number; // 套利資金量（USDT）
       arbitrageConfig?: Partial<ArbitrageConfig>; // 套利配置
       exchanges?: ExchangeName[]; // 支持自定義交易所列表
+      timeBasis?: TimeBasis; // 標準化時間基準（1, 8, 或 24 小時）
     }
   ) {
     super();
@@ -146,6 +150,9 @@ export class FundingRateMonitor extends EventEmitter {
         arbitrageCapital: this.arbitrageCapital,
       }, 'Arbitrage assessment enabled');
     }
+
+    // 設定標準化時間基準
+    this.timeBasis = options?.timeBasis ?? 8;
 
     this.status.symbols = symbols;
     this.status.updateInterval = updateInterval;
@@ -597,5 +604,21 @@ export class FundingRateMonitor extends EventEmitter {
   clearHistory(): void {
     this.store.clear();
     logger.info('History cleared');
+  }
+
+  /**
+   * 設定標準化時間基準
+   * @param timeBasis 時間基準（1, 8, 或 24 小時）
+   */
+  setTimeBasis(timeBasis: TimeBasis): void {
+    this.timeBasis = timeBasis;
+    logger.info({ timeBasis }, 'Time basis updated');
+  }
+
+  /**
+   * 取得當前時間基準
+   */
+  getTimeBasis(): TimeBasis {
+    return this.timeBasis;
   }
 }

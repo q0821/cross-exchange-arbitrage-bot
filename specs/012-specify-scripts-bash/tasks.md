@@ -58,11 +58,11 @@ description: "Task list for implementing standardized funding rate and net profi
 
 **Backend (CLI Monitor)**:
 
-- [ ] T009 [US1] Integrate `FundingRateNormalizer` into `FundingRateMonitor` service in `src/services/monitor/FundingRateMonitor.ts`
-- [ ] T010 [US1] Add funding interval detection for Binance in `src/lib/ccxt/binance-connector.ts`
-- [ ] T011 [P] [US1] Add funding interval detection for OKX in `src/lib/ccxt/okx-connector.ts`
-- [ ] T012 [P] [US1] Add funding interval detection for MEXC in `src/lib/ccxt/mexc-connector.ts`
-- [ ] T013 [P] [US1] Add funding interval detection for Gate.io in `src/lib/ccxt/gateio-connector.ts`
+- [X] T009 [US1] Integrate `FundingRateNormalizer` into `FundingRateMonitor` service in `src/services/monitor/FundingRateMonitor.ts`
+- [X] T010 [US1] Add funding interval detection for Binance in `src/connectors/binance.ts` (completed in T006)
+- [X] T011 [P] [US1] Add funding interval detection for OKX in `src/connectors/okx.ts` (completed in T006)
+- [X] T012 [P] [US1] Add funding interval detection for MEXC in `src/connectors/mexc.ts` (completed in T006)
+- [X] T013 [P] [US1] Add funding interval detection for Gate.io in `src/connectors/gateio.ts` (completed in T006)
 - [ ] T014 [US1] Update `RatesCache` to store normalized rates in `src/services/monitor/RatesCache.ts`
 
 **WebSocket Server**:
