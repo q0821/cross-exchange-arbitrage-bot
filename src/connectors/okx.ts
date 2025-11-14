@@ -103,6 +103,7 @@ export class OKXConnector extends BaseExchangeConnector {
           markPrice: fundingRate.markPrice,
           indexPrice: fundingRate.indexPrice,
           recordedAt: new Date(),
+          fundingInterval: 8, // OKX uses 8-hour funding intervals for most contracts
         } as FundingRateData;
       } catch (error) {
         throw this.handleApiError(error);
@@ -182,6 +183,7 @@ export class OKXConnector extends BaseExchangeConnector {
           markPrice: rate.markPrice,
           indexPrice: rate.indexPrice,
           recordedAt: new Date(),
+          fundingInterval: 8, // OKX uses 8-hour funding intervals for most contracts
         })) as FundingRateData[];
       } catch (error) {
         throw this.handleApiError(error);

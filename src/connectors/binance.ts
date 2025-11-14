@@ -121,6 +121,7 @@ export class BinanceConnector extends BaseExchangeConnector {
           markPrice: data.markPrice ? parseFloat(data.markPrice) : undefined,
           indexPrice: data.indexPrice ? parseFloat(data.indexPrice) : undefined,
           recordedAt: new Date(),
+          fundingInterval: 8, // Binance uses 8-hour funding intervals
         } as FundingRateData;
       } catch (error) {
         throw this.handleApiError(error);
@@ -156,6 +157,7 @@ export class BinanceConnector extends BaseExchangeConnector {
           markPrice: data.markPrice ? parseFloat(data.markPrice) : undefined,
           indexPrice: data.indexPrice ? parseFloat(data.indexPrice) : undefined,
           recordedAt: new Date(),
+          fundingInterval: 8, // Binance uses 8-hour funding intervals
         })) as FundingRateData[];
       } catch (error) {
         throw this.handleApiError(error);

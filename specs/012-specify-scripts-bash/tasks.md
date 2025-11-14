@@ -26,9 +26,9 @@ description: "Task list for implementing standardized funding rate and net profi
 
 **Purpose**: Install dependencies and setup basic utilities
 
-- [ ] T001 Install decimal.js dependency for precise financial calculations: `pnpm add decimal.js`
-- [ ] T002 [P] Create funding rate normalization utility in `src/lib/fundingRateUtils.ts`
-- [ ] T003 [P] Create Zod validation schemas in `src/lib/validation/fundingRateSchemas.ts`
+- [X] T001 Install decimal.js dependency for precise financial calculations: `pnpm add decimal.js`
+- [X] T002 [P] Create funding rate normalization utility in `src/lib/fundingRateUtils.ts`
+- [X] T003 [P] Create Zod validation schemas in `src/lib/validation/fundingRateSchemas.ts`
 
 ---
 
@@ -38,11 +38,11 @@ description: "Task list for implementing standardized funding rate and net profi
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create `FundingRateNormalizer` service in `src/services/monitor/FundingRateNormalizer.ts`
-- [ ] T005 Create `NetProfitCalculator` service in `src/services/calculation/NetProfitCalculator.ts`
-- [ ] T006 [P] Add interval detection logic to existing exchange connectors in `src/lib/ccxt/`
-- [ ] T007 [P] Create `NormalizedFundingRate` TypeScript interface in `src/types/normalized-rates.ts`
-- [ ] T008 [P] Create `NetProfitCalculation` TypeScript interface in `src/types/net-profit.ts`
+- [X] T004 Create `FundingRateNormalizer` service in `src/services/monitor/FundingRateNormalizer.ts`
+- [X] T005 Create `NetProfitCalculator` service in `src/services/calculation/NetProfitCalculator.ts`
+- [X] T006 [P] Add interval detection logic to existing exchange connectors in `src/connectors/`
+- [X] T007 [P] Create `NormalizedFundingRate` TypeScript interface in `src/types/normalized-rates.ts`
+- [X] T008 [P] Create `NetProfitCalculation` TypeScript interface in `src/types/net-profit.ts`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 

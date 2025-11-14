@@ -87,7 +87,9 @@
       "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/011-price-spread-net-return/checklists\" ])",
       "Bash(then for file in /Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/011-price-spread-net-return/checklists/*.md)",
       "Bash(do if [ -f \"$file\" ])",
-      "Bash(then basename \"$file\" grep -E \"^- \\[([ Xx])\\]\" \"$file\")"
+      "Bash(then basename \"$file\" grep -E \"^- \\[([ Xx])\\]\" \"$file\")",
+      "Bash(mkdir:*)",
+      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/012-specify-scripts-bash/checklists\" ])"
     ],
     "deny": [],
     "ask": []

@@ -102,6 +102,7 @@ export class GateioConnector extends BaseExchangeConnector {
           markPrice: fundingRate.markPrice,
           indexPrice: fundingRate.indexPrice,
           recordedAt: new Date(),
+          fundingInterval: 8, // Gate.io uses 8-hour funding intervals
         } as FundingRateData;
       } catch (error) {
         throw this.handleApiError(error);
@@ -125,6 +126,7 @@ export class GateioConnector extends BaseExchangeConnector {
           markPrice: rate.markPrice,
           indexPrice: rate.indexPrice,
           recordedAt: new Date(),
+          fundingInterval: 8, // Gate.io uses 8-hour funding intervals
         })) as FundingRateData[];
       } catch (error) {
         throw this.handleApiError(error);

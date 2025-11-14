@@ -15,6 +15,8 @@ export interface FundingRateData {
   markPrice?: number;
   indexPrice?: number;
   recordedAt: Date;
+  // NEW: Funding interval in hours (1, 4, 8, or 24)
+  fundingInterval?: number;
 }
 
 // 價格資料
