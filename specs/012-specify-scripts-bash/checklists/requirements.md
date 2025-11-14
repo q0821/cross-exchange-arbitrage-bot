@@ -36,14 +36,20 @@
 All clarifications have been resolved based on user input:
 
 1. **Slippage**: Not included in net profit calculation (Q1: A)
-2. **Default Fee Rates**: Building and closing positions both use Taker rate 0.05%, total 0.1% for both sides (Q2: A with modification)
+2. **Default Fee Rates**: Each trade uses Taker rate 0.05%, total 4 trades (long open, long close, short open, short close) = 0.2% total (Q2: A with user correction)
 3. **Other Costs**: Only trading fees considered, no slippage or funding costs (aligned with Q1)
 
 ### User Decisions Applied
 
 - **Q1: A** - 不考慮滑點，只計算費率差和手續費
-- **Q2: A + 修改** - 建倉和平倉都使用 Taker 費率 0.05%（總計雙邊 0.1%）
+- **Q2: A + 修正** - 每筆交易使用 Taker 費率 0.05%，套利涉及 4 筆交易（long 建倉、long 平倉、short 建倉、short 平倉），總計 0.2%
 - **Q3: 與 Q1 一致** - 只考慮手續費
+
+### User Correction Applied
+
+User corrected the fee calculation:
+- ❌ **Original (incorrect)**: 雙邊 0.1% (建倉 + 平倉)
+- ✅ **Corrected**: 總計 0.2% (long 建倉 0.05% + long 平倉 0.05% + short 建倉 0.05% + short 平倉 0.05%)
 
 ## Notes
 
@@ -51,4 +57,4 @@ All clarifications have been resolved based on user input:
 - All user stories are prioritized and independently testable
 - Success criteria are measurable and technology-agnostic
 - Edge cases are well identified
-- Net profit formula clearly defined: Net Profit = Funding Rate Difference - Trading Fees (both sides at Taker rate)
+- Net profit formula clearly defined: Net Profit = Funding Rate Difference - Total Trading Fees (4 trades at Taker 0.05% each = 0.2% total)
