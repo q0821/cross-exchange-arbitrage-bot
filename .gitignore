@@ -34,7 +34,8 @@ coverage/
 .DS_Store
 
 # Prisma
-prisma/migrations/**/migration.sql
+# Note: migration.sql files should be committed for production deployments
+# prisma/migrations/**/migration.sql
 
 # Database
 *.db
