@@ -3,13 +3,16 @@
  * 顯示單一交易對的完整資訊
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
+ * Feature: 012-specify-scripts-bash (User Story 1 - T021)
  */
 
 'use client';
 
 import React from 'react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { StatusBadge, OpportunityStatus } from './StatusBadge';
 import { ExchangeLink } from '@/components/market';
+import { formatFundingInterval } from '../utils/formatters';
 
 // 交易所名稱類型
 export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
@@ -19,6 +22,10 @@ export interface ExchangeRate {
   rate: number;
   ratePercent?: string;
   price?: number | null;
+  // Feature 012: Normalized rate data (optional)
+  normalizedRate?: number;
+  originalFundingInterval?: number;
+  targetTimeBasis?: number;
 }
 
 // 最佳套利對信息
@@ -145,7 +152,38 @@ export const RateRow = React.memo(function RateRow({
 
           {/* 費率與交易所連結 */}
           <div className="flex items-center gap-1 justify-end">
-            <span className="font-mono text-sm">{formatRate(exchangeData.rate)}</span>
+            {/* Feature 012: Show normalized rate with tooltip for original interval */}
+            {exchangeData.normalizedRate !== undefined && exchangeData.originalFundingInterval ? (
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <span className="font-mono text-sm cursor-help underline decoration-dotted">
+                    {formatRate(exchangeData.normalizedRate)}
+                  </span>
+                </Tooltip.Trigger>
+                <Tooltip.Portal>
+                  <Tooltip.Content
+                    className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+                    sideOffset={5}
+                  >
+                    <div className="space-y-1">
+                      <div className="font-semibold">原始資金費率：</div>
+                      <div>{formatRate(exchangeData.rate)}</div>
+                      <div className="text-gray-300 text-[11px] mt-1">
+                        原始結算週期：{formatFundingInterval(exchangeData.originalFundingInterval)}
+                      </div>
+                      {exchangeData.targetTimeBasis && (
+                        <div className="text-gray-300 text-[11px]">
+                          標準化為：{formatFundingInterval(exchangeData.targetTimeBasis)}
+                        </div>
+                      )}
+                    </div>
+                    <Tooltip.Arrow className="fill-gray-900" />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            ) : (
+              <span className="font-mono text-sm">{formatRate(exchangeData.rate)}</span>
+            )}
             <ExchangeLink
               exchange={exchangeName}
               symbol={rate.symbol}

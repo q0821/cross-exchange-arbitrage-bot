@@ -3,27 +3,17 @@
  * 訂閱即時費率更新和統計資訊
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
+ * Feature: 012-specify-scripts-bash (User Story 1 - T018)
  */
 
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import type { MarketRate } from '../components/RateRow';
+import type { MarketRate, MarketRatesUpdatePayload, MarketStatsPayload } from '../types';
 import type { MarketStats } from '../components/StatsCard';
-
-interface RatesUpdateEvent {
-  type: 'rates:update';
-  data: {
-    rates: MarketRate[];
-    timestamp: string;
-  };
-}
-
-interface StatsUpdateEvent {
-  type: 'rates:stats';
-  data: MarketStats;
-}
+import type { TimeBasis } from '../utils/preferences';
+import { getTimeBasisPreference, setTimeBasisPreference } from '../utils/preferences';
 
 interface UseMarketRatesReturn {
   /** 即時費率數據 (Map for O(1) lookups) */
@@ -38,17 +28,24 @@ interface UseMarketRatesReturn {
   error: Error | null;
   /** 手動重新載入 */
   reload: () => Promise<void>;
+  /** 當前時間基準 */
+  timeBasis: TimeBasis;
+  /** 設置時間基準 */
+  setTimeBasis: (basis: TimeBasis) => void;
 }
 
 /**
  * useMarketRates Hook
  * 自動訂閱 WebSocket 事件並管理即時費率數據
+ *
+ * Feature 012: 支援標準化費率時間基準選擇
  */
 export function useMarketRates(): UseMarketRatesReturn {
   const [ratesMap, setRatesMap] = useState<Map<string, MarketRate>>(new Map());
   const [stats, setStats] = useState<MarketStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [timeBasis, setTimeBasisState] = useState<TimeBasis>(() => getTimeBasisPreference());
 
   // WebSocket 連線
   const { isConnected, on, off, emit } = useWebSocket({
@@ -56,6 +53,8 @@ export function useMarketRates(): UseMarketRatesReturn {
       console.log('[useMarketRates] WebSocket connected');
       // 訂閱市場費率更新
       emit('subscribe:market-rates');
+      // 發送時間基準偏好
+      emit('set-time-basis', { timeBasis });
     },
     onDisconnect: () => {
       console.log('[useMarketRates] WebSocket disconnected');
@@ -66,8 +65,18 @@ export function useMarketRates(): UseMarketRatesReturn {
     },
   });
 
+  // 處理時間基準變更
+  const handleSetTimeBasis = useCallback((basis: TimeBasis) => {
+    setTimeBasisState(basis);
+    setTimeBasisPreference(basis);
+    // 通知 WebSocket 伺服器時間基準變更
+    if (isConnected) {
+      emit('set-time-basis', { timeBasis: basis });
+    }
+  }, [isConnected, emit]);
+
   // 處理費率更新 (只更新 Map 中的值，不改變結構)
-  const handleRatesUpdate = useCallback((event: RatesUpdateEvent) => {
+  const handleRatesUpdate = useCallback((event: MarketRatesUpdatePayload) => {
     console.log('[useMarketRates] Rates updated:', event.data.rates.length, 'rates');
     setRatesMap((prev) => {
       const next = new Map(prev);
@@ -81,7 +90,7 @@ export function useMarketRates(): UseMarketRatesReturn {
   }, []);
 
   // 處理統計更新
-  const handleStatsUpdate = useCallback((event: StatsUpdateEvent) => {
+  const handleStatsUpdate = useCallback((event: MarketStatsPayload) => {
     console.log('[useMarketRates] Stats updated:', event.data);
     setStats(event.data);
   }, []);
@@ -147,5 +156,7 @@ export function useMarketRates(): UseMarketRatesReturn {
     isLoading,
     error,
     reload,
+    timeBasis,
+    setTimeBasis: handleSetTimeBasis,
   };
 }

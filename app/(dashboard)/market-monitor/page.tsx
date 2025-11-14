@@ -3,6 +3,7 @@
  * 整合所有組件和 hooks，提供完整的多交易對即時監控功能
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
+ * Feature: 012-specify-scripts-bash (User Story 1 - T020)
  */
 
 'use client';
@@ -11,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import { RatesTable } from './components/RatesTable';
 import { StatsCard } from './components/StatsCard';
 import { SymbolSelector } from './components/SymbolSelector';
+import { TimeBasisSelector } from './components/TimeBasisSelector';
 import { useMarketRates } from './hooks/useMarketRates';
 import { useSymbolGroups } from './hooks/useSymbolGroups';
 import { useTableSort } from './hooks/useTableSort';
@@ -22,7 +24,8 @@ import type { MarketRate } from './components/RateRow';
  */
 export default function MarketMonitorPage() {
   // 數據訂閱 (Feature 009: 使用 Map 而非 array)
-  const { ratesMap, stats, isConnected, isLoading, error } = useMarketRates();
+  // Feature 012: 增加 timeBasis 和 setTimeBasis
+  const { ratesMap, stats, isConnected, isLoading, error, timeBasis, setTimeBasis } = useMarketRates();
 
   // 交易對群組管理
   const {
@@ -168,13 +171,20 @@ export default function MarketMonitorPage() {
       <StatsCard stats={filteredStats} isLoading={false} />
 
       {/* 交易對選擇器和篩選器 */}
-      <SymbolSelector
-        groups={groups}
-        selectedGroup={selectedGroup}
-        filterStatus={filterStatus}
-        onGroupChange={setSelectedGroup}
-        onFilterChange={setFilterStatus}
-      />
+      <div className="space-y-4">
+        <SymbolSelector
+          groups={groups}
+          selectedGroup={selectedGroup}
+          filterStatus={filterStatus}
+          onGroupChange={setSelectedGroup}
+          onFilterChange={setFilterStatus}
+        />
+
+        {/* Feature 012: 時間基準選擇器 */}
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <TimeBasisSelector value={timeBasis} onChange={setTimeBasis} />
+        </div>
+      </div>
 
       {/* 費率表格 */}
       <div className="bg-white rounded-lg shadow-sm p-6">
