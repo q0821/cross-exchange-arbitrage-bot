@@ -81,8 +81,8 @@ description: "Task list for implementing standardized funding rate and net profi
 
 **Logging & Error Handling**:
 
-- [ ] T023 [US1] Add structured logging for normalization calculations in `FundingRateNormalizer.ts`
-- [ ] T024 [US1] Add error handling for missing interval data in `FundingRateNormalizer.ts`
+- [X] T023 [US1] Add structured logging for normalization calculations in `FundingRateNormalizer.ts` (completed in T004)
+- [X] T024 [US1] Add error handling for missing interval data in `FundingRateNormalizer.ts` (completed in T004)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - users can see normalized rates across all exchanges with unified time basis
 
@@ -99,24 +99,24 @@ description: "Task list for implementing standardized funding rate and net profi
 **Backend (CLI Monitor)**:
 
 - [ ] T025 [US2] Integrate `NetProfitCalculator` into `FundingRateMonitor` service in `src/services/monitor/FundingRateMonitor.ts`
-- [ ] T026 [US2] Implement best arbitrage pair detection logic in `NetProfitCalculator.ts` (find max rate difference across 4 exchanges)
+- [X] T026 [US2] Implement best arbitrage pair detection logic in `NetProfitCalculator.ts` (completed in T005)
 - [ ] T027 [US2] Add default taker fee rate configuration in `src/config/tradingConfig.ts` (0.0005 per trade, 0.002 total)
 
 **WebSocket Server**:
 
-- [ ] T028 [US2] Extend `market-rates-update` event payload to include `bestArbitragePair` and `netProfitDetails` in `src/services/websocket/MarketRatesHandler.ts`
+- [ ] T028 [US2] Extend `market-rates-update` event payload to include `bestArbitragePair` and `netProfitDetails` (already included in existing bestPair)
 
 **Frontend (React)**:
 
-- [ ] T029 [P] [US2] Update `MarketRatesUpdatePayload` interface to include net profit fields in `app/(dashboard)/market-monitor/types.ts`
+- [X] T029 [P] [US2] Update `MarketRatesUpdatePayload` interface to include net profit fields (completed in T017)
 - [ ] T030 [US2] Update `RateRow` component to display net profit with color coding in `app/(dashboard)/market-monitor/components/RateRow.tsx`
 - [ ] T031 [US2] Create net profit details tooltip component in `app/(dashboard)/market-monitor/components/NetProfitTooltip.tsx`
-- [ ] T032 [US2] Add formatting utility for Decimal values in `app/(dashboard)/market-monitor/utils/formatters.ts`
+- [X] T032 [US2] Add formatting utility for Decimal values in `app/(dashboard)/market-monitor/utils/formatters.ts`
 
 **Logging & Validation**:
 
-- [ ] T033 [US2] Add structured logging for net profit calculations in `NetProfitCalculator.ts`
-- [ ] T034 [US2] Add validation for negative net profit scenarios in `NetProfitCalculator.ts`
+- [X] T033 [US2] Add structured logging for net profit calculations in `NetProfitCalculator.ts` (completed in T005)
+- [X] T034 [US2] Add validation for negative net profit scenarios in `NetProfitCalculator.ts` (completed in T005)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - users can see both normalized rates and correct net profit calculations
 
