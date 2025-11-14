@@ -13,6 +13,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { StatusBadge, OpportunityStatus } from './StatusBadge';
 import { ExchangeLink } from '@/components/market';
 import { formatFundingInterval } from '../utils/formatters';
+import { NetProfitTooltip } from './NetProfitTooltip';
 
 // 交易所名稱類型
 export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
@@ -249,18 +250,11 @@ export const RateRow = React.memo(function RateRow({
       {/* 淨收益 */}
       <td className="px-4 py-3 text-right">
         {rate.bestPair?.netReturn != null && !isNaN(rate.bestPair.netReturn) ? (
-          <span
-            className={`font-mono text-sm font-semibold px-2 py-1 rounded ${
-              rate.bestPair.netReturn > 0.1
-                ? 'bg-green-100 text-green-800'
-                : rate.bestPair.netReturn >= -0.05 && rate.bestPair.netReturn <= 0.1
-                ? 'bg-yellow-100 text-yellow-800'
-                : 'bg-red-100 text-red-800'
-            }`}
-          >
-            {rate.bestPair.netReturn >= 0 ? '+' : ''}
-            {rate.bestPair.netReturn.toFixed(2)}%
-          </span>
+          <NetProfitTooltip
+            netProfit={rate.bestPair.netReturn}
+            spreadPercent={rate.bestPair.spreadPercent}
+            priceDiffPercent={rate.bestPair.priceDiffPercent}
+          />
         ) : (
           <span className="font-mono text-sm text-gray-400">N/A</span>
         )}

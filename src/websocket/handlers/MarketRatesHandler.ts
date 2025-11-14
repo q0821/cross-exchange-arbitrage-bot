@@ -354,7 +354,8 @@ export class MarketRatesHandler {
             spreadPercent: rate.bestPair.spreadPercent,
             annualizedReturn: rate.bestPair.spreadAnnualized,
             priceDiffPercent: rate.bestPair.priceDiffPercent ?? null,
-            netReturn: calculateNetReturn(
+            // Feature 012: Use backend-calculated netReturn if available, otherwise fallback to local calculation
+            netReturn: rate.bestPair.netReturn ?? calculateNetReturn(
               rate.bestPair.spreadPercent,
               rate.bestPair.priceDiffPercent,
             ),
