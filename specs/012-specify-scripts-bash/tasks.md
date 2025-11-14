@@ -72,12 +72,12 @@ description: "Task list for implementing standardized funding rate and net profi
 
 **Frontend (React)**:
 
-- [ ] T017 [P] [US1] Update `MarketRatesUpdatePayload` TypeScript interface in `app/(dashboard)/market-monitor/types.ts`
-- [ ] T018 [US1] Modify `useMarketRates` hook to handle normalized rate fields in `app/(dashboard)/market-monitor/useMarketRates.ts`
-- [ ] T019 [US1] Create `TimeBasisSelector` component in `app/(dashboard)/market-monitor/components/TimeBasisSelector.tsx`
+- [X] T017 [P] [US1] Update `MarketRatesUpdatePayload` TypeScript interface in `app/(dashboard)/market-monitor/types.ts`
+- [ ] T018 [US1] Modify `useMarketRates` hook to handle normalized rate fields in `app/(dashboard)/market-monitor/hooks/useMarketRates.ts`
+- [X] T019 [US1] Create `TimeBasisSelector` component in `app/(dashboard)/market-monitor/components/TimeBasisSelector.tsx`
 - [ ] T020 [US1] Update `RatesTable` component to display normalized rates in `app/(dashboard)/market-monitor/components/RatesTable.tsx`
 - [ ] T021 [US1] Update `RateRow` component to show original funding interval tooltip in `app/(dashboard)/market-monitor/components/RateRow.tsx`
-- [ ] T022 [US1] Add localStorage persistence for time basis preference in `app/(dashboard)/market-monitor/utils/preferences.ts`
+- [X] T022 [US1] Add localStorage persistence for time basis preference in `app/(dashboard)/market-monitor/utils/preferences.ts`
 
 **Logging & Error Handling**:
 

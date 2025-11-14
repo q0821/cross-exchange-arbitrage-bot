@@ -1,4 +1,58 @@
 /**
+ * WebSocket Market Rates Types
+ */
+
+export interface ExchangeRateData {
+  rate: number;
+  price: number | null;
+  // NEW: Normalized rate data (optional)
+  normalizedRate?: number;
+  originalFundingInterval?: number;
+  targetTimeBasis?: number;
+}
+
+export interface BestArbitragePair {
+  longExchange: string;
+  shortExchange: string;
+  spread: number;
+  spreadPercent: number;
+  annualizedReturn: number;
+  priceDiffPercent: number | null;
+  netReturn: number;
+}
+
+export interface MarketRate {
+  symbol: string;
+  exchanges: Record<string, ExchangeRateData>;
+  bestPair: BestArbitragePair | null;
+  status: 'opportunity' | 'approaching' | 'normal';
+  timestamp: string;
+}
+
+export interface MarketRatesUpdatePayload {
+  type: 'rates:update';
+  data: {
+    rates: MarketRate[];
+    timestamp: string;
+  };
+}
+
+export interface MarketStatsPayload {
+  type: 'rates:stats';
+  data: {
+    totalSymbols: number;
+    opportunityCount: number;
+    approachingCount: number;
+    maxSpread: {
+      symbol: string;
+      spread: number;
+    } | null;
+    uptime: number;
+    lastUpdate: string | null;
+  };
+}
+
+/**
  * Sorting configuration types for market monitor table
  */
 
