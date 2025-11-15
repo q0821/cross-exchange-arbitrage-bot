@@ -204,6 +204,7 @@ export const RateRow = React.memo(function RateRow({
   // Feature 012 T041: Determine if this is a top opportunity
   const isTopOpportunity = rate.status === 'opportunity' &&
     rate.bestPair?.netReturn !== undefined &&
+    rate.bestPair?.netReturn !== null &&
     rate.bestPair.netReturn > 0.5; // Top if net return > 0.5%
 
   // Feature 012 T044: Check if data is stale (older than 30 seconds)
