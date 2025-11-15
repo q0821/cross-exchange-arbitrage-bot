@@ -10,10 +10,10 @@
 
 import React, { useMemo } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { RateRow, MarketRate } from './RateRow';
+import { RateRow } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
 import { stableSortComparator } from '../utils/sortComparator';
-import type { SortField, SortDirection } from '../types';
+import type { SortField, SortDirection, MarketRate } from '../types';
 
 interface RatesTableProps {
   ratesMap: Map<string, MarketRate>;

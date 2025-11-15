@@ -10,44 +10,14 @@
 
 import React from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { StatusBadge, OpportunityStatus } from './StatusBadge';
+import { StatusBadge } from './StatusBadge';
 import { ExchangeLink } from '@/components/market';
 import { formatFundingInterval } from '../utils/formatters';
 import { NetProfitTooltip } from './NetProfitTooltip';
-
-// 交易所名稱類型
-export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
-
-// 單個交易所的費率數據
-export interface ExchangeRate {
-  rate: number;
-  ratePercent?: string;
-  price?: number | null;
-  // Feature 012: Normalized rate data (optional)
-  normalizedRate?: number;
-  originalFundingInterval?: number;
-  targetTimeBasis?: number;
-}
-
-// 最佳套利對信息
-export interface BestArbitragePair {
-  longExchange: ExchangeName;   // 做多的交易所
-  shortExchange: ExchangeName;  // 做空的交易所
-  spread: number;               // 利差（小數）
-  spreadPercent: number;        // 利差百分比
-  annualizedReturn: number;     // 年化收益
-  priceDiffPercent?: number | null;  // 價差百分比（正值表示有利，負值表示不利）
-  netReturn?: number | null;     // 淨收益百分比（扣除價差和手續費後的真實獲利）
-}
-
-// 市場費率數據（支持多交易所）
-export interface MarketRate {
-  symbol: string;
-  exchanges: Record<ExchangeName, ExchangeRate>;  // 所有交易所的費率
-  bestPair: BestArbitragePair | null;             // 最佳套利對
-  status: OpportunityStatus;
-  timestamp: string;
-}
+import type {
+  ExchangeName,
+  MarketRate,
+} from '../types';
 
 interface RateRowProps {
   rate: MarketRate;

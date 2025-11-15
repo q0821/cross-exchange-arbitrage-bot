@@ -16,7 +16,7 @@ import { TimeBasisSelector } from './components/TimeBasisSelector';
 import { useMarketRates } from './hooks/useMarketRates';
 import { useSymbolGroups } from './hooks/useSymbolGroups';
 import { useTableSort } from './hooks/useTableSort';
-import type { MarketRate } from './components/RateRow';
+import type { MarketRate } from './types';
 
 /**
  * MarketMonitorPage 組件
