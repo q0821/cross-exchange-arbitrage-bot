@@ -13,6 +13,7 @@ export interface AuthenticatedSocket extends Socket {
   data: {
     userId: string;
     email: string;
+    timeBasis?: number; // User's preferred time basis (1, 8, or 24 hours)
   };
 }
 

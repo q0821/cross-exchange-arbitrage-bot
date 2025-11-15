@@ -61,7 +61,7 @@ export function normalizeRate(
  */
 export function parseFundingInterval(intervalString: string): number {
   const match = intervalString.match(/^(\d+)H$/i);
-  if (!match) {
+  if (!match || !match[1]) {
     logger.warn({ intervalString }, 'Invalid funding interval format');
     throw new Error(`Invalid funding interval format: ${intervalString}`);
   }
@@ -111,8 +111,15 @@ export function detectFundingInterval(fundingTimes: string[]): number | null {
   const intervals: number[] = [];
 
   for (let i = 1; i < fundingTimes.length; i++) {
-    const prev = new Date(fundingTimes[i - 1]).getTime();
-    const curr = new Date(fundingTimes[i]).getTime();
+    const prevTime = fundingTimes[i - 1];
+    const currTime = fundingTimes[i];
+
+    if (!prevTime || !currTime) {
+      continue;
+    }
+
+    const prev = new Date(prevTime).getTime();
+    const curr = new Date(currTime).getTime();
     const diffHours = (curr - prev) / (1000 * 60 * 60);
     intervals.push(Math.round(diffHours));
   }

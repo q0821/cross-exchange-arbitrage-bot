@@ -15,7 +15,6 @@ import type { IFundingRateValidator, PriceData } from '../../types/service-inter
 import { ratesCache } from './RatesCache';
 import { PriceMonitor } from './PriceMonitor.js';
 import { ArbitrageAssessor, type ArbitrageConfig, type ArbitrageAssessment } from '../assessment/ArbitrageAssessor.js';
-import { fundingRateNormalizer } from './FundingRateNormalizer';
 import type { TimeBasis } from '../../lib/validation/fundingRateSchemas';
 
 /**

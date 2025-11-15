@@ -2,6 +2,8 @@
  * WebSocket Market Rates Types
  */
 
+export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
+
 export interface ExchangeRateData {
   rate: number;
   price: number | null;
@@ -12,13 +14,13 @@ export interface ExchangeRateData {
 }
 
 export interface BestArbitragePair {
-  longExchange: string;
-  shortExchange: string;
+  longExchange: ExchangeName;
+  shortExchange: ExchangeName;
   spread: number;
   spreadPercent: number;
   annualizedReturn: number;
   priceDiffPercent: number | null;
-  netReturn: number;
+  netReturn?: number | null;
 }
 
 export interface MarketRate {

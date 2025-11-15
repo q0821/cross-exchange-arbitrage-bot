@@ -168,8 +168,17 @@ export class NetProfitCalculator {
 
         const longExchange = exchanges[i];
         const shortExchange = exchanges[j];
-        const longRate = rates.get(longExchange)!;
-        const shortRate = rates.get(shortExchange)!;
+
+        if (!longExchange || !shortExchange) {
+          continue;
+        }
+
+        const longRate = rates.get(longExchange);
+        const shortRate = rates.get(shortExchange);
+
+        if (!longRate || !shortRate) {
+          continue;
+        }
 
         try {
           const result = this.calculate(
@@ -235,8 +244,17 @@ export class NetProfitCalculator {
 
         const longExchange = exchanges[i];
         const shortExchange = exchanges[j];
-        const longRate = rates.get(longExchange)!;
-        const shortRate = rates.get(shortExchange)!;
+
+        if (!longExchange || !shortExchange) {
+          continue;
+        }
+
+        const longRate = rates.get(longExchange);
+        const shortRate = rates.get(shortExchange);
+
+        if (!longRate || !shortRate) {
+          continue;
+        }
 
         try {
           const result = this.calculate(
