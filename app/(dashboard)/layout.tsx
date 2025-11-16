@@ -31,7 +31,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const navLinks = [
-    { href: '/opportunities', label: '套利機會' },
     { href: '/market-monitor', label: '市場監控' },
     { href: '/settings/api-keys', label: 'API 金鑰管理' },
   ];
@@ -44,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center justify-between h-16">
             {/* Logo 和標題 */}
             <div className="flex items-center space-x-4">
-              <Link href="/opportunities" className="text-xl font-bold text-gray-900">
+              <Link href="/market-monitor" className="text-xl font-bold text-gray-900">
                 套利交易平台
               </Link>
             </div>

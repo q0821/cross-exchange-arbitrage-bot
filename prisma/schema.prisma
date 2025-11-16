@@ -33,6 +33,8 @@ model FundingRate {
 }
 
 // ===== 套利機會 (Detection System - US1-US4) =====
+/// @deprecated This model is deprecated. Use Market Monitor for real-time opportunities.
+/// Historical data preserved for analysis. Last active: 2025-01-21.
 model ArbitrageOpportunity {
   id                      String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   symbol                  String              @db.VarChar(20)
@@ -74,6 +76,8 @@ enum OpportunityStatus {
 }
 
 // ===== 機會歷史摘要 (US3) =====
+/// @deprecated This model is deprecated along with ArbitrageOpportunity.
+/// Historical data preserved for analysis. Last active: 2025-01-21.
 model OpportunityHistory {
   id                        String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   opportunity_id            String            @unique @db.Uuid

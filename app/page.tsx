@@ -5,9 +5,9 @@ export default function Home() {
   const cookieStore = cookies();
   const token = cookieStore.get('token');
 
-  // 如果已登入，跳轉到套利機會頁面
+  // 如果已登入，跳轉到市場監控頁面
   if (token) {
-    redirect('/opportunities');
+    redirect('/market-monitor');
   }
 
   // 如果未登入，跳轉到登入頁面

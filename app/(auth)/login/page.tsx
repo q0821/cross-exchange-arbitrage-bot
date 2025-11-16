@@ -40,8 +40,8 @@ export default function LoginPage() {
         return;
       }
 
-      // 登入成功，跳轉到套利機會頁面
-      router.push('/opportunities');
+      // 登入成功，跳轉到市場監控頁面
+      router.push('/market-monitor');
     } catch (err) {
       setError('An unexpected error occurred');
       setIsLoading(false);
