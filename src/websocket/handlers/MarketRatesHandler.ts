@@ -338,10 +338,9 @@ export class MarketRatesHandler {
         exchanges[exchangeName] = {
           rate: exchangeData.rate.fundingRate,
           price: exchangeData.price || exchangeData.rate.markPrice || null,
-          // NEW: Normalized rate data (optional)
-          normalizedRate: exchangeData.normalizedRate,
-          originalFundingInterval: exchangeData.originalFundingInterval,
-          targetTimeBasis: exchangeData.targetTimeBasis,
+          // Feature 012: 推送所有標準化版本（1h, 8h, 24h）
+          normalized: exchangeData.normalized || {},
+          originalInterval: exchangeData.originalFundingInterval,
         };
       }
 

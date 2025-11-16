@@ -17,10 +17,12 @@ import { NetProfitTooltip } from './NetProfitTooltip';
 import type {
   ExchangeName,
   MarketRate,
+  TimeBasis,
 } from '../types';
 
 interface RateRowProps {
   rate: MarketRate;
+  timeBasis: TimeBasis; // Feature 012: 用戶選擇的時間基準
   onSymbolClick?: (symbol: string) => void;
   onQuickOpen?: (rate: MarketRate) => void;
 }
@@ -28,9 +30,11 @@ interface RateRowProps {
 /**
  * RateRow 組件
  * 使用 React.memo 優化性能，避免不必要的重新渲染
+ * Feature 012: 根據用戶選擇的 timeBasis 顯示對應的標準化費率
  */
 export const RateRow = React.memo(function RateRow({
   rate,
+  timeBasis,
   onSymbolClick,
   onQuickOpen,
 }: RateRowProps) {
@@ -123,38 +127,46 @@ export const RateRow = React.memo(function RateRow({
 
           {/* 費率與交易所連結 */}
           <div className="flex items-center gap-1 justify-end">
-            {/* Feature 012: Show normalized rate with tooltip for original interval */}
-            {exchangeData.normalizedRate !== undefined && exchangeData.originalFundingInterval ? (
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <span className="font-mono text-sm cursor-help underline decoration-dotted">
-                    {formatRate(exchangeData.normalizedRate)}
-                  </span>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
-                    sideOffset={5}
-                  >
-                    <div className="space-y-1">
-                      <div className="font-semibold">原始資金費率：</div>
-                      <div>{formatRate(exchangeData.rate)}</div>
-                      <div className="text-gray-300 text-[11px] mt-1">
-                        原始結算週期：{formatFundingInterval(exchangeData.originalFundingInterval)}
-                      </div>
-                      {exchangeData.targetTimeBasis && (
-                        <div className="text-gray-300 text-[11px]">
-                          標準化為：{formatFundingInterval(exchangeData.targetTimeBasis)}
+            {/* Feature 012: 根據 timeBasis 顯示對應的標準化費率 */}
+            {(() => {
+              const timeBasisKey = `${timeBasis}h` as '1h' | '8h' | '24h';
+              const normalizedRate = exchangeData.normalized?.[timeBasisKey];
+              const originalInterval = exchangeData.originalInterval;
+
+              // 如果有標準化費率且原始週期與目標不同，顯示標準化費率並加上 tooltip
+              if (normalizedRate !== undefined && originalInterval && originalInterval !== timeBasis) {
+                return (
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <span className="font-mono text-sm cursor-help underline decoration-dotted">
+                        {formatRate(normalizedRate)}
+                      </span>
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                      <Tooltip.Content
+                        className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+                        sideOffset={5}
+                      >
+                        <div className="space-y-1">
+                          <div className="font-semibold">原始資金費率：</div>
+                          <div>{formatRate(exchangeData.rate)}</div>
+                          <div className="text-gray-300 text-[11px] mt-1">
+                            原始結算週期：{formatFundingInterval(originalInterval)}
+                          </div>
+                          <div className="text-gray-300 text-[11px]">
+                            已標準化為：{formatFundingInterval(timeBasis)} 基準
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <Tooltip.Arrow className="fill-gray-900" />
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-            ) : (
-              <span className="font-mono text-sm">{formatRate(exchangeData.rate)}</span>
-            )}
+                        <Tooltip.Arrow className="fill-gray-900" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                );
+              }
+
+              // 否則直接顯示原始費率
+              return <span className="font-mono text-sm">{formatRate(exchangeData.rate)}</span>;
+            })()}
             <ExchangeLink
               exchange={exchangeName}
               symbol={rate.symbol}

@@ -16,6 +16,7 @@ import { ratesCache } from './RatesCache';
 import { PriceMonitor } from './PriceMonitor.js';
 import { ArbitrageAssessor, type ArbitrageConfig, type ArbitrageAssessment } from '../assessment/ArbitrageAssessor.js';
 import type { TimeBasis } from '../../lib/validation/fundingRateSchemas';
+import { FundingRateNormalizer } from './FundingRateNormalizer';
 
 /**
  * 監控狀態
@@ -55,6 +56,7 @@ export class FundingRateMonitor extends EventEmitter {
   private validator?: IFundingRateValidator; // 可選的資金費率驗證器
   private priceMonitor?: PriceMonitor; // 可選的價格監控器
   private arbitrageAssessor?: ArbitrageAssessor; // 可選的套利評估器
+  private normalizer: FundingRateNormalizer; // Feature 012: 資金費率標準化服務
 
   private symbols: string[];
   private updateInterval: number; // 毫秒
@@ -110,6 +112,7 @@ export class FundingRateMonitor extends EventEmitter {
     this.store = new FundingRateStore();
     this.calculator = new RateDifferenceCalculator(minSpreadThreshold);
     this.statsTracker = new MonitorStatsTracker();
+    this.normalizer = new FundingRateNormalizer(); // Feature 012: 初始化標準化服務
 
     // 設定驗證器
     this.validator = options?.validator;
@@ -361,9 +364,56 @@ export class FundingRateMonitor extends EventEmitter {
           // 儲存到記憶體
           this.store.save(rate);
 
+          // Feature 012: 計算所有標準化版本 (1h, 8h, 24h)
+          const normalized: { '1h'?: number; '8h'?: number; '24h'?: number } = {};
+          const originalInterval = rateData.fundingInterval || 8; // 預設 8 小時
+
+          try {
+            // 標準化為 1 小時基準
+            const normalized1h = this.normalizer.normalize(
+              symbol,
+              exchangeName,
+              rate.fundingRate.toString(),
+              originalInterval,
+              1
+            );
+            normalized['1h'] = parseFloat(normalized1h.normalizedRate.toString());
+
+            // 標準化為 8 小時基準
+            const normalized8h = this.normalizer.normalize(
+              symbol,
+              exchangeName,
+              rate.fundingRate.toString(),
+              originalInterval,
+              8
+            );
+            normalized['8h'] = parseFloat(normalized8h.normalizedRate.toString());
+
+            // 標準化為 24 小時基準
+            const normalized24h = this.normalizer.normalize(
+              symbol,
+              exchangeName,
+              rate.fundingRate.toString(),
+              originalInterval,
+              24
+            );
+            normalized['24h'] = parseFloat(normalized24h.normalizedRate.toString());
+          } catch (error) {
+            logger.warn({
+              exchange: exchangeName,
+              symbol,
+              error: error instanceof Error ? error.message : String(error),
+            }, 'Failed to normalize funding rate (using original rate)');
+          }
+
           return {
             exchangeName,
-            data: { rate, price } as ExchangeRateData,
+            data: {
+              rate,
+              price,
+              normalized,
+              originalFundingInterval: originalInterval,
+            } as ExchangeRateData,
           };
         } catch (error) {
           logger.warn({

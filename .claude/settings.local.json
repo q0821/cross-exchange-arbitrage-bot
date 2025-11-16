@@ -89,7 +89,8 @@
       "Bash(do if [ -f \"$file\" ])",
       "Bash(then basename \"$file\" grep -E \"^- \\[([ Xx])\\]\" \"$file\")",
       "Bash(mkdir:*)",
-      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/012-specify-scripts-bash/checklists\" ])"
+      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/012-specify-scripts-bash/checklists\" ])",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []

@@ -207,6 +207,7 @@ export default function MarketMonitorPage() {
 
         <RatesTable
           ratesMap={filteredRatesMap}
+          timeBasis={timeBasis}
           sortBy={sortBy}
           sortDirection={sortDirection}
           filterStatus={filterStatus}

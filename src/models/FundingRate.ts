@@ -102,14 +102,19 @@ export class FundingRateRecord implements FundingRate {
 
 /**
  * 單一交易所的資金費率和價格數據
+ *
+ * Feature 012: 支援多版本標準化費率
  */
 export interface ExchangeRateData {
   rate: FundingRateRecord;
   price?: number;
-  // NEW: Normalized rate data (optional for backward compatibility)
-  normalizedRate?: number;
-  originalFundingInterval?: number;
-  targetTimeBasis?: number;
+  // Feature 012: 多版本標準化費率（前端根據 timeBasis 選擇顯示）
+  normalized?: {
+    '1h'?: number;   // 標準化為 1 小時基準的費率
+    '8h'?: number;   // 標準化為 8 小時基準的費率
+    '24h'?: number;  // 標準化為 24 小時基準的費率
+  };
+  originalFundingInterval?: number; // 原始資金費率週期（小時數）
 }
 
 /**

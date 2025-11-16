@@ -13,10 +13,11 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { RateRow } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
 import { stableSortComparator } from '../utils/sortComparator';
-import type { SortField, SortDirection, MarketRate } from '../types';
+import type { SortField, SortDirection, MarketRate, TimeBasis } from '../types';
 
 interface RatesTableProps {
   ratesMap: Map<string, MarketRate>;
+  timeBasis: TimeBasis; // Feature 012: 用戶選擇的時間基準
   sortBy?: SortField;
   sortDirection?: SortDirection;
   filterStatus?: OpportunityStatus | 'all';
@@ -35,6 +36,7 @@ interface RatesTableProps {
  */
 export function RatesTable({
   ratesMap,
+  timeBasis,
   sortBy = 'symbol',
   sortDirection = 'asc',
   filterStatus = 'all',
@@ -279,6 +281,7 @@ export function RatesTable({
               <RateRow
                 key={rate.symbol}
                 rate={rate}
+                timeBasis={timeBasis}
                 onSymbolClick={onSymbolClick}
                 onQuickOpen={onQuickOpen}
               />
