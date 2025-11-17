@@ -16,6 +16,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - PostgreSQL 15 + TimescaleDB (已配置於 Docker Compose) (012-specify-scripts-bash)
 - TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router (前端), Prisma 5.x (資料模型), Socket.io 4.8.1 (WebSocket) (013-specify-scripts-bash)
 - PostgreSQL 15+ with TimescaleDB (保留歷史資料，標記模型為廢棄) (013-specify-scripts-bash)
+- TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Tailwind CSS, Socket.io 4.8.1 (WebSocket) (014-remove-net-return-display)
+- N/A（純 UI 重構，不涉及資料模型變更；手續費規範為 Markdown 文件） (014-remove-net-return-display)
 
 ## Project Structure
 ```
@@ -30,9 +32,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 014-remove-net-return-display: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Tailwind CSS, Socket.io 4.8.1 (WebSocket)
 - 013-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router (前端), Prisma 5.x (資料模型), Socket.io 4.8.1 (WebSocket)
 - 012-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS
-- 011-price-spread-net-return: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14.2.33 (App Router), React 18, Tailwind CSS, Socket.io 4.8.1
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
