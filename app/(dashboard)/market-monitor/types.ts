@@ -26,7 +26,7 @@ export interface BestArbitragePair {
   spreadPercent: number;
   annualizedReturn: number;
   priceDiffPercent: number | null;
-  netReturn?: number | null;
+  // netReturn field removed - Feature 014: 移除淨收益欄位
 }
 
 export interface MarketRate {
@@ -64,7 +64,7 @@ export interface MarketStatsPayload {
  * Sorting configuration types for market monitor table
  */
 
-export type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'priceDiff' | 'netReturn';
+export type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'priceDiff';
 export type SortDirection = 'asc' | 'desc';
 
 export interface SortPreference {
@@ -80,7 +80,6 @@ export const VALID_SORT_FIELDS: SortField[] = [
   'spread',
   'annualizedReturn',
   'priceDiff',
-  'netReturn',
 ];
 
 export const VALID_SORT_DIRECTIONS: SortDirection[] = ['asc', 'desc'];

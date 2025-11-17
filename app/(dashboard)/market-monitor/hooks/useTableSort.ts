@@ -10,7 +10,7 @@
 import { useState, useCallback } from 'react';
 import type { OpportunityStatus } from '../components/StatusBadge';
 
-export type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'priceDiff' | 'netReturn';
+export type SortField = 'symbol' | 'spread' | 'annualizedReturn' | 'priceDiff';
 export type SortDirection = 'asc' | 'desc';
 
 interface UseTableSortReturn {
@@ -48,7 +48,7 @@ export function useTableSort(): UseTableSortReturn {
     if (typeof window === 'undefined') return DEFAULT_SORT_BY;
     try {
       const saved = localStorage.getItem(STORAGE_KEY_SORT_BY);
-      if (saved && ['symbol', 'spread', 'annualizedReturn', 'priceDiff', 'netReturn'].includes(saved)) {
+      if (saved && ['symbol', 'spread', 'annualizedReturn', 'priceDiff'].includes(saved)) {
         return saved as SortField;
       }
     } catch (err) {

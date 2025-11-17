@@ -13,7 +13,7 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { StatusBadge } from './StatusBadge';
 import { ExchangeLink } from '@/components/market';
 import { formatFundingInterval } from '../utils/formatters';
-import { NetProfitTooltip } from './NetProfitTooltip';
+import { FeeEstimateTooltip } from './FeeEstimateTooltip';
 import type {
   ExchangeName,
   MarketRate,
@@ -184,10 +184,11 @@ export const RateRow = React.memo(function RateRow({
   };
 
   // Feature 012 T041: Determine if this is a top opportunity
+  // Feature 014: Updated to use spreadPercent instead of netReturn
   const isTopOpportunity = rate.status === 'opportunity' &&
-    rate.bestPair?.netReturn !== undefined &&
-    rate.bestPair?.netReturn !== null &&
-    rate.bestPair.netReturn > 0.5; // Top if net return > 0.5%
+    rate.bestPair?.spreadPercent !== undefined &&
+    rate.bestPair?.spreadPercent !== null &&
+    rate.bestPair.spreadPercent > 0.5; // Top if spread > 0.5%
 
   // Feature 012 T044: Check if data is stale (older than 30 seconds)
   const isStale = (() => {
@@ -225,7 +226,7 @@ export const RateRow = React.memo(function RateRow({
                   className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
                   sideOffset={5}
                 >
-                  高收益機會！淨收益 &gt; 0.5%
+                  高收益機會！費率差異 &gt; 0.5%
                   <Tooltip.Arrow className="fill-gray-900" />
                 </Tooltip.Content>
               </Tooltip.Portal>
@@ -287,17 +288,9 @@ export const RateRow = React.memo(function RateRow({
         </span>
       </td>
 
-      {/* 淨收益 */}
+      {/* 預估手續費 */}
       <td className="px-4 py-3 text-right">
-        {rate.bestPair?.netReturn != null && !isNaN(rate.bestPair.netReturn) ? (
-          <NetProfitTooltip
-            netProfit={rate.bestPair.netReturn}
-            spreadPercent={rate.bestPair.spreadPercent}
-            priceDiffPercent={rate.bestPair.priceDiffPercent}
-          />
-        ) : (
-          <span className="font-mono text-sm text-gray-400">N/A</span>
-        )}
+        <FeeEstimateTooltip />
       </td>
 
       {/* 狀態 */}

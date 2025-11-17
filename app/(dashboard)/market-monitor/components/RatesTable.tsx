@@ -117,8 +117,8 @@ export function RatesTable({
             <span className="ml-1">(做空價格 - 做多價格) / 平均價格 × 100，正值有利</span>
           </div>
           <div>
-            <span className="font-semibold">淨收益：</span>
-            <span className="ml-1">費率差異 - 手續費 (0.2%)，扣除交易成本後的真實獲利</span>
+            <span className="font-semibold">預估手續費：</span>
+            <span className="ml-1">0.2%（4 筆 Taker 交易：建倉做多、建倉做空、平倉做多、平倉做空）</span>
           </div>
         </div>
       </div>
@@ -229,40 +229,11 @@ export function RatesTable({
                 </Tooltip.Root>
               </th>
 
-              {/* 淨收益 */}
-              <th
-                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                onClick={() => handleSort('netReturn')}
-              >
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <div className="flex items-center justify-end gap-1">
-                      <span>淨收益</span>
-                      {getSortIcon('netReturn')}
-                    </div>
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
-                      sideOffset={5}
-                    >
-                      <div className="space-y-1">
-                        <div className="font-semibold">計算公式：</div>
-                        <div>淨收益 = 費率差異 - 手續費 (0.2%)</div>
-                        <div className="text-gray-300 text-[11px] mt-1">
-                          手續費 = 4 筆交易 × 0.05% taker fee
-                        </div>
-                        <div className="text-gray-300 text-[11px] mt-1">
-                          扣除交易成本後的真實獲利
-                        </div>
-                        <div className="text-gray-300 text-[11px]">
-                          綠色 &gt; 0.1% | 黃色 -0.05% ~ 0.1% | 紅色 &lt; -0.05%
-                        </div>
-                      </div>
-                      <Tooltip.Arrow className="fill-gray-900" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
+              {/* 預估手續費 */}
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <div className="flex items-center justify-end gap-1">
+                  <span>預估手續費</span>
+                </div>
               </th>
 
               {/* 狀態 */}

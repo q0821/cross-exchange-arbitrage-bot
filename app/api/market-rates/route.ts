@@ -58,10 +58,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         status = 'normal';
       }
 
-      // 計算淨收益（扣除成本）
-      const TOTAL_COST_RATE = 0.005; // 0.5%
-      const netSpread = (spreadPercent / 100) - TOTAL_COST_RATE;
-      const netAnnualized = netSpread * 365 * 3 * 100; // 轉換為百分比
+      // netReturn calculation removed - Feature 014: 移除淨收益欄位
 
       // 構建所有交易所的數據
       const exchanges: Record<string, any> = {};
@@ -81,7 +78,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             shortExchange: rate.bestPair.shortExchange,
             spreadPercent: rate.bestPair.spreadPercent.toFixed(4),
             annualizedReturn: rate.bestPair.spreadAnnualized.toFixed(2),
-            netReturn: netAnnualized.toFixed(2),
+            // netReturn field removed - Feature 014: 移除淨收益欄位
             priceDiffPercent: rate.bestPair.priceDiffPercent?.toFixed(4) || null,
           }
         : null;

@@ -9,7 +9,6 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { AuthenticatedSocket } from '../SocketServer';
 import { ratesCache } from '../../services/monitor/RatesCache';
 import { logger } from '@lib/logger';
-import { calculateNetReturn } from '@lib/net-return-calculator';
 
 /**
  * MarketRatesHandler
@@ -228,16 +227,16 @@ export class MarketRatesHandler {
           opportunityCount: stats.opportunityCount,
           subscriberCount: this.io.sockets.adapter.rooms.get(room)?.size || 0,
           lastUpdate: stats.lastUpdate?.toISOString() || null,
-          sampleRateWithNetReturn: formattedRates[0]?.bestPair
+          sampleRateWithSpread: formattedRates[0]?.bestPair
             ? {
                 symbol: formattedRates[0].symbol,
                 spreadPercent: formattedRates[0].bestPair.spreadPercent,
                 priceDiffPercent: formattedRates[0].bestPair.priceDiffPercent,
-                netReturn: formattedRates[0].bestPair.netReturn,
+                // netReturn removed - Feature 014: 移除淨收益欄位
               }
             : null,
         },
-        'Broadcasted market rates update with price spread and net return',
+        'Broadcasted market rates update with price spread',
       );
     } catch (error) {
       logger.error(
@@ -353,11 +352,7 @@ export class MarketRatesHandler {
             spreadPercent: rate.bestPair.spreadPercent,
             annualizedReturn: rate.bestPair.spreadAnnualized,
             priceDiffPercent: rate.bestPair.priceDiffPercent ?? null,
-            // Feature 012: Use backend-calculated netReturn if available, otherwise fallback to local calculation
-            netReturn: rate.bestPair.netReturn ?? calculateNetReturn(
-              rate.bestPair.spreadPercent,
-              rate.bestPair.priceDiffPercent,
-            ),
+            // netReturn field removed - Feature 014: 移除淨收益欄位
           }
         : null;
 

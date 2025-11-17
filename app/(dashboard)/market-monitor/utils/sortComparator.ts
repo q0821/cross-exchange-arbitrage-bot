@@ -9,7 +9,7 @@ export interface MarketRate {
     spreadPercent: number;
     annualizedReturn: number;
     priceDiffPercent?: number | null;
-    netReturn?: number | null;
+    // netReturn removed - Feature 014: 移除淨收益欄位
   } | null;
 }
 
@@ -54,11 +54,7 @@ export function stableSortComparator(
       result = priceDiffA - priceDiffB;
       break;
 
-    case 'netReturn':
-      const netA = a.bestPair?.netReturn ?? 0;
-      const netB = b.bestPair?.netReturn ?? 0;
-      result = netA - netB;
-      break;
+    // case 'netReturn' removed - Feature 014: 移除淨收益欄位
 
     default:
       // Fallback to symbol comparison
