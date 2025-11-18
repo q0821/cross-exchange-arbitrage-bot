@@ -1,0 +1,85 @@
+{
+  "description": "套利監控交易對配置",
+  "note": "top100_oi 群組由 MonitorService 使用，包含 30 個高 OI 交易對（適合套利的熱門標的）",
+  "lastUpdate": "2025-11-12",
+  "groups": {
+    "default": {
+      "name": "主流幣（BTC、ETH、SOL）",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT"
+      ]
+    },
+    "top30": {
+      "name": "市值前 30 大及高流動性",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "BNBUSDT",
+        "SOLUSDT",
+        "XRPUSDT",
+        "ADAUSDT",
+        "DOGEUSDT",
+        "AVAXUSDT",
+        "DOTUSDT",
+        "LINKUSDT",
+        "TRXUSDT",
+        "ATOMUSDT",
+        "LTCUSDT",
+        "NEARUSDT",
+        "UNIUSDT",
+        "ICPUSDT",
+        "APTUSDT",
+        "FILUSDT",
+        "ETCUSDT",
+        "ARBUSDT",
+        "SHIBUSDT",
+        "PEPEUSDT",
+        "AAVEUSDT",
+        "CRVUSDT",
+        "MKRUSDT",
+        "COMPUSDT",
+        "SUSHIUSDT",
+        "SNXUSDT",
+        "SUIUSDT",
+        "FLOKIUSDT"
+      ]
+    },
+    "top100_oi": {
+      "name": "高 OI 交易對（伺服器監控列表）",
+      "symbols": [
+        "BTCUSDT",
+        "ETHUSDT",
+        "SOLUSDT",
+        "XRPUSDT",
+        "BNBUSDT",
+        "DOGEUSDT",
+        "ZECUSDT",
+        "HYPEUSDT",
+        "ASTERUSDT",
+        "ENAUSDT",
+        "BCHUSDT",
+        "SUIUSDT",
+        "UNIUSDT",
+        "PUMPUSDT",
+        "LINKUSDT",
+        "WLFIUSDT",
+        "TRXUSDT",
+        "ADAUSDT",
+        "LTCUSDT",
+        "AVAXUSDT",
+        "PAXGUSDT",
+        "AAVEUSDT",
+        "TRUMPUSDT",
+        "FILUSDT",
+        "XPLUSDT",
+        "APTUSDT",
+        "NEARUSDT",
+        "TAOUSDT",
+        "ICPUSDT",
+        "DOTUSDT"
+      ]
+    }
+  }
+}
