@@ -21,12 +21,15 @@ import {
   ExchangeRateLimitError,
 } from '../lib/errors.js';
 import { retryApiCall } from '../lib/retry.js';
+import { FundingIntervalCache } from '../lib/FundingIntervalCache.js';
 
 export class GateioConnector extends BaseExchangeConnector {
   private client: ccxt.Exchange | null = null;
+  private intervalCache: FundingIntervalCache;
 
   constructor(isTestnet: boolean = false) {
     super('gateio', isTestnet);
+    this.intervalCache = new FundingIntervalCache();
   }
 
   async connect(): Promise<void> {
@@ -94,6 +97,9 @@ export class GateioConnector extends BaseExchangeConnector {
         const ccxtSymbol = this.toCcxtSymbol(symbol);
         const fundingRate = await this.client!.fetchFundingRate(ccxtSymbol);
 
+        // 🆕 獲取動態間隔
+        const interval = await this.getFundingInterval(symbol);
+
         return {
           exchange: 'gateio',
           symbol: this.fromCcxtSymbol(fundingRate.symbol),
@@ -102,7 +108,7 @@ export class GateioConnector extends BaseExchangeConnector {
           markPrice: fundingRate.markPrice,
           indexPrice: fundingRate.indexPrice,
           recordedAt: new Date(),
-          fundingInterval: 8, // Gate.io uses 8-hour funding intervals
+          fundingInterval: interval, // 🆕 使用動態間隔
         } as FundingRateData;
       } catch (error) {
         throw this.handleApiError(error);
@@ -118,7 +124,15 @@ export class GateioConnector extends BaseExchangeConnector {
         const ccxtSymbols = symbols.map((s) => this.toCcxtSymbol(s));
         const fundingRates = await this.client!.fetchFundingRates(ccxtSymbols);
 
-        return (Object.values(fundingRates) as ccxt.FundingRate[]).map((rate) => ({
+        const ratesArray = Object.values(fundingRates) as ccxt.FundingRate[];
+
+        // 🆕 批量獲取間隔值
+        const intervalPromises = ratesArray.map((rate) =>
+          this.getFundingInterval(this.fromCcxtSymbol(rate.symbol))
+        );
+        const intervals = await Promise.all(intervalPromises);
+
+        return ratesArray.map((rate, index) => ({
           exchange: 'gateio',
           symbol: this.fromCcxtSymbol(rate.symbol),
           fundingRate: rate.fundingRate || 0,
@@ -126,12 +140,62 @@ export class GateioConnector extends BaseExchangeConnector {
           markPrice: rate.markPrice,
           indexPrice: rate.indexPrice,
           recordedAt: new Date(),
-          fundingInterval: 8, // Gate.io uses 8-hour funding intervals
+          fundingInterval: intervals[index], // 🆕 使用動態間隔
         })) as FundingRateData[];
       } catch (error) {
         throw this.handleApiError(error);
       }
     }, 'gateio', 'getFundingRates');
+  }
+
+  /**
+   * 獲取單一交易對的資金費率間隔(小時)
+   * @param symbol 交易對符號 (如 'BTCUSDT')
+   * @returns 間隔值(小時)
+   */
+  async getFundingInterval(symbol: string): Promise<number> {
+    this.ensureConnected();
+
+    try {
+      // 1. 檢查快取
+      const cached = this.intervalCache.get('gateio', symbol);
+      if (cached !== null) {
+        logger.debug({ symbol, interval: cached, source: 'cache' }, 'Interval retrieved from cache');
+        return cached;
+      }
+
+      // 2. 測試 CCXT 是否暴露 funding_interval 欄位
+      const ccxtSymbol = this.toCcxtSymbol(symbol);
+      const fundingRate = await this.client!.fetchFundingRate(ccxtSymbol);
+
+      // 3. 檢查 CCXT info 中是否有 funding_interval 欄位 (秒)
+      const fundingIntervalSeconds = (fundingRate as any).info?.funding_interval;
+
+      if (
+        fundingIntervalSeconds &&
+        typeof fundingIntervalSeconds === 'number' &&
+        fundingIntervalSeconds > 0
+      ) {
+        // CCXT 成功暴露 funding_interval 欄位，轉換為小時
+        const intervalHours = fundingIntervalSeconds / 3600;
+        this.intervalCache.set('gateio', symbol, intervalHours, 'api');
+        logger.info(
+          { symbol, interval: intervalHours, source: 'ccxt' },
+          'Funding interval fetched from CCXT'
+        );
+        return intervalHours;
+      }
+
+      // 4. CCXT 未暴露欄位，使用預設值
+      logger.warn({ symbol }, 'CCXT did not expose funding_interval field, using default 8h');
+      this.intervalCache.set('gateio', symbol, 8, 'default');
+      return 8;
+
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.warn({ symbol, error: err.message }, 'Failed to fetch funding interval, using default 8h');
+      return 8; // 降級至預設值
+    }
   }
 
   async getPrice(symbol: string): Promise<PriceData> {

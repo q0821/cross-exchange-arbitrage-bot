@@ -21,12 +21,15 @@ import {
   ExchangeRateLimitError,
 } from '../lib/errors.js';
 import { retryApiCall } from '../lib/retry.js';
+import { FundingIntervalCache } from '../lib/FundingIntervalCache.js';
 
 export class OKXConnector extends BaseExchangeConnector {
   private client: ccxt.Exchange | null = null;
+  private intervalCache: FundingIntervalCache;
 
   constructor(isTestnet: boolean = false) {
     super('okx', isTestnet);
+    this.intervalCache = new FundingIntervalCache();
   }
 
   async connect(): Promise<void> {
@@ -87,6 +90,84 @@ export class OKXConnector extends BaseExchangeConnector {
     }
   }
 
+  /**
+   * Get funding interval for a symbol by calculating from timestamps
+   * Feature: 017-funding-rate-intervals
+   * Strategy: Calculate interval from (nextFundingTime - fundingTime) / 3600000
+   */
+  async getFundingInterval(symbol: string): Promise<number> {
+    this.ensureConnected();
+
+    try {
+      // 1. Check cache first
+      const cached = this.intervalCache.get('okx', symbol);
+      if (cached !== null) {
+        logger.debug({ symbol, interval: cached, source: 'cache' }, 'Funding interval retrieved from cache');
+        return cached;
+      }
+
+      // 2. Fetch funding rate to get timestamps
+      const ccxtSymbol = this.toCcxtSymbol(symbol);
+      const fundingRate = await this.client!.fetchFundingRate(ccxtSymbol);
+
+      // 3. Extract fundingTime and nextFundingTime from info object
+      const info = (fundingRate as any).info;
+      const fundingTimeStr = info?.fundingTime;
+      const nextFundingTimeStr = info?.nextFundingTime;
+
+      if (!fundingTimeStr || !nextFundingTimeStr) {
+        logger.warn(
+          { symbol },
+          'CCXT did not expose fundingTime or nextFundingTime fields, using default 8h'
+        );
+        this.intervalCache.set('okx', symbol, 8, 'default');
+        return 8;
+      }
+
+      // 4. Parse timestamps (OKX returns milliseconds as strings)
+      const fundingTime = parseInt(fundingTimeStr, 10);
+      const nextFundingTime = parseInt(nextFundingTimeStr, 10);
+
+      // 5. Validate timestamps
+      if (isNaN(fundingTime) || isNaN(nextFundingTime) || nextFundingTime <= fundingTime) {
+        logger.warn(
+          { symbol, fundingTime, nextFundingTime },
+          'Invalid timestamps detected, using default 8h'
+        );
+        this.intervalCache.set('okx', symbol, 8, 'default');
+        return 8;
+      }
+
+      // 6. Calculate interval in hours
+      const intervalMs = nextFundingTime - fundingTime;
+      const intervalHours = Math.round(intervalMs / (60 * 60 * 1000));
+
+      if (intervalHours <= 0) {
+        logger.warn(
+          { symbol, intervalHours },
+          'Calculated interval is non-positive, using default 8h'
+        );
+        this.intervalCache.set('okx', symbol, 8, 'default');
+        return 8;
+      }
+
+      // 7. Cache and return
+      this.intervalCache.set('okx', symbol, intervalHours, 'calculated');
+      logger.info(
+        { symbol, interval: intervalHours, source: 'calculated' },
+        'Funding interval calculated from OKX timestamps'
+      );
+      return intervalHours;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.warn(
+        { symbol, error: err.message },
+        'Failed to calculate funding interval, using default 8h'
+      );
+      return 8;
+    }
+  }
+
   async getFundingRate(symbol: string): Promise<FundingRateData> {
     this.ensureConnected();
 
@@ -94,6 +175,9 @@ export class OKXConnector extends BaseExchangeConnector {
       try {
         const ccxtSymbol = this.toCcxtSymbol(symbol);
         const fundingRate = await this.client!.fetchFundingRate(ccxtSymbol);
+
+        // Get dynamic funding interval
+        const interval = await this.getFundingInterval(symbol);
 
         return {
           exchange: 'okx',
@@ -103,7 +187,7 @@ export class OKXConnector extends BaseExchangeConnector {
           markPrice: fundingRate.markPrice,
           indexPrice: fundingRate.indexPrice,
           recordedAt: new Date(),
-          fundingInterval: 8, // OKX uses 8-hour funding intervals for most contracts
+          fundingInterval: interval,
         } as FundingRateData;
       } catch (error) {
         throw this.handleApiError(error);
@@ -175,7 +259,13 @@ export class OKXConnector extends BaseExchangeConnector {
         const ccxtSymbols = symbols.map((s) => this.toCcxtSymbol(s));
         const fundingRates = await this.client!.fetchFundingRates(ccxtSymbols);
 
-        return (Object.values(fundingRates) as ccxt.FundingRate[]).map((rate) => ({
+        // Fetch intervals for all symbols in parallel
+        const ratesArray = Object.values(fundingRates) as ccxt.FundingRate[];
+        const intervals = await Promise.all(
+          ratesArray.map((rate) => this.getFundingInterval(this.fromCcxtSymbol(rate.symbol)))
+        );
+
+        return ratesArray.map((rate, index) => ({
           exchange: 'okx',
           symbol: this.fromCcxtSymbol(rate.symbol),
           fundingRate: rate.fundingRate || 0,
@@ -183,7 +273,7 @@ export class OKXConnector extends BaseExchangeConnector {
           markPrice: rate.markPrice,
           indexPrice: rate.indexPrice,
           recordedAt: new Date(),
-          fundingInterval: 8, // OKX uses 8-hour funding intervals for most contracts
+          fundingInterval: intervals[index],
         })) as FundingRateData[];
       } catch (error) {
         throw this.handleApiError(error);
