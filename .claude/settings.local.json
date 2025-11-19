@@ -91,7 +91,15 @@
       "Bash(mkdir:*)",
       "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/012-specify-scripts-bash/checklists\" ])",
       "Bash(git push:*)",
-      "Bash(else echo \"NO_CHECKLISTS\")"
+      "Bash(else echo \"NO_CHECKLISTS\")",
+      "Bash(if grep -q \"BINANCE_API_KEY=\" .env)",
+      "Bash(then echo \"✅ Binance API keys are configured\")",
+      "Bash(else echo \"❌ Binance API keys not found in .env\")",
+      "Bash(OI_TOP_N=100 pnpm update-oi-symbols:*)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)",
+      "Bash(kill:*)",
+      "WebFetch(domain:developers.binance.com)"
     ],
     "deny": [],
     "ask": []

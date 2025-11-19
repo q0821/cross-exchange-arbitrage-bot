@@ -29,14 +29,17 @@ import {
   ExchangeRateLimitError,
 } from '../lib/errors.js';
 import { retryApiCall } from '../lib/retry.js';
+import { FundingIntervalCache } from '../lib/FundingIntervalCache.js';
 
 export class BinanceConnector extends BaseExchangeConnector {
   private client: InstanceType<typeof Spot> | null = null;
   private futuresBaseURL: string = '';
   private wsClient: unknown = null;
+  private intervalCache: FundingIntervalCache;
 
   constructor(isTestnet: boolean = false) {
     super('binance', isTestnet);
+    this.intervalCache = new FundingIntervalCache();
   }
 
   async connect(): Promise<void> {
@@ -113,6 +116,9 @@ export class BinanceConnector extends BaseExchangeConnector {
 
         const data = response.data;
 
+        // 🆕 獲取動態間隔
+        const interval = await this.getFundingInterval(symbol);
+
         return {
           exchange: 'binance',
           symbol: data.symbol,
@@ -121,7 +127,7 @@ export class BinanceConnector extends BaseExchangeConnector {
           markPrice: data.markPrice ? parseFloat(data.markPrice) : undefined,
           indexPrice: data.indexPrice ? parseFloat(data.indexPrice) : undefined,
           recordedAt: new Date(),
-          fundingInterval: 8, // Binance uses 8-hour funding intervals
+          fundingInterval: interval, // 🆕 使用動態間隔
         } as FundingRateData;
       } catch (error) {
         throw this.handleApiError(error);
@@ -143,13 +149,19 @@ export class BinanceConnector extends BaseExchangeConnector {
           ? allData.filter((item: { symbol: string }) => symbols.includes(item.symbol))
           : allData;
 
+        // 🆕 批量獲取間隔值
+        const intervalPromises = filtered.map((data: { symbol: string }) =>
+          this.getFundingInterval(data.symbol)
+        );
+        const intervals = await Promise.all(intervalPromises);
+
         return filtered.map((data: {
           symbol: string;
           lastFundingRate: string;
           nextFundingTime: number;
           markPrice?: string;
           indexPrice?: string;
-        }) => ({
+        }, index: number) => ({
           exchange: 'binance',
           symbol: data.symbol,
           fundingRate: parseFloat(data.lastFundingRate),
@@ -157,12 +169,55 @@ export class BinanceConnector extends BaseExchangeConnector {
           markPrice: data.markPrice ? parseFloat(data.markPrice) : undefined,
           indexPrice: data.indexPrice ? parseFloat(data.indexPrice) : undefined,
           recordedAt: new Date(),
-          fundingInterval: 8, // Binance uses 8-hour funding intervals
+          fundingInterval: intervals[index], // 🆕 使用動態間隔
         })) as FundingRateData[];
       } catch (error) {
         throw this.handleApiError(error);
       }
     }, 'binance', 'getFundingRates');
+  }
+
+  /**
+   * 獲取單一交易對的資金費率間隔(小時)
+   * @param symbol 交易對符號 (如 'BTCUSDT')
+   * @returns 間隔值(小時: 4 或 8)
+   */
+  async getFundingInterval(symbol: string): Promise<number> {
+    this.ensureConnected();
+
+    try {
+      // 1. 檢查快取
+      const cached = this.intervalCache.get('binance', symbol);
+      if (cached !== null) {
+        logger.debug({ symbol, interval: cached, source: 'cache' }, 'Interval retrieved from cache');
+        return cached;
+      }
+
+      // 2. 呼叫 Binance API /fapi/v1/fundingInfo
+      const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/fundingInfo`, {
+        params: { symbol },
+      });
+
+      const data = response.data;
+
+      // 3. 解析 fundingIntervalHours 欄位
+      const interval = data.fundingIntervalHours || 8; // 預設 8h
+
+      // 4. 驗證間隔值(警告非標準值但仍接受)
+      if (interval !== 4 && interval !== 8) {
+        logger.warn({ symbol, interval }, 'Non-standard funding interval detected');
+      }
+
+      // 5. 快取並返回
+      this.intervalCache.set('binance', symbol, interval, 'api');
+      logger.info({ symbol, interval, source: 'api' }, 'Funding interval fetched from Binance API');
+
+      return interval;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.warn({ symbol, error: err.message }, 'Failed to fetch funding interval, using default 8h');
+      return 8; // 降級至預設值
+    }
   }
 
   async getPrice(symbol: string): Promise<PriceData> {

@@ -19,6 +19,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Tailwind CSS, Socket.io 4.8.1 (WebSocket) (014-remove-net-return-display)
 - N/A（純 UI 重構，不涉及資料模型變更；手續費規範為 Markdown 文件） (014-remove-net-return-display)
 - TypeScript 5.6 + Node.js 20.x LTS (現有專案配置) (016-specify-scripts-bash)
+- TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象), Binance Connector 3.x, OKX SDK 1.x (017-funding-rate-intervals)
+- N/A（間隔資訊僅記憶體快取，不持久化至資料庫） (017-funding-rate-intervals)
 
 ## Project Structure
 ```
@@ -33,9 +35,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 017-funding-rate-intervals: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象), Binance Connector 3.x, OKX SDK 1.x
 - 016-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS (現有專案配置)
 - 014-remove-net-return-display: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Tailwind CSS, Socket.io 4.8.1 (WebSocket)
-- 013-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router (前端), Prisma 5.x (資料模型), Socket.io 4.8.1 (WebSocket)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
