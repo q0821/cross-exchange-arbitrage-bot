@@ -75,16 +75,16 @@ export class MarketRatesHandler {
     });
 
     // NEW: 設定時間基準偏好
-    socket.on('set-time-basis', (data: { timeBasis: 1 | 8 | 24 }) => {
+    socket.on('set-time-basis', (data: { timeBasis: 1 | 4 | 8 | 24 }) => {
       try {
         const { timeBasis } = data;
 
         // 驗證 timeBasis
-        if (![1, 8, 24].includes(timeBasis)) {
+        if (![1, 4, 8, 24].includes(timeBasis)) {
           socket.emit('error', {
             message: 'Invalid time basis',
             code: 'INVALID_INPUT',
-            details: { received: timeBasis, expected: [1, 8, 24] },
+            details: { received: timeBasis, expected: [1, 4, 8, 24] },
           });
           return;
         }

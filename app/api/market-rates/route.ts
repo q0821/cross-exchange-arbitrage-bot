@@ -68,6 +68,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           ratePercent: (exchangeData.rate.fundingRate * 100).toFixed(4),
           price: exchangeData.price || exchangeData.rate.markPrice,
           nextFundingTime: exchangeData.rate.nextFundingTime.toISOString(),
+          // Feature 019: 新增標準化費率資料
+          normalized: exchangeData.normalized || {},
+          originalInterval: exchangeData.originalFundingInterval,
         };
       }
 
