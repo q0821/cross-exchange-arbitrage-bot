@@ -111,6 +111,7 @@ export interface ExchangeRateData {
   // Feature 012: 多版本標準化費率（前端根據 timeBasis 選擇顯示）
   normalized?: {
     '1h'?: number;   // 標準化為 1 小時基準的費率
+    '4h'?: number;   // 標準化為 4 小時基準的費率
     '8h'?: number;   // 標準化為 8 小時基準的費率
     '24h'?: number;  // 標準化為 24 小時基準的費率
   };

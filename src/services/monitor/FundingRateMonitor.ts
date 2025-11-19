@@ -364,8 +364,8 @@ export class FundingRateMonitor extends EventEmitter {
           // 儲存到記憶體
           this.store.save(rate);
 
-          // Feature 012: 計算所有標準化版本 (1h, 8h, 24h)
-          const normalized: { '1h'?: number; '8h'?: number; '24h'?: number } = {};
+          // Feature 012: 計算所有標準化版本 (1h, 4h, 8h, 24h)
+          const normalized: { '1h'?: number; '4h'?: number; '8h'?: number; '24h'?: number } = {};
           const originalInterval = rateData.fundingInterval || 8; // 預設 8 小時
 
           try {
@@ -378,6 +378,16 @@ export class FundingRateMonitor extends EventEmitter {
               1
             );
             normalized['1h'] = parseFloat(normalized1h.normalizedRate.toString());
+
+            // 標準化為 4 小時基準
+            const normalized4h = this.normalizer.normalize(
+              symbol,
+              exchangeName,
+              rate.fundingRate.toString(),
+              originalInterval,
+              4
+            );
+            normalized['4h'] = parseFloat(normalized4h.normalizedRate.toString());
 
             // 標準化為 8 小時基準
             const normalized8h = this.normalizer.normalize(

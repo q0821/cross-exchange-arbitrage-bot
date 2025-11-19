@@ -15,7 +15,7 @@ export const VALID_FUNDING_INTERVALS = [1, 4, 8, 24] as const;
 /**
  * Valid time basis options for user preferences
  */
-export const VALID_TIME_BASIS = [1, 8, 24] as const;
+export const VALID_TIME_BASIS = [1, 4, 8, 24] as const;
 
 /**
  * Funding Rate Input Schema
@@ -34,6 +34,7 @@ export const FundingRateInputSchema = z.object({
   ]),
   targetTimeBasis: z.union([
     z.literal(1),
+    z.literal(4),
     z.literal(8),
     z.literal(24)
   ])
@@ -76,6 +77,7 @@ export type NetProfitInput = z.infer<typeof NetProfitInputSchema>;
  */
 export const TimeBasisSchema = z.union([
   z.literal(1),
+  z.literal(4),
   z.literal(8),
   z.literal(24)
 ]);
@@ -99,6 +101,7 @@ export const NormalizedFundingRateSchema = z.object({
   ]),
   targetTimeBasis: z.union([
     z.literal(1),
+    z.literal(4),
     z.literal(8),
     z.literal(24)
   ]),
