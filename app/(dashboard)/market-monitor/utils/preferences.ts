@@ -6,7 +6,7 @@
  * Feature: 012-specify-scripts-bash (User Story 1)
  */
 
-export type TimeBasis = 1 | 8 | 24;
+export type TimeBasis = 1 | 4 | 8 | 24;
 
 const TIME_BASIS_KEY = 'market-monitor-time-basis';
 const DEFAULT_TIME_BASIS: TimeBasis = 8;
@@ -26,7 +26,7 @@ export function getTimeBasisPreference(): TimeBasis {
     }
 
     const parsed = parseInt(stored, 10);
-    if ([1, 8, 24].includes(parsed)) {
+    if ([1, 4, 8, 24].includes(parsed)) {
       return parsed as TimeBasis;
     }
 
@@ -49,7 +49,7 @@ export function setTimeBasisPreference(timeBasis: TimeBasis): void {
 
   try {
     // Validate input
-    if (![1, 8, 24].includes(timeBasis)) {
+    if (![1, 4, 8, 24].includes(timeBasis)) {
       console.error('Invalid time basis:', timeBasis);
       return;
     }

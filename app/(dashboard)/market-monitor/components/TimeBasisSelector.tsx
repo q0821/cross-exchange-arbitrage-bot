@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from 'react';
 
-export type TimeBasis = 1 | 8 | 24;
+export type TimeBasis = 1 | 4 | 8 | 24;
 
 interface TimeBasisSelectorProps {
   value?: TimeBasis;
@@ -21,6 +21,7 @@ interface TimeBasisSelectorProps {
 
 const TIME_BASIS_OPTIONS: Array<{ value: TimeBasis; label: string }> = [
   { value: 1, label: '1 小時' },
+  { value: 4, label: '4 小時' },
   { value: 8, label: '8 小時' },
   { value: 24, label: '24 小時' },
 ];
@@ -41,7 +42,7 @@ export function TimeBasisSelector({
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = parseInt(stored, 10);
-        if ([1, 8, 24].includes(parsed)) {
+        if ([1, 4, 8, 24].includes(parsed)) {
           setSelectedBasis(parsed as TimeBasis);
           onChange(parsed as TimeBasis);
         }
@@ -97,7 +98,7 @@ export function useTimeBasis(): [TimeBasis, (basis: TimeBasis) => void] {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = parseInt(stored, 10);
-        if ([1, 8, 24].includes(parsed)) {
+        if ([1, 4, 8, 24].includes(parsed)) {
           setTimeBasis(parsed as TimeBasis);
         }
       }

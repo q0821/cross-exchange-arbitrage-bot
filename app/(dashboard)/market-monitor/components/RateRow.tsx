@@ -129,7 +129,7 @@ export const RateRow = React.memo(function RateRow({
           <div className="flex items-center gap-1 justify-end">
             {/* Feature 012: 根據 timeBasis 顯示對應的標準化費率 */}
             {(() => {
-              const timeBasisKey = `${timeBasis}h` as '1h' | '8h' | '24h';
+              const timeBasisKey = `${timeBasis}h` as '1h' | '4h' | '8h' | '24h';
               const normalizedRate = exchangeData.normalized?.[timeBasisKey];
               const originalInterval = exchangeData.originalInterval;
 
