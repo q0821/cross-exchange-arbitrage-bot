@@ -1,11 +1,13 @@
 import { z } from 'zod';
 import { netProfitCalculator } from '../services/calculation/NetProfitCalculator';
+import type { TimeBasis } from '../lib/validation/fundingRateSchemas';
 
 /**
  * 資金費率資料模型
  * 用於儲存和驗證從交易所獲取的資金費率資訊
  *
  * Feature 012: 整合 NetProfitCalculator 計算淨收益
+ * Feature 019: 支援基於時間基準的標準化費率計算
  */
 
 // Zod 驗證 Schema
@@ -119,6 +121,31 @@ export interface ExchangeRateData {
 }
 
 /**
+ * Helper function: 取得基於時間基準的標準化費率
+ * Feature 019: 修復時間基準切換功能
+ *
+ * @param data 交易所費率資料
+ * @param timeBasis 目標時間基準（1, 4, 8, 24 小時）
+ * @returns 標準化後的費率或原始費率（如果無法標準化）
+ */
+function getNormalizedRate(data: ExchangeRateData, timeBasis: TimeBasis): number {
+  const timeBasisKey = `${timeBasis}h` as '1h' | '4h' | '8h' | '24h';
+  const normalized = data.normalized?.[timeBasisKey];
+
+  // 規則 1: 如果有標準化費率且原始週期與目標不同，使用標準化值
+  if (
+    normalized !== undefined &&
+    data.originalFundingInterval &&
+    data.originalFundingInterval !== timeBasis
+  ) {
+    return normalized;
+  }
+
+  // 規則 2: 否則使用原始費率
+  return data.rate.fundingRate;
+}
+
+/**
  * 最佳套利對資訊
  */
 export interface BestArbitragePair {
@@ -163,11 +190,13 @@ export interface FundingRatePair {
  * 建立多交易所資金費率配對
  * @param symbol 交易對符號
  * @param exchangesData Map of exchange data (exchange name -> { rate, price })
+ * @param timeBasis 時間基準（預設 8 小時）- Feature 019: 支援時間基準切換
  * @returns FundingRatePair with best arbitrage pair calculated
  */
 export function createMultiExchangeFundingRatePair(
   symbol: string,
-  exchangesData: Map<ExchangeName, ExchangeRateData>
+  exchangesData: Map<ExchangeName, ExchangeRateData>,
+  timeBasis: TimeBasis = 8
 ): FundingRatePair {
   // 驗證所有 symbol 一致
   for (const [exchange, data] of exchangesData.entries()) {
@@ -188,8 +217,9 @@ export function createMultiExchangeFundingRatePair(
       const data1 = exchangesData.get(exchange1)!;
       const data2 = exchangesData.get(exchange2)!;
 
-      const rate1 = data1.rate.fundingRate;
-      const rate2 = data2.rate.fundingRate;
+      // Feature 019: 使用標準化費率計算利差
+      const rate1 = getNormalizedRate(data1, timeBasis);
+      const rate2 = getNormalizedRate(data2, timeBasis);
       const spread = Math.abs(rate1 - rate2);
 
       if (spread > maxSpread) {
