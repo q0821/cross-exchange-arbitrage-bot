@@ -99,7 +99,9 @@
       "Bash(lsof:*)",
       "Bash(curl:*)",
       "Bash(kill:*)",
-      "WebFetch(domain:developers.binance.com)"
+      "WebFetch(domain:developers.binance.com)",
+      "Bash(pnpm lint:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
