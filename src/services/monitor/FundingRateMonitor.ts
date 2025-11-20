@@ -474,8 +474,8 @@ export class FundingRateMonitor extends EventEmitter {
       }
     }
 
-    // 使用新的多交易所計算方法
-    const pair = this.calculator.calculateMultiExchangeDifference(symbol, exchangesData);
+    // 使用新的多交易所計算方法 (Feature 019: 傳入 timeBasis 支援時間基準切換)
+    const pair = this.calculator.calculateMultiExchangeDifference(symbol, exchangesData, this.timeBasis);
 
     // 更新全局快取（用於 Web API）
     ratesCache.set(symbol, pair);
@@ -612,7 +612,7 @@ export class FundingRateMonitor extends EventEmitter {
       // 至少需要 2 個交易所的數據
       if (exchangesData.size >= 2) {
         try {
-          const pair = this.calculator.calculateMultiExchangeDifference(symbol, exchangesData);
+          const pair = this.calculator.calculateMultiExchangeDifference(symbol, exchangesData, this.timeBasis);
           pairs.push(pair);
         } catch (error) {
           logger.error({

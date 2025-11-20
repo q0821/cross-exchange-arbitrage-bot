@@ -24,13 +24,15 @@ export class RateDifferenceCalculator {
   /**
    * 計算多交易所資金費率差異（新版本）
    * 自動找出所有交易所中利差最大的兩個交易所
+   * @param timeBasis 時間基準（1, 4, 8, 24 小時）- Feature 019: 支援時間基準切換
    */
   calculateMultiExchangeDifference(
     symbol: string,
-    exchangesData: Map<ExchangeName, ExchangeRateData>
+    exchangesData: Map<ExchangeName, ExchangeRateData>,
+    timeBasis: import('../../lib/validation/fundingRateSchemas').TimeBasis = 8
   ): FundingRatePair {
     try {
-      const pair = createMultiExchangeFundingRatePair(symbol, exchangesData);
+      const pair = createMultiExchangeFundingRatePair(symbol, exchangesData, timeBasis);
 
       if (pair.bestPair) {
         logger.debug({
