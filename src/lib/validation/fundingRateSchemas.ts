@@ -9,11 +9,13 @@ import { z } from 'zod';
 
 /**
  * Valid funding intervals in hours
+ * (includes all intervals used by exchanges)
  */
-export const VALID_FUNDING_INTERVALS = [1, 4, 8, 24] as const;
+export const VALID_FUNDING_INTERVALS = [1, 2, 4, 8, 24] as const;
 
 /**
  * Valid time basis options for user preferences
+ * (only common intervals for standardization)
  */
 export const VALID_TIME_BASIS = [1, 4, 8, 24] as const;
 
@@ -28,6 +30,7 @@ export const FundingRateInputSchema = z.object({
   }),
   originalFundingInterval: z.union([
     z.literal(1),
+    z.literal(2), // Gate.io 支援 2 小時間隔
     z.literal(4),
     z.literal(8),
     z.literal(24)
@@ -95,6 +98,7 @@ export const NormalizedFundingRateSchema = z.object({
   originalRate: z.string(),
   originalFundingInterval: z.union([
     z.literal(1),
+    z.literal(2), // Gate.io 支援 2 小時間隔
     z.literal(4),
     z.literal(8),
     z.literal(24)
