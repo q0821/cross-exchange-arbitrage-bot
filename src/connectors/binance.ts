@@ -198,17 +198,26 @@ export class BinanceConnector extends BaseExchangeConnector {
         params: { symbol },
       });
 
-      const data = response.data;
+      // 3. 處理 API 回傳（可能是陣列或單一物件）
+      const dataArray = Array.isArray(response.data) ? response.data : [response.data];
 
-      // 3. 解析 fundingIntervalHours 欄位
-      const interval = data.fundingIntervalHours || 8; // 預設 8h
+      // 4. 尋找對應的 symbol
+      const symbolData = dataArray.find((item: { symbol?: string }) => item.symbol === symbol);
 
-      // 4. 驗證間隔值(警告非標準值但仍接受)
-      if (interval !== 4 && interval !== 8) {
+      if (!symbolData) {
+        logger.warn({ symbol, arrayLength: dataArray.length }, 'Symbol not found in fundingInfo response, using default 8h');
+        return 8;
+      }
+
+      // 5. 解析 fundingIntervalHours 欄位
+      const interval = symbolData.fundingIntervalHours || 8; // 預設 8h
+
+      // 6. 驗證間隔值（支援 1/4/8 小時）
+      if (interval !== 1 && interval !== 4 && interval !== 8) {
         logger.warn({ symbol, interval }, 'Non-standard funding interval detected');
       }
 
-      // 5. 快取並返回
+      // 7. 快取並返回
       this.intervalCache.set('binance', symbol, interval, 'api');
       logger.info({ symbol, interval, source: 'api' }, 'Funding interval fetched from Binance API');
 
