@@ -169,21 +169,26 @@ export class GateioConnector extends BaseExchangeConnector {
       const fundingRate = await this.client!.fetchFundingRate(ccxtSymbol);
 
       // 3. 檢查 CCXT info 中是否有 funding_interval 欄位 (秒)
-      const fundingIntervalSeconds = (fundingRate as any).info?.funding_interval;
+      // 注意：Gate.io API 回傳的 funding_interval 是字串型別
+      const fundingIntervalRaw = (fundingRate as any).info?.funding_interval;
 
-      if (
-        fundingIntervalSeconds &&
-        typeof fundingIntervalSeconds === 'number' &&
-        fundingIntervalSeconds > 0
-      ) {
-        // CCXT 成功暴露 funding_interval 欄位，轉換為小時
-        const intervalHours = fundingIntervalSeconds / 3600;
-        this.intervalCache.set('gateio', symbol, intervalHours, 'api');
-        logger.info(
-          { symbol, interval: intervalHours, source: 'ccxt' },
-          'Funding interval fetched from CCXT'
-        );
-        return intervalHours;
+      if (fundingIntervalRaw) {
+        // 轉換為數字（可能是字串或數字）
+        const fundingIntervalSeconds =
+          typeof fundingIntervalRaw === 'string'
+            ? parseInt(fundingIntervalRaw, 10)
+            : fundingIntervalRaw;
+
+        if (!isNaN(fundingIntervalSeconds) && fundingIntervalSeconds > 0) {
+          // CCXT 成功暴露 funding_interval 欄位，轉換為小時
+          const intervalHours = fundingIntervalSeconds / 3600;
+          this.intervalCache.set('gateio', symbol, intervalHours, 'api');
+          logger.info(
+            { symbol, interval: intervalHours, source: 'api' },
+            'Funding interval fetched from Gate.io API'
+          );
+          return intervalHours;
+        }
       }
 
       // 4. CCXT 未暴露欄位，使用預設值
