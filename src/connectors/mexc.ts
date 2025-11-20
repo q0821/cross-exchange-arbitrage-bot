@@ -169,13 +169,22 @@ export class MexcConnector extends BaseExchangeConnector {
       const fundingRate = await this.client!.fetchFundingRate(ccxtSymbol);
 
       // 3. 檢查 CCXT info 中是否有 collectCycle 欄位
-      const collectCycle = (fundingRate as any).info?.collectCycle;
+      // 注意：MEXC API 回傳的 collectCycle 是字串型別
+      const collectCycleRaw = (fundingRate as any).info?.collectCycle;
 
-      if (collectCycle && typeof collectCycle === 'number' && collectCycle > 0) {
-        // CCXT 成功暴露 collectCycle 欄位
-        this.intervalCache.set('mexc', symbol, collectCycle, 'api');
-        logger.info({ symbol, interval: collectCycle, source: 'ccxt' }, 'Funding interval fetched from CCXT');
-        return collectCycle;
+      if (collectCycleRaw) {
+        // 轉換為數字（可能是字串或數字）
+        const collectCycle =
+          typeof collectCycleRaw === 'string'
+            ? parseInt(collectCycleRaw, 10)
+            : collectCycleRaw;
+
+        if (!isNaN(collectCycle) && collectCycle > 0) {
+          // CCXT 成功暴露 collectCycle 欄位
+          this.intervalCache.set('mexc', symbol, collectCycle, 'api');
+          logger.info({ symbol, interval: collectCycle, source: 'api' }, 'Funding interval fetched from MEXC API');
+          return collectCycle;
+        }
       }
 
       // 4. CCXT 未暴露欄位，使用預設值
