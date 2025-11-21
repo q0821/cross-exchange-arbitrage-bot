@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { netProfitCalculator } from '../services/calculation/NetProfitCalculator';
 import type { TimeBasis } from '../lib/validation/fundingRateSchemas';
+import { logger } from '../lib/logger';
 
 /**
  * 資金費率資料模型
@@ -131,17 +132,37 @@ export interface ExchangeRateData {
 function getNormalizedRate(data: ExchangeRateData, timeBasis: TimeBasis): number {
   const timeBasisKey = `${timeBasis}h` as '1h' | '4h' | '8h' | '24h';
   const normalized = data.normalized?.[timeBasisKey];
+  const originalInterval = data.originalFundingInterval;
 
-  // 規則 1: 如果有標準化費率且原始週期與目標不同，使用標準化值
+  // 規則 1: 優先使用標準化值（如果存在且需要標準化）
   if (
     normalized !== undefined &&
-    data.originalFundingInterval &&
-    data.originalFundingInterval !== timeBasis
+    normalized !== null &&
+    originalInterval &&
+    originalInterval !== timeBasis
   ) {
     return normalized;
   }
 
-  // 規則 2: 否則使用原始費率
+  // 規則 2: 如果原始週期等於目標時間基準，直接使用原始費率
+  if (originalInterval === timeBasis) {
+    return data.rate.fundingRate;
+  }
+
+  // 規則 3: 降級處理 - 即時計算標準化值
+  if (originalInterval && originalInterval !== timeBasis) {
+    const originalRate = data.rate.fundingRate;
+    // 標準化公式：rate_new = rate_original * (interval_target / interval_original)
+    return originalRate * (timeBasis / originalInterval);
+  }
+
+  // 規則 4: 最後降級 - 返回原始費率並記錄警告
+  logger.warn({
+    msg: 'Missing normalization data, using original rate',
+    timeBasis,
+    originalInterval,
+    symbol: data.rate.symbol,
+  });
   return data.rate.fundingRate;
 }
 
@@ -267,7 +288,7 @@ export function createMultiExchangeFundingRatePair(
           longExchange,
           shortExchange,
           spreadPercent: spread * 100,
-          spreadAnnualized: spread * 365 * 3 * 100,
+          spreadAnnualized: spread * 365 * (24 / timeBasis) * 100,
           priceDiffPercent,
           netReturn,
         };
