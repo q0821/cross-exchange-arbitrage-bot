@@ -8,12 +8,14 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { Copy, Check } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { ExchangeLink } from '@/components/market';
 import { formatFundingInterval } from '../utils/formatters';
 import { FeeEstimateTooltip } from './FeeEstimateTooltip';
+import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
 import type {
   ExchangeName,
   MarketRate,
@@ -38,6 +40,9 @@ export const RateRow = React.memo(function RateRow({
   onSymbolClick,
   onQuickOpen,
 }: RateRowProps) {
+  // Feature 020: 複製狀態管理
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
   const handleSymbolClick = () => {
     if (onSymbolClick) {
       onSymbolClick(rate.symbol);
@@ -50,6 +55,37 @@ export const RateRow = React.memo(function RateRow({
       onQuickOpen(rate);
     }
   };
+
+  // Feature 020: 複製套利資訊到剪貼板
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    // 如果沒有 bestPair，不執行複製
+    if (!rate.bestPair) {
+      return;
+    }
+
+    try {
+      const message = formatArbitrageMessage(rate);
+      await navigator.clipboard.writeText(message);
+      setCopyStatus('success');
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+      setCopyStatus('error');
+    }
+  };
+
+  // Feature 020: 自動重置複製狀態（2 秒後）
+  useEffect(() => {
+    if (copyStatus !== 'idle') {
+      const timer = setTimeout(() => {
+        setCopyStatus('idle');
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [copyStatus]);
 
   // 格式化費率為百分比顯示
   const formatRate = (rateValue: number) => {
@@ -303,14 +339,38 @@ export const RateRow = React.memo(function RateRow({
 
       {/* 操作 */}
       <td className="px-4 py-3">
-        {rate.status === 'opportunity' && (
+        <div className="flex items-center gap-2">
+          {/* Feature 020: 複製按鈕 */}
           <button
-            onClick={handleQuickOpen}
-            className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+            onClick={handleCopy}
+            disabled={!rate.bestPair}
+            className={`p-2 rounded-md transition-colors ${
+              !rate.bestPair
+                ? 'text-gray-300 cursor-not-allowed'
+                : copyStatus === 'success'
+                ? 'text-green-600 bg-green-50'
+                : copyStatus === 'error'
+                ? 'text-red-600 bg-red-50'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+            title={!rate.bestPair ? '無套利機會' : '複製套利資訊'}
           >
-            快速開倉
+            {copyStatus === 'success' ? (
+              <Check className="w-4 h-4" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
           </button>
-        )}
+
+          {rate.status === 'opportunity' && (
+            <button
+              onClick={handleQuickOpen}
+              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              快速開倉
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );

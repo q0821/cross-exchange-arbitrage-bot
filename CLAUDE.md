@@ -23,6 +23,7 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - N/A（間隔資訊僅記憶體快取，不持久化至資料庫） (017-funding-rate-intervals)
 - TypeScript 5.6 + Node.js 20.x LTS + Socket.io 4.8.1 (WebSocket), Next.js 14 (Web framework), Prisma 5.x (ORM - 用於 REST API) (019-fix-time-basis-switching)
 - PostgreSQL 15 + TimescaleDB（現有資料庫，本次修復不涉及 schema 變更） (019-fix-time-basis-switching)
+- N/A（純前端功能，不涉及資料持久化） (020-copy-arbitrage-info)
 
 ## Project Structure
 ```
@@ -37,9 +38,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 020-copy-arbitrage-info: Added TypeScript 5.6 + Node.js 20.x LTS
 - 019-fix-time-basis-switching: Added TypeScript 5.6 + Node.js 20.x LTS + Socket.io 4.8.1 (WebSocket), Next.js 14 (Web framework), Prisma 5.x (ORM - 用於 REST API)
 - 017-funding-rate-intervals: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象), Binance Connector 3.x, OKX SDK 1.x
-- 016-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS (現有專案配置)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
