@@ -16,7 +16,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./prisma/migrations/init-timescale.sql:/docker-entrypoint-initdb.d/01-init-timescale.sql
+      # TimescaleDB extension removed for easier deployment - see docs/deployment/upgrade-to-timescaledb.md
+      # - ./prisma/migrations/init-timescale.sql:/docker-entrypoint-initdb.d/01-init-timescale.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U arbitrage_user -d arbitrage_db"]
       interval: 10s
