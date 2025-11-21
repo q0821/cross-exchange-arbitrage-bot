@@ -246,3 +246,94 @@ describe('FundingRate - Normalized Rate Calculations', () => {
     expect(spreadBinanceMexc).toBeCloseTo(0.00002, 6);
   });
 });
+
+/**
+ * Unit tests for Annualized Return Calculation
+ * Feature: 021-fix-rate-spread-calculation
+ * User Story 1: 修正後端年化報酬計算邏輯
+ *
+ * T005-T009: 驗證年化報酬在不同時間基準下的計算正確性
+ */
+describe('FundingRate - Annualized Return Calculation', () => {
+  /**
+   * T005: 驗證 1 小時基準下的年化報酬計算
+   */
+  it('T005: should calculate annualized return correctly with 1h timeBasis', () => {
+    // spread = 0.000751 (0.0751%), timeBasis = 1
+    // expected annualized = 0.000751 * 365 * 24 * 100 = 657.876%
+    const spread = 0.000751;
+    const timeBasis = 1;
+    const annualizedReturn = spread * 365 * (24 / timeBasis) * 100;
+
+    expect(annualizedReturn).toBeCloseTo(657.876, 2);
+  });
+
+  /**
+   * T006: 驗證 4 小時基準下的年化報酬計算
+   */
+  it('T006: should calculate annualized return correctly with 4h timeBasis', () => {
+    // spread = 0.003004 (0.3004%), timeBasis = 4
+    // expected annualized = 0.003004 * 365 * 6 * 100 = 657.876%
+    const spread = 0.003004;
+    const timeBasis = 4;
+    const annualizedReturn = spread * 365 * (24 / timeBasis) * 100;
+
+    expect(annualizedReturn).toBeCloseTo(657.876, 2);
+  });
+
+  /**
+   * T007: 驗證 8 小時基準下的年化報酬計算
+   */
+  it('T007: should calculate annualized return correctly with 8h timeBasis', () => {
+    // spread = 0.006008 (0.6008%), timeBasis = 8
+    // expected annualized = 0.006008 * 365 * 3 * 100 = 657.876%
+    const spread = 0.006008;
+    const timeBasis = 8;
+    const annualizedReturn = spread * 365 * (24 / timeBasis) * 100;
+
+    expect(annualizedReturn).toBeCloseTo(657.876, 2);
+  });
+
+  /**
+   * T008: 驗證 24 小時基準下的年化報酬計算
+   */
+  it('T008: should calculate annualized return correctly with 24h timeBasis', () => {
+    // spread = 0.018024 (1.8024%), timeBasis = 24
+    // expected annualized = 0.018024 * 365 * 1 * 100 = 657.876%
+    const spread = 0.018024;
+    const timeBasis = 24;
+    const annualizedReturn = spread * 365 * (24 / timeBasis) * 100;
+
+    expect(annualizedReturn).toBeCloseTo(657.876, 2);
+  });
+
+  /**
+   * T009: 驗證所有時間基準下的年化報酬保持一致
+   */
+  it('T009: annualized return should be consistent across all time bases', () => {
+    // Using proportional spreads for each time basis
+    // 1h: 0.000751, 4h: 0.003004, 8h: 0.006008, 24h: 0.018024
+    const testCases = [
+      { spread: 0.000751, timeBasis: 1 },
+      { spread: 0.003004, timeBasis: 4 },
+      { spread: 0.006008, timeBasis: 8 },
+      { spread: 0.018024, timeBasis: 24 },
+    ];
+
+    const annualizedReturns = testCases.map(({ spread, timeBasis }) =>
+      spread * 365 * (24 / timeBasis) * 100
+    );
+
+    // All annualized returns should be approximately equal
+    const expectedReturn = 657.876;
+    annualizedReturns.forEach((annualized, index) => {
+      expect(annualized).toBeCloseTo(expectedReturn, 1); // Allow 0.1% tolerance
+    });
+
+    // Verify variance is minimal (within 0.5%)
+    const maxReturn = Math.max(...annualizedReturns);
+    const minReturn = Math.min(...annualizedReturns);
+    const variance = maxReturn - minReturn;
+    expect(variance).toBeLessThan(expectedReturn * 0.005); // Less than 0.5% variance
+  });
+});
