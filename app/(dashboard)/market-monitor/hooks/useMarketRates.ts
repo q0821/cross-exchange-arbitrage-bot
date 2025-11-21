@@ -4,6 +4,7 @@
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
  * Feature: 012-specify-scripts-bash (User Story 1 - T018)
+ * Feature: 019-fix-time-basis-switching - 支援前端動態重新計算費率差
  */
 
 'use client';
@@ -14,6 +15,7 @@ import type { MarketRate, MarketRatesUpdatePayload, MarketStatsPayload } from '.
 import type { MarketStats } from '../components/StatsCard';
 import type { TimeBasis } from '../utils/preferences';
 import { getTimeBasisPreference, setTimeBasisPreference } from '../utils/preferences';
+import { recalculateBestPair } from '../utils/rateCalculations';
 
 interface UseMarketRatesReturn {
   /** 即時費率數據 (Map for O(1) lookups) */
@@ -75,19 +77,22 @@ export function useMarketRates(): UseMarketRatesReturn {
     }
   }, [isConnected, emit]);
 
-  // 處理費率更新 (只更新 Map 中的值，不改變結構)
+  // 處理費率更新 (根據當前 timeBasis 重新計算 bestPair)
+  // Feature 019: 前端即時計算最佳套利對
   const handleRatesUpdate = useCallback((event: MarketRatesUpdatePayload) => {
     console.log('[useMarketRates] Rates updated:', event.data.rates.length, 'rates');
     setRatesMap((prev) => {
       const next = new Map(prev);
       event.data.rates.forEach((rate) => {
-        next.set(rate.symbol, rate); // O(1) update per symbol
+        // 根據當前 timeBasis 重新計算 bestPair
+        const recalculatedRate = recalculateBestPair(rate, timeBasis);
+        next.set(rate.symbol, recalculatedRate); // O(1) update per symbol
       });
       return next;
     });
     setIsLoading(false);
     setError(null);
-  }, []);
+  }, [timeBasis]);
 
   // 處理統計更新
   const handleStatsUpdate = useCallback((event: MarketStatsPayload) => {
@@ -111,6 +116,26 @@ export function useMarketRates(): UseMarketRatesReturn {
       off('rates:stats', handleStatsUpdate);
     };
   }, [isConnected, on, off, handleRatesUpdate, handleStatsUpdate]);
+
+  // Feature 019: 當 timeBasis 變更時，重新計算所有已快取的費率
+  useEffect(() => {
+    setRatesMap((prev) => {
+      // 如果沒有數據，不需要重新計算
+      if (prev.size === 0) {
+        return prev;
+      }
+
+      console.log('[useMarketRates] Recalculating all rates for timeBasis:', timeBasis);
+      const next = new Map<string, MarketRate>();
+
+      prev.forEach((rate, symbol) => {
+        const recalculatedRate = recalculateBestPair(rate, timeBasis);
+        next.set(symbol, recalculatedRate);
+      });
+
+      return next;
+    });
+  }, [timeBasis]);
 
   // 手動重新載入（從 REST API）
   const reload = useCallback(async () => {

@@ -38,9 +38,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 021-fix-rate-spread-calculation: Added TypeScript 5.6 + Node.js 20.x LTS
 - 020-copy-arbitrage-info: Added TypeScript 5.6 + Node.js 20.x LTS
 - 019-fix-time-basis-switching: Added TypeScript 5.6 + Node.js 20.x LTS + Socket.io 4.8.1 (WebSocket), Next.js 14 (Web framework), Prisma 5.x (ORM - 用於 REST API)
-- 017-funding-rate-intervals: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象), Binance Connector 3.x, OKX SDK 1.x
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
