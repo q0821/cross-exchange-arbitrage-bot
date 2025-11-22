@@ -3,6 +3,11 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import {
+  DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
+  APPROACHING_THRESHOLD_RATIO,
+  ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED,
+} from './constants';
 
 // 載入環境變數
 dotenv.config();
@@ -214,3 +219,69 @@ export function validateApiKeys(): void {
 }
 
 export default config;
+
+// ============================================================================
+// 套利機會門檻配置 (Feature 022)
+// ============================================================================
+
+/**
+ * 讀取並驗證年化收益門檻環境變數
+ *
+ * @returns 有效的年化收益門檻（百分比）
+ */
+export function getOpportunityThresholdAnnualized(): number {
+  const envValue = process.env[ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED];
+
+  // 未設定時使用預設值
+  if (!envValue) {
+    return DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
+  }
+
+  const parsed = parseFloat(envValue);
+
+  // 檢查是否為有效數字
+  if (isNaN(parsed)) {
+    console.warn(
+      `[config] Invalid ${ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED} value: "${envValue}" (not a number). Using default: ${DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED}`
+    );
+    return DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
+  }
+
+  // 檢查是否為負數
+  if (parsed < 0) {
+    console.warn(
+      `[config] Invalid ${ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED} value: ${parsed} (negative). Using default: ${DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED}`
+    );
+    return DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
+  }
+
+  return parsed;
+}
+
+/**
+ * 計算「接近機會」門檻
+ *
+ * @param mainThreshold 主門檻（年化收益百分比）
+ * @returns 接近機會門檻（年化收益百分比）
+ */
+export function getApproachingThreshold(mainThreshold: number): number {
+  return mainThreshold * APPROACHING_THRESHOLD_RATIO;
+}
+
+/**
+ * 獲取套利機會門檻配置
+ *
+ * @returns 包含主門檻和接近門檻的物件
+ */
+export function getOpportunityThresholds(): {
+  opportunity: number;
+  approaching: number;
+} {
+  const opportunity = getOpportunityThresholdAnnualized();
+  const approaching = getApproachingThreshold(opportunity);
+
+  return {
+    opportunity,
+    approaching,
+  };
+}
