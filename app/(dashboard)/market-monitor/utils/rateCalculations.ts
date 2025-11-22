@@ -3,6 +3,7 @@
  *
  * 根據用戶選擇的時間基準重新計算最佳套利對
  * Feature 019: 修復費率差異根據時間基準動態計算
+ * Feature 022: 年化收益門檻套利機會偵測
  */
 
 import type {
@@ -12,6 +13,28 @@ import type {
   ExchangeName,
   TimeBasis,
 } from '../types';
+
+// ============================================================================
+// 年化收益門檻常數 (Feature 022)
+// ============================================================================
+
+/**
+ * 預設年化收益門檻（百分比）
+ * 當年化收益 >= 此值時，判定為套利機會
+ */
+export const DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED = 800;
+
+/**
+ * 「接近機會」門檻比例（主門檻的 75%）
+ */
+export const APPROACHING_THRESHOLD_RATIO = 0.75;
+
+/**
+ * 預設「接近機會」門檻
+ * 800 × 0.75 = 600
+ */
+export const DEFAULT_APPROACHING_THRESHOLD_ANNUALIZED =
+  DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED * APPROACHING_THRESHOLD_RATIO;
 
 /**
  * 根據時間基準獲取標準化費率
@@ -163,13 +186,13 @@ export function recalculateBestPair(
     }
   }
 
-  // 確定狀態
+  // 確定狀態（Feature 022: 使用年化收益門檻）
   let status: 'opportunity' | 'approaching' | 'normal' = 'normal';
   if (bestPair) {
-    const spreadPercent = bestPair.spreadPercent;
-    if (spreadPercent >= 0.5) {
+    const annualizedReturn = bestPair.annualizedReturn;
+    if (annualizedReturn >= DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED) {
       status = 'opportunity';
-    } else if (spreadPercent >= 0.4) {
+    } else if (annualizedReturn >= DEFAULT_APPROACHING_THRESHOLD_ANNUALIZED) {
       status = 'approaching';
     }
   }

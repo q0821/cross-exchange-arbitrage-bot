@@ -5,10 +5,15 @@
  * 提供 in-memory 快取層，支援數據過期機制
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
+ * Feature: 022-annualized-return-threshold
  */
 
 import type { FundingRatePair } from '../../models/FundingRate';
 import { logger } from '../../lib/logger';
+import {
+  DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
+  APPROACHING_THRESHOLD_RATIO,
+} from '../../lib/constants';
 
 /**
  * 快取的費率數據（包含時間戳）
@@ -23,14 +28,15 @@ interface CachedRatePair extends FundingRatePair {
 export interface MarketStats {
   /** 正在監控的交易對總數 */
   totalSymbols: number;
-  /** 當前機會數量（差異 ≥ 0.5%）*/
+  /** 當前機會數量（年化收益 ≥ 800%）*/
   opportunityCount: number;
-  /** 接近閾值數量（差異 0.4%-0.5%）*/
+  /** 接近閾值數量（年化收益 600%-799%）*/
   approachingCount: number;
   /** 最高費率差異 */
   maxSpread: {
     symbol: string;
     spread: number;
+    annualizedReturn?: number;
   } | null;
   /** 系統運行時長（秒）*/
   uptime: number;
@@ -138,29 +144,47 @@ export class RatesCache {
 
   /**
    * 獲取市場統計資訊
+   *
+   * Feature 022: 使用年化收益門檻判定
+   * - opportunity: 年化收益 >= 800%
+   * - approaching: 年化收益 600%-799%
    */
-  getStats(threshold = 0.5): MarketStats {
+  getStats(
+    opportunityThreshold = DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED
+  ): MarketStats {
     const rates = this.getAll();
     let opportunityCount = 0;
     let approachingCount = 0;
-    let maxSpread: { symbol: string; spread: number } | null = null;
+    let maxSpread: {
+      symbol: string;
+      spread: number;
+      annualizedReturn?: number;
+    } | null = null;
+
+    // 計算接近門檻 (主門檻的 75%)
+    const approachingThreshold = opportunityThreshold * APPROACHING_THRESHOLD_RATIO;
 
     rates.forEach((rate) => {
-      // 使用 bestPair 的利差數據，如果不存在則回退到舊的屬性
+      // 使用 bestPair 的年化收益數據
+      const annualizedReturn = rate.bestPair?.spreadAnnualized ?? 0;
       const spreadPercent = rate.bestPair?.spreadPercent ?? rate.spreadPercent ?? 0;
 
-      // 統計機會和接近閾值的數量
-      if (spreadPercent >= threshold) {
+      // 統計機會和接近閾值的數量（使用年化收益判定）
+      if (annualizedReturn >= opportunityThreshold) {
         opportunityCount++;
-      } else if (spreadPercent >= threshold - 0.1 && spreadPercent < threshold) {
+      } else if (
+        annualizedReturn >= approachingThreshold &&
+        annualizedReturn < opportunityThreshold
+      ) {
         approachingCount++;
       }
 
-      // 追蹤最高費率差異
+      // 追蹤最高費率差異（保持 spreadPercent 用於顯示，同時記錄年化收益）
       if (!maxSpread || spreadPercent > maxSpread.spread) {
         maxSpread = {
           symbol: rate.symbol,
           spread: spreadPercent,
+          annualizedReturn,
         };
       }
     });
