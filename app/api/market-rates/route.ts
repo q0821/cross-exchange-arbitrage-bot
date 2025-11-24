@@ -13,6 +13,10 @@ import { handleError } from '@/src/middleware/errorHandler';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { ratesCache } from '@/src/services/monitor/RatesCache';
 import { logger } from '@/src/lib/logger';
+import {
+  DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
+  APPROACHING_THRESHOLD_RATIO,
+} from '@/src/lib/constants';
 
 /**
  * GET /api/market-rates
@@ -25,16 +29,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // 1. 驗證用戶身份
     const user = await authenticate(request);
 
-    // 2. 解析查詢參數
+    // 2. 解析查詢參數（Feature 022: 改用年化收益門檻）
     const { searchParams } = new URL(request.url);
     const thresholdParam = searchParams.get('threshold');
-    const threshold = thresholdParam ? parseFloat(thresholdParam) : 0.5;
+    // 向後兼容：如果傳入小數（如 0.5），視為舊的 spreadPercent 門檻，轉換為年化收益
+    // 新參數應該直接傳入年化收益門檻（如 800）
+    const threshold = thresholdParam
+      ? parseFloat(thresholdParam) < 10
+        ? parseFloat(thresholdParam) * 365 * 3 * 100 // 舊格式轉換
+        : parseFloat(thresholdParam)
+      : DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
+    const approachingThreshold = threshold * APPROACHING_THRESHOLD_RATIO;
 
     logger.info(
       {
         correlationId,
         userId: user.userId,
         threshold,
+        approachingThreshold,
       },
       'Get market rates request received',
     );
@@ -45,14 +57,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // 4. 轉換數據格式為 API 響應格式
     const formattedRates = rates.map((rate) => {
-      // 使用 bestPair 的差價數據
-      const spreadPercent = rate.bestPair?.spreadPercent ?? 0;
+      // Feature 022: 使用年化收益判斷狀態
+      const annualizedReturn = rate.bestPair?.spreadAnnualized ?? 0;
 
-      // 判斷狀態
+      // 判斷狀態（基於年化收益門檻）
       let status: 'opportunity' | 'approaching' | 'normal';
-      if (spreadPercent >= threshold) {
+      if (annualizedReturn >= threshold) {
         status = 'opportunity';
-      } else if (spreadPercent >= threshold - 0.1 && spreadPercent < threshold) {
+      } else if (annualizedReturn >= approachingThreshold) {
         status = 'approaching';
       } else {
         status = 'normal';

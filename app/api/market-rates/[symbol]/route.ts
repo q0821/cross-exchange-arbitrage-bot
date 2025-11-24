@@ -11,6 +11,10 @@ import { handleError } from '@/src/middleware/errorHandler';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { ratesCache } from '@/src/services/monitor/RatesCache';
 import { logger } from '@/src/lib/logger';
+import {
+  DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
+  APPROACHING_THRESHOLD_RATIO,
+} from '@/src/lib/constants';
 
 interface RouteParams {
   params: {
@@ -64,11 +68,16 @@ export async function GET(
     const netSpread = (spreadPercent / 100) - TOTAL_COST_RATE;
     const netAnnualized = netSpread * 365 * 3 * 100;
 
-    // 判斷狀態
+    // Feature 022: 使用年化收益判斷狀態
+    const annualizedReturn = rate.bestPair?.spreadAnnualized ?? 0;
+    const opportunityThreshold = DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
+    const approachingThreshold = opportunityThreshold * APPROACHING_THRESHOLD_RATIO;
+
+    // 判斷狀態（基於年化收益門檻）
     let status: 'opportunity' | 'approaching' | 'normal';
-    if (spreadPercent >= 0.5) {
+    if (annualizedReturn >= opportunityThreshold) {
       status = 'opportunity';
-    } else if (spreadPercent >= 0.4 && spreadPercent < 0.5) {
+    } else if (annualizedReturn >= approachingThreshold) {
       status = 'approaching';
     } else {
       status = 'normal';

@@ -9,6 +9,10 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { AuthenticatedSocket } from '../SocketServer';
 import { ratesCache } from '../../services/monitor/RatesCache';
 import { logger } from '@lib/logger';
+import {
+  DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
+  APPROACHING_THRESHOLD_RATIO,
+} from '../../lib/constants';
 
 /**
  * MarketRatesHandler
@@ -17,7 +21,6 @@ import { logger } from '@lib/logger';
 export class MarketRatesHandler {
   private broadcastInterval: NodeJS.Timeout | null = null;
   private readonly BROADCAST_INTERVAL_MS = 5000; // 5 秒推送一次
-  private readonly DEFAULT_THRESHOLD = 0.5; // 預設閾值 0.5%
 
   constructor(private readonly io: SocketIOServer) {}
 
@@ -176,7 +179,7 @@ export class MarketRatesHandler {
     try {
       const room = 'market-rates';
       const rates = ratesCache.getAll();
-      const stats = ratesCache.getStats(this.DEFAULT_THRESHOLD);
+      const stats = ratesCache.getStats();
 
       if (rates.length === 0) {
         logger.warn(
@@ -254,7 +257,7 @@ export class MarketRatesHandler {
   private sendRatesToSocket(socket: Socket): void {
     try {
       const rates = ratesCache.getAll();
-      const stats = ratesCache.getStats(this.DEFAULT_THRESHOLD);
+      const stats = ratesCache.getStats();
 
       if (rates.length === 0) {
         logger.warn(
@@ -317,15 +320,19 @@ export class MarketRatesHandler {
    * 格式化費率數據為 WebSocket payload
    */
   private formatRates(rates: any[]): any[] {
-    return rates.map((rate) => {
-      // 使用 bestPair 的差價數據
-      const spreadPercent = rate.bestPair?.spreadPercent ?? 0;
+    // 計算門檻（使用年化收益）
+    const opportunityThreshold = DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
+    const approachingThreshold = opportunityThreshold * APPROACHING_THRESHOLD_RATIO;
 
-      // 判斷狀態
+    return rates.map((rate) => {
+      // Feature 022: 使用年化收益判斷狀態
+      const annualizedReturn = rate.bestPair?.spreadAnnualized ?? 0;
+
+      // 判斷狀態（基於年化收益門檻）
       let status: 'opportunity' | 'approaching' | 'normal';
-      if (spreadPercent >= this.DEFAULT_THRESHOLD) {
+      if (annualizedReturn >= opportunityThreshold) {
         status = 'opportunity';
-      } else if (spreadPercent >= this.DEFAULT_THRESHOLD - 0.1 && spreadPercent < this.DEFAULT_THRESHOLD) {
+      } else if (annualizedReturn >= approachingThreshold) {
         status = 'approaching';
       } else {
         status = 'normal';
