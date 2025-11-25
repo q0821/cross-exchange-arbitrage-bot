@@ -101,7 +101,12 @@
       "Bash(kill:*)",
       "WebFetch(domain:developers.binance.com)",
       "Bash(pnpm lint:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "WebFetch(domain:www.gate.com)",
+      "Bash(xargs kill:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "SlashCommand(/speckit.specify)"
     ],
     "deny": [],
     "ask": []

@@ -1,4 +1,4 @@
-import { MarketRate, ExchangeName } from '../types';
+import { MarketRate, ExchangeName, TimeBasis } from '../types';
 
 /**
  * 交易所顯示名稱映射表
@@ -43,74 +43,121 @@ export function getExchangeDisplayName(exchange: ExchangeName): string {
 }
 
 /**
- * T008: 將百分比數值格式化為範圍估值
+ * 格式化年化收益為範圍估值（±10%）
  *
- * 使用 ±20% 波動範圍，四捨五入到整數百分比
- *
- * @param value - 百分比數值（小數形式，如 0.075 表示 7.5%）
- * @returns 格式化的範圍字串（如 "約 6-9%"）
+ * @param annualizedReturn - 年化收益百分比（如 800 表示 800%）
+ * @returns 格式化字串（如 "約 720-880%"）
  *
  * @example
- * formatPercentageRange(0.075) // "約 6-9%"
- * formatPercentageRange(0.03)  // "約 2-4%"
- * formatPercentageRange(0)     // "約 0%"
- * formatPercentageRange(null)  // "N/A"
+ * formatAnnualizedReturn(800)  // => "約 720-880%"
+ * formatAnnualizedReturn(0)    // => "約 0%"
  */
-export function formatPercentageRange(value: number | null): string {
-  // 處理無效值
-  if (value === null || isNaN(value) || value < 0) {
-    return 'N/A';
-  }
-
+function formatAnnualizedReturn(annualizedReturn: number): string {
   // 處理零值
-  if (value === 0) {
+  if (annualizedReturn === 0) {
     return '約 0%';
   }
 
-  // 轉換為百分比
-  const valuePercent = value * 100;
-
-  // 計算 ±20% 範圍
-  const min = Math.max(0, Math.round(valuePercent * 0.8));
-  const max = Math.round(valuePercent * 1.2);
-
-  // 如果 min 和 max 相同，只顯示單一值
-  if (min === max) {
-    return `約 ${min}%`;
-  }
+  // 計算 ±10% 範圍
+  const min = Math.round(annualizedReturn * 0.9);
+  const max = Math.round(annualizedReturn * 1.1);
 
   return `約 ${min}-${max}%`;
 }
 
 /**
- * T009: 將 MarketRate 數據格式化為完整的套利資訊文字
+ * 格式化單次費率收益並附加時間基準說明
+ *
+ * @param spreadPercent - 費率差異百分比（如 0.73 表示 0.73%）
+ * @param timeBasis - 時間基準（1, 4, 8, 24 小時）
+ * @returns 格式化字串（如 "約 0.73%（每 8 小時結算一次）"）
+ *
+ * @example
+ * formatSingleFundingReturn(0.73, 8)  // => "約 0.73%（每 8 小時結算一次）"
+ * formatSingleFundingReturn(0.25, 4)  // => "約 0.25%（每 4 小時結算一次）"
+ */
+function formatSingleFundingReturn(
+  spreadPercent: number,
+  timeBasis: TimeBasis
+): string {
+  return `約 ${spreadPercent.toFixed(2)}%（每 ${timeBasis} 小時結算一次）`;
+}
+
+/**
+ * 格式化價格偏差並附帶有利/不利說明
+ *
+ * @param priceDiffPercent - 價格差異百分比（如 0.15 表示 0.15%，可為 null）
+ * @returns 格式化字串，包含正負號、數值和風險說明
+ *
+ * @example
+ * formatPriceDiffWithExplanation(0.15)
+ * // => "+0.15%（✓ 做空方價格較高，有利平倉）"
+ *
+ * formatPriceDiffWithExplanation(-0.10)
+ * // => "-0.10%（✗ 做多方價格較高，不利平倉）"
+ *
+ * formatPriceDiffWithExplanation(null)
+ * // => "N/A（無價格數據）"
+ */
+function formatPriceDiffWithExplanation(
+  priceDiffPercent: number | null
+): string {
+  // 處理 null 值
+  if (priceDiffPercent === null) {
+    return 'N/A（無價格數據）';
+  }
+
+  // 格式化數值（2 位小數）
+  const sign = priceDiffPercent >= 0 ? '+' : '';
+  const value = `${sign}${priceDiffPercent.toFixed(2)}%`;
+
+  // 根據正負值決定說明
+  if (priceDiffPercent >= 0) {
+    return `${value}（✓ 做空方價格較高，有利平倉）`;
+  } else {
+    return `${value}（✗ 做多方價格較高，不利平倉）`;
+  }
+}
+
+/**
+ * 將 MarketRate 數據格式化為完整的套利資訊文字
  *
  * @param rate - MarketRate 物件，包含交易對和套利配對資訊
+ * @param timeBasis - 時間基準（1, 4, 8, 24 小時），預設 8
  * @returns 格式化的文字字串，可直接複製到剪貼板
  * @throws Error 當 bestPair 為 null 時拋出異常
  *
  * @example
- * const rate: MarketRate = { ... };
- * const message = formatArbitrageMessage(rate);
+ * const message = formatArbitrageMessage(rate, 8);
  * await navigator.clipboard.writeText(message);
  */
-export function formatArbitrageMessage(rate: MarketRate): string {
+export function formatArbitrageMessage(
+  rate: MarketRate,
+  timeBasis: TimeBasis = 8
+): string {
   // 驗證必要數據
   if (!rate || !rate.bestPair) {
     throw new Error('Invalid rate data or missing best pair');
   }
 
   const { symbol, bestPair } = rate;
-  const { longExchange, shortExchange, priceDiffPercent, spreadPercent } = bestPair;
+  const { longExchange, shortExchange, priceDiffPercent, spreadPercent, annualizedReturn } = bestPair;
 
   // 格式化各個欄位
   const symbolDisplay = formatSymbolDisplay(symbol);
   const longExchangeDisplay = getExchangeDisplayName(longExchange);
   const shortExchangeDisplay = getExchangeDisplayName(shortExchange);
-  const priceDiffDisplay = formatPercentageRange(priceDiffPercent);
-  const spreadDisplay = formatPercentageRange(spreadPercent);
 
-  // 組裝完整訊息
+  // User Story 1: 年化收益範圍
+  const annualizedReturnDisplay = formatAnnualizedReturn(annualizedReturn);
+
+  // User Story 2: 單次費率收益和時間基準
+  const singleReturnDisplay = formatSingleFundingReturn(spreadPercent, timeBasis);
+
+  // User Story 3: 價格偏差說明
+  const priceDiffDisplay = formatPriceDiffWithExplanation(priceDiffPercent);
+
+  // 組裝完整訊息（User Story 4: 術語改善）
   const message = `=======
 【套套摳訊】
 
@@ -119,16 +166,18 @@ ${symbolDisplay}
 做多：${longExchangeDisplay}（交易所）
 做空：${shortExchangeDisplay}（交易所）
 
-📈 目前利潤預估：
- • 目前價差：${priceDiffDisplay}
- • 目前資費差：${spreadDisplay}
+📈 收益評估：
+ • 預估年化收益：${annualizedReturnDisplay}（資金費率價差）
+ • 單次費率收益：${singleReturnDisplay}
+ • 價格偏差：${priceDiffDisplay}
 
 🧾 下單小提醒：
  • 請使用全倉 + 低倍槓桿（最多 2～3 倍）
  • 兩邊市價一起敲，兩邊顆數要一樣
 
-🚨 風險提醒：
- • 資費有時會亂跳，要再注意觀察
+🚨 風險提示：
+ • 價格偏差為負表示不利，可能影響平倉收益
+ • 資金費率可能波動，請持續觀察
 =======`;
 
   return message;

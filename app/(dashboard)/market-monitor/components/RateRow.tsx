@@ -56,7 +56,7 @@ export const RateRow = React.memo(function RateRow({
     }
   };
 
-  // Feature 020: 複製套利資訊到剪貼板
+  // Feature 020 + Feature 023: 複製套利資訊到剪貼板
   const handleCopy = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -66,7 +66,8 @@ export const RateRow = React.memo(function RateRow({
     }
 
     try {
-      const message = formatArbitrageMessage(rate);
+      // Feature 023: 傳遞 timeBasis 參數以顯示正確的時間基準
+      const message = formatArbitrageMessage(rate, timeBasis);
       await navigator.clipboard.writeText(message);
       setCopyStatus('success');
     } catch (err) {

@@ -24,6 +24,9 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - TypeScript 5.6 + Node.js 20.x LTS + Socket.io 4.8.1 (WebSocket), Next.js 14 (Web framework), Prisma 5.x (ORM - 用於 REST API) (019-fix-time-basis-switching)
 - PostgreSQL 15 + TimescaleDB（現有資料庫，本次修復不涉及 schema 變更） (019-fix-time-basis-switching)
 - N/A（純前端功能，不涉及資料持久化） (020-copy-arbitrage-info)
+- N/A（不涉及資料庫變更，僅修改記憶體中的計算邏輯） (022-specify-scripts-bash)
+- TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router (現有依賴，無需新增) (023-fix-copy-message-display)
+- N/A（純前端顯示修改，不涉及資料持久化） (023-fix-copy-message-display)
 
 ## Project Structure
 ```
@@ -38,9 +41,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 023-fix-copy-message-display: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router (現有依賴，無需新增)
+- 022-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS
 - 021-fix-rate-spread-calculation: Added TypeScript 5.6 + Node.js 20.x LTS
-- 020-copy-arbitrage-info: Added TypeScript 5.6 + Node.js 20.x LTS
-- 019-fix-time-basis-switching: Added TypeScript 5.6 + Node.js 20.x LTS + Socket.io 4.8.1 (WebSocket), Next.js 14 (Web framework), Prisma 5.x (ORM - 用於 REST API)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
