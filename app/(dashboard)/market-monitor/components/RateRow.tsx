@@ -15,6 +15,7 @@ import { StatusBadge } from './StatusBadge';
 import { ExchangeLink } from '@/components/market';
 import { formatFundingInterval } from '../utils/formatters';
 import { FeeEstimateTooltip } from './FeeEstimateTooltip';
+import { PaybackTooltip } from './PaybackTooltip';
 import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
 import { calculatePaybackPeriods } from '../utils/rateCalculations';
 import type {
@@ -327,7 +328,7 @@ export const RateRow = React.memo(function RateRow({
               : 'N/A'}
           </span>
 
-          {/* Feature 025: 回本次數指標 */}
+          {/* Feature 025: 回本次數指標 + Tooltip (US3) */}
           {rate.bestPair && (() => {
             const payback = calculatePaybackPeriods(
               rate.bestPair.priceDiffPercent,
@@ -341,7 +342,7 @@ export const RateRow = React.memo(function RateRow({
               return null;
             }
 
-            return (
+            const indicator = (
               <span
                 className={`text-xs ${
                   payback.color === 'green' ? 'text-green-500' :
@@ -353,6 +354,17 @@ export const RateRow = React.memo(function RateRow({
                 {payback.displayText}
               </span>
             );
+
+            // US3: 如果有詳細資訊，用 Tooltip 包裹
+            if (payback.details) {
+              return (
+                <PaybackTooltip payback={payback}>
+                  {indicator}
+                </PaybackTooltip>
+              );
+            }
+
+            return indicator;
           })()}
         </div>
       </td>

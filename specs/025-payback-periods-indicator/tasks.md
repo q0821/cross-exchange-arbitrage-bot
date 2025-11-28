@@ -114,17 +114,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T018 [P] [US3] Add unit test case for estimatedHours calculation (periods × timeBasis) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
-- [ ] T019 [P] [US3] Add unit test case for details object generation (priceDiff, rateSpread, formula) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T018 [P] [US3] Add unit test case for estimatedHours calculation (periods × timeBasis) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T019 [P] [US3] Add unit test case for details object generation (priceDiff, rateSpread, formula) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T020 [P] [US3] Create `PaybackTooltip.tsx` component at `app/(dashboard)/market-monitor/components/PaybackTooltip.tsx` using Radix UI Tooltip primitives (TooltipProvider, Tooltip, TooltipTrigger, TooltipContent)
-- [ ] T021 [US3] Implement Tooltip content layout in `PaybackTooltip.tsx` displaying priceDiff, rateSpread, formula, and estimatedHours from PaybackResult.details
-- [ ] T022 [US3] Add time formatting logic in `PaybackTooltip.tsx` to display hours as "約 X.X 小時" when < 24h, or "約 X.X 天" when >= 24h
-- [ ] T023 [US3] Add disclaimer warning text in Tooltip for too_many status: "⚠️ 注意：回本次數過多，費率可能在持倉期間波動，風險較高"
-- [ ] T024 [US3] Wrap payback indicator displayText in `RateRow.tsx` with `PaybackTooltip` component, passing PaybackResult as prop
-- [ ] T025 [US3] Add general disclaimer in Tooltip footer: "⚠️ 注意：回本次數基於當前費率差計算，實際費率可能波動。此指標僅供參考，不構成投資建議。"
+- [X] T020 [P] [US3] Create `PaybackTooltip.tsx` component at `app/(dashboard)/market-monitor/components/PaybackTooltip.tsx` using Radix UI Tooltip primitives (TooltipProvider, Tooltip, TooltipTrigger, TooltipContent)
+- [X] T021 [US3] Implement Tooltip content layout in `PaybackTooltip.tsx` displaying priceDiff, rateSpread, formula, and estimatedHours from PaybackResult.details
+- [X] T022 [US3] Add time formatting logic in `PaybackTooltip.tsx` to display hours as "約 X.X 小時" when < 24h, or "約 X.X 天" when >= 24h
+- [X] T023 [US3] Add disclaimer warning text in Tooltip for too_many status: "⚠️ 注意：回本次數過多，費率可能在持倉期間波動，風險較高"
+- [X] T024 [US3] Wrap payback indicator displayText in `RateRow.tsx` with `PaybackTooltip` component, passing PaybackResult as prop
+- [X] T025 [US3] Add general disclaimer in Tooltip footer: "⚠️ 注意：回本次數基於當前費率差計算，實際費率可能波動。此指標僅供參考，不構成投資建議。"
 
 **Checkpoint**: All payback indicators now have detailed Tooltip information on hover
 
@@ -143,20 +143,20 @@
 
 ### Tests for User Story 4
 
-- [ ] T026 [P] [US4] Create unit test file `tests/unit/market-monitor/formatArbitrageMessage.test.ts` (if not exists) or extend existing tests
-- [ ] T027 [P] [US4] Add test case for formatArbitrageMessage with payback_needed status including payback info in output in `tests/unit/market-monitor/formatArbitrageMessage.test.ts`
-- [ ] T028 [P] [US4] Add test case for formatArbitrageMessage with favorable status including "價差有利" message in `tests/unit/market-monitor/formatArbitrageMessage.test.ts`
-- [ ] T029 [P] [US4] Add test case for formatArbitrageMessage with too_many status including warning message in `tests/unit/market-monitor/formatArbitrageMessage.test.ts`
+- [X] T026 [P] [US4] Create unit test file `tests/unit/market-monitor/formatArbitrageMessage.test.ts` (if not exists) or extend existing tests
+- [X] T027 [P] [US4] Add test case for formatArbitrageMessage with payback_needed status including payback info in output in `tests/unit/market-monitor/formatArbitrageMessage.test.ts`
+- [X] T028 [P] [US4] Add test case for formatArbitrageMessage with favorable status including "價差有利" message in `tests/unit/market-monitor/formatArbitrageMessage.test.ts`
+- [X] T029 [P] [US4] Add test case for formatArbitrageMessage with too_many status including warning message in `tests/unit/market-monitor/formatArbitrageMessage.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T030 [US4] Read existing `formatArbitrageMessage()` function in `app/(dashboard)/market-monitor/utils/formatArbitrageMessage.ts` to understand current message structure
-- [ ] T031 [US4] Modify `formatArbitrageMessage()` function to accept PaybackResult parameter (from calculatePaybackPeriods call)
-- [ ] T032 [US4] Add conditional logic in `formatArbitrageMessage()` to append payback info line based on PaybackResult.status
-- [ ] T033 [US4] Format payback_needed message as: "⏱️ 價差回本：需收取 X.X 次資費（約 Y 小時）"
-- [ ] T034 [US4] Format favorable message as: "✓ 價差有利：建倉即有正報酬"
-- [ ] T035 [US4] Format too_many or impossible message as: "❌ 價差回本：回本次數過多，不建議建倉"
-- [ ] T036 [US4] Update `RateRow.tsx` copy button handler to pass PaybackResult to formatArbitrageMessage function
+- [X] T030 [US4] Read existing `formatArbitrageMessage()` function in `app/(dashboard)/market-monitor/utils/formatArbitrageMessage.ts` to understand current message structure
+- [X] T031 [US4] Modify `formatArbitrageMessage()` function to accept PaybackResult parameter (from calculatePaybackPeriods call)
+- [X] T032 [US4] Add conditional logic in `formatArbitrageMessage()` to append payback info line based on PaybackResult.status
+- [X] T033 [US4] Format payback_needed message as: "⏱️ 價差回本：需收取 X.X 次資費（約 Y 小時）"
+- [X] T034 [US4] Format favorable message as: "✓ 價差有利：建倉即有正報酬"
+- [X] T035 [US4] Format too_many or impossible message as: "❌ 價差回本：回本次數過多，不建議建倉"
+- [X] T036 [US4] Update `RateRow.tsx` copy button handler to pass PaybackResult to formatArbitrageMessage function
 
 **Checkpoint**: Copy functionality now includes payback information in all scenarios
 
@@ -174,17 +174,17 @@
 
 ### Tests for User Story 5
 
-- [ ] T037 [P] [US5] Add unit test case for no_data status (priceDiffPercent = null) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
-- [ ] T038 [P] [US5] Add unit test case for impossible status (spreadPercent = 0) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
-- [ ] T039 [P] [US5] Add unit test case for NaN input handling (priceDiffPercent = NaN) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T037 [P] [US5] Add unit test case for no_data status (priceDiffPercent = null) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T038 [P] [US5] Add unit test case for impossible status (spreadPercent = 0) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T039 [P] [US5] Add unit test case for NaN input handling (priceDiffPercent = NaN) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T040 [US5] Extend conditional rendering in `RateRow.tsx` to display payback indicator when status is 'no_data' or 'impossible'
-- [ ] T041 [US5] Apply gray color coding in `RateRow.tsx` using Tailwind class `text-gray-400` for no_data status
-- [ ] T042 [US5] Apply red color coding in `RateRow.tsx` using Tailwind class `text-red-500` for impossible status
-- [ ] T043 [US5] Add displayText rendering for no_data and impossible statuses in `RateRow.tsx`
-- [ ] T044 [US5] Verify WebSocket data update handling in `RateRow.tsx` - ensure component re-renders when priceDiffPercent changes from null to valid value
+- [X] T040 [US5] Extend conditional rendering in `RateRow.tsx` to display payback indicator when status is 'no_data' or 'impossible'
+- [X] T041 [US5] Apply gray color coding in `RateRow.tsx` using Tailwind class `text-gray-400` for no_data status
+- [X] T042 [US5] Apply red color coding in `RateRow.tsx` using Tailwind class `text-red-500` for impossible status
+- [X] T043 [US5] Add displayText rendering for no_data and impossible statuses in `RateRow.tsx`
+- [X] T044 [US5] Verify WebSocket data update handling in `RateRow.tsx` - ensure component re-renders when priceDiffPercent changes from null to valid value
 
 **Checkpoint**: All edge cases handled gracefully - null data, zero spread, NaN values
 
