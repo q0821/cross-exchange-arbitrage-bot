@@ -106,7 +106,9 @@
       "Bash(xargs kill:*)",
       "Bash(docker ps:*)",
       "Bash(docker logs:*)",
-      "SlashCommand(/speckit.specify)"
+      "SlashCommand(/speckit.specify)",
+      "Bash(python3:*)",
+      "Bash(do echo \"Request $i:\")"
     ],
     "deny": [],
     "ask": []
