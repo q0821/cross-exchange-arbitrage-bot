@@ -13,6 +13,7 @@ import type {
   ExchangeName,
   TimeBasis,
 } from '../types';
+import type { PaybackResult } from '../types/payback';
 
 // ============================================================================
 // 年化收益門檻常數 (Feature 022)
@@ -216,4 +217,170 @@ export function recalculateAllBestPairs(
   timeBasis: TimeBasis
 ): MarketRate[] {
   return rates.map((rate) => recalculateBestPair(rate, timeBasis));
+}
+
+// ============================================================================
+// 價差回本週期指標 (Feature 025)
+// ============================================================================
+
+/**
+ * 格式化回本計算公式說明
+ *
+ * @param priceDiff 價差百分比
+ * @param rateSpread 費率差百分比
+ * @param periods 回本次數
+ * @param status 回本狀態
+ * @returns 格式化的公式說明
+ */
+function formatPaybackFormula(
+  priceDiff: number | null,
+  rateSpread: number,
+  periods: number | undefined,
+  status: PaybackResult['status']
+): string {
+  if (status === 'favorable') {
+    return '價差有利表示建倉即有正報酬，無需等待資費收取';
+  }
+
+  if (status === 'no_data') {
+    return '無價格數據，無法計算回本次數';
+  }
+
+  if (status === 'impossible') {
+    return '費率差為零，無法透過收取資費來回本';
+  }
+
+  if (status === 'payback_needed' && periods !== undefined && priceDiff !== null) {
+    const absPriceDiff = Math.abs(priceDiff).toFixed(2);
+    const formattedSpread = rateSpread.toFixed(2);
+    const formattedPeriods = periods.toFixed(1);
+    return `回本次數 = |價差| ÷ 費率差 = ${absPriceDiff}% ÷ ${formattedSpread}% = ${formattedPeriods} 次`;
+  }
+
+  if (status === 'too_many' && periods !== undefined && priceDiff !== null) {
+    const absPriceDiff = Math.abs(priceDiff).toFixed(2);
+    const formattedSpread = rateSpread.toFixed(2);
+    return `回本次數 = ${absPriceDiff}% ÷ ${formattedSpread}% = ${Math.floor(periods)} 次`;
+  }
+
+  return '無法計算回本資訊';
+}
+
+/**
+ * 計算價差回本次數
+ *
+ * 此函數判斷套利機會的價差方向，並計算需要多少次資金費率結算才能回本。
+ *
+ * Feature 025: 價差回本週期指標
+ *
+ * @param priceDiffPercent 價差百分比（來自 BestArbitragePair.priceDiffPercent）
+ *   - 正值：價差有利（做空價 > 做多價）
+ *   - 負值：價差不利（做空價 < 做多價）
+ *   - null：無價格數據
+ *
+ * @param spreadPercent 費率差異百分比（來自 BestArbitragePair.spreadPercent）
+ *   - 必須為正數
+ *   - 若為 0，表示無法回本
+ *
+ * @param timeBasis 時間基準（小時）
+ *   - 可能值：1 | 4 | 8 | 24
+ *   - 用於計算預估回本時間
+ *
+ * @returns PaybackResult - 計算結果物件
+ *
+ * @example
+ * // 情境 1：價差不利，需回本
+ * calculatePaybackPeriods(-0.15, 0.05, 8)
+ * // => { status: 'payback_needed', periods: 3.0, displayText: '⚠️ 需 3.0 次資費回本', ... }
+ *
+ * // 情境 2：價差有利
+ * calculatePaybackPeriods(0.10, 0.03, 8)
+ * // => { status: 'favorable', displayText: '✓ 價差有利', color: 'green', ... }
+ *
+ * // 情境 3：無價格數據
+ * calculatePaybackPeriods(null, 0.05, 8)
+ * // => { status: 'no_data', displayText: 'N/A（無價格數據）', color: 'gray', ... }
+ */
+export function calculatePaybackPeriods(
+  priceDiffPercent: number | null,
+  spreadPercent: number,
+  timeBasis: TimeBasis
+): PaybackResult {
+  // Edge Case 1: 無價格數據（null 或 NaN）
+  if (
+    priceDiffPercent === null ||
+    priceDiffPercent === undefined ||
+    Number.isNaN(priceDiffPercent)
+  ) {
+    return {
+      status: 'no_data',
+      displayText: 'N/A（無價格數據）',
+      color: 'gray',
+    };
+  }
+
+  // Edge Case 2: 價差有利（>=0）
+  if (priceDiffPercent >= 0) {
+    return {
+      status: 'favorable',
+      displayText: '✓ 價差有利',
+      color: 'green',
+      details: {
+        priceDiff: priceDiffPercent,
+        rateSpread: spreadPercent,
+        formula: formatPaybackFormula(priceDiffPercent, spreadPercent, undefined, 'favorable'),
+      },
+    };
+  }
+
+  // Edge Case 3: 費率差為零或負數（無法回本）
+  const effectiveSpread = Math.abs(spreadPercent);
+  if (effectiveSpread === 0 || spreadPercent < 0) {
+    return {
+      status: 'impossible',
+      displayText: '無法回本（費率差為零）',
+      color: 'red',
+      details: {
+        priceDiff: priceDiffPercent,
+        rateSpread: spreadPercent,
+        formula: formatPaybackFormula(priceDiffPercent, spreadPercent, undefined, 'impossible'),
+      },
+    };
+  }
+
+  // 計算回本次數
+  const absPriceDiff = Math.abs(priceDiffPercent);
+  const periods = parseFloat((absPriceDiff / effectiveSpread).toFixed(1));
+  const estimatedHours = parseFloat((periods * timeBasis).toFixed(1));
+
+  // Edge Case 4: 回本次數過多（> 100）
+  if (periods > 100) {
+    return {
+      status: 'too_many',
+      periods,
+      estimatedHours,
+      displayText: `❌ 回本次數過多 (${Math.floor(periods)}+ 次)`,
+      color: 'red',
+      details: {
+        priceDiff: priceDiffPercent,
+        rateSpread: spreadPercent,
+        formula: formatPaybackFormula(priceDiffPercent, spreadPercent, periods, 'too_many'),
+        warning: '⚠️ 注意：回本次數過多，費率可能在持倉期間波動，風險較高',
+      },
+    };
+  }
+
+  // 正常情況：需要回本（1-100 次）
+  return {
+    status: 'payback_needed',
+    periods,
+    estimatedHours,
+    displayText: `⚠️ 需 ${periods.toFixed(1)} 次資費回本`,
+    color: 'orange',
+    details: {
+      priceDiff: priceDiffPercent,
+      rateSpread: spreadPercent,
+      formula: formatPaybackFormula(priceDiffPercent, spreadPercent, periods, 'payback_needed'),
+    },
+  };
 }

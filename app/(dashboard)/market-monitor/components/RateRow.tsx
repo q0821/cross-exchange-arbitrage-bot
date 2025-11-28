@@ -16,6 +16,7 @@ import { ExchangeLink } from '@/components/market';
 import { formatFundingInterval } from '../utils/formatters';
 import { FeeEstimateTooltip } from './FeeEstimateTooltip';
 import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
+import { calculatePaybackPeriods } from '../utils/rateCalculations';
 import type {
   ExchangeName,
   MarketRate,
@@ -316,13 +317,44 @@ export const RateRow = React.memo(function RateRow({
         </span>
       </td>
 
-      {/* 價差 */}
+      {/* 價差 + 回本指標 (Feature 025) */}
       <td className="px-4 py-3 text-right">
-        <span className="font-mono text-sm">
-          {rate.bestPair?.priceDiffPercent != null && !isNaN(rate.bestPair.priceDiffPercent)
-            ? `${rate.bestPair.priceDiffPercent >= 0 ? '+' : ''}${rate.bestPair.priceDiffPercent.toFixed(2)}%`
-            : 'N/A'}
-        </span>
+        <div className="flex flex-col items-end gap-1">
+          {/* 價差百分比 */}
+          <span className="font-mono text-sm">
+            {rate.bestPair?.priceDiffPercent != null && !isNaN(rate.bestPair.priceDiffPercent)
+              ? `${rate.bestPair.priceDiffPercent >= 0 ? '+' : ''}${rate.bestPair.priceDiffPercent.toFixed(2)}%`
+              : 'N/A'}
+          </span>
+
+          {/* Feature 025: 回本次數指標 */}
+          {rate.bestPair && (() => {
+            const payback = calculatePaybackPeriods(
+              rate.bestPair.priceDiffPercent,
+              rate.bestPair.spreadPercent,
+              timeBasis
+            );
+
+            // 根據狀態決定是否顯示回本指標
+            if (payback.status === 'no_data') {
+              // 無數據時不顯示額外指標
+              return null;
+            }
+
+            return (
+              <span
+                className={`text-xs ${
+                  payback.color === 'green' ? 'text-green-500' :
+                  payback.color === 'orange' ? 'text-orange-500' :
+                  payback.color === 'red' ? 'text-red-500' :
+                  'text-gray-400'
+                }`}
+              >
+                {payback.displayText}
+              </span>
+            );
+          })()}
+        </div>
       </td>
 
       {/* 預估手續費 */}

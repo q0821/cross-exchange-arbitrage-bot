@@ -25,8 +25,8 @@
 
 **Purpose**: Type definitions and project structure preparation
 
-- [ ] T001 Create TypeScript type definitions file at `app/(dashboard)/market-monitor/types/payback.ts` with `PaybackResult` interface per data-model.md specification
-- [ ] T002 [P] Verify Radix UI Tooltip dependency version (^1.2.8) in package.json matches plan.md requirements
+- [X] T001 Create TypeScript type definitions file at `app/(dashboard)/market-monitor/types/payback.ts` with `PaybackResult` interface per data-model.md specification
+- [X] T002 [P] Verify Radix UI Tooltip dependency version (^1.2.8) in package.json matches plan.md requirements
 
 **Checkpoint**: Type definitions ready for implementation
 
@@ -38,9 +38,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `calculatePaybackPeriods()` function in `app/(dashboard)/market-monitor/utils/rateCalculations.ts` per contracts/payback-calculation.md specification
-- [ ] T004 Add edge case handling for null values, zero spread, and extreme values in `calculatePaybackPeriods()` function
-- [ ] T005 Add formula formatting helper function `formatPaybackFormula()` in `app/(dashboard)/market-monitor/utils/rateCalculations.ts` for Tooltip display
+- [X] T003 Implement `calculatePaybackPeriods()` function in `app/(dashboard)/market-monitor/utils/rateCalculations.ts` per contracts/payback-calculation.md specification
+- [X] T004 Add edge case handling for null values, zero spread, and extreme values in `calculatePaybackPeriods()` function
+- [X] T005 Add formula formatting helper function `formatPaybackFormula()` in `app/(dashboard)/market-monitor/utils/rateCalculations.ts` for Tooltip display
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -61,16 +61,16 @@
 
 **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T006 [P] [US1] Create unit test file `tests/unit/market-monitor/calculatePaybackPeriods.test.ts` with test case for payback_needed status (priceDiffPercent = -0.15, spreadPercent = 0.05)
-- [ ] T007 [P] [US1] Add unit test case for periods calculation precision (verify toFixed(1) behavior) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
-- [ ] T008 [P] [US1] Add unit test case for too_many status (回本次數 > 100) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T006 [P] [US1] Create unit test file `tests/unit/market-monitor/calculatePaybackPeriods.test.ts` with test case for payback_needed status (priceDiffPercent = -0.15, spreadPercent = 0.05)
+- [X] T007 [P] [US1] Add unit test case for periods calculation precision (verify toFixed(1) behavior) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T008 [P] [US1] Add unit test case for too_many status (回本次數 > 100) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Modify `RateRow.tsx` component at `app/(dashboard)/market-monitor/components/RateRow.tsx` to call `calculatePaybackPeriods()` with pair.priceDiffPercent, pair.spreadPercent, and timeBasis
-- [ ] T010 [US1] Add conditional rendering in `RateRow.tsx` price difference cell to display payback indicator below priceDiffPercent when status is 'payback_needed' or 'too_many'
-- [ ] T011 [US1] Apply color coding in `RateRow.tsx` using Tailwind classes: `text-orange-500` for payback_needed, `text-red-500` for too_many
-- [ ] T012 [US1] Add displayText rendering with proper Unicode characters (⚠️ for payback_needed, ❌ for too_many) in `RateRow.tsx`
+- [X] T009 [US1] Modify `RateRow.tsx` component at `app/(dashboard)/market-monitor/components/RateRow.tsx` to call `calculatePaybackPeriods()` with pair.priceDiffPercent, pair.spreadPercent, and timeBasis
+- [X] T010 [US1] Add conditional rendering in `RateRow.tsx` price difference cell to display payback indicator below priceDiffPercent when status is 'payback_needed' or 'too_many'
+- [X] T011 [US1] Apply color coding in `RateRow.tsx` using Tailwind classes: `text-orange-500` for payback_needed, `text-red-500` for too_many
+- [X] T012 [US1] Add displayText rendering with proper Unicode characters (⚠️ for payback_needed, ❌ for too_many) in `RateRow.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional - price difference unfavorable scenarios show payback periods
 
@@ -88,14 +88,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Add unit test case for favorable status (priceDiffPercent >= 0) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
-- [ ] T014 [P] [US2] Add unit test case for zero price difference (priceDiffPercent = 0) returning favorable status in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T013 [P] [US2] Add unit test case for favorable status (priceDiffPercent >= 0) in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
+- [X] T014 [P] [US2] Add unit test case for zero price difference (priceDiffPercent = 0) returning favorable status in `tests/unit/market-monitor/calculatePaybackPeriods.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Extend conditional rendering in `RateRow.tsx` to display payback indicator when status is 'favorable'
-- [ ] T016 [US2] Apply green color coding in `RateRow.tsx` using Tailwind class `text-green-500` for favorable status
-- [ ] T017 [US2] Add displayText rendering with check mark Unicode character (✓) for favorable status in `RateRow.tsx`
+- [X] T015 [US2] Extend conditional rendering in `RateRow.tsx` to display payback indicator when status is 'favorable'
+- [X] T016 [US2] Apply green color coding in `RateRow.tsx` using Tailwind class `text-green-500` for favorable status
+- [X] T017 [US2] Add displayText rendering with check mark Unicode character (✓) for favorable status in `RateRow.tsx`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - both favorable and unfavorable price differences display correctly
 
