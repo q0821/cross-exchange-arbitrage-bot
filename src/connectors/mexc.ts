@@ -181,7 +181,7 @@ export class MexcConnector extends BaseExchangeConnector {
 
         if (!isNaN(collectCycle) && collectCycle > 0) {
           // CCXT 成功暴露 collectCycle 欄位
-          this.intervalCache.set('mexc', symbol, collectCycle, 'api');
+          this.intervalCache.set('mexc', symbol, collectCycle, 'native-api');
           logger.info({ symbol, interval: collectCycle, source: 'api' }, 'Funding interval fetched from MEXC API');
           return collectCycle;
         }
