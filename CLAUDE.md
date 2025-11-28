@@ -27,6 +27,9 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - N/A（不涉及資料庫變更，僅修改記憶體中的計算邏輯） (022-specify-scripts-bash)
 - TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router (現有依賴，無需新增) (023-fix-copy-message-display)
 - N/A（純前端顯示修改，不涉及資料持久化） (023-fix-copy-message-display)
+- TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象), axios (HTTP 請求), pino (結構化日誌) (024-fix-okx-funding-normalization)
+- TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (現有依賴，無需新增) (025-payback-periods-indicator)
+- N/A（純前端計算，不涉及資料持久化） (025-payback-periods-indicator)
 
 ## Project Structure
 ```
@@ -41,9 +44,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 025-payback-periods-indicator: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (現有依賴，無需新增)
+- 024-fix-okx-funding-normalization: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象), axios (HTTP 請求), pino (結構化日誌)
 - 023-fix-copy-message-display: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router (現有依賴，無需新增)
-- 022-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS
-- 021-fix-rate-spread-calculation: Added TypeScript 5.6 + Node.js 20.x LTS
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
