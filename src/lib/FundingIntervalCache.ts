@@ -3,13 +3,37 @@ export interface CachedInterval {
   interval: number;
 
   /** 資料來源 */
-  source: 'api' | 'calculated' | 'default';
+  source: 'native-api' | 'calculated' | 'default';
 
   /** 快取建立時間戳(毫秒) */
   timestamp: number;
 
   /** 存活時間(毫秒) */
   ttl: number;
+}
+
+/** 快取間隔的中繼資料資訊 */
+export interface CachedIntervalMetadata {
+  /** 交易所名稱 */
+  exchange: string;
+
+  /** 交易對符號 */
+  symbol: string;
+
+  /** 間隔值(小時) */
+  interval: number;
+
+  /** 資料來源 */
+  source: 'native-api' | 'calculated' | 'default';
+
+  /** 快取建立時間戳(毫秒) */
+  timestamp: number;
+
+  /** 存活時間(毫秒) */
+  ttl: number;
+
+  /** 是否過期 */
+  isExpired: boolean;
 }
 
 interface CacheStats {
@@ -48,7 +72,7 @@ export class FundingIntervalCache {
     exchange: string,
     symbol: string,
     interval: number,
-    source: 'api' | 'calculated' | 'default'
+    source: 'native-api' | 'calculated' | 'default'
   ): void {
     const key = this.generateKey(exchange, symbol);
     this.cache.set(key, {
@@ -87,6 +111,68 @@ export class FundingIntervalCache {
   }
 
   /**
+   * 獲取間隔值及其中繼資料
+   * @param exchange 交易所名稱
+   * @param symbol 交易對符號
+   * @returns 包含中繼資料的快取資訊或 null
+   */
+  getWithMetadata(exchange: string, symbol: string): CachedIntervalMetadata | null {
+    const key = this.generateKey(exchange, symbol);
+    const cached = this.cache.get(key);
+
+    if (!cached) {
+      this.stats.misses++;
+      return null;
+    }
+
+    const now = Date.now();
+    const isExpired = now - cached.timestamp > cached.ttl;
+
+    if (isExpired) {
+      this.cache.delete(key);
+      this.stats.misses++;
+      return null;
+    }
+
+    this.stats.hits++;
+    return {
+      exchange,
+      symbol,
+      interval: cached.interval,
+      source: cached.source,
+      timestamp: cached.timestamp,
+      ttl: cached.ttl,
+      isExpired: false,
+    };
+  }
+
+  /**
+   * 獲取所有快取的間隔值及其中繼資料
+   * @returns 所有快取項目的中繼資料陣列
+   */
+  getAllWithMetadata(): CachedIntervalMetadata[] {
+    const now = Date.now();
+    const results: CachedIntervalMetadata[] = [];
+
+    for (const [key, cached] of this.cache) {
+      const [exchange, symbol] = key.split('-');
+      const isExpired = now - cached.timestamp > cached.ttl;
+
+      results.push({
+        exchange,
+        symbol,
+        interval: cached.interval,
+        source: cached.source,
+        timestamp: cached.timestamp,
+        ttl: cached.ttl,
+        isExpired,
+      });
+    }
+
+    return results;
+  }
+
+  /**
    * 批量設定間隔值
    * @param exchange 交易所名稱
    * @param intervals 符號與間隔的映射
@@ -95,7 +181,7 @@ export class FundingIntervalCache {
   setAll(
     exchange: string,
     intervals: Map<string, number>,
-    source: 'api' | 'calculated' | 'default'
+    source: 'native-api' | 'calculated' | 'default'
   ): void {
     for (const [symbol, interval] of intervals) {
       this.set(exchange, symbol, interval, source);

@@ -218,8 +218,8 @@ export class BinanceConnector extends BaseExchangeConnector {
       }
 
       // 7. 快取並返回
-      this.intervalCache.set('binance', symbol, interval, 'api');
-      logger.info({ symbol, interval, source: 'api' }, 'Funding interval fetched from Binance API');
+      this.intervalCache.set('binance', symbol, interval, 'native-api');
+      logger.info({ symbol, interval, source: 'native-api' }, 'Funding interval fetched from Binance API');
 
       return interval;
     } catch (error) {

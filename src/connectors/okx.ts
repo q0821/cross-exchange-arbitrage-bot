@@ -27,6 +27,10 @@ export class OKXConnector extends BaseExchangeConnector {
   private client: ccxt.Exchange | null = null;
   private intervalCache: FundingIntervalCache;
 
+  // T068-T069: Define validation constants
+  private static readonly VALID_INTERVALS = [1, 4, 8];
+  private static readonly TOLERANCE = 0.5; // hours
+
   constructor(isTestnet: boolean = false) {
     super('okx', isTestnet);
     this.intervalCache = new FundingIntervalCache();
@@ -91,6 +95,249 @@ export class OKXConnector extends BaseExchangeConnector {
   }
 
   /**
+   * Validate and round interval to nearest standard value
+   * Feature: 024-fix-okx-funding-normalization (User Story 4)
+   * Returns validated interval or null if invalid
+   */
+  private validateAndRoundInterval(
+    symbol: string,
+    rawInterval: number
+  ): { interval: number; rounded: boolean; deviation: number } | null {
+    // T070: Validate positive number
+    if (rawInterval <= 0 || !isFinite(rawInterval)) {
+      logger.warn(
+        { symbol, rawInterval },
+        'Invalid interval: must be positive and finite'
+      );
+      return null;
+    }
+
+    // T071: Find closest standard interval
+    let closestInterval: number = OKXConnector.VALID_INTERVALS[0]!;
+    let minDistance = Math.abs(rawInterval - closestInterval);
+
+    for (const validInterval of OKXConnector.VALID_INTERVALS) {
+      const distance = Math.abs(rawInterval - validInterval);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestInterval = validInterval;
+      }
+    }
+
+    // T072: Calculate deviation
+    const deviation = Math.abs(rawInterval - closestInterval);
+    const rounded = deviation > 0.01; // Consider rounded if deviation > 0.01h
+
+    // T073: Log warning when deviation > tolerance
+    if (deviation > OKXConnector.TOLERANCE) {
+      logger.warn(
+        {
+          symbol,
+          originalInterval: rawInterval,
+          roundedInterval: closestInterval,
+          deviation,
+          tolerance: OKXConnector.TOLERANCE,
+        },
+        'Large deviation detected: interval rounded to nearest standard value'
+      );
+    } else if (rounded) {
+      // Log info for smaller deviations
+      logger.info(
+        {
+          symbol,
+          originalInterval: rawInterval,
+          roundedInterval: closestInterval,
+          deviation,
+        },
+        'Interval rounded to nearest standard value'
+      );
+    }
+
+    // T074: Return validation result
+    return {
+      interval: closestInterval,
+      rounded,
+      deviation,
+    };
+  }
+
+  /**
+   * Get funding interval from OKX Native API with retry logic
+   * Feature: 024-fix-okx-funding-normalization (User Story 3)
+   * Implements exponential backoff for rate limit errors
+   */
+  private async getFundingIntervalFromNativeAPIWithRetry(
+    symbol: string,
+    maxRetries: number = 2
+  ): Promise<number | null> {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await this.getFundingIntervalFromNativeAPI(symbol);
+        return result;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+
+        // Only retry on rate limit errors
+        if (err.message === 'RATE_LIMIT' && attempt < maxRetries) {
+          // Exponential backoff: 1s, 2s, 4s...
+          const delayMs = Math.pow(2, attempt) * 1000;
+          logger.warn(
+            { symbol, attempt: attempt + 1, maxRetries: maxRetries + 1, delayMs },
+            'Native API rate limit hit, retrying after delay'
+          );
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          continue;
+        }
+
+        // For other errors or final retry exhausted, return null
+        return null;
+      }
+    }
+
+    logger.warn(
+      { symbol, maxRetries: maxRetries + 1 },
+      'Native API retry exhausted, giving up'
+    );
+    return null;
+  }
+
+  /**
+   * Get funding interval from OKX Native API as fallback
+   * Feature: 024-fix-okx-funding-normalization (User Story 3)
+   * Called when CCXT fails to provide valid timestamps
+   */
+  private async getFundingIntervalFromNativeAPI(symbol: string): Promise<number | null> {
+    try {
+      // T048: Convert symbol format (BTCUSDT -> BTC-USDT-SWAP)
+      const instId = this.toOkxInstId(symbol);
+
+      const axios = require('axios');
+      const baseUrl = this.isTestnet ? 'https://www.okx.com' : 'https://www.okx.com';
+
+      // T049, T053: Implement axios GET request with timeout
+      const response = await axios.get(`${baseUrl}/api/v5/public/funding-rate`, {
+        params: { instId },
+        timeout: 5000,
+      });
+
+      const data = response.data;
+
+      // T052: Handle OKX API errors
+      if (data.code === '51001') {
+        logger.warn(
+          { symbol, instId, errorCode: data.code },
+          'Native API: Invalid instId - instrument does not exist'
+        );
+        return null;
+      }
+
+      if (data.code === '50011') {
+        // Rate limit error - will be handled by retry logic
+        throw new Error('RATE_LIMIT');
+      }
+
+      if (data.code === '50013') {
+        logger.warn(
+          { symbol, instId, errorCode: data.code },
+          'Native API: System busy, please try again later'
+        );
+        return null;
+      }
+
+      // Validate response format
+      if (data.code !== '0' || !Array.isArray(data.data) || data.data.length === 0) {
+        logger.warn(
+          { symbol, instId, responseCode: data.code },
+          'Native API: Invalid response format'
+        );
+        return null;
+      }
+
+      // T050: Extract fundingTime and nextFundingTime
+      const rateData = data.data[0];
+      const fundingTimeStr = rateData.fundingTime;
+      const nextFundingTimeStr = rateData.nextFundingTime;
+
+      if (!fundingTimeStr || !nextFundingTimeStr) {
+        logger.warn(
+          { symbol, instId, rateData },
+          'Native API: Missing fundingTime or nextFundingTime'
+        );
+        return null;
+      }
+
+      // T051: Parse timestamps and calculate interval
+      const fundingTime = parseInt(fundingTimeStr, 10);
+      const nextFundingTime = parseInt(nextFundingTimeStr, 10);
+
+      if (isNaN(fundingTime) || isNaN(nextFundingTime) || nextFundingTime <= fundingTime) {
+        logger.warn(
+          { symbol, instId, fundingTime, nextFundingTime },
+          'Native API: Invalid timestamps'
+        );
+        return null;
+      }
+
+      const intervalMs = nextFundingTime - fundingTime;
+      const rawIntervalHours = intervalMs / (60 * 60 * 1000);
+
+      // T076: Integrate validateAndRoundInterval() into Native API path
+      const validationResult = this.validateAndRoundInterval(symbol, rawIntervalHours);
+
+      if (!validationResult) {
+        logger.warn(
+          { symbol, instId, rawIntervalHours },
+          'Native API: Calculated interval is invalid'
+        );
+        return null;
+      }
+
+      const intervalHours = validationResult.interval;
+
+      logger.info(
+        {
+          symbol,
+          instId,
+          interval: intervalHours,
+          source: 'native-api',
+          fundingTime: new Date(fundingTime).toISOString(),
+          nextFundingTime: new Date(nextFundingTime).toISOString(),
+          ...(validationResult.rounded && {
+            originalInterval: rawIntervalHours,
+            rounded: true,
+            deviation: validationResult.deviation,
+          }),
+        },
+        'Funding interval retrieved from Native API'
+      );
+
+      return intervalHours;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+
+      // T057: Handle rate limit with retry signal
+      if (err.message === 'RATE_LIMIT') {
+        throw err; // Re-throw to trigger retry logic
+      }
+
+      // T053: Handle network timeout
+      if (err.message.includes('timeout')) {
+        logger.warn(
+          { symbol, error: err.message },
+          'Native API: Request timeout'
+        );
+        return null;
+      }
+
+      logger.warn(
+        { symbol, error: err.message },
+        'Native API: Failed to fetch funding interval'
+      );
+      return null;
+    }
+  }
+
+  /**
    * Get funding interval for a symbol by calculating from timestamps
    * Feature: 017-funding-rate-intervals
    * Strategy: Calculate interval from (nextFundingTime - fundingTime) / 3600000
@@ -115,11 +362,28 @@ export class OKXConnector extends BaseExchangeConnector {
       const fundingTimeStr = info?.fundingTime;
       const nextFundingTimeStr = info?.nextFundingTime;
 
+      // T031-T033: Enhanced warning when fundingTime/nextFundingTime missing
       if (!fundingTimeStr || !nextFundingTimeStr) {
         logger.warn(
-          { symbol },
-          'CCXT did not expose fundingTime or nextFundingTime fields, using default 8h'
+          {
+            symbol,
+            availableFields: Object.keys(info || {}),
+            fundingTimePresent: !!fundingTimeStr,
+            nextFundingTimePresent: !!nextFundingTimeStr,
+          },
+          'CCXT did not expose fundingTime or nextFundingTime fields, falling back to Native API'
         );
+
+        // T054-T055: Fallback to Native API
+        const nativeInterval = await this.getFundingIntervalFromNativeAPIWithRetry(symbol);
+        if (nativeInterval !== null) {
+          // T056: Cache Native API result
+          this.intervalCache.set('okx', symbol, nativeInterval, 'native-api');
+          return nativeInterval;
+        }
+
+        // If Native API also fails, use default
+        logger.warn({ symbol }, 'Native API also failed, using default 8h');
         this.intervalCache.set('okx', symbol, 8, 'default');
         return 8;
       }
@@ -128,33 +392,88 @@ export class OKXConnector extends BaseExchangeConnector {
       const fundingTime = parseInt(fundingTimeStr, 10);
       const nextFundingTime = parseInt(nextFundingTimeStr, 10);
 
-      // 5. Validate timestamps
-      if (isNaN(fundingTime) || isNaN(nextFundingTime) || nextFundingTime <= fundingTime) {
+      // 5. T034-T035: Enhanced validation with detailed error logging
+      if (isNaN(fundingTime) || isNaN(nextFundingTime)) {
         logger.warn(
-          { symbol, fundingTime, nextFundingTime },
-          'Invalid timestamps detected, using default 8h'
+          {
+            symbol,
+            fundingTime,
+            nextFundingTime,
+            fundingTimeRaw: fundingTimeStr,
+            nextFundingTimeRaw: nextFundingTimeStr,
+            parsedCorrectly: {
+              fundingTime: !isNaN(fundingTime),
+              nextFundingTime: !isNaN(nextFundingTime),
+            },
+          },
+          'Invalid timestamps detected (NaN after parsing), using default 8h'
         );
         this.intervalCache.set('okx', symbol, 8, 'default');
         return 8;
       }
 
-      // 6. Calculate interval in hours
+      if (nextFundingTime <= fundingTime) {
+        logger.warn(
+          {
+            symbol,
+            fundingTime,
+            nextFundingTime,
+            fundingTimeISO: new Date(fundingTime).toISOString(),
+            nextFundingTimeISO: new Date(nextFundingTime).toISOString(),
+            difference: nextFundingTime - fundingTime,
+          },
+          'Invalid timestamps detected (nextFundingTime <= fundingTime), using default 8h'
+        );
+        this.intervalCache.set('okx', symbol, 8, 'default');
+        return 8;
+      }
+
+      // 6. Calculate interval in hours (raw calculation before validation)
       const intervalMs = nextFundingTime - fundingTime;
-      const intervalHours = Math.round(intervalMs / (60 * 60 * 1000));
+      const rawIntervalHours = intervalMs / (60 * 60 * 1000);
 
-      if (intervalHours <= 0) {
+      // T075: Integrate validateAndRoundInterval() into CCXT path
+      const validationResult = this.validateAndRoundInterval(symbol, rawIntervalHours);
+
+      if (!validationResult) {
+        // T036-T037: Enhanced warning for non-positive intervals
         logger.warn(
-          { symbol, intervalHours },
-          'Calculated interval is non-positive, using default 8h'
+          {
+            symbol,
+            rawIntervalHours,
+            intervalMs,
+            fundingTime,
+            nextFundingTime,
+            fundingTimeISO: new Date(fundingTime).toISOString(),
+            nextFundingTimeISO: new Date(nextFundingTime).toISOString(),
+          },
+          'Calculated interval is invalid, using default 8h'
         );
         this.intervalCache.set('okx', symbol, 8, 'default');
         return 8;
       }
+
+      // Use validated interval
+      const intervalHours = validationResult.interval;
 
       // 7. Cache and return
       this.intervalCache.set('okx', symbol, intervalHours, 'calculated');
+
+      // T019-T021, T077: Add detailed logging when successfully calculating interval
       logger.info(
-        { symbol, interval: intervalHours, source: 'calculated' },
+        {
+          symbol,
+          interval: intervalHours,
+          source: 'calculated',
+          fundingTime: new Date(fundingTime).toISOString(),
+          nextFundingTime: new Date(nextFundingTime).toISOString(),
+          intervalMs,
+          ...(validationResult.rounded && {
+            originalInterval: rawIntervalHours,
+            rounded: true,
+            deviation: validationResult.deviation,
+          }),
+        },
         'Funding interval calculated from OKX timestamps'
       );
       return intervalHours;
