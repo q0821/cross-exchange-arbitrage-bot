@@ -182,7 +182,7 @@ export class GateioConnector extends BaseExchangeConnector {
         if (!isNaN(fundingIntervalSeconds) && fundingIntervalSeconds > 0) {
           // CCXT 成功暴露 funding_interval 欄位，轉換為小時
           const intervalHours = fundingIntervalSeconds / 3600;
-          this.intervalCache.set('gateio', symbol, intervalHours, 'api');
+          this.intervalCache.set('gateio', symbol, intervalHours, 'native-api');
           logger.info(
             { symbol, interval: intervalHours, source: 'api' },
             'Funding interval fetched from Gate.io API'
