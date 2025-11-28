@@ -8,7 +8,8 @@
     "arbitrage-bot": "./dist/cli/index.js"
   },
   "scripts": {
-    "build": "next build",
+    "postinstall": "prisma generate",
+    "build": "prisma migrate deploy && next build",
     "dev": "tsx watch server.ts",
     "start": "tsx server.ts",
     "cli": "tsx src/cli/index.ts",

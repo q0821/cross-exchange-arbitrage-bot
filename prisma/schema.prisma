@@ -15,7 +15,7 @@ datasource db {
 
 // ===== 資金費率記錄 (TimescaleDB Hypertable) =====
 model FundingRate {
-  id                String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   exchange          String    @db.VarChar(50)
   symbol            String    @db.VarChar(20)
   funding_rate      Decimal   @db.Decimal(10, 8)
@@ -36,7 +36,7 @@ model FundingRate {
 /// @deprecated This model is deprecated. Use Market Monitor for real-time opportunities.
 /// Historical data preserved for analysis. Last active: 2025-01-21.
 model ArbitrageOpportunity {
-  id                      String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                      String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   symbol                  String              @db.VarChar(20)
   long_exchange           String              @db.VarChar(50)
   short_exchange          String              @db.VarChar(50)
@@ -79,7 +79,7 @@ enum OpportunityStatus {
 /// @deprecated This model is deprecated along with ArbitrageOpportunity.
 /// Historical data preserved for analysis. Last active: 2025-01-21.
 model OpportunityHistory {
-  id                        String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                        String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   opportunity_id            String            @unique @db.Uuid
   symbol                    String            @db.VarChar(20)
   long_exchange             String            @db.VarChar(50)
@@ -116,7 +116,7 @@ enum DisappearReason {
 
 // ===== 通知日誌 (US1, US4 - TimescaleDB Hypertable) =====
 model NotificationLog {
-  id                       String              @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                       String              @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   opportunity_id           String              @db.Uuid
   symbol                   String              @db.VarChar(20)
   notification_type        NotificationType
@@ -166,7 +166,7 @@ enum Severity {
 
 // ===== 對沖部位 =====
 model HedgePosition {
-  id                     String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                     String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   arbitrage_cycle_id     String         @unique @db.Uuid
   symbol                 String         @db.VarChar(20)
   long_exchange          String         @db.VarChar(50)
@@ -214,7 +214,7 @@ enum PositionStatus {
 
 // ===== 交易記錄 =====
 model TradeRecord {
-  id                String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   hedge_position_id String        @db.Uuid
   exchange          String        @db.VarChar(50)
   symbol            String        @db.VarChar(20)
@@ -277,7 +277,7 @@ enum OrderStatus {
 
 // ===== 套利週期 =====
 model ArbitrageCycle {
-  id                   String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   opportunity_id       String               @unique @db.Uuid
   symbol               String               @db.VarChar(20)
   initial_capital_usdt Decimal              @db.Decimal(20, 8)
@@ -317,7 +317,7 @@ enum CycleStatus {
 
 // ===== 風險參數 =====
 model RiskParameters {
-  id                       String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                     String   @unique @db.VarChar(100)
   description              String?  @db.Text
   min_rate_difference      Decimal  @default(0.0005) @db.Decimal(10, 8)
@@ -363,7 +363,7 @@ model FundingRateValidation {
 
 // ===== 系統事件 (TimescaleDB Hypertable) =====
 model SystemEvent {
-  id          String        @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   event_type  String        @db.VarChar(50)
   severity    EventSeverity
   exchange    String?       @db.VarChar(50)
