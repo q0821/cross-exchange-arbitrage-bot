@@ -155,7 +155,9 @@ export class FundingIntervalCache {
     const results: CachedIntervalMetadata[] = [];
 
     for (const [key, cached] of this.cache) {
-      const [exchange, symbol] = key.split('-');
+      const parts = key.split('-');
+      const exchange = parts[0] ?? '';
+      const symbol = parts.slice(1).join('-');
       const isExpired = now - cached.timestamp > cached.ttl;
 
       results.push({
