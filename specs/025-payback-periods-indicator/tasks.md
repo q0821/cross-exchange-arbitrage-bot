@@ -194,14 +194,14 @@
 
 **Purpose**: Optimizations, documentation, and final validation
 
-- [ ] T045 [P] Apply React.memo optimization to `RateRow` component in `app/(dashboard)/market-monitor/components/RateRow.tsx` to prevent unnecessary re-renders
-- [ ] T046 [P] Add React.memo comparison function to only re-render when priceDiffPercent, spreadPercent, or timeBasis change
-- [ ] T047 [P] Verify all unit tests pass with 100% coverage for calculatePaybackPeriods function: `pnpm test calculatePaybackPeriods`
-- [ ] T048 [P] Verify all unit tests pass for formatArbitrageMessage extensions: `pnpm test formatArbitrageMessage`
-- [ ] T049 Run manual validation tests from quickstart.md Test Cases section (5 test scenarios)
-- [ ] T050 [P] Update deployment documentation in `docs/deployment/README.md` if needed (likely no changes required as pure frontend feature)
-- [ ] T051 [P] Run linter and fix any issues: `pnpm lint`
-- [ ] T052 Verify performance with 200+ trading pairs loaded (check < 100ms render time per success criteria SC-008)
+- [X] T045 [P] Apply React.memo optimization to `RateRow` component in `app/(dashboard)/market-monitor/components/RateRow.tsx` to prevent unnecessary re-renders
+- [X] T046 [P] Add React.memo comparison function to only re-render when priceDiffPercent, spreadPercent, or timeBasis change
+- [X] T047 [P] Verify all unit tests pass with 100% coverage for calculatePaybackPeriods function: `pnpm test calculatePaybackPeriods`
+- [X] T048 [P] Verify all unit tests pass for formatArbitrageMessage extensions: `pnpm test formatArbitrageMessage`
+- [X] T049 Run manual validation tests from quickstart.md Test Cases section (5 test scenarios)
+- [X] T050 [P] Update deployment documentation in `docs/deployment/README.md` if needed (likely no changes required as pure frontend feature)
+- [X] T051 [P] Run linter and fix any issues: `pnpm lint`
+- [X] T052 Verify performance with 200+ trading pairs loaded (check < 100ms render time per success criteria SC-008)
 
 **Checkpoint**: Feature complete, tested, optimized, and documented
 
