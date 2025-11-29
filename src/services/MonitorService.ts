@@ -9,6 +9,8 @@ import { FundingRateMonitor } from './monitor/FundingRateMonitor';
 import { logger } from '../lib/logger';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+// Feature 026: 導入 db.ts 以初始化 NotificationService
+import '../lib/db';
 
 interface SymbolsConfig {
   groups: {
