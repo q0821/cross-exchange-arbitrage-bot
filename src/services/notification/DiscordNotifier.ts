@@ -5,7 +5,7 @@ import type {
   NotificationResult,
   ArbitrageNotificationMessage,
 } from './types';
-import { generateExchangeUrl } from './utils';
+import { generateExchangeUrl, formatPriceSmart } from './utils';
 
 /**
  * Discord Notifier
@@ -41,7 +41,7 @@ export class DiscordNotifier implements INotifier {
               `**${message.longExchange.toUpperCase()}**`,
               `原始：${(message.longOriginalRate * 100).toFixed(4)}% / ${message.longTimeBasis}h`,
               `標準化(8h)：${(message.longNormalizedRate * 100).toFixed(4)}%`,
-              message.longPrice ? `價格：$${message.longPrice.toFixed(2)}` : '',
+              message.longPrice ? `價格：${formatPriceSmart(message.longPrice)}` : '',
             ]
               .filter(Boolean)
               .join('\n'),
@@ -53,7 +53,7 @@ export class DiscordNotifier implements INotifier {
               `**${message.shortExchange.toUpperCase()}**`,
               `原始：${(message.shortOriginalRate * 100).toFixed(4)}% / ${message.shortTimeBasis}h`,
               `標準化(8h)：${(message.shortNormalizedRate * 100).toFixed(4)}%`,
-              message.shortPrice ? `價格：$${message.shortPrice.toFixed(2)}` : '',
+              message.shortPrice ? `價格：${formatPriceSmart(message.shortPrice)}` : '',
             ]
               .filter(Boolean)
               .join('\n'),
