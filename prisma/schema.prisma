@@ -401,10 +401,11 @@ model User {
   updatedAt DateTime @updatedAt @db.Timestamptz
 
   // Relations
-  apiKeys    ApiKey[]
-  positions  Position[]
-  trades     Trade[]
-  auditLogs  AuditLog[]
+  apiKeys              ApiKey[]
+  positions            Position[]
+  trades               Trade[]
+  auditLogs            AuditLog[]
+  notificationWebhooks NotificationWebhook[]
 
   @@index([email])
   @@map("users")
@@ -545,4 +546,24 @@ model AuditLog {
   @@index([action, createdAt(sort: Desc)])
   @@index([createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+// ===== 通知 Webhook 設定 (Feature 026) =====
+model NotificationWebhook {
+  id        String   @id @default(cuid())
+  userId    String
+  platform  String   @db.VarChar(20)  // 'discord' | 'slack'
+  webhookUrl String  @db.Text         // AES-256-GCM 加密儲存
+  name      String   @db.VarChar(100) // 用戶自訂名稱
+  isEnabled Boolean  @default(true)
+  threshold Decimal  @default(800) @db.Decimal(10, 4) // 年化收益閾值 %
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isEnabled])
+  @@index([platform])
+  @@map("notification_webhooks")
 }

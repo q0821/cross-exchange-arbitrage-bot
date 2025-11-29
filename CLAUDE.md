@@ -30,6 +30,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象), axios (HTTP 請求), pino (結構化日誌) (024-fix-okx-funding-normalization)
 - TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (現有依賴，無需新增) (025-payback-periods-indicator)
 - N/A（純前端計算，不涉及資料持久化） (025-payback-periods-indicator)
+- TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1 (WebSocket), axios (HTTP requests) (026-discord-slack-notification)
+- PostgreSQL 15+ (NotificationWebhook 模型) (026-discord-slack-notification)
 
 ## Project Structure
 ```
@@ -44,9 +46,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 026-discord-slack-notification: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1 (WebSocket), axios (HTTP requests)
 - 025-payback-periods-indicator: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (現有依賴，無需新增)
 - 024-fix-okx-funding-normalization: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象), axios (HTTP 請求), pino (結構化日誌)
-- 023-fix-copy-message-display: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router (現有依賴，無需新增)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

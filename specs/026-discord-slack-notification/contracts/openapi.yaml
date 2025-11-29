@@ -1,0 +1,320 @@
+openapi: 3.0.3
+info:
+  title: Notification Webhooks API
+  description: API for managing Discord/Slack notification webhooks
+  version: 1.0.0
+
+servers:
+  - url: /api/notifications
+    description: Next.js API Routes
+
+paths:
+  /webhooks:
+    get:
+      summary: List user's webhooks
+      description: Get all notification webhooks for the authenticated user
+      operationId: listWebhooks
+      tags:
+        - Webhooks
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhooks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create webhook
+      description: Create a new notification webhook
+      operationId: createWebhook
+      tags:
+        - Webhooks
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /webhooks/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Webhook ID
+
+    get:
+      summary: Get webhook
+      description: Get a specific webhook by ID
+      operationId: getWebhook
+      tags:
+        - Webhooks
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Webhook details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update webhook
+      description: Update an existing webhook
+      operationId: updateWebhook
+      tags:
+        - Webhooks
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookRequest'
+      responses:
+        '200':
+          description: Webhook updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Webhook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete webhook
+      description: Delete a webhook
+      operationId: deleteWebhook
+      tags:
+        - Webhooks
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Webhook deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks/{id}/test:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Webhook ID
+
+    post:
+      summary: Test webhook
+      description: Send a test notification to the webhook
+      operationId: testWebhook
+      tags:
+        - Webhooks
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Test result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: "Test notification sent successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Webhook test failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Failed to connect to webhook URL"
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: auth_token
+
+  schemas:
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "clx1234567890"
+        platform:
+          type: string
+          enum: [discord, slack]
+          example: "discord"
+        name:
+          type: string
+          example: "My Arbitrage Alerts"
+        isEnabled:
+          type: boolean
+          example: true
+        threshold:
+          type: number
+          format: decimal
+          example: 800.0
+          description: "Annualized return threshold in percentage"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - platform
+        - name
+        - isEnabled
+        - threshold
+        - createdAt
+        - updatedAt
+
+    CreateWebhookRequest:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum: [discord, slack]
+          example: "discord"
+        webhookUrl:
+          type: string
+          format: uri
+          example: "https://discord.com/api/webhooks/..."
+        name:
+          type: string
+          maxLength: 100
+          example: "My Arbitrage Alerts"
+        threshold:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 10000
+          default: 800
+          example: 800.0
+      required:
+        - platform
+        - webhookUrl
+        - name
+
+    UpdateWebhookRequest:
+      type: object
+      properties:
+        webhookUrl:
+          type: string
+          format: uri
+        name:
+          type: string
+          maxLength: 100
+        isEnabled:
+          type: boolean
+        threshold:
+          type: number
+          format: decimal
+          minimum: 0
+          maximum: 10000
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Unauthorized"
+            message: "Authentication required"
+
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Bad Request"
+            message: "Invalid webhook URL format"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "Not Found"
+            message: "Webhook not found"
+
+tags:
+  - name: Webhooks
+    description: Notification webhook management

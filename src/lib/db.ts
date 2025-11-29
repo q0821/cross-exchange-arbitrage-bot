@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from './logger';
+import { ratesCache } from '../services/monitor/RatesCache';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -56,6 +57,10 @@ if (process.env.NODE_ENV !== 'production') {
     message: e.message,
   }, 'Prisma warning');
 });
+
+// Feature 026: 初始化通知服務
+ratesCache.initializeNotificationService(prisma);
+logger.info('NotificationService initialized via db.ts');
 
 // 優雅關閉資料庫連線
 process.on('beforeExit', async () => {

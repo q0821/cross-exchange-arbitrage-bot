@@ -6,6 +6,7 @@
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
  * Feature: 022-annualized-return-threshold
+ * Feature: 026-discord-slack-notification
  */
 
 import type { FundingRatePair } from '../../models/FundingRate';
@@ -14,6 +15,8 @@ import {
   DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
   APPROACHING_THRESHOLD_RATIO,
 } from '../../lib/constants';
+import { PrismaClient } from '@prisma/client';
+import { NotificationService } from '../notification/NotificationService';
 
 /**
  * 快取的費率數據（包含時間戳）
@@ -56,8 +59,20 @@ export class RatesCache {
   private readonly staleThresholdMs = 600000; // 10 分鐘未更新視為過期（配合 5 分鐘更新間隔）
   private startTime: Date | null = null;
 
+  // Feature 026: 通知服務
+  private notificationService: NotificationService | null = null;
+
   private constructor() {
     logger.info('RatesCache initialized');
+  }
+
+  /**
+   * 初始化通知服務
+   * Feature 026: Discord/Slack 套利機會即時推送通知
+   */
+  initializeNotificationService(prisma: PrismaClient): void {
+    this.notificationService = NotificationService.getInstance(prisma);
+    logger.info('NotificationService initialized in RatesCache');
   }
 
   /**
@@ -89,6 +104,7 @@ export class RatesCache {
 
   /**
    * 批量設定費率數據
+   * Feature 026: 同時觸發通知服務檢查
    */
   setAll(rates: FundingRatePair[]): void {
     const now = new Date();
@@ -102,6 +118,13 @@ export class RatesCache {
     logger.debug({
       count: rates.length,
     }, 'Rates cached in batch');
+
+    // Feature 026: 觸發通知檢查（非同步，不阻塞主流程）
+    if (this.notificationService) {
+      this.notificationService.checkAndNotify(rates).catch((error) => {
+        logger.error({ error }, 'Failed to check and notify');
+      });
+    }
   }
 
   /**
