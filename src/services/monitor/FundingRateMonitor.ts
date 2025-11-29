@@ -335,6 +335,13 @@ export class FundingRateMonitor extends EventEmitter {
           }, 'Failed to update rate for symbol');
         }
       });
+
+      // Feature 026: 觸發通知檢查
+      // 每輪更新完成後，取得所有快取的費率並觸發通知服務
+      const allRates = ratesCache.getAll();
+      if (allRates.length > 0) {
+        ratesCache.setAll(allRates);
+      }
     } catch (error) {
       this.status.errors++;
       this.statsTracker.increment('errorCount')
