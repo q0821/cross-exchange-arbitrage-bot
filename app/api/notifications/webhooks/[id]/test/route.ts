@@ -37,8 +37,8 @@ export async function POST(
       'Test webhook request received'
     );
 
-    // 2. 查詢 Webhook
-    const webhook = await webhookRepository.findById(webhookId);
+    // 2. 查詢 Webhook（需要解密 URL 用於發送測試）
+    const webhook = await webhookRepository.findById(webhookId, true);
 
     if (!webhook) {
       return NextResponse.json(
