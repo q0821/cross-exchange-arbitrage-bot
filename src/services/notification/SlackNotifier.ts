@@ -13,7 +13,7 @@ import { generateExchangeUrl } from './utils';
  * Feature 026: Discord/Slack 套利機會即時推送通知
  */
 export class SlackNotifier implements INotifier {
-  private readonly timeout = 5000; // 5 秒超時
+  private readonly timeout = 30000; // 30 秒超時（遠端主機可能網路延遲較高）
 
   /**
    * 發送套利機會通知（Slack Block Kit 格式）
