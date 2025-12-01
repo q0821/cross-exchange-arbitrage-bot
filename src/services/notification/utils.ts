@@ -1,6 +1,7 @@
 /**
  * 通知服務工具函式
  * Feature 026: Discord/Slack 套利機會即時推送通知
+ * Feature 027: 套利機會結束監測和通知
  */
 
 /**
@@ -101,4 +102,97 @@ export function formatPriceSmart(price: number): string {
   } else {
     return `$${price.toFixed(6)}`;
   }
+}
+
+// ===== Feature 027: 套利機會結束通知工具函式 =====
+
+/**
+ * 格式化持續時間為人類可讀字串
+ * @param durationMs 持續時間（毫秒）
+ * @returns 格式化的時間字串（如 "2 小時 30 分鐘"）
+ */
+export function formatDuration(durationMs: number): string {
+  const totalMinutes = Math.floor(durationMs / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours === 0) {
+    return `${minutes} 分鐘`;
+  } else if (minutes === 0) {
+    return `${hours} 小時`;
+  } else {
+    return `${hours} 小時 ${minutes} 分鐘`;
+  }
+}
+
+/**
+ * 格式化費差統計資訊
+ * @param initialSpread 初始費差 (0.01 = 1%)
+ * @param maxSpread 最高費差
+ * @param maxSpreadAt 最高費差發生時間
+ * @param finalSpread 結束時費差
+ * @returns 格式化的費差統計字串
+ */
+export function formatSpreadStats(
+  initialSpread: number,
+  maxSpread: number,
+  maxSpreadAt: Date,
+  finalSpread: number
+): string {
+  const formatSpread = (spread: number) => `${(spread * 100).toFixed(2)}%`;
+  const timeStr = maxSpreadAt.toLocaleTimeString('zh-TW', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+
+  return `初始：${formatSpread(initialSpread)} → 最高：${formatSpread(maxSpread)}（${timeStr}）→ 結束：${formatSpread(finalSpread)}`;
+}
+
+/**
+ * 格式化時間為 HH:MM 格式
+ * @param date 日期時間
+ * @returns 格式化的時間字串（如 "08:30"）
+ */
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString('zh-TW', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+/**
+ * 格式化模擬收益資訊
+ * @param params 收益參數
+ * @returns 格式化的收益資訊字串
+ */
+export function formatProfitInfo(params: {
+  longSettlementCount: number;
+  shortSettlementCount: number;
+  totalFundingProfit: number;
+  totalCost: number;
+  netProfit: number;
+  realizedAPY: number;
+}): string {
+  const {
+    longSettlementCount,
+    shortSettlementCount,
+    totalFundingProfit,
+    totalCost,
+    netProfit,
+    realizedAPY,
+  } = params;
+
+  const totalCount = longSettlementCount + shortSettlementCount;
+  const profitSign = totalFundingProfit >= 0 ? '+' : '';
+  const netSign = netProfit >= 0 ? '+' : '';
+
+  return [
+    `結算次數：${totalCount} 次（做多 ${longSettlementCount} + 做空 ${shortSettlementCount}）`,
+    `總費率收益：${profitSign}${(totalFundingProfit * 100).toFixed(2)}%`,
+    `開平倉成本：-${(totalCost * 100).toFixed(2)}%`,
+    `淨收益：**${netSign}${(netProfit * 100).toFixed(2)}%**`,
+    `實際 APY：**${realizedAPY.toFixed(0)}%**`,
+  ].join('\n');
 }

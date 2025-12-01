@@ -13,6 +13,7 @@ import type {
  * NotificationWebhookRepository
  * 處理通知 Webhook 設定的持久化操作
  * Feature 026: Discord/Slack 套利機會即時推送通知
+ * Feature 027: 套利機會結束監測和通知
  */
 export class NotificationWebhookRepository {
   constructor(private readonly prisma: PrismaClient) {}
@@ -29,6 +30,7 @@ export class NotificationWebhookRepository {
       name: webhook.name,
       isEnabled: webhook.isEnabled,
       threshold: Number(webhook.threshold),
+      notifyOnDisappear: webhook.notifyOnDisappear, // Feature 027
     };
   }
 
@@ -120,6 +122,7 @@ export class NotificationWebhookRepository {
           name: data.name,
           threshold: data.threshold ?? 800,
           isEnabled: true,
+          notifyOnDisappear: data.notifyOnDisappear ?? true, // Feature 027
         },
       });
 
@@ -162,6 +165,9 @@ export class NotificationWebhookRepository {
       }
       if (data.webhookUrl !== undefined) {
         updateData.webhookUrl = encrypt(data.webhookUrl);
+      }
+      if (data.notifyOnDisappear !== undefined) {
+        updateData.notifyOnDisappear = data.notifyOnDisappear; // Feature 027
       }
 
       const webhook = await this.prisma.notificationWebhook.update({

@@ -4,6 +4,7 @@ import type { NotificationPlatform } from '../services/notification/types';
 /**
  * NotificationWebhook Domain Model
  * Feature 026: Discord/Slack 套利機會即時推送通知
+ * Feature 027: 套利機會結束監測和通知
  */
 
 /**
@@ -20,6 +21,7 @@ export const CreateWebhookSchema = z.object({
   webhookUrl: z.string().url(),
   name: z.string().min(1).max(100),
   threshold: z.number().min(0).max(10000).default(800),
+  notifyOnDisappear: z.boolean().default(true), // Feature 027
 });
 
 export const UpdateWebhookSchema = z.object({
@@ -27,6 +29,7 @@ export const UpdateWebhookSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   isEnabled: z.boolean().optional(),
   threshold: z.number().min(0).max(10000).optional(),
+  notifyOnDisappear: z.boolean().optional(), // Feature 027
 });
 
 /**
@@ -75,6 +78,7 @@ export class NotificationWebhook {
   readonly name: string;
   readonly isEnabled: boolean;
   readonly threshold: number;
+  readonly notifyOnDisappear: boolean; // Feature 027
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -85,6 +89,7 @@ export class NotificationWebhook {
     name: string;
     isEnabled: boolean;
     threshold: number;
+    notifyOnDisappear?: boolean; // Feature 027
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -94,6 +99,7 @@ export class NotificationWebhook {
     this.name = data.name;
     this.isEnabled = data.isEnabled;
     this.threshold = data.threshold;
+    this.notifyOnDisappear = data.notifyOnDisappear ?? true; // Feature 027: 預設 true
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
@@ -114,6 +120,7 @@ export class NotificationWebhook {
     name: string;
     isEnabled: boolean;
     threshold: number;
+    notifyOnDisappear: boolean;
     createdAt: string;
     updatedAt: string;
   } {
@@ -123,6 +130,7 @@ export class NotificationWebhook {
       name: this.name,
       isEnabled: this.isEnabled,
       threshold: this.threshold,
+      notifyOnDisappear: this.notifyOnDisappear, // Feature 027
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

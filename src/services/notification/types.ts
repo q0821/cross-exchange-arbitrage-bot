@@ -1,9 +1,115 @@
 /**
  * Notification Service Types
  * Feature 026: Discord/Slack 套利機會即時推送通知
+ * Feature 027: 套利機會結束監測和通知
  */
 
 import type { ExchangeName } from '../../models/FundingRate';
+
+// ===== Feature 027: 套利機會結束監測 =====
+
+/**
+ * 費率結算記錄
+ */
+export interface FundingSettlement {
+  timestamp: Date;
+  rate: number; // 正數=收取，負數=支付
+}
+
+/**
+ * 已通知的 Webhook 資訊
+ */
+export interface NotifiedWebhookInfo {
+  webhookId: string;
+  userId: string;
+  threshold: number;
+  notifyOnDisappear: boolean;
+}
+
+/**
+ * 追蹤中的套利機會
+ */
+export interface TrackedOpportunity {
+  // 識別資訊
+  symbol: string;
+  longExchange: string;
+  shortExchange: string;
+
+  // 時間資訊
+  detectedAt: Date;
+  lastUpdatedAt: Date;
+
+  // 費差統計
+  initialSpread: number;
+  maxSpread: number;
+  maxSpreadAt: Date;
+  currentSpread: number;
+
+  // 費率結算記錄（多空分開）
+  longSettlements: FundingSettlement[];
+  shortSettlements: FundingSettlement[];
+  longIntervalHours: number;
+  shortIntervalHours: number;
+
+  // 下次結算時間（用於判斷是否該記錄）
+  longNextSettlement?: Date;
+  shortNextSettlement?: Date;
+
+  // 已通知的 Webhook（key: webhookId）
+  notifiedWebhooks: Map<string, NotifiedWebhookInfo>;
+
+  // 通知計數
+  notificationCount: number;
+
+  // 防抖動：首次低於某 Webhook 閾值的時間（key: webhookId）
+  disappearingAt: Map<string, Date>;
+}
+
+/**
+ * 機會結束通知訊息
+ */
+export interface OpportunityDisappearedMessage {
+  // 基本資訊
+  symbol: string;
+  longExchange: string;
+  shortExchange: string;
+
+  // 時間資訊
+  detectedAt: Date;
+  disappearedAt: Date;
+  durationFormatted: string; // "2 小時 30 分鐘"
+
+  // 費差統計
+  initialSpread: number;
+  maxSpread: number;
+  maxSpreadAt: Date;
+  finalSpread: number;
+
+  // 費率結算記錄
+  longIntervalHours: number;
+  shortIntervalHours: number;
+  settlementRecords: Array<{
+    side: 'long' | 'short';
+    timestamp: Date;
+    rate: number;
+  }>;
+
+  // 模擬收益
+  longSettlementCount: number;
+  shortSettlementCount: number;
+  totalFundingProfit: number;
+  totalCost: number;
+  netProfit: number;
+  realizedAPY: number;
+
+  // 通知統計
+  notificationCount: number;
+
+  // 時間戳
+  timestamp: Date;
+}
+
+// ===== Feature 026: 原有類型定義 =====
 
 /**
  * 通知平台類型
@@ -21,6 +127,7 @@ export interface WebhookConfig {
   name: string;
   isEnabled: boolean;
   threshold: number; // 年化收益閾值 (%)
+  notifyOnDisappear: boolean; // Feature 027: 是否接收機會結束通知
 }
 
 /**
@@ -86,6 +193,14 @@ export interface INotifier {
    * 發送測試通知
    */
   sendTestNotification(webhookUrl: string): Promise<NotificationResult>;
+
+  /**
+   * Feature 027: 發送機會結束通知
+   */
+  sendDisappearedNotification(
+    webhookUrl: string,
+    message: OpportunityDisappearedMessage
+  ): Promise<NotificationResult>;
 }
 
 /**
@@ -96,6 +211,7 @@ export interface CreateWebhookRequest {
   webhookUrl: string;
   name: string;
   threshold?: number;
+  notifyOnDisappear?: boolean; // Feature 027
 }
 
 /**
@@ -106,6 +222,7 @@ export interface UpdateWebhookRequest {
   name?: string;
   isEnabled?: boolean;
   threshold?: number;
+  notifyOnDisappear?: boolean; // Feature 027
 }
 
 /**
@@ -117,6 +234,7 @@ export interface WebhookResponse {
   name: string;
   isEnabled: boolean;
   threshold: number;
+  notifyOnDisappear: boolean; // Feature 027
   createdAt: string;
   updatedAt: string;
 }

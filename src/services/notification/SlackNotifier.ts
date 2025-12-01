@@ -4,13 +4,20 @@ import type {
   INotifier,
   NotificationResult,
   ArbitrageNotificationMessage,
+  OpportunityDisappearedMessage,
 } from './types';
-import { generateExchangeUrl, formatPriceSmart } from './utils';
+import {
+  generateExchangeUrl,
+  formatPriceSmart,
+  formatTime,
+  formatProfitInfo,
+} from './utils';
 
 /**
  * Slack Notifier
  * 使用 Slack Incoming Webhooks 發送通知
  * Feature 026: Discord/Slack 套利機會即時推送通知
+ * Feature 027: 套利機會結束監測和通知
  */
 export class SlackNotifier implements INotifier {
   private readonly timeout = 30000; // 30 秒超時（遠端主機可能網路延遲較高）
@@ -186,6 +193,112 @@ export class SlackNotifier implements INotifier {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error({ error: errorMessage }, 'Failed to send Slack test notification');
+
+      return {
+        webhookId: '',
+        success: false,
+        error: errorMessage,
+        timestamp,
+      };
+    }
+  }
+
+  /**
+   * Feature 027: 發送機會結束通知
+   */
+  async sendDisappearedNotification(
+    webhookUrl: string,
+    message: OpportunityDisappearedMessage
+  ): Promise<NotificationResult> {
+    const timestamp = new Date();
+
+    try {
+      // 時間資訊
+      const startTime = formatTime(message.detectedAt);
+      const endTime = formatTime(message.disappearedAt);
+
+      // 費差統計
+      const spreadStats = `初始：${(message.initialSpread * 100).toFixed(2)}% → 最高：${(message.maxSpread * 100).toFixed(2)}%（${formatTime(message.maxSpreadAt)}）→ 結束：${(message.finalSpread * 100).toFixed(2)}%`;
+
+      // 收益資訊（去掉 markdown bold）
+      const profitInfoPlain = formatProfitInfo({
+        longSettlementCount: message.longSettlementCount,
+        shortSettlementCount: message.shortSettlementCount,
+        totalFundingProfit: message.totalFundingProfit,
+        totalCost: message.totalCost,
+        netProfit: message.netProfit,
+        realizedAPY: message.realizedAPY,
+      }).replace(/\*\*/g, '*'); // Discord ** -> Slack *
+
+      const blocks = [
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: `📉 套利機會結束：${message.symbol}`,
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*📍 交易對*\n做多：${message.longExchange.toUpperCase()} / 做空：${message.shortExchange.toUpperCase()}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*⏱️ 持續時間*\n開始：${startTime} → 結束：${endTime}\n持續：${message.durationFormatted}`,
+            },
+          ],
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*📊 費差統計*\n${spreadStats}`,
+          },
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `*💰 模擬收益*\n${profitInfoPlain}`,
+          },
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: `📬 通知次數：${message.notificationCount} 次 | 💡 此機會的年化收益已低於您設定的閾值`,
+            },
+          ],
+        },
+      ];
+
+      await axios.post(
+        webhookUrl,
+        { blocks },
+        { timeout: this.timeout }
+      );
+
+      logger.info(
+        {
+          symbol: message.symbol,
+          duration: message.durationFormatted,
+          netProfit: message.netProfit,
+        },
+        'Slack disappeared notification sent successfully'
+      );
+
+      return {
+        webhookId: '',
+        success: true,
+        timestamp,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage }, 'Failed to send Slack disappeared notification');
 
       return {
         webhookId: '',

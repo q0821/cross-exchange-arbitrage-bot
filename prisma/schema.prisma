@@ -406,6 +406,7 @@ model User {
   trades               Trade[]
   auditLogs            AuditLog[]
   notificationWebhooks NotificationWebhook[]
+  opportunityEndHistories OpportunityEndHistory[]
 
   @@index([email])
   @@map("users")
@@ -550,15 +551,16 @@ model AuditLog {
 
 // ===== 通知 Webhook 設定 (Feature 026) =====
 model NotificationWebhook {
-  id        String   @id @default(cuid())
-  userId    String
-  platform  String   @db.VarChar(20)  // 'discord' | 'slack'
-  webhookUrl String  @db.Text         // AES-256-GCM 加密儲存
-  name      String   @db.VarChar(100) // 用戶自訂名稱
-  isEnabled Boolean  @default(true)
-  threshold Decimal  @default(800) @db.Decimal(10, 4) // 年化收益閾值 %
-  createdAt DateTime @default(now()) @db.Timestamptz
-  updatedAt DateTime @updatedAt @db.Timestamptz
+  id                String   @id @default(cuid())
+  userId            String
+  platform          String   @db.VarChar(20)  // 'discord' | 'slack'
+  webhookUrl        String   @db.Text         // AES-256-GCM 加密儲存
+  name              String   @db.VarChar(100) // 用戶自訂名稱
+  isEnabled         Boolean  @default(true)
+  threshold         Decimal  @default(800) @db.Decimal(10, 4) // 年化收益閾值 %
+  notifyOnDisappear Boolean  @default(true)   // Feature 027: 是否接收機會結束通知
+  createdAt         DateTime @default(now()) @db.Timestamptz
+  updatedAt         DateTime @updatedAt @db.Timestamptz
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -566,4 +568,55 @@ model NotificationWebhook {
   @@index([userId, isEnabled])
   @@index([platform])
   @@map("notification_webhooks")
+}
+
+// ===== 套利機會歷史記錄 (Feature 027) =====
+model OpportunityEndHistory {
+  id                   String   @id @default(cuid())
+
+  // 基本資訊
+  symbol               String   @db.VarChar(20)
+  longExchange         String   @db.VarChar(20)
+  shortExchange        String   @db.VarChar(20)
+
+  // 時間資訊
+  detectedAt           DateTime @db.Timestamptz
+  disappearedAt        DateTime @db.Timestamptz
+  durationMs           BigInt
+
+  // 費差統計
+  initialSpread        Decimal  @db.Decimal(10, 6)
+  maxSpread            Decimal  @db.Decimal(10, 6)
+  maxSpreadAt          DateTime @db.Timestamptz
+  finalSpread          Decimal  @db.Decimal(10, 6)
+
+  // 費率結算週期
+  longIntervalHours    Int      @db.SmallInt
+  shortIntervalHours   Int      @db.SmallInt
+
+  // 費率結算記錄 (JSON)
+  settlementRecords    Json     @default("[]") @db.JsonB
+  // 格式: [{ side: "long"|"short", timestamp: ISO8601, rate: number }]
+
+  // 模擬收益計算結果
+  longSettlementCount  Int      @db.SmallInt
+  shortSettlementCount Int      @db.SmallInt
+  totalFundingProfit   Decimal  @db.Decimal(10, 6)
+  totalCost            Decimal  @db.Decimal(10, 6) // 固定 0.002 (0.2%)
+  netProfit            Decimal  @db.Decimal(10, 6)
+  realizedAPY          Decimal  @db.Decimal(10, 2)
+
+  // 通知統計
+  notificationCount    Int      @default(1)
+
+  // 關聯用戶
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt            DateTime @default(now()) @db.Timestamptz
+
+  @@index([userId])
+  @@index([symbol])
+  @@index([disappearedAt(sort: Desc)])
+  @@map("opportunity_end_histories")
 }

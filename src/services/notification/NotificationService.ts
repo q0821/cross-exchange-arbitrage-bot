@@ -5,12 +5,15 @@
  * 1. 監控套利機會並判斷是否超過用戶閾值
  * 2. 發送通知到所有啟用的 Webhooks
  * 3. 重複過濾（5 分鐘內不重複發送同一機會）
+ * 4. 追蹤機會生命週期並發送結束通知 (Feature 027)
  *
  * Feature 026: Discord/Slack 套利機會即時推送通知
+ * Feature 027: 套利機會結束監測和通知
  */
 
 import { PrismaClient } from '@prisma/client';
 import { NotificationWebhookRepository } from '../../repositories/NotificationWebhookRepository';
+import { OpportunityEndHistoryRepository } from '../../repositories/OpportunityEndHistoryRepository';
 import { DiscordNotifier } from './DiscordNotifier';
 import { SlackNotifier } from './SlackNotifier';
 import { logger } from '../../lib/logger';
@@ -19,8 +22,12 @@ import type {
   ArbitrageNotificationMessage,
   NotificationResult,
   INotifier,
+  TrackedOpportunity,
+  NotifiedWebhookInfo,
+  OpportunityDisappearedMessage,
 } from './types';
 import type { FundingRatePair, ExchangeName, ExchangeRateData } from '../../models/FundingRate';
+import { formatDuration } from './utils';
 
 /**
  * 已通知的機會記錄（用於重複過濾）
@@ -37,6 +44,7 @@ export class NotificationService {
   private static instance: NotificationService | null = null;
 
   private readonly webhookRepository: NotificationWebhookRepository;
+  private readonly historyRepository: OpportunityEndHistoryRepository;
   private readonly discordNotifier: DiscordNotifier;
   private readonly slackNotifier: SlackNotifier;
 
@@ -44,8 +52,14 @@ export class NotificationService {
   private readonly notifiedOpportunities = new Map<string, NotifiedOpportunity>();
   private readonly deduplicationWindowMs = 5 * 60 * 1000; // 5 分鐘
 
+  // Feature 027: 追蹤中的套利機會 (key: symbol:longExchange:shortExchange)
+  private readonly trackedOpportunities = new Map<string, TrackedOpportunity>();
+  private readonly disappearDebounceMs = 60 * 1000; // 1 分鐘防抖動
+  private readonly staleTrackingWindowMs = 30 * 60 * 1000; // 30 分鐘後清理未更新的追蹤
+
   private constructor(prisma: PrismaClient) {
     this.webhookRepository = new NotificationWebhookRepository(prisma);
+    this.historyRepository = new OpportunityEndHistoryRepository(prisma);
     this.discordNotifier = new DiscordNotifier();
     this.slackNotifier = new SlackNotifier();
 
@@ -83,6 +97,9 @@ export class NotificationService {
     for (const [userId, webhooks] of webhooksByUser) {
       await this.checkOpportunitiesForUser(userId, webhooks, rates);
     }
+
+    // Feature 027: 更新追蹤中的機會並檢查是否有結束的機會
+    await this.updateAndCheckTrackedOpportunities(rates, webhooksByUser);
   }
 
   /**
@@ -194,6 +211,9 @@ export class NotificationService {
         // 記錄已通知
         this.markAsNotified(key);
 
+        // Feature 027: 開始追蹤此機會
+        this.startTracking(rate, webhook);
+
         logger.info(
           {
             userId,
@@ -205,6 +225,520 @@ export class NotificationService {
         );
       }
     }
+  }
+
+  // ===== Feature 027: 機會追蹤方法 =====
+
+  /**
+   * 開始追蹤新機會或更新已追蹤機會的 Webhook 資訊
+   */
+  private startTracking(rate: FundingRatePair, webhook: WebhookConfig): void {
+    const bestPair = rate.bestPair;
+    if (!bestPair) return;
+
+    const trackingKey = this.generateTrackingKey(
+      rate.symbol,
+      bestPair.longExchange,
+      bestPair.shortExchange
+    );
+
+    const longData = rate.exchanges.get(bestPair.longExchange);
+    const shortData = rate.exchanges.get(bestPair.shortExchange);
+
+    let tracked = this.trackedOpportunities.get(trackingKey);
+
+    if (!tracked) {
+      // 建立新的追蹤記錄
+      const now = new Date();
+      tracked = {
+        symbol: rate.symbol,
+        longExchange: bestPair.longExchange,
+        shortExchange: bestPair.shortExchange,
+        detectedAt: now,
+        lastUpdatedAt: now,
+        initialSpread: bestPair.spreadPercent / 100, // 轉為小數
+        maxSpread: bestPair.spreadPercent / 100,
+        maxSpreadAt: now,
+        currentSpread: bestPair.spreadPercent / 100,
+        longSettlements: [],
+        shortSettlements: [],
+        longIntervalHours: longData?.originalFundingInterval ?? 8,
+        shortIntervalHours: shortData?.originalFundingInterval ?? 8,
+        notifiedWebhooks: new Map(),
+        notificationCount: 0,
+        disappearingAt: new Map(),
+      };
+
+      this.trackedOpportunities.set(trackingKey, tracked);
+
+      logger.info(
+        {
+          trackingKey,
+          symbol: rate.symbol,
+          initialSpread: tracked.initialSpread,
+        },
+        'Started tracking new opportunity'
+      );
+    }
+
+    // 更新已通知的 Webhook 資訊
+    const webhookInfo: NotifiedWebhookInfo = {
+      webhookId: webhook.id,
+      userId: webhook.userId,
+      threshold: webhook.threshold,
+      notifyOnDisappear: webhook.notifyOnDisappear,
+    };
+    tracked.notifiedWebhooks.set(webhook.id, webhookInfo);
+    tracked.notificationCount++;
+  }
+
+  /**
+   * 生成追蹤 key
+   */
+  private generateTrackingKey(
+    symbol: string,
+    longExchange: string,
+    shortExchange: string
+  ): string {
+    return `${symbol}:${longExchange}:${shortExchange}`;
+  }
+
+  /**
+   * 更新追蹤中的機會並檢查是否有結束的機會
+   */
+  private async updateAndCheckTrackedOpportunities(
+    rates: FundingRatePair[],
+    webhooksByUser: Map<string, WebhookConfig[]>
+  ): Promise<void> {
+    const now = new Date();
+
+    // 建立當前費率的快速查找表
+    const currentRates = new Map<string, FundingRatePair>();
+    for (const rate of rates) {
+      if (rate.bestPair) {
+        const key = this.generateTrackingKey(
+          rate.symbol,
+          rate.bestPair.longExchange,
+          rate.bestPair.shortExchange
+        );
+        currentRates.set(key, rate);
+      }
+    }
+
+    // 遍歷所有追蹤中的機會
+    for (const [trackingKey, tracked] of this.trackedOpportunities.entries()) {
+      const currentRate = currentRates.get(trackingKey);
+
+      if (currentRate && currentRate.bestPair) {
+        // 更新追蹤資訊
+        this.updateTrackedOpportunity(tracked, currentRate, now);
+      }
+
+      // 檢查每個已通知的 Webhook 是否該機會已結束
+      await this.checkDisappearedOpportunities(tracked, currentRate, webhooksByUser, now);
+    }
+  }
+
+  /**
+   * 更新追蹤中機會的統計資訊
+   */
+  private updateTrackedOpportunity(
+    tracked: TrackedOpportunity,
+    currentRate: FundingRatePair,
+    now: Date
+  ): void {
+    const bestPair = currentRate.bestPair;
+    if (!bestPair) return;
+
+    const currentSpread = bestPair.spreadPercent / 100; // 轉為小數
+
+    // 更新當前費差
+    tracked.currentSpread = currentSpread;
+    tracked.lastUpdatedAt = now;
+
+    // 更新最高費差
+    if (currentSpread > tracked.maxSpread) {
+      tracked.maxSpread = currentSpread;
+      tracked.maxSpreadAt = now;
+    }
+
+    // Phase 4 (US3): 檢查並記錄費率結算
+    const longData = currentRate.exchanges.get(bestPair.longExchange as ExchangeName);
+    const shortData = currentRate.exchanges.get(bestPair.shortExchange as ExchangeName);
+
+    if (longData) {
+      this.recordSettlementIfNeeded(tracked, 'long', longData, now);
+    }
+    if (shortData) {
+      this.recordSettlementIfNeeded(tracked, 'short', shortData, now);
+    }
+  }
+
+  /**
+   * Phase 4 (US3): 如果當前時間接近結算時間，記錄費率
+   */
+  private recordSettlementIfNeeded(
+    tracked: TrackedOpportunity,
+    side: 'long' | 'short',
+    data: ExchangeRateData,
+    now: Date
+  ): void {
+    const intervalHours = side === 'long'
+      ? tracked.longIntervalHours
+      : tracked.shortIntervalHours;
+
+    const settlements = side === 'long'
+      ? tracked.longSettlements
+      : tracked.shortSettlements;
+
+    // 檢查是否接近結算時間（結算時間前後 5 分鐘內）
+    const settlementWindow = 5 * 60 * 1000; // 5 分鐘
+
+    // 計算最近的結算時間點
+    const nearestSettlement = this.getNearestSettlementTime(now, intervalHours);
+    const timeDiff = Math.abs(now.getTime() - nearestSettlement.getTime());
+
+    if (timeDiff <= settlementWindow) {
+      // 檢查是否已經記錄過這個結算時間
+      const alreadyRecorded = settlements.some(
+        (s) => Math.abs(s.timestamp.getTime() - nearestSettlement.getTime()) < settlementWindow
+      );
+
+      if (!alreadyRecorded) {
+        // 記錄結算
+        settlements.push({
+          timestamp: nearestSettlement,
+          rate: data.rate.fundingRate,
+        });
+
+        logger.debug(
+          {
+            symbol: tracked.symbol,
+            side,
+            settlementTime: nearestSettlement.toISOString(),
+            rate: data.rate.fundingRate,
+          },
+          'Recorded funding settlement'
+        );
+      }
+    }
+  }
+
+  /**
+   * Phase 4 (US3): 計算最近的結算時間點
+   * 結算時間：每天 00:00, 01:00, ... (取決於 intervalHours)
+   */
+  private getNearestSettlementTime(now: Date, intervalHours: number): Date {
+    const utcHours = now.getUTCHours();
+    const utcMinutes = now.getUTCMinutes();
+
+    // 計算當前小時在結算週期中的位置
+    const periodIndex = Math.floor(utcHours / intervalHours);
+    const currentPeriodStart = periodIndex * intervalHours;
+    const nextPeriodStart = (periodIndex + 1) * intervalHours;
+
+    // 判斷是更接近當前週期開始還是下一週期開始
+    const currentPeriodDistance = utcHours - currentPeriodStart + utcMinutes / 60;
+    const nextPeriodDistance = nextPeriodStart - utcHours - utcMinutes / 60;
+
+    // 選擇最近的結算時間
+    const nearestHour = currentPeriodDistance <= nextPeriodDistance
+      ? currentPeriodStart
+      : nextPeriodStart;
+
+    const result = new Date(now);
+    result.setUTCHours(nearestHour % 24, 0, 0, 0);
+
+    // 如果是 24:00，則是第二天 00:00
+    if (nearestHour >= 24) {
+      result.setUTCDate(result.getUTCDate() + 1);
+      result.setUTCHours(0, 0, 0, 0);
+    }
+
+    return result;
+  }
+
+  /**
+   * 檢查機會是否對某些 Webhook 已結束
+   */
+  private async checkDisappearedOpportunities(
+    tracked: TrackedOpportunity,
+    currentRate: FundingRatePair | undefined,
+    webhooksByUser: Map<string, WebhookConfig[]>,
+    now: Date
+  ): Promise<void> {
+    // 對每個已通知的 Webhook 檢查是否低於閾值
+    for (const [webhookId, webhookInfo] of tracked.notifiedWebhooks.entries()) {
+      // 跳過不需要結束通知的 Webhook
+      if (!webhookInfo.notifyOnDisappear) {
+        continue;
+      }
+
+      // 取得對應的 Webhook 設定（需要 webhookUrl）
+      const userWebhooks = webhooksByUser.get(webhookInfo.userId);
+      const webhook = userWebhooks?.find((w) => w.id === webhookId);
+      if (!webhook) {
+        continue;
+      }
+
+      // 計算當前年化收益
+      const currentAnnualized = currentRate?.bestPair
+        ? currentRate.bestPair.spreadAnnualized
+        : 0;
+
+      // 檢查是否低於閾值
+      if (currentAnnualized < webhookInfo.threshold) {
+        // 開始或繼續防抖動計時
+        if (!tracked.disappearingAt.has(webhookId)) {
+          tracked.disappearingAt.set(webhookId, now);
+          logger.debug(
+            {
+              trackingKey: `${tracked.symbol}:${tracked.longExchange}:${tracked.shortExchange}`,
+              webhookId,
+              currentAnnualized,
+              threshold: webhookInfo.threshold,
+            },
+            'Opportunity dropping below threshold, starting debounce'
+          );
+        } else {
+          // 檢查是否超過防抖動時間
+          const disappearingStart = tracked.disappearingAt.get(webhookId)!;
+          const elapsed = now.getTime() - disappearingStart.getTime();
+
+          if (elapsed >= this.disappearDebounceMs) {
+            // 確認結束，發送通知
+            await this.sendDisappearedNotification(tracked, webhook, now);
+
+            // 從已通知 Webhook 中移除
+            tracked.notifiedWebhooks.delete(webhookId);
+            tracked.disappearingAt.delete(webhookId);
+
+            // 如果沒有任何 Webhook 在追蹤，移除整個機會
+            if (tracked.notifiedWebhooks.size === 0) {
+              this.trackedOpportunities.delete(
+                this.generateTrackingKey(
+                  tracked.symbol,
+                  tracked.longExchange,
+                  tracked.shortExchange
+                )
+              );
+              logger.info(
+                {
+                  symbol: tracked.symbol,
+                  longExchange: tracked.longExchange,
+                  shortExchange: tracked.shortExchange,
+                },
+                'Removed fully ended opportunity from tracking'
+              );
+            }
+          }
+        }
+      } else {
+        // 費差回升，重置防抖動計時
+        if (tracked.disappearingAt.has(webhookId)) {
+          tracked.disappearingAt.delete(webhookId);
+          logger.debug(
+            {
+              trackingKey: `${tracked.symbol}:${tracked.longExchange}:${tracked.shortExchange}`,
+              webhookId,
+              currentAnnualized,
+            },
+            'Opportunity spread recovered, reset debounce'
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * 發送機會結束通知
+   */
+  private async sendDisappearedNotification(
+    tracked: TrackedOpportunity,
+    webhook: WebhookConfig,
+    disappearedAt: Date
+  ): Promise<void> {
+    // 構建結束通知訊息
+    const message = this.buildDisappearedMessage(tracked, disappearedAt);
+
+    // 選擇對應的 Notifier 發送
+    const notifier = this.getNotifier(webhook.platform);
+
+    try {
+      const result = await notifier.sendDisappearedNotification(
+        webhook.webhookUrl,
+        message
+      );
+
+      if (result.success) {
+        logger.info(
+          {
+            symbol: tracked.symbol,
+            webhookId: webhook.id,
+            duration: message.durationFormatted,
+            netProfit: message.netProfit,
+          },
+          'Opportunity disappeared notification sent'
+        );
+
+        // Phase 6 (US5): 儲存歷史記錄到資料庫
+        await this.saveOpportunityHistory(tracked, webhook.userId, disappearedAt, message);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(
+        {
+          webhookId: webhook.id,
+          symbol: tracked.symbol,
+          error: errorMessage,
+        },
+        'Failed to send disappeared notification'
+      );
+    }
+  }
+
+  /**
+   * Phase 6 (US5): 儲存機會歷史記錄到資料庫
+   */
+  private async saveOpportunityHistory(
+    tracked: TrackedOpportunity,
+    userId: string,
+    disappearedAt: Date,
+    message: OpportunityDisappearedMessage
+  ): Promise<void> {
+    try {
+      const durationMs = BigInt(disappearedAt.getTime() - tracked.detectedAt.getTime());
+
+      await this.historyRepository.create({
+        symbol: tracked.symbol,
+        longExchange: tracked.longExchange,
+        shortExchange: tracked.shortExchange,
+        detectedAt: tracked.detectedAt,
+        disappearedAt,
+        durationMs,
+        initialSpread: tracked.initialSpread,
+        maxSpread: tracked.maxSpread,
+        maxSpreadAt: tracked.maxSpreadAt,
+        finalSpread: tracked.currentSpread,
+        longIntervalHours: tracked.longIntervalHours,
+        shortIntervalHours: tracked.shortIntervalHours,
+        settlementRecords: message.settlementRecords.map((s) => ({
+          side: s.side,
+          timestamp: s.timestamp.toISOString(),
+          rate: s.rate,
+        })),
+        longSettlementCount: message.longSettlementCount,
+        shortSettlementCount: message.shortSettlementCount,
+        totalFundingProfit: message.totalFundingProfit,
+        totalCost: message.totalCost,
+        netProfit: message.netProfit,
+        realizedAPY: message.realizedAPY,
+        notificationCount: tracked.notificationCount,
+        userId,
+      });
+
+      logger.info(
+        {
+          symbol: tracked.symbol,
+          userId,
+          duration: message.durationFormatted,
+        },
+        'Opportunity history saved to database'
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(
+        {
+          symbol: tracked.symbol,
+          userId,
+          error: errorMessage,
+        },
+        'Failed to save opportunity history'
+      );
+      // 不拋出錯誤，歷史記錄儲存失敗不應影響通知流程
+    }
+  }
+
+  /**
+   * 構建機會結束通知訊息
+   */
+  private buildDisappearedMessage(
+    tracked: TrackedOpportunity,
+    disappearedAt: Date
+  ): OpportunityDisappearedMessage {
+    const durationMs = disappearedAt.getTime() - tracked.detectedAt.getTime();
+
+    // 計算模擬收益（目前 Phase 3 簡化版本，不計算實際結算）
+    // Phase 4 會添加實際結算記錄功能
+    const longSettlementCount = tracked.longSettlements.length;
+    const shortSettlementCount = tracked.shortSettlements.length;
+
+    // 計算總費率收益
+    // 做多方收益（負費率 = 賺錢，所以取反）
+    const longProfit = tracked.longSettlements.reduce(
+      (sum, s) => sum + (-s.rate),
+      0
+    );
+    // 做空方收益（正費率 = 賺錢）
+    const shortProfit = tracked.shortSettlements.reduce(
+      (sum, s) => sum + s.rate,
+      0
+    );
+    const totalFundingProfit = longProfit + shortProfit;
+
+    // 開平倉成本（固定 0.2%）
+    const totalCost = 0.002;
+    const netProfit = totalFundingProfit - totalCost;
+
+    // 計算實際 APY
+    const durationHours = durationMs / (1000 * 60 * 60);
+    const realizedAPY = durationHours > 0
+      ? (netProfit * (8760 / durationHours) * 100)
+      : 0;
+
+    // 合併結算記錄
+    const settlementRecords = [
+      ...tracked.longSettlements.map((s) => ({
+        side: 'long' as const,
+        timestamp: s.timestamp,
+        rate: s.rate,
+      })),
+      ...tracked.shortSettlements.map((s) => ({
+        side: 'short' as const,
+        timestamp: s.timestamp,
+        rate: s.rate,
+      })),
+    ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+    return {
+      symbol: tracked.symbol,
+      longExchange: tracked.longExchange,
+      shortExchange: tracked.shortExchange,
+
+      detectedAt: tracked.detectedAt,
+      disappearedAt,
+      durationFormatted: formatDuration(durationMs),
+
+      initialSpread: tracked.initialSpread,
+      maxSpread: tracked.maxSpread,
+      maxSpreadAt: tracked.maxSpreadAt,
+      finalSpread: tracked.currentSpread,
+
+      longIntervalHours: tracked.longIntervalHours,
+      shortIntervalHours: tracked.shortIntervalHours,
+      settlementRecords,
+
+      longSettlementCount,
+      shortSettlementCount,
+      totalFundingProfit,
+      totalCost,
+      netProfit,
+      realizedAPY,
+
+      notificationCount: tracked.notificationCount,
+
+      timestamp: new Date(),
+    };
   }
 
   /**
@@ -382,6 +916,45 @@ export class NotificationService {
 
     if (cleanedCount > 0) {
       logger.debug({ cleanedCount }, 'Cleaned up stale notification records');
+    }
+
+    // T046: 清理過期的追蹤記錄以防止記憶體洩漏
+    this.cleanupStaleTrackedOpportunities();
+  }
+
+  /**
+   * 清理過期的追蹤機會記錄
+   * Feature 027: 防止記憶體洩漏
+   */
+  private cleanupStaleTrackedOpportunities(): void {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const [key, tracked] of this.trackedOpportunities.entries()) {
+      const elapsed = now - tracked.lastUpdatedAt.getTime();
+
+      // 如果追蹤記錄超過 30 分鐘沒有更新，移除它
+      if (elapsed > this.staleTrackingWindowMs) {
+        this.trackedOpportunities.delete(key);
+        cleanedCount++;
+
+        logger.info(
+          {
+            trackingKey: key,
+            symbol: tracked.symbol,
+            lastUpdatedAt: tracked.lastUpdatedAt.toISOString(),
+            elapsedMinutes: Math.floor(elapsed / 60000),
+          },
+          'Removed stale tracked opportunity due to inactivity'
+        );
+      }
+    }
+
+    if (cleanedCount > 0) {
+      logger.debug(
+        { cleanedCount, remainingTracked: this.trackedOpportunities.size },
+        'Cleaned up stale tracked opportunities'
+      );
     }
   }
 

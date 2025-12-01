@@ -72,6 +72,7 @@ export async function GET(
             name: webhook.name,
             isEnabled: webhook.isEnabled,
             threshold: webhook.threshold,
+            notifyOnDisappear: webhook.notifyOnDisappear, // Feature 027
           },
         },
       },
@@ -175,6 +176,7 @@ export async function PUT(
             name: updatedWebhook.name,
             isEnabled: updatedWebhook.isEnabled,
             threshold: updatedWebhook.threshold,
+            notifyOnDisappear: updatedWebhook.notifyOnDisappear, // Feature 027
           },
         },
       },
