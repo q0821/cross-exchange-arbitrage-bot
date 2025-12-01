@@ -5,33 +5,48 @@
 
 /**
  * 交易所永續合約交易 URL 對應表
+ * 與 src/lib/exchanges/constants.ts 保持一致
+ *
+ * 注意：symbol 格式為 BTCUSDT（無斜線）
  */
 const EXCHANGE_URL_TEMPLATES: Record<string, (symbol: string) => string> = {
-  binance: (symbol) =>
-    `https://www.binance.com/zh-TW/futures/${symbol.replace('/', '')}`,
-  okx: (symbol) => {
-    // OKX 格式：resolv-usdt-swap
-    const base = symbol.replace('USDT', '').toLowerCase();
-    return `https://www.okx.com/trade-swap/${base}-usdt-swap`;
+  binance: (symbol) => {
+    // BTCUSDT → BTCUSDT（保持原樣）
+    return `https://www.binance.com/zh-TC/futures/${symbol}`;
   },
-  bybit: (symbol) =>
-    `https://www.bybit.com/trade/usdt/${symbol.replace('/', '')}`,
-  gate: (symbol) => {
-    // Gate.io 格式：RESOLV_USDT
+  okx: (symbol) => {
+    // BTCUSDT → BTC-USDT-SWAP
     const base = symbol.replace('USDT', '');
-    return `https://www.gate.io/futures_trade/USDT/${base}_USDT`;
+    return `https://www.okx.com/zh-hant/trade-swap/${base}-USDT-SWAP`;
+  },
+  mexc: (symbol) => {
+    // BTCUSDT → BTC_USDT
+    const base = symbol.replace('USDT', '');
+    return `https://futures.mexc.com/zh-TW/exchange/${base}_USDT`;
+  },
+  gate: (symbol) => {
+    // BTCUSDT → BTC_USDT
+    const base = symbol.replace('USDT', '');
+    return `https://www.gate.io/zh-tw/futures_trade/USDT/${base}_USDT`;
   },
   gateio: (symbol) => {
-    // Gate.io 格式：RESOLV_USDT（與 gate 相同）
+    // BTCUSDT → BTC_USDT（與 gate 相同）
     const base = symbol.replace('USDT', '');
-    return `https://www.gate.io/futures_trade/USDT/${base}_USDT`;
+    return `https://www.gate.io/zh-tw/futures_trade/USDT/${base}_USDT`;
   },
-  bitget: (symbol) =>
-    `https://www.bitget.com/futures/usdt/${symbol.replace('/', '')}`,
-  htx: (symbol) =>
-    `https://www.htx.com/futures/linear_swap/exchange#contract_code=${symbol.replace('/', '-')}&type=cross`,
-  mexc: (symbol) =>
-    `https://futures.mexc.com/exchange/${symbol.replace('/', '_')}`,
+  bybit: (symbol) => {
+    // BTCUSDT → BTCUSDT（保持原樣）
+    return `https://www.bybit.com/trade/usdt/${symbol}`;
+  },
+  bitget: (symbol) => {
+    // BTCUSDT → BTCUSDT（保持原樣）
+    return `https://www.bitget.com/futures/usdt/${symbol}`;
+  },
+  htx: (symbol) => {
+    // BTCUSDT → BTC-USDT
+    const base = symbol.replace('USDT', '');
+    return `https://www.htx.com/futures/linear_swap/exchange#contract_code=${base}-USDT&type=cross`;
+  },
 };
 
 /**
