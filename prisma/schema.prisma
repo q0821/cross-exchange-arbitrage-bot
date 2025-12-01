@@ -557,9 +557,10 @@ model NotificationWebhook {
   webhookUrl        String   @db.Text         // AES-256-GCM 加密儲存
   name              String   @db.VarChar(100) // 用戶自訂名稱
   isEnabled         Boolean  @default(true)
-  threshold         Decimal  @default(800) @db.Decimal(10, 4) // 年化收益閾值 %
-  notifyOnDisappear Boolean  @default(true)   // Feature 027: 是否接收機會結束通知
-  createdAt         DateTime @default(now()) @db.Timestamptz
+  threshold           Decimal  @default(800) @db.Decimal(10, 4) // 年化收益閾值 %
+  notifyOnDisappear   Boolean  @default(true)   // Feature 027: 是否接收機會結束通知
+  notificationMinutes Int[]    @default([50])   // 通知時間（每小時的第幾分鐘），最多 2 個
+  createdAt           DateTime @default(now()) @db.Timestamptz
   updatedAt         DateTime @updatedAt @db.Timestamptz
 
   // Relations

@@ -41,6 +41,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       isEnabled: webhook.isEnabled,
       threshold: webhook.threshold,
       notifyOnDisappear: webhook.notifyOnDisappear, // Feature 027
+      notificationMinutes: webhook.notificationMinutes, // 通知時間
       createdAt: new Date().toISOString(), // Repository 不返回日期，使用當前時間
       updatedAt: new Date().toISOString(),
     }));
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       name: validatedData.name,
       threshold: validatedData.threshold,
       notifyOnDisappear: validatedData.notifyOnDisappear, // Feature 027
+      notificationMinutes: validatedData.notificationMinutes, // 通知時間
     });
 
     // 6. 返回結果
@@ -129,6 +131,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             isEnabled: webhook.isEnabled,
             threshold: webhook.threshold,
             notifyOnDisappear: webhook.notifyOnDisappear, // Feature 027
+            notificationMinutes: webhook.notificationMinutes, // 通知時間
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           },

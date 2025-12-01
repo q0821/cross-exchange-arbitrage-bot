@@ -22,6 +22,11 @@ export const CreateWebhookSchema = z.object({
   name: z.string().min(1).max(100),
   threshold: z.number().min(0).max(10000).default(800),
   notifyOnDisappear: z.boolean().default(true), // Feature 027
+  notificationMinutes: z
+    .array(z.number().int().min(0).max(59))
+    .min(1)
+    .max(2)
+    .default([50]), // 通知時間（每小時的第幾分鐘），最多 2 個
 });
 
 export const UpdateWebhookSchema = z.object({
@@ -30,6 +35,11 @@ export const UpdateWebhookSchema = z.object({
   isEnabled: z.boolean().optional(),
   threshold: z.number().min(0).max(10000).optional(),
   notifyOnDisappear: z.boolean().optional(), // Feature 027
+  notificationMinutes: z
+    .array(z.number().int().min(0).max(59))
+    .min(1)
+    .max(2)
+    .optional(), // 通知時間（每小時的第幾分鐘）
 });
 
 /**
@@ -79,6 +89,7 @@ export class NotificationWebhook {
   readonly isEnabled: boolean;
   readonly threshold: number;
   readonly notifyOnDisappear: boolean; // Feature 027
+  readonly notificationMinutes: number[]; // 通知時間（每小時的第幾分鐘）
   readonly createdAt: Date;
   readonly updatedAt: Date;
 
@@ -90,6 +101,7 @@ export class NotificationWebhook {
     isEnabled: boolean;
     threshold: number;
     notifyOnDisappear?: boolean; // Feature 027
+    notificationMinutes?: number[]; // 通知時間
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -100,6 +112,7 @@ export class NotificationWebhook {
     this.isEnabled = data.isEnabled;
     this.threshold = data.threshold;
     this.notifyOnDisappear = data.notifyOnDisappear ?? true; // Feature 027: 預設 true
+    this.notificationMinutes = data.notificationMinutes ?? [50]; // 預設 :50
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
   }
@@ -121,6 +134,7 @@ export class NotificationWebhook {
     isEnabled: boolean;
     threshold: number;
     notifyOnDisappear: boolean;
+    notificationMinutes: number[];
     createdAt: string;
     updatedAt: string;
   } {
@@ -131,6 +145,7 @@ export class NotificationWebhook {
       isEnabled: this.isEnabled,
       threshold: this.threshold,
       notifyOnDisappear: this.notifyOnDisappear, // Feature 027
+      notificationMinutes: this.notificationMinutes,
       createdAt: this.createdAt.toISOString(),
       updatedAt: this.updatedAt.toISOString(),
     };

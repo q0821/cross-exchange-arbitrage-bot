@@ -73,6 +73,7 @@ export async function GET(
             isEnabled: webhook.isEnabled,
             threshold: webhook.threshold,
             notifyOnDisappear: webhook.notifyOnDisappear, // Feature 027
+            notificationMinutes: webhook.notificationMinutes, // 通知時間
           },
         },
       },
@@ -177,6 +178,7 @@ export async function PUT(
             isEnabled: updatedWebhook.isEnabled,
             threshold: updatedWebhook.threshold,
             notifyOnDisappear: updatedWebhook.notifyOnDisappear, // Feature 027
+            notificationMinutes: updatedWebhook.notificationMinutes, // 通知時間
           },
         },
       },

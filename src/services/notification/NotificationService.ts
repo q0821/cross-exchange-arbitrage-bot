@@ -52,6 +52,9 @@ export class NotificationService {
   private readonly notifiedOpportunities = new Map<string, NotifiedOpportunity>();
   private readonly deduplicationWindowMs = 5 * 60 * 1000; // 5 分鐘
 
+  // 通知時間窗口容錯範圍（±2 分鐘）
+  private readonly notificationWindowRange = 2;
+
   // Feature 027: 追蹤中的套利機會 (key: symbol:longExchange:shortExchange)
   private readonly trackedOpportunities = new Map<string, TrackedOpportunity>();
   private readonly disappearDebounceMs = 60 * 1000; // 1 分鐘防抖動
@@ -131,6 +134,8 @@ export class NotificationService {
     webhooks: WebhookConfig[],
     rates: FundingRatePair[]
   ): Promise<void> {
+    // 通知時間窗口檢查已移至 sendNotificationForOpportunity（按 webhook 個別檢查）
+
     // 找出最低閾值（任一 webhook 的閾值）
     const minThreshold = Math.min(...webhooks.map((w) => w.threshold));
 
@@ -178,6 +183,11 @@ export class NotificationService {
     for (const webhook of webhooks) {
       // 檢查是否超過此 webhook 的閾值
       if (annualized < webhook.threshold) {
+        continue;
+      }
+
+      // 檢查此 webhook 的通知時間窗口
+      if (!this.isWithinWebhookNotificationWindow(webhook.notificationMinutes)) {
         continue;
       }
 
@@ -325,8 +335,11 @@ export class NotificationService {
       }
     }
 
+    // 先收集所有追蹤中的機會（避免在迴圈中修改 Map）
+    const trackedEntries = Array.from(this.trackedOpportunities.entries());
+
     // 遍歷所有追蹤中的機會
-    for (const [trackingKey, tracked] of this.trackedOpportunities.entries()) {
+    for (const [trackingKey, tracked] of trackedEntries) {
       const currentRate = currentRates.get(trackingKey);
 
       if (currentRate && currentRate.bestPair) {
@@ -376,6 +389,7 @@ export class NotificationService {
 
   /**
    * Phase 4 (US3): 如果當前時間接近結算時間，記錄費率
+   * 注意：只記錄在機會追蹤開始後發生的結算
    */
   private recordSettlementIfNeeded(
     tracked: TrackedOpportunity,
@@ -399,6 +413,12 @@ export class NotificationService {
     const timeDiff = Math.abs(now.getTime() - nearestSettlement.getTime());
 
     if (timeDiff <= settlementWindow) {
+      // 重要：只記錄在機會追蹤開始後發生的結算
+      // 如果結算時間早於機會偵測時間，則不記錄
+      if (nearestSettlement.getTime() < tracked.detectedAt.getTime()) {
+        return;
+      }
+
       // 檢查是否已經記錄過這個結算時間
       const alreadyRecorded = settlements.some(
         (s) => Math.abs(s.timestamp.getTime() - nearestSettlement.getTime()) < settlementWindow
@@ -416,6 +436,7 @@ export class NotificationService {
             symbol: tracked.symbol,
             side,
             settlementTime: nearestSettlement.toISOString(),
+            detectedAt: tracked.detectedAt.toISOString(),
             rate: data.rate.fundingRate,
           },
           'Recorded funding settlement'
@@ -467,6 +488,9 @@ export class NotificationService {
     webhooksByUser: Map<string, WebhookConfig[]>,
     now: Date
   ): Promise<void> {
+    // 收集需要發送結束通知的 Webhook（避免在迴圈中修改 Map）
+    const webhooksToNotify: Array<{ webhookId: string; webhook: WebhookConfig }> = [];
+
     // 對每個已通知的 Webhook 檢查是否低於閾值
     for (const [webhookId, webhookInfo] of tracked.notifiedWebhooks.entries()) {
       // 跳過不需要結束通知的 Webhook
@@ -506,31 +530,8 @@ export class NotificationService {
           const elapsed = now.getTime() - disappearingStart.getTime();
 
           if (elapsed >= this.disappearDebounceMs) {
-            // 確認結束，發送通知
-            await this.sendDisappearedNotification(tracked, webhook, now);
-
-            // 從已通知 Webhook 中移除
-            tracked.notifiedWebhooks.delete(webhookId);
-            tracked.disappearingAt.delete(webhookId);
-
-            // 如果沒有任何 Webhook 在追蹤，移除整個機會
-            if (tracked.notifiedWebhooks.size === 0) {
-              this.trackedOpportunities.delete(
-                this.generateTrackingKey(
-                  tracked.symbol,
-                  tracked.longExchange,
-                  tracked.shortExchange
-                )
-              );
-              logger.info(
-                {
-                  symbol: tracked.symbol,
-                  longExchange: tracked.longExchange,
-                  shortExchange: tracked.shortExchange,
-                },
-                'Removed fully ended opportunity from tracking'
-              );
-            }
+            // 標記為需要發送通知
+            webhooksToNotify.push({ webhookId, webhook });
           }
         }
       } else {
@@ -547,6 +548,35 @@ export class NotificationService {
           );
         }
       }
+    }
+
+    // 在迴圈外發送通知並清理
+    for (const { webhookId, webhook } of webhooksToNotify) {
+      // 確認結束，發送通知
+      await this.sendDisappearedNotification(tracked, webhook, now);
+
+      // 從已通知 Webhook 中移除
+      tracked.notifiedWebhooks.delete(webhookId);
+      tracked.disappearingAt.delete(webhookId);
+    }
+
+    // 如果沒有任何 Webhook 在追蹤，移除整個機會
+    if (tracked.notifiedWebhooks.size === 0 && webhooksToNotify.length > 0) {
+      this.trackedOpportunities.delete(
+        this.generateTrackingKey(
+          tracked.symbol,
+          tracked.longExchange,
+          tracked.shortExchange
+        )
+      );
+      logger.info(
+        {
+          symbol: tracked.symbol,
+          longExchange: tracked.longExchange,
+          shortExchange: tracked.shortExchange,
+        },
+        'Removed fully ended opportunity from tracking'
+      );
     }
   }
 
@@ -956,6 +986,47 @@ export class NotificationService {
         'Cleaned up stale tracked opportunities'
       );
     }
+  }
+
+  /**
+   * 檢查當前時間是否在 webhook 設定的任一通知時間窗口內
+   * 支援多個通知時間點（例如 [40, 50] 表示 :40 和 :50 都會通知）
+   *
+   * @param notificationMinutes 用戶設定的通知分鐘陣列
+   * @returns true 如果在任一通知時間窗口內
+   */
+  private isWithinWebhookNotificationWindow(notificationMinutes: number[]): boolean {
+    const now = new Date();
+    const currentMinute = now.getMinutes();
+
+    // 檢查是否符合任一設定的時間點
+    const isInWindow = notificationMinutes.some((targetMinute) => {
+      const minWindow = targetMinute - this.notificationWindowRange;
+      const maxWindow = targetMinute + this.notificationWindowRange;
+
+      // 處理跨時邊界（例如設定 58 分時，窗口為 56-60，需要處理 00-02）
+      if (minWindow < 0) {
+        return currentMinute >= (60 + minWindow) || currentMinute <= maxWindow;
+      }
+      if (maxWindow >= 60) {
+        return currentMinute >= minWindow || currentMinute <= (maxWindow - 60);
+      }
+
+      return currentMinute >= minWindow && currentMinute <= maxWindow;
+    });
+
+    if (!isInWindow) {
+      logger.debug(
+        {
+          currentMinute,
+          notificationMinutes,
+          windowRange: this.notificationWindowRange,
+        },
+        'Outside notification window for this webhook'
+      );
+    }
+
+    return isInWindow;
   }
 
   /**

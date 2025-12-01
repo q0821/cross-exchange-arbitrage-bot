@@ -128,6 +128,7 @@ export interface WebhookConfig {
   isEnabled: boolean;
   threshold: number; // 年化收益閾值 (%)
   notifyOnDisappear: boolean; // Feature 027: 是否接收機會結束通知
+  notificationMinutes: number[]; // 通知時間（每小時的第幾分鐘），最多 2 個
 }
 
 /**
@@ -212,6 +213,7 @@ export interface CreateWebhookRequest {
   name: string;
   threshold?: number;
   notifyOnDisappear?: boolean; // Feature 027
+  notificationMinutes?: number[]; // 通知時間（每小時的第幾分鐘）
 }
 
 /**
@@ -223,6 +225,7 @@ export interface UpdateWebhookRequest {
   isEnabled?: boolean;
   threshold?: number;
   notifyOnDisappear?: boolean; // Feature 027
+  notificationMinutes?: number[]; // 通知時間（每小時的第幾分鐘）
 }
 
 /**
@@ -235,6 +238,7 @@ export interface WebhookResponse {
   isEnabled: boolean;
   threshold: number;
   notifyOnDisappear: boolean; // Feature 027
+  notificationMinutes: number[]; // 通知時間（每小時的第幾分鐘）
   createdAt: string;
   updatedAt: string;
 }
