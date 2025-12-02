@@ -9,7 +9,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { TrendingUp, TrendingDown, Clock, DollarSign, Target, Square } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, DollarSign, Target, Square, Layers } from 'lucide-react';
 
 interface TrackingData {
   id: string;
@@ -18,6 +18,10 @@ interface TrackingData {
   shortExchange: string;
   simulatedCapital: number;
   initialAPY: number;
+  // 開倉價格和固定顆數
+  initialLongPrice: number | null;
+  initialShortPrice: number | null;
+  positionQuantity: number | null;
   status: string;
   startedAt: string;
   totalFundingProfit: number;
@@ -39,6 +43,13 @@ export function ActiveTrackingCard({
 }: ActiveTrackingCardProps) {
   const profitPercentage = (tracking.totalFundingProfit / tracking.simulatedCapital) * 100;
   const isPositive = tracking.totalFundingProfit >= 0;
+
+  // 計算開倉均價和幣種名稱
+  const avgEntryPrice =
+    tracking.initialLongPrice && tracking.initialShortPrice
+      ? (tracking.initialLongPrice + tracking.initialShortPrice) / 2
+      : null;
+  const coinSymbol = tracking.symbol.replace('USDT', '');
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -85,14 +96,33 @@ export function ActiveTrackingCard({
 
       {/* Stats */}
       <div className="p-4 grid grid-cols-2 gap-4">
-        {/* Simulated Capital */}
-        <div>
-          <div className="text-xs text-gray-500 mb-1">模擬資金</div>
-          <div className="text-sm font-medium flex items-center gap-1">
-            <DollarSign className="w-4 h-4 text-gray-400" />
-            {tracking.simulatedCapital.toLocaleString()} USDT
+        {/* Position Quantity & Entry Price */}
+        {tracking.positionQuantity && avgEntryPrice ? (
+          <div className="col-span-2 p-2 bg-cyan-50 rounded-md border border-cyan-200">
+            <div className="flex items-center gap-1 text-xs text-cyan-600 mb-1">
+              <Layers className="w-3 h-3" />
+              倉位資訊
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-cyan-700">
+                <span className="font-medium">{tracking.positionQuantity.toFixed(4)}</span>{' '}
+                <span className="text-xs">{coinSymbol}</span>
+              </span>
+              <span className="text-cyan-700">
+                開倉均價 <span className="font-mono font-medium">${avgEntryPrice.toFixed(4)}</span>
+              </span>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Simulated Capital - 舊版資金模式 */
+          <div className="col-span-2">
+            <div className="text-xs text-gray-500 mb-1">模擬資金</div>
+            <div className="text-sm font-medium flex items-center gap-1">
+              <DollarSign className="w-4 h-4 text-gray-400" />
+              {tracking.simulatedCapital.toLocaleString()} USDT
+            </div>
+          </div>
+        )}
 
         {/* Total Profit */}
         <div>
@@ -128,7 +158,7 @@ export function ActiveTrackingCard({
         </div>
 
         {/* Duration */}
-        <div className="col-span-2">
+        <div>
           <div className="text-xs text-gray-500 mb-1">追蹤時長</div>
           <div className="text-sm font-medium text-gray-700 flex items-center gap-1">
             <Clock className="w-4 h-4 text-gray-400" />

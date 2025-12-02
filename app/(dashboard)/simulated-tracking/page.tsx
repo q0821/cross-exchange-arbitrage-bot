@@ -19,6 +19,10 @@ interface TrackingData {
   shortExchange: string;
   simulatedCapital: number;
   initialAPY: number;
+  // 開倉價格和固定顆數
+  initialLongPrice: number | null;
+  initialShortPrice: number | null;
+  positionQuantity: number | null;
   status: string;
   startedAt: string;
   stoppedAt: string | null;

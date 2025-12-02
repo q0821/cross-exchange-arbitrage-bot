@@ -18,6 +18,10 @@ interface TrackingData {
   shortExchange: string;
   simulatedCapital: number;
   initialAPY: number;
+  // 開倉價格和固定顆數
+  initialLongPrice: number | null;
+  initialShortPrice: number | null;
+  positionQuantity: number | null;
   status: string;
   startedAt: string;
   stoppedAt: string | null;
@@ -60,7 +64,7 @@ export function TrackingHistoryTable({
                 方向
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                模擬資金
+                倉位/均價
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 累計收益
@@ -84,6 +88,11 @@ export function TrackingHistoryTable({
               const profitPercentage =
                 (tracking.totalFundingProfit / tracking.simulatedCapital) * 100;
               const isPositive = tracking.totalFundingProfit >= 0;
+              const coinSymbol = tracking.symbol.replace('USDT', '');
+              const avgEntryPrice =
+                tracking.initialLongPrice && tracking.initialShortPrice
+                  ? (tracking.initialLongPrice + tracking.initialShortPrice) / 2
+                  : null;
 
               return (
                 <tr
@@ -115,9 +124,23 @@ export function TrackingHistoryTable({
                     </div>
                   </td>
 
-                  {/* Capital */}
-                  <td className="px-4 py-3 text-right font-mono text-sm">
-                    {tracking.simulatedCapital.toLocaleString()}
+                  {/* Position / Entry Price */}
+                  <td className="px-4 py-3 text-right">
+                    {tracking.positionQuantity && avgEntryPrice ? (
+                      <div>
+                        <div className="font-mono text-sm">
+                          {tracking.positionQuantity.toFixed(4)}{' '}
+                          <span className="text-xs text-gray-500">{coinSymbol}</span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          @ ${avgEntryPrice.toFixed(2)}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="font-mono text-sm">
+                        ${tracking.simulatedCapital.toLocaleString()}
+                      </span>
+                    )}
                   </td>
 
                   {/* Profit */}
