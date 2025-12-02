@@ -50,10 +50,10 @@ export function StartTrackingDialog({
     : null;
   const avgPrice = longPrice && shortPrice ? (longPrice + shortPrice) / 2 : null;
 
-  // 當對話框開啟且有價格時，設定預設顆數（約 10000 USDT）
+  // 當對話框開啟且有價格時，設定預設顆數（約 1000 USDT）
   useEffect(() => {
     if (isOpen && avgPrice && quantity === 0) {
-      const defaultCapital = 10000;
+      const defaultCapital = 1000;
       const defaultQuantity = defaultCapital / avgPrice;
       setQuantity(Number(defaultQuantity.toFixed(4)));
     }
