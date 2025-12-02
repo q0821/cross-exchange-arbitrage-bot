@@ -208,6 +208,54 @@ export class TrackingSnapshotRepository {
   }
 
   /**
+   * 檢查指定時間點是否已有結算快照記錄（用於去重）
+   * @param trackingId 追蹤 ID
+   * @param settlementHour UTC 結算小時（0-23）
+   * @param side 結算方向
+   */
+  async hasSettlementForHour(
+    trackingId: string,
+    settlementHour: number,
+    side: 'LONG' | 'SHORT' | 'BOTH'
+  ): Promise<boolean> {
+    try {
+      const now = new Date();
+      // 建立當前結算小時的時間範圍
+      const hourStart = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate(),
+        settlementHour,
+        0,
+        0,
+        0
+      ));
+      const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000); // +1 hour
+
+      const count = await this.prisma.trackingSnapshot.count({
+        where: {
+          trackingId,
+          snapshotType: 'SETTLEMENT',
+          settlementSide: side,
+          recordedAt: {
+            gte: hourStart,
+            lt: hourEnd,
+          },
+        },
+      });
+
+      return count > 0;
+    } catch (error) {
+      logger.error(
+        { error, trackingId, settlementHour, side },
+        'Failed to check settlement existence'
+      );
+      // 如果查詢失敗，回傳 true 以避免重複記錄
+      return true;
+    }
+  }
+
+  /**
    * 刪除追蹤的所有快照
    */
   async deleteByTrackingId(trackingId: string): Promise<number> {

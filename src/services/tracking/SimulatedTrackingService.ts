@@ -377,6 +377,22 @@ export class SimulatedTrackingService {
 
       if (settlementCheck.isSettlement && settlementCheck.side) {
         try {
+          // 去重檢查：確認同一結算時段未重複記錄
+          const currentHour = new Date().getUTCHours();
+          const alreadyRecorded = await this.snapshotRepository.hasSettlementForHour(
+            tracking.id,
+            currentHour,
+            settlementCheck.side
+          );
+
+          if (alreadyRecorded) {
+            logger.debug(
+              { trackingId: tracking.id, hour: currentHour, side: settlementCheck.side },
+              'Settlement already recorded for this hour, skipping'
+            );
+            continue;
+          }
+
           await this.recordSettlementSnapshot(
             tracking,
             rateData,

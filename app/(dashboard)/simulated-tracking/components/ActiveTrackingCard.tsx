@@ -9,7 +9,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { TrendingUp, TrendingDown, Clock, DollarSign, Target, Square, Layers } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, DollarSign, Target, Square, Layers, Calendar } from 'lucide-react';
 
 interface TrackingData {
   id: string;
@@ -46,6 +46,18 @@ export function ActiveTrackingCard({
 
   // 幣種名稱
   const coinSymbol = tracking.symbol.replace('USDT', '');
+
+  // 格式化日期時間
+  const formatDateTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleString('zh-TW', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -87,6 +99,12 @@ export function ActiveTrackingCard({
             <TrendingDown className="w-3 h-3" />
             <span className="capitalize">{tracking.shortExchange}</span>
           </span>
+        </div>
+
+        {/* Opening Time */}
+        <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+          <Calendar className="w-3 h-3" />
+          開倉時間: {formatDateTime(tracking.startedAt)}
         </div>
       </div>
 

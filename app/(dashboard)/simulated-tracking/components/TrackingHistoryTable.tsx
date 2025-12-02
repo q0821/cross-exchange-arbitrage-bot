@@ -76,7 +76,7 @@ export function TrackingHistoryTable({
                 狀態
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                持續時間
+                開/關倉時間
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
@@ -175,9 +175,32 @@ export function TrackingHistoryTable({
                     </span>
                   </td>
 
-                  {/* Duration */}
+                  {/* Open/Close Time */}
                   <td className="px-4 py-3 text-sm text-gray-600">
-                    {tracking.durationFormatted || '-'}
+                    <div className="space-y-0.5">
+                      <div className="text-xs">
+                        <span className="text-gray-400">開: </span>
+                        {new Date(tracking.startedAt).toLocaleString('zh-TW', {
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: false,
+                        })}
+                      </div>
+                      <div className="text-xs">
+                        <span className="text-gray-400">關: </span>
+                        {tracking.stoppedAt
+                          ? new Date(tracking.stoppedAt).toLocaleString('zh-TW', {
+                              month: '2-digit',
+                              day: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: false,
+                            })
+                          : '-'}
+                      </div>
+                    </div>
                   </td>
 
                   {/* Actions */}
