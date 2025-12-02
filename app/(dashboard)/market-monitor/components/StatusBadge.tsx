@@ -60,7 +60,7 @@ export function StatusBadge({ status, spreadPercent }: StatusBadgeProps) {
         inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border
         ${config.bgColor} ${config.textColor} ${config.borderColor}
       `}
-      title={`費率差異: ${spreadPercent.toFixed(4)}%`}
+      title={`費率差異: ${typeof spreadPercent === 'number' && !isNaN(spreadPercent) ? spreadPercent.toFixed(4) : 'N/A'}%`}
     >
       <span className="text-sm" role="img" aria-label={config.label}>
         {config.icon}

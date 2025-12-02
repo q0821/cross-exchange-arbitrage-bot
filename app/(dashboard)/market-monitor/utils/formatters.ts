@@ -99,3 +99,22 @@ export function formatPrice(price: number): string {
     return formatNumber(price, 6);
   }
 }
+
+/**
+ * Safe toFixed - handles undefined, null, NaN values
+ *
+ * @param value - Number to format (may be undefined/null/NaN)
+ * @param decimals - Decimal places (default: 2)
+ * @param fallback - Fallback string when value is invalid (default: 'N/A')
+ * @returns Formatted number string or fallback
+ */
+export function safeToFixed(
+  value: number | null | undefined,
+  decimals: number = 2,
+  fallback: string = 'N/A'
+): string {
+  if (value === null || value === undefined || typeof value !== 'number' || isNaN(value)) {
+    return fallback;
+  }
+  return value.toFixed(decimals);
+}
