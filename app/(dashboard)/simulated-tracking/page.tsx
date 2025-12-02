@@ -23,6 +23,12 @@ interface TrackingData {
   initialLongPrice: number | null;
   initialShortPrice: number | null;
   positionQuantity: number | null;
+  // 關倉價格
+  exitLongPrice: number | null;
+  exitShortPrice: number | null;
+  // 損益明細
+  fundingPnl: number | null;
+  pricePnl: number | null;
   status: string;
   startedAt: string;
   stoppedAt: string | null;

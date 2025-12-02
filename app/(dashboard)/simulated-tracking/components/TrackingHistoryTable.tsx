@@ -10,6 +10,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Trash2, TrendingUp, TrendingDown } from 'lucide-react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 
 interface TrackingData {
   id: string;
@@ -22,6 +23,12 @@ interface TrackingData {
   initialLongPrice: number | null;
   initialShortPrice: number | null;
   positionQuantity: number | null;
+  // 關倉價格
+  exitLongPrice: number | null;
+  exitShortPrice: number | null;
+  // 損益明細
+  fundingPnl: number | null;
+  pricePnl: number | null;
   status: string;
   startedAt: string;
   stoppedAt: string | null;
@@ -141,20 +148,73 @@ export function TrackingHistoryTable({
                     )}
                   </td>
 
-                  {/* Profit */}
+                  {/* Profit with Tooltip */}
                   <td className="px-4 py-3 text-right">
-                    <span
-                      className={`font-mono text-sm ${
-                        isPositive ? 'text-green-600' : 'text-red-600'
-                      }`}
-                    >
-                      {isPositive ? '+' : ''}
-                      {tracking.totalFundingProfit.toFixed(2)}
-                    </span>
-                    <span className="text-xs text-gray-500 ml-1">
-                      ({isPositive ? '+' : ''}
-                      {profitPercentage.toFixed(2)}%)
-                    </span>
+                    <Tooltip.Provider delayDuration={300}>
+                      <Tooltip.Root>
+                        <Tooltip.Trigger asChild>
+                          <span className="cursor-help inline-block">
+                            <span
+                              className={`font-mono text-sm ${
+                                isPositive ? 'text-green-600' : 'text-red-600'
+                              }`}
+                            >
+                              {isPositive ? '+' : ''}
+                              {tracking.totalFundingProfit.toFixed(2)}
+                            </span>
+                            <span className="text-xs text-gray-500 ml-1">
+                              ({isPositive ? '+' : ''}
+                              {profitPercentage.toFixed(2)}%)
+                            </span>
+                          </span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Portal>
+                          <Tooltip.Content
+                            className="z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg"
+                            sideOffset={5}
+                          >
+                            <div className="space-y-1.5 min-w-[180px]">
+                              <div className="font-medium text-gray-300 border-b border-gray-700 pb-1 mb-1">
+                                收益明細
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">開倉價格：</span>
+                                <span>
+                                  ${tracking.initialLongPrice?.toFixed(4) ?? 'N/A'} / ${tracking.initialShortPrice?.toFixed(4) ?? 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">關倉價格：</span>
+                                <span>
+                                  ${tracking.exitLongPrice?.toFixed(4) ?? 'N/A'} / ${tracking.exitShortPrice?.toFixed(4) ?? 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-400">結算次數：</span>
+                                <span>{tracking.totalSettlements} 次</span>
+                              </div>
+                              <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
+                                <span className="text-gray-400">資費收益：</span>
+                                <span className={tracking.fundingPnl != null && tracking.fundingPnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                                  {tracking.fundingPnl != null
+                                    ? `${tracking.fundingPnl >= 0 ? '+' : ''}$${tracking.fundingPnl.toFixed(2)}`
+                                    : 'N/A'}
+                                </span>
+                              </div>
+                              {tracking.pricePnl != null && (
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">幣價損益：</span>
+                                  <span className={tracking.pricePnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                                    {tracking.pricePnl >= 0 ? '+' : ''}${tracking.pricePnl.toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <Tooltip.Arrow className="fill-gray-900" />
+                          </Tooltip.Content>
+                        </Tooltip.Portal>
+                      </Tooltip.Root>
+                    </Tooltip.Provider>
                   </td>
 
                   {/* Settlements */}

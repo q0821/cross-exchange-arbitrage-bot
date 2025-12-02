@@ -36,6 +36,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - PostgreSQL 15 + TimescaleDB（現有 NotificationWebhook 模型擴展 + OpportunityHistory 啟用） (027-opportunity-end-notification)
 - TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 (App Router), React 18, Prisma 5.x, Socket.io 4.8.1, Tailwind CSS (029-simulated-apy-tracking)
 - PostgreSQL 15 + TimescaleDB (existing infrastructure) (029-simulated-apy-tracking)
+- TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (已安裝) (030-specify-scripts-bash)
+- N/A（純前端功能，資料已存在於 API 回應中） (030-specify-scripts-bash)
 
 ## Project Structure
 ```
@@ -50,9 +52,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 030-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (已安裝)
 - 029-simulated-apy-tracking: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 (App Router), React 18, Prisma 5.x, Socket.io 4.8.1, Tailwind CSS
 - 027-opportunity-end-notification: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1, axios, pino
-- 026-discord-slack-notification: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1 (WebSocket), axios (HTTP requests)
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
