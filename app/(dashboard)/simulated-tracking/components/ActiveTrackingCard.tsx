@@ -93,7 +93,7 @@ export function ActiveTrackingCard({
       {/* Stats */}
       <div className="p-4 grid grid-cols-2 gap-4">
         {/* Position Quantity & Entry Prices */}
-        {tracking.positionQuantity && tracking.initialLongPrice && tracking.initialShortPrice ? (
+        {tracking.positionQuantity ? (
           <div className="col-span-2 p-2 bg-cyan-50 rounded-md border border-cyan-200">
             <div className="flex items-center gap-1 text-xs text-cyan-600 mb-1">
               <Layers className="w-3 h-3" />
@@ -105,12 +105,20 @@ export function ActiveTrackingCard({
             </div>
             <div className="grid grid-cols-2 gap-2 text-xs text-cyan-600">
               <div>
-                <span className="capitalize">{tracking.longExchange}</span>: $
-                <span className="font-mono">{tracking.initialLongPrice.toFixed(4)}</span>
+                <span className="capitalize">{tracking.longExchange}</span>:{' '}
+                {tracking.initialLongPrice ? (
+                  <span className="font-mono">${tracking.initialLongPrice.toFixed(4)}</span>
+                ) : (
+                  <span className="text-gray-400">N/A</span>
+                )}
               </div>
               <div>
-                <span className="capitalize">{tracking.shortExchange}</span>: $
-                <span className="font-mono">{tracking.initialShortPrice.toFixed(4)}</span>
+                <span className="capitalize">{tracking.shortExchange}</span>:{' '}
+                {tracking.initialShortPrice ? (
+                  <span className="font-mono">${tracking.initialShortPrice.toFixed(4)}</span>
+                ) : (
+                  <span className="text-gray-400">N/A</span>
+                )}
               </div>
             </div>
           </div>

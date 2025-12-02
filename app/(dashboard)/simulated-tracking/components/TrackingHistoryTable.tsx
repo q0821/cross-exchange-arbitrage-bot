@@ -122,14 +122,16 @@ export function TrackingHistoryTable({
 
                   {/* Position / Entry Prices */}
                   <td className="px-4 py-3 text-right">
-                    {tracking.positionQuantity && tracking.initialLongPrice && tracking.initialShortPrice ? (
+                    {tracking.positionQuantity ? (
                       <div>
                         <div className="font-mono text-sm">
                           {tracking.positionQuantity.toFixed(4)}{' '}
                           <span className="text-xs text-gray-500">{coinSymbol}</span>
                         </div>
                         <div className="text-xs text-gray-500">
-                          ${tracking.initialLongPrice.toFixed(2)} / ${tracking.initialShortPrice.toFixed(2)}
+                          {tracking.initialLongPrice ? `$${tracking.initialLongPrice.toFixed(4)}` : 'N/A'}
+                          {' / '}
+                          {tracking.initialShortPrice ? `$${tracking.initialShortPrice.toFixed(4)}` : 'N/A'}
                         </div>
                       </div>
                     ) : (

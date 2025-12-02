@@ -53,11 +53,19 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
   // 取得幣種名稱（移除 USDT 後綴）
   const coinSymbol = tracking.symbol.replace('USDT', '');
 
-  // 開倉價格顯示（分開顯示兩個交易所）
-  const entryPricesSubValue =
-    tracking.initialLongPrice && tracking.initialShortPrice
-      ? `$${tracking.initialLongPrice.toFixed(2)} / $${tracking.initialShortPrice.toFixed(2)}`
-      : undefined;
+  // 開倉價格顯示（分開顯示兩個交易所，處理部分缺失的情況）
+  const entryPricesSubValue = (() => {
+    if (!tracking.initialLongPrice && !tracking.initialShortPrice) {
+      return undefined;
+    }
+    const longPriceStr = tracking.initialLongPrice
+      ? `$${tracking.initialLongPrice.toFixed(4)}`
+      : 'N/A';
+    const shortPriceStr = tracking.initialShortPrice
+      ? `$${tracking.initialShortPrice.toFixed(4)}`
+      : 'N/A';
+    return `${longPriceStr} / ${shortPriceStr}`;
+  })();
 
   const stats = [
     {
