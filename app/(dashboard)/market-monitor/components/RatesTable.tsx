@@ -24,6 +24,10 @@ interface RatesTableProps {
   onSort?: (field: SortField) => void;
   onSymbolClick?: (symbol: string) => void;
   onQuickOpen?: (rate: MarketRate) => void;
+  // Feature 029: 追蹤功能
+  isTrackingFn?: (symbol: string, longExchange: string, shortExchange: string) => boolean;
+  isTrackingLoading?: boolean;
+  onTrackClick?: (rate: MarketRate) => void;
 }
 
 /**
@@ -43,6 +47,10 @@ export function RatesTable({
   onSort,
   onSymbolClick,
   onQuickOpen,
+  // Feature 029: 追蹤功能
+  isTrackingFn,
+  isTrackingLoading,
+  onTrackClick,
 }: RatesTableProps) {
   // 快照排序：只在排序條件改變時重新計算順序
   const sortedSymbols = useMemo(() => {
@@ -248,15 +256,25 @@ export function RatesTable({
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {displayRates.map((rate) => (
-              <RateRow
-                key={rate.symbol}
-                rate={rate}
-                timeBasis={timeBasis}
-                onSymbolClick={onSymbolClick}
-                onQuickOpen={onQuickOpen}
-              />
-            ))}
+            {displayRates.map((rate) => {
+              // Feature 029: 計算是否正在追蹤此機會
+              const isTracking = isTrackingFn && rate.bestPair
+                ? isTrackingFn(rate.symbol, rate.bestPair.longExchange, rate.bestPair.shortExchange)
+                : false;
+
+              return (
+                <RateRow
+                  key={rate.symbol}
+                  rate={rate}
+                  timeBasis={timeBasis}
+                  onSymbolClick={onSymbolClick}
+                  onQuickOpen={onQuickOpen}
+                  isTracking={isTracking}
+                  isTrackingLoading={isTrackingLoading}
+                  onTrackClick={onTrackClick}
+                />
+              );
+            })}
           </tbody>
         </table>
       </div>

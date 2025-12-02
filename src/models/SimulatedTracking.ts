@@ -28,6 +28,10 @@ export const CreateTrackingSchema = z
     initialShortRate: z.number().optional(),
     longIntervalHours: z.number().int().min(1).max(24).optional(),
     shortIntervalHours: z.number().int().min(1).max(24).optional(),
+    // 開倉價格和倉位數量（固定顆數模式）
+    initialLongPrice: z.number().optional(),
+    initialShortPrice: z.number().optional(),
+    positionQuantity: z.number().optional(),
   })
   .refine((data) => data.longExchange !== data.shortExchange, {
     message: 'Long and short exchanges must be different',
@@ -69,6 +73,16 @@ export interface TrackingResponse {
   initialAPY: number;
   initialLongRate: number;
   initialShortRate: number;
+  // 開倉價格和倉位數量（固定顆數模式）
+  initialLongPrice: number | null;
+  initialShortPrice: number | null;
+  positionQuantity: number | null;
+  // 平倉價格和損益（停止追蹤時記錄）
+  exitLongPrice: number | null;
+  exitShortPrice: number | null;
+  pricePnl: number | null;
+  fundingPnl: number | null;
+  totalPnl: number | null;
   longIntervalHours: number;
   shortIntervalHours: number;
   status: TrackingStatus;
@@ -133,6 +147,16 @@ export interface TrackingWithUser {
   initialAPY: number;
   initialLongRate: number;
   initialShortRate: number;
+  // 開倉價格和倉位數量（固定顆數模式）
+  initialLongPrice: number | null;
+  initialShortPrice: number | null;
+  positionQuantity: number | null;
+  // 平倉價格和損益（停止追蹤時記錄）
+  exitLongPrice: number | null;
+  exitShortPrice: number | null;
+  pricePnl: number | null;
+  fundingPnl: number | null;
+  totalPnl: number | null;
   longIntervalHours: number;
   shortIntervalHours: number;
   status: TrackingStatus;

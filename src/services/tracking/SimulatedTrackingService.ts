@@ -107,6 +107,29 @@ export class SimulatedTrackingService {
     const avgIntervalHours = (longIntervalHours + shortIntervalHours) / 2;
     const annualizedReturn = spreadPercent * (8760 / avgIntervalHours);
 
+    // 提取開倉價格（固定顆數模式）
+    const longPrice = longRate.markPrice;
+    const shortPrice = shortRate.markPrice;
+
+    // 計算固定倉位數量（使用平均價格）
+    let positionQuantity: number | undefined;
+    if (longPrice && shortPrice) {
+      const avgPrice = (longPrice + shortPrice) / 2;
+      positionQuantity = input.simulatedCapital / avgPrice;
+
+      logger.info(
+        {
+          symbol: input.symbol,
+          longPrice,
+          shortPrice,
+          avgPrice,
+          simulatedCapital: input.simulatedCapital,
+          positionQuantity,
+        },
+        'Calculated fixed position quantity'
+      );
+    }
+
     const tracking = await this.trackingRepository.create(userId, {
       ...input,
       initialSpread: spreadPercent,
@@ -115,6 +138,10 @@ export class SimulatedTrackingService {
       initialShortRate: shortRate.rate,
       longIntervalHours,
       shortIntervalHours,
+      // 開倉價格和固定顆數
+      initialLongPrice: longPrice,
+      initialShortPrice: shortPrice,
+      positionQuantity,
     });
 
     return this.trackingRepository.toResponse(tracking);
@@ -203,12 +230,18 @@ export class SimulatedTrackingService {
     const shortRate = shortRateData.rate;
     const spread = (shortRate - longRate) * 100;
 
-    // T026: 計算結算收益
+    // 獲取價格（如果可用）
+    const longPrice = longRateData.markPrice ?? null;
+    const shortPrice = shortRateData.markPrice ?? null;
+
+    // T026: 計算結算收益（使用固定顆數模式）
     const fundingProfit = this.calculateSettlementProfit(
-      tracking.simulatedCapital,
+      tracking,
       longRate,
       shortRate,
-      settlementSide
+      settlementSide,
+      longPrice,
+      shortPrice
     );
 
     // 獲取最新累計收益
@@ -223,9 +256,7 @@ export class SimulatedTrackingService {
       (tracking.longIntervalHours + tracking.shortIntervalHours) / 2;
     const annualizedReturn = spread * (8760 / avgIntervalHours);
 
-    // 獲取價格（如果可用）
-    const longPrice = longRateData.markPrice ?? null;
-    const shortPrice = shortRateData.markPrice ?? null;
+    // 計算價差百分比
     const priceDiffPercent =
       longPrice && shortPrice
         ? ((shortPrice - longPrice) / longPrice) * 100
@@ -264,27 +295,52 @@ export class SimulatedTrackingService {
 
   /**
    * T026: 計算結算收益
+   *
+   * 使用固定顆數模式計算收益：
+   * - 收益 = 倉位數量 × 標記價格 × 費率
+   * - 如果沒有固定顆數，則回退到資金模式
    */
   private calculateSettlementProfit(
-    capital: number,
+    tracking: TrackingWithUser,
     longRate: number,
     shortRate: number,
-    settlementSide: 'LONG' | 'SHORT' | 'BOTH'
+    settlementSide: 'LONG' | 'SHORT' | 'BOTH',
+    currentLongPrice?: number | null,
+    currentShortPrice?: number | null
   ): number {
-    // 收益 = 資金 × (做空費率 - 做多費率)
-    // 如果只有一方結算，則只計算該方
+    // 如果有固定顆數且有當前價格，使用固定顆數計算
+    if (
+      tracking.positionQuantity &&
+      currentLongPrice &&
+      currentShortPrice
+    ) {
+      const quantity = tracking.positionQuantity;
+      const longPositionValue = quantity * currentLongPrice;
+      const shortPositionValue = quantity * currentShortPrice;
+
+      switch (settlementSide) {
+        case 'LONG':
+          // Long 倉位收費/付費（負費率收取，正費率支付）
+          return longPositionValue * -longRate;
+        case 'SHORT':
+          // Short 倉位收費/付費（正費率收取，負費率支付）
+          return shortPositionValue * shortRate;
+        case 'BOTH':
+        default:
+          // 雙方結算：完整套利收益
+          return (shortPositionValue * shortRate) - (longPositionValue * longRate);
+      }
+    }
+
+    // 回退到資金模式（舊邏輯，兼容沒有固定顆數的舊追蹤）
+    const capital = tracking.simulatedCapital;
     switch (settlementSide) {
       case 'LONG':
-        // 只有 Long 結算：收益來自 Long 倉位
-        // Long 倉位收費/付費（負費率收取，正費率支付）
         return capital * -longRate;
       case 'SHORT':
-        // 只有 Short 結算：收益來自 Short 倉位
-        // Short 倉位收費/付費（正費率收取，負費率支付）
         return capital * shortRate;
       case 'BOTH':
       default:
-        // 雙方結算：完整套利收益
         return capital * (shortRate - longRate);
     }
   }
@@ -429,9 +485,88 @@ export class SimulatedTrackingService {
 
   /**
    * T031: 停止追蹤
+   *
+   * 計算並記錄損益：
+   * - 幣價損益 = (平倉價格 - 開倉價格) × 顆數 (多空合計)
+   * - 資費差損益 = totalFundingProfit (累計的資費收益)
+   * - 合計損益 = 幣價損益 + 資費差損益
    */
-  async stopTracking(id: string, userId: string): Promise<TrackingResponse> {
-    const tracking = await this.trackingRepository.stop(id, userId);
+  async stopTracking(
+    id: string,
+    userId: string,
+    currentPrices?: { longPrice: number; shortPrice: number }
+  ): Promise<TrackingResponse> {
+    // 先獲取追蹤記錄以計算損益
+    const existingTracking = await this.trackingRepository.findById(id);
+
+    if (!existingTracking || existingTracking.userId !== userId) {
+      throw new Error('Tracking not found');
+    }
+
+    let pnlData:
+      | {
+          exitLongPrice: number;
+          exitShortPrice: number;
+          pricePnl: number;
+          fundingPnl: number;
+          totalPnl: number;
+        }
+      | undefined;
+
+    // 如果有固定顆數和開倉價格，計算損益
+    if (
+      existingTracking.positionQuantity &&
+      existingTracking.initialLongPrice &&
+      existingTracking.initialShortPrice &&
+      currentPrices
+    ) {
+      const { longPrice: exitLongPrice, shortPrice: exitShortPrice } = currentPrices;
+      const quantity = existingTracking.positionQuantity;
+
+      // 多頭損益 = (平倉價 - 開倉價) × 顆數
+      const longPricePnl =
+        (exitLongPrice - existingTracking.initialLongPrice) * quantity;
+
+      // 空頭損益 = (開倉價 - 平倉價) × 顆數
+      const shortPricePnl =
+        (existingTracking.initialShortPrice - exitShortPrice) * quantity;
+
+      // 幣價總損益
+      const pricePnl = longPricePnl + shortPricePnl;
+
+      // 資費差損益
+      const fundingPnl = existingTracking.totalFundingProfit;
+
+      // 合計損益
+      const totalPnl = pricePnl + fundingPnl;
+
+      pnlData = {
+        exitLongPrice,
+        exitShortPrice,
+        pricePnl,
+        fundingPnl,
+        totalPnl,
+      };
+
+      logger.info(
+        {
+          trackingId: id,
+          quantity,
+          initialLongPrice: existingTracking.initialLongPrice,
+          initialShortPrice: existingTracking.initialShortPrice,
+          exitLongPrice,
+          exitShortPrice,
+          longPricePnl,
+          shortPricePnl,
+          pricePnl,
+          fundingPnl,
+          totalPnl,
+        },
+        'Calculated PnL for tracking stop'
+      );
+    }
+
+    const tracking = await this.trackingRepository.stop(id, userId, pnlData);
     return this.trackingRepository.toResponse(tracking);
   }
 

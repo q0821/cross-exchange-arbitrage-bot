@@ -107,7 +107,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!canStart.canStart) {
       throw new BadRequestError(
-        `Maximum ${canStart.maxAllowed} active trackings allowed. Current: ${canStart.activeCount}`
+        `最多只能同時追蹤 ${canStart.maxAllowed} 個機會，目前已有 ${canStart.activeCount} 個`
       );
     }
 
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!currentRates) {
       throw new NotFoundError(
-        `No rate data available for symbol: ${validatedData.symbol}`
+        `無法取得 ${validatedData.symbol} 的費率資料，該交易對可能暫時無資料或不在監控範圍內`
       );
     }
 
@@ -130,13 +130,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!longExchangeExists) {
       throw new BadRequestError(
-        `Long exchange "${validatedData.longExchange}" not found for symbol ${validatedData.symbol}`
+        `做多交易所 ${validatedData.longExchange.toUpperCase()} 目前沒有 ${validatedData.symbol} 的費率資料`
       );
     }
 
     if (!shortExchangeExists) {
       throw new BadRequestError(
-        `Short exchange "${validatedData.shortExchange}" not found for symbol ${validatedData.symbol}`
+        `做空交易所 ${validatedData.shortExchange.toUpperCase()} 目前沒有 ${validatedData.symbol} 的費率資料`
       );
     }
 

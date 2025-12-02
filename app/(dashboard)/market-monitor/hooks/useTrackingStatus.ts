@@ -55,7 +55,9 @@ export function useTrackingStatus(): UseTrackingStatusReturn {
   // 獲取用戶的活躍追蹤列表
   const fetchActiveTrackings = useCallback(async () => {
     try {
-      const response = await fetch('/api/simulated-tracking?status=ACTIVE');
+      const response = await fetch('/api/simulated-tracking?status=ACTIVE', {
+        credentials: 'include', // 確保包含 cookie
+      });
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -105,13 +107,18 @@ export function useTrackingStatus(): UseTrackingStatusReturn {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include', // 確保包含 cookie
           body: JSON.stringify(params),
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || 'Failed to start tracking');
+          // 提供更友好的錯誤訊息
+          if (response.status === 401) {
+            throw new Error('請先登入後再開始追蹤');
+          }
+          throw new Error(data.message || data.error?.message || 'Failed to start tracking');
         }
 
         if (data.success && data.data?.tracking) {

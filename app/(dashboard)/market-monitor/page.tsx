@@ -4,6 +4,7 @@
  *
  * Feature: 006-web-trading-platform (User Story 2.5)
  * Feature: 012-specify-scripts-bash (User Story 1 - T020)
+ * Feature: 029: Simulated APY Tracking 整合
  */
 
 'use client';
@@ -13,9 +14,11 @@ import { RatesTable } from './components/RatesTable';
 import { StatsCard } from './components/StatsCard';
 import { SymbolSelector } from './components/SymbolSelector';
 import { TimeBasisSelector } from './components/TimeBasisSelector';
+import { StartTrackingDialog } from './components/StartTrackingDialog';
 import { useMarketRates } from './hooks/useMarketRates';
 import { useSymbolGroups } from './hooks/useSymbolGroups';
 import { useTableSort } from './hooks/useTableSort';
+import { useTrackingStatus } from './hooks/useTrackingStatus';
 import type { MarketRate } from './types';
 
 /**
@@ -38,6 +41,18 @@ export default function MarketMonitorPage() {
 
   // 表格排序和篩選
   const { sortBy, sortDirection, filterStatus, toggleSort, setFilterStatus } = useTableSort();
+
+  // Feature 029: 追蹤功能
+  const {
+    isLoading: trackingLoading,
+    error: trackingError,
+    startTracking,
+    isTracking,
+    selectedRate: trackingSelectedRate,
+    isDialogOpen: isTrackingDialogOpen,
+    openDialog: openTrackingDialog,
+    closeDialog: closeTrackingDialog,
+  } = useTrackingStatus();
 
   // 根據選中的群組過濾費率數據 (Feature 009: 使用 Map)
   const filteredRatesMap = useMemo(() => {
@@ -214,8 +229,30 @@ export default function MarketMonitorPage() {
           onSort={toggleSort}
           onSymbolClick={handleSymbolClick}
           onQuickOpen={handleQuickOpen}
+          isTrackingFn={isTracking}
+          isTrackingLoading={trackingLoading}
+          onTrackClick={openTrackingDialog}
         />
       </div>
+
+      {/* Feature 029: 開始追蹤對話框 */}
+      <StartTrackingDialog
+        isOpen={isTrackingDialogOpen}
+        rate={trackingSelectedRate}
+        isLoading={trackingLoading}
+        error={trackingError}
+        onClose={closeTrackingDialog}
+        onConfirm={async (data) => {
+          if (!trackingSelectedRate?.bestPair) return;
+          await startTracking({
+            symbol: trackingSelectedRate.symbol,
+            longExchange: trackingSelectedRate.bestPair.longExchange,
+            shortExchange: trackingSelectedRate.bestPair.shortExchange,
+            simulatedCapital: data.simulatedCapital,
+            autoStopOnExpire: data.autoStopOnExpire,
+          });
+        }}
+      />
 
       {/* 底部提示 */}
       {!isConnected && (

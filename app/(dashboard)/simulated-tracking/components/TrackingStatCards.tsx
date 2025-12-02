@@ -15,12 +15,25 @@ import {
   Clock,
   Activity,
   Target,
+  Layers,
 } from 'lucide-react';
 
 interface TrackingData {
+  symbol: string;
   simulatedCapital: number;
   initialAPY: number;
   initialSpread: number;
+  // 開倉價格和固定顆數
+  initialLongPrice: number | null;
+  initialShortPrice: number | null;
+  positionQuantity: number | null;
+  // 平倉價格和損益（停止追蹤時記錄）
+  exitLongPrice: number | null;
+  exitShortPrice: number | null;
+  pricePnl: number | null;
+  fundingPnl: number | null;
+  totalPnl: number | null;
+  status: string;
   totalFundingProfit: number;
   totalSettlements: number;
   maxSpread: number;
@@ -37,6 +50,15 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
     (tracking.totalFundingProfit / tracking.simulatedCapital) * 100;
   const isPositive = tracking.totalFundingProfit >= 0;
 
+  // 計算平均開倉價格
+  const avgEntryPrice =
+    tracking.initialLongPrice && tracking.initialShortPrice
+      ? (tracking.initialLongPrice + tracking.initialShortPrice) / 2
+      : null;
+
+  // 取得幣種名稱（移除 USDT 後綴）
+  const coinSymbol = tracking.symbol.replace('USDT', '');
+
   const stats = [
     {
       label: '模擬資金',
@@ -44,6 +66,16 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
       icon: DollarSign,
       color: 'text-gray-600',
       bgColor: 'bg-gray-50',
+    },
+    {
+      label: '固定顆數',
+      value: tracking.positionQuantity
+        ? `${tracking.positionQuantity.toFixed(4)} ${coinSymbol}`
+        : '資金模式',
+      subValue: avgEntryPrice ? `開倉價: $${avgEntryPrice.toFixed(4)}` : undefined,
+      icon: Layers,
+      color: 'text-cyan-600',
+      bgColor: 'bg-cyan-50',
     },
     {
       label: '累計收益',
@@ -83,27 +115,113 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
     },
   ];
 
+  // 損益明細（停止追蹤時顯示）
+  const hasPnlData =
+    tracking.status !== 'ACTIVE' && tracking.totalPnl !== null;
+
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      {stats.map((stat, index) => (
-        <div
-          key={index}
-          className="bg-white rounded-lg border border-gray-200 p-4"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <div className={`p-1.5 rounded ${stat.bgColor}`}>
-              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+    <div className="space-y-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+        {stats.map((stat, index) => (
+          <div
+            key={index}
+            className="bg-white rounded-lg border border-gray-200 p-4"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`p-1.5 rounded ${stat.bgColor}`}>
+                <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              </div>
+              <span className="text-xs text-gray-500">{stat.label}</span>
             </div>
-            <span className="text-xs text-gray-500">{stat.label}</span>
+            <div className={`text-lg font-semibold ${stat.color}`}>
+              {stat.value}
+            </div>
+            {stat.subValue && (
+              <div className="text-xs text-gray-500 mt-1">{stat.subValue}</div>
+            )}
           </div>
-          <div className={`text-lg font-semibold ${stat.color}`}>
-            {stat.value}
+        ))}
+      </div>
+
+      {/* PnL Breakdown - 停止追蹤後顯示 */}
+      {hasPnlData && (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <DollarSign className="w-4 h-4" />
+            損益明細
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 幣價損益 */}
+            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">幣價損益</div>
+              <div
+                className={`text-lg font-semibold ${
+                  (tracking.pricePnl ?? 0) >= 0
+                    ? 'text-green-600'
+                    : 'text-red-600'
+                }`}
+              >
+                {(tracking.pricePnl ?? 0) >= 0 ? '+' : ''}$
+                {(tracking.pricePnl ?? 0).toFixed(2)}
+              </div>
+              {tracking.exitLongPrice && tracking.exitShortPrice && (
+                <div className="text-xs text-gray-400 mt-1">
+                  平倉價: ${tracking.exitLongPrice.toFixed(4)} / $
+                  {tracking.exitShortPrice.toFixed(4)}
+                </div>
+              )}
+            </div>
+
+            {/* 資費差損益 */}
+            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <div className="text-xs text-gray-500 mb-1">資費差損益</div>
+              <div
+                className={`text-lg font-semibold ${
+                  (tracking.fundingPnl ?? 0) >= 0
+                    ? 'text-green-600'
+                    : 'text-red-600'
+                }`}
+              >
+                {(tracking.fundingPnl ?? 0) >= 0 ? '+' : ''}$
+                {(tracking.fundingPnl ?? 0).toFixed(2)}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                結算次數: {tracking.totalSettlements}
+              </div>
+            </div>
+
+            {/* 合計損益 */}
+            <div
+              className={`p-3 rounded-lg border ${
+                (tracking.totalPnl ?? 0) >= 0
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-red-50 border-red-200'
+              }`}
+            >
+              <div className="text-xs text-gray-500 mb-1">合計損益</div>
+              <div
+                className={`text-xl font-bold ${
+                  (tracking.totalPnl ?? 0) >= 0
+                    ? 'text-green-600'
+                    : 'text-red-600'
+                }`}
+              >
+                {(tracking.totalPnl ?? 0) >= 0 ? '+' : ''}$
+                {(tracking.totalPnl ?? 0).toFixed(2)}
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                報酬率:{' '}
+                {(
+                  ((tracking.totalPnl ?? 0) / tracking.simulatedCapital) *
+                  100
+                ).toFixed(2)}
+                %
+              </div>
+            </div>
           </div>
-          {stat.subValue && (
-            <div className="text-xs text-gray-500 mt-1">{stat.subValue}</div>
-          )}
         </div>
-      ))}
+      )}
     </div>
   );
 }

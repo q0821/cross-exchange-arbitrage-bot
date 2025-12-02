@@ -38,6 +38,16 @@ export class SimulatedTrackingRepository {
       initialAPY: Number(tracking.initialAPY),
       initialLongRate: Number(tracking.initialLongRate),
       initialShortRate: Number(tracking.initialShortRate),
+      // 開倉價格和固定顆數
+      initialLongPrice: tracking.initialLongPrice ? Number(tracking.initialLongPrice) : null,
+      initialShortPrice: tracking.initialShortPrice ? Number(tracking.initialShortPrice) : null,
+      positionQuantity: tracking.positionQuantity ? Number(tracking.positionQuantity) : null,
+      // 平倉價格和損益
+      exitLongPrice: tracking.exitLongPrice ? Number(tracking.exitLongPrice) : null,
+      exitShortPrice: tracking.exitShortPrice ? Number(tracking.exitShortPrice) : null,
+      pricePnl: tracking.pricePnl ? Number(tracking.pricePnl) : null,
+      fundingPnl: tracking.fundingPnl ? Number(tracking.fundingPnl) : null,
+      totalPnl: tracking.totalPnl ? Number(tracking.totalPnl) : null,
       longIntervalHours: tracking.longIntervalHours,
       shortIntervalHours: tracking.shortIntervalHours,
       status: tracking.status as TrackingWithUser['status'],
@@ -69,6 +79,16 @@ export class SimulatedTrackingRepository {
       initialAPY: tracking.initialAPY,
       initialLongRate: tracking.initialLongRate,
       initialShortRate: tracking.initialShortRate,
+      // 開倉價格和固定顆數
+      initialLongPrice: tracking.initialLongPrice,
+      initialShortPrice: tracking.initialShortPrice,
+      positionQuantity: tracking.positionQuantity,
+      // 平倉價格和損益
+      exitLongPrice: tracking.exitLongPrice,
+      exitShortPrice: tracking.exitShortPrice,
+      pricePnl: tracking.pricePnl,
+      fundingPnl: tracking.fundingPnl,
+      totalPnl: tracking.totalPnl,
       longIntervalHours: tracking.longIntervalHours,
       shortIntervalHours: tracking.shortIntervalHours,
       status: tracking.status,
@@ -160,6 +180,10 @@ export class SimulatedTrackingRepository {
       initialShortRate: number;
       longIntervalHours: number;
       shortIntervalHours: number;
+      // 開倉價格和固定顆數
+      initialLongPrice?: number;
+      initialShortPrice?: number;
+      positionQuantity?: number;
     }
   ): Promise<TrackingWithUser> {
     try {
@@ -196,6 +220,10 @@ export class SimulatedTrackingRepository {
           initialShortRate: data.initialShortRate,
           longIntervalHours: data.longIntervalHours,
           shortIntervalHours: data.shortIntervalHours,
+          // 開倉價格和固定顆數
+          initialLongPrice: data.initialLongPrice,
+          initialShortPrice: data.initialShortPrice,
+          positionQuantity: data.positionQuantity,
           minSpread: data.initialSpread,
           maxSpread: data.initialSpread,
         },
@@ -297,7 +325,17 @@ export class SimulatedTrackingRepository {
   /**
    * 停止追蹤
    */
-  async stop(id: string, userId: string): Promise<TrackingWithUser> {
+  async stop(
+    id: string,
+    userId: string,
+    pnlData?: {
+      exitLongPrice: number;
+      exitShortPrice: number;
+      pricePnl: number;
+      fundingPnl: number;
+      totalPnl: number;
+    }
+  ): Promise<TrackingWithUser> {
     try {
       const existing = await this.prisma.simulatedTracking.findFirst({
         where: { id, userId },
@@ -316,10 +354,27 @@ export class SimulatedTrackingRepository {
         data: {
           status: 'STOPPED',
           stoppedAt: new Date(),
+          // 平倉價格和損益
+          ...(pnlData && {
+            exitLongPrice: pnlData.exitLongPrice,
+            exitShortPrice: pnlData.exitShortPrice,
+            pricePnl: pnlData.pricePnl,
+            fundingPnl: pnlData.fundingPnl,
+            totalPnl: pnlData.totalPnl,
+          }),
         },
       });
 
-      logger.info({ trackingId: id, userId }, 'Tracking stopped successfully');
+      logger.info(
+        {
+          trackingId: id,
+          userId,
+          pricePnl: pnlData?.pricePnl,
+          fundingPnl: pnlData?.fundingPnl,
+          totalPnl: pnlData?.totalPnl,
+        },
+        'Tracking stopped successfully'
+      );
 
       return this.toTrackingWithUser(tracking);
     } catch (error) {

@@ -33,6 +33,18 @@ interface TrackingData {
   initialAPY: number;
   initialLongRate: number;
   initialShortRate: number;
+  // 開倉價格和固定顆數
+  initialLongPrice: number | null;
+  initialShortPrice: number | null;
+  positionQuantity: number | null;
+  // 平倉價格和損益（停止追蹤時記錄）
+  exitLongPrice: number | null;
+  exitShortPrice: number | null;
+  pricePnl: number | null;
+  fundingPnl: number | null;
+  totalPnl: number | null;
+  longIntervalHours: number;
+  shortIntervalHours: number;
   status: string;
   startedAt: string;
   stoppedAt: string | null;
@@ -149,12 +161,33 @@ export default function TrackingDetailPage() {
         throw new Error(data.message || 'Failed to stop tracking');
       }
 
-      // 更新本地狀態
-      setTracking((prev) =>
-        prev
-          ? { ...prev, status: 'STOPPED', stoppedAt: new Date().toISOString() }
-          : null
-      );
+      const data = await response.json();
+
+      // 更新本地狀態，包含損益資料
+      if (data.success && data.data?.tracking) {
+        const stoppedTracking = data.data.tracking;
+        setTracking((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: 'STOPPED',
+                stoppedAt: stoppedTracking.stoppedAt || new Date().toISOString(),
+                exitLongPrice: stoppedTracking.exitLongPrice,
+                exitShortPrice: stoppedTracking.exitShortPrice,
+                pricePnl: stoppedTracking.pricePnl,
+                fundingPnl: stoppedTracking.fundingPnl,
+                totalPnl: stoppedTracking.totalPnl,
+              }
+            : null
+        );
+      } else {
+        // 如果回應格式不符，只更新狀態
+        setTracking((prev) =>
+          prev
+            ? { ...prev, status: 'STOPPED', stoppedAt: new Date().toISOString() }
+            : null
+        );
+      }
     } catch (err) {
       console.error('Failed to stop tracking:', err);
       setError(err instanceof Error ? err.message : 'Failed to stop tracking');

@@ -643,6 +643,18 @@ model SimulatedTracking {
   initialLongRate   Decimal  @db.Decimal(10, 8)
   initialShortRate  Decimal  @db.Decimal(10, 8)
 
+  // 開倉價格和倉位數量（固定顆數模式）
+  initialLongPrice  Decimal? @db.Decimal(18, 8)  // 做多交易所開倉價格
+  initialShortPrice Decimal? @db.Decimal(18, 8)  // 做空交易所開倉價格
+  positionQuantity  Decimal? @db.Decimal(18, 8)  // 固定倉位數量（顆數）
+
+  // 平倉價格和損益（停止追蹤時記錄）
+  exitLongPrice     Decimal? @db.Decimal(18, 8)  // 做多交易所平倉價格
+  exitShortPrice    Decimal? @db.Decimal(18, 8)  // 做空交易所平倉價格
+  pricePnl          Decimal? @db.Decimal(18, 8)  // 幣價損益
+  fundingPnl        Decimal? @db.Decimal(18, 8)  // 資費差損益（= totalFundingProfit）
+  totalPnl          Decimal? @db.Decimal(18, 8)  // 合計損益
+
   // 交易所結算週期
   longIntervalHours    Int   @db.SmallInt
   shortIntervalHours   Int   @db.SmallInt

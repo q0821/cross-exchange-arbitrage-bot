@@ -48,10 +48,17 @@ export interface MarketStats {
   lastUpdate: Date | null;
 }
 
+// 使用 globalThis 確保在 Next.js 開發模式下單例跨模組上下文共享
+declare global {
+  // eslint-disable-next-line no-var
+  var __ratesCacheInstance: RatesCache | undefined;
+}
+
 /**
  * 全局資金費率快取服務
  *
  * 單例模式，確保全局只有一個實例
+ * 使用 globalThis 解決 Next.js HMR 模組隔離問題
  */
 export class RatesCache {
   private static instance: RatesCache | null = null;
@@ -90,10 +97,18 @@ export class RatesCache {
 
   /**
    * 獲取單例實例
+   * 使用 globalThis 確保在 Next.js 開發模式下跨模組共享
    */
   static getInstance(): RatesCache {
+    // 優先使用 globalThis 存儲的實例（解決 Next.js HMR 問題）
+    if (globalThis.__ratesCacheInstance) {
+      return globalThis.__ratesCacheInstance;
+    }
+
     if (!RatesCache.instance) {
       RatesCache.instance = new RatesCache();
+      // 同時存儲到 globalThis
+      globalThis.__ratesCacheInstance = RatesCache.instance;
     }
     return RatesCache.instance;
   }
