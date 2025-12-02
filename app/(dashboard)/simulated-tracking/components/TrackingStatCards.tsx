@@ -50,14 +50,14 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
     (tracking.totalFundingProfit / tracking.simulatedCapital) * 100;
   const isPositive = tracking.totalFundingProfit >= 0;
 
-  // 計算平均開倉價格
-  const avgEntryPrice =
-    tracking.initialLongPrice && tracking.initialShortPrice
-      ? (tracking.initialLongPrice + tracking.initialShortPrice) / 2
-      : null;
-
   // 取得幣種名稱（移除 USDT 後綴）
   const coinSymbol = tracking.symbol.replace('USDT', '');
+
+  // 開倉價格顯示（分開顯示兩個交易所）
+  const entryPricesSubValue =
+    tracking.initialLongPrice && tracking.initialShortPrice
+      ? `$${tracking.initialLongPrice.toFixed(2)} / $${tracking.initialShortPrice.toFixed(2)}`
+      : undefined;
 
   const stats = [
     {
@@ -72,7 +72,7 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
       value: tracking.positionQuantity
         ? `${tracking.positionQuantity.toFixed(4)} ${coinSymbol}`
         : '資金模式',
-      subValue: avgEntryPrice ? `開倉價: $${avgEntryPrice.toFixed(4)}` : undefined,
+      subValue: entryPricesSubValue,
       icon: Layers,
       color: 'text-cyan-600',
       bgColor: 'bg-cyan-50',

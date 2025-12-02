@@ -111,22 +111,24 @@ export class SimulatedTrackingService {
     const longPrice = longRate.markPrice;
     const shortPrice = shortRate.markPrice;
 
-    // 計算固定倉位數量（使用平均價格）
-    let positionQuantity: number | undefined;
-    if (longPrice && shortPrice) {
+    // 使用前端提供的 positionQuantity，如果沒有則從資金計算
+    let positionQuantity: number | undefined = input.positionQuantity;
+    if (!positionQuantity && longPrice && shortPrice) {
       const avgPrice = (longPrice + shortPrice) / 2;
       positionQuantity = input.simulatedCapital / avgPrice;
+    }
 
+    if (positionQuantity) {
       logger.info(
         {
           symbol: input.symbol,
           longPrice,
           shortPrice,
-          avgPrice,
           simulatedCapital: input.simulatedCapital,
           positionQuantity,
+          source: input.positionQuantity ? 'user_input' : 'calculated',
         },
-        'Calculated fixed position quantity'
+        'Fixed position quantity set'
       );
     }
 

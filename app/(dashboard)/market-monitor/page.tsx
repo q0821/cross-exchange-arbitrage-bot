@@ -249,6 +249,7 @@ export default function MarketMonitorPage() {
             longExchange: trackingSelectedRate.bestPair.longExchange,
             shortExchange: trackingSelectedRate.bestPair.shortExchange,
             simulatedCapital: data.simulatedCapital,
+            positionQuantity: data.positionQuantity,
             autoStopOnExpire: data.autoStopOnExpire,
           });
         }}

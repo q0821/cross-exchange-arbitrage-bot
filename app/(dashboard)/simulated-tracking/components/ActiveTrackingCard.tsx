@@ -44,11 +44,7 @@ export function ActiveTrackingCard({
   const profitPercentage = (tracking.totalFundingProfit / tracking.simulatedCapital) * 100;
   const isPositive = tracking.totalFundingProfit >= 0;
 
-  // 計算開倉均價和幣種名稱
-  const avgEntryPrice =
-    tracking.initialLongPrice && tracking.initialShortPrice
-      ? (tracking.initialLongPrice + tracking.initialShortPrice) / 2
-      : null;
+  // 幣種名稱
   const coinSymbol = tracking.symbol.replace('USDT', '');
 
   return (
@@ -96,21 +92,26 @@ export function ActiveTrackingCard({
 
       {/* Stats */}
       <div className="p-4 grid grid-cols-2 gap-4">
-        {/* Position Quantity & Entry Price */}
-        {tracking.positionQuantity && avgEntryPrice ? (
+        {/* Position Quantity & Entry Prices */}
+        {tracking.positionQuantity && tracking.initialLongPrice && tracking.initialShortPrice ? (
           <div className="col-span-2 p-2 bg-cyan-50 rounded-md border border-cyan-200">
             <div className="flex items-center gap-1 text-xs text-cyan-600 mb-1">
               <Layers className="w-3 h-3" />
               倉位資訊
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-cyan-700">
-                <span className="font-medium">{tracking.positionQuantity.toFixed(4)}</span>{' '}
-                <span className="text-xs">{coinSymbol}</span>
-              </span>
-              <span className="text-cyan-700">
-                開倉均價 <span className="font-mono font-medium">${avgEntryPrice.toFixed(4)}</span>
-              </span>
+            <div className="text-sm text-cyan-700 mb-1">
+              <span className="font-medium">{tracking.positionQuantity.toFixed(4)}</span>{' '}
+              <span className="text-xs">{coinSymbol}</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-cyan-600">
+              <div>
+                <span className="capitalize">{tracking.longExchange}</span>: $
+                <span className="font-mono">{tracking.initialLongPrice.toFixed(4)}</span>
+              </div>
+              <div>
+                <span className="capitalize">{tracking.shortExchange}</span>: $
+                <span className="font-mono">{tracking.initialShortPrice.toFixed(4)}</span>
+              </div>
             </div>
           </div>
         ) : (

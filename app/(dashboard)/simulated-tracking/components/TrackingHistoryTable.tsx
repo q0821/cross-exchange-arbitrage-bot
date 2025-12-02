@@ -89,10 +89,6 @@ export function TrackingHistoryTable({
                 (tracking.totalFundingProfit / tracking.simulatedCapital) * 100;
               const isPositive = tracking.totalFundingProfit >= 0;
               const coinSymbol = tracking.symbol.replace('USDT', '');
-              const avgEntryPrice =
-                tracking.initialLongPrice && tracking.initialShortPrice
-                  ? (tracking.initialLongPrice + tracking.initialShortPrice) / 2
-                  : null;
 
               return (
                 <tr
@@ -124,16 +120,16 @@ export function TrackingHistoryTable({
                     </div>
                   </td>
 
-                  {/* Position / Entry Price */}
+                  {/* Position / Entry Prices */}
                   <td className="px-4 py-3 text-right">
-                    {tracking.positionQuantity && avgEntryPrice ? (
+                    {tracking.positionQuantity && tracking.initialLongPrice && tracking.initialShortPrice ? (
                       <div>
                         <div className="font-mono text-sm">
                           {tracking.positionQuantity.toFixed(4)}{' '}
                           <span className="text-xs text-gray-500">{coinSymbol}</span>
                         </div>
                         <div className="text-xs text-gray-500">
-                          @ ${avgEntryPrice.toFixed(2)}
+                          ${tracking.initialLongPrice.toFixed(2)} / ${tracking.initialShortPrice.toFixed(2)}
                         </div>
                       </div>
                     ) : (

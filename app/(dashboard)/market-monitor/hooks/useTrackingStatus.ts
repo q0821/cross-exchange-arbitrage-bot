@@ -22,6 +22,7 @@ interface StartTrackingParams {
   longExchange: ExchangeName;
   shortExchange: ExchangeName;
   simulatedCapital: number;
+  positionQuantity: number;
   autoStopOnExpire: boolean;
 }
 

@@ -19,6 +19,7 @@ interface StartTrackingDialogProps {
   rate: MarketRate | null;
   onConfirm: (data: {
     simulatedCapital: number;
+    positionQuantity: number;
     autoStopOnExpire: boolean;
   }) => Promise<void>;
   isLoading: boolean;
@@ -89,9 +90,10 @@ export function StartTrackingDialog({
       return;
     }
 
-    // 計算 simulatedCapital 傳給後端
+    // 傳送 positionQuantity 和 simulatedCapital 給後端
     await onConfirm({
       simulatedCapital: quantity * avgPrice,
+      positionQuantity: quantity,
       autoStopOnExpire,
     });
   };
