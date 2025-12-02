@@ -335,7 +335,7 @@ export const RateRow = React.memo(function RateRow({
         <div className="flex flex-col items-end gap-1">
           {/* 價差百分比 */}
           <span className="font-mono text-sm">
-            {rate.bestPair?.priceDiffPercent != null && !isNaN(rate.bestPair.priceDiffPercent)
+            {rate.bestPair && typeof rate.bestPair.priceDiffPercent === 'number' && !isNaN(rate.bestPair.priceDiffPercent)
               ? `${rate.bestPair.priceDiffPercent >= 0 ? '+' : ''}${rate.bestPair.priceDiffPercent.toFixed(2)}%`
               : 'N/A'}
           </span>
