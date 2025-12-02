@@ -255,6 +255,20 @@ export class NotificationService {
     const longData = rate.exchanges.get(bestPair.longExchange);
     const shortData = rate.exchanges.get(bestPair.shortExchange);
 
+    // Feature 030: 記錄警告日誌當使用 fallback 8h 時
+    if (!longData?.originalFundingInterval) {
+      logger.warn(
+        { symbol: rate.symbol, exchange: bestPair.longExchange },
+        'Using default 8h interval for long side (originalFundingInterval missing)'
+      );
+    }
+    if (!shortData?.originalFundingInterval) {
+      logger.warn(
+        { symbol: rate.symbol, exchange: bestPair.shortExchange },
+        'Using default 8h interval for short side (originalFundingInterval missing)'
+      );
+    }
+
     let tracked = this.trackedOpportunities.get(trackingKey);
 
     if (!tracked) {

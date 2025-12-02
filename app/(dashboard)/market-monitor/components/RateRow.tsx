@@ -16,6 +16,7 @@ import { ExchangeLink } from '@/components/market';
 import { formatFundingInterval } from '../utils/formatters';
 import { FeeEstimateTooltip } from './FeeEstimateTooltip';
 import { PaybackTooltip } from './PaybackTooltip';
+import { TrackButton } from './TrackButton';
 import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
 import { calculatePaybackPeriods } from '../utils/rateCalculations';
 import type {
@@ -29,6 +30,10 @@ interface RateRowProps {
   timeBasis: TimeBasis; // Feature 012: 用戶選擇的時間基準
   onSymbolClick?: (symbol: string) => void;
   onQuickOpen?: (rate: MarketRate) => void;
+  // Feature 029: 追蹤功能
+  isTracking?: boolean;
+  isTrackingLoading?: boolean;
+  onTrackClick?: (rate: MarketRate) => void;
 }
 
 /**
@@ -41,6 +46,9 @@ export const RateRow = React.memo(function RateRow({
   timeBasis,
   onSymbolClick,
   onQuickOpen,
+  isTracking = false,
+  isTrackingLoading = false,
+  onTrackClick,
 }: RateRowProps) {
   // Feature 020: 複製狀態管理
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -406,6 +414,16 @@ export const RateRow = React.memo(function RateRow({
               <Copy className="w-4 h-4" />
             )}
           </button>
+
+          {/* Feature 029: 追蹤按鈕 */}
+          {onTrackClick && (
+            <TrackButton
+              isTracking={isTracking}
+              isLoading={isTrackingLoading}
+              disabled={!rate.bestPair}
+              onClick={() => onTrackClick(rate)}
+            />
+          )}
 
           {rate.status === 'opportunity' && (
             <button

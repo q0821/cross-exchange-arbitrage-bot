@@ -62,6 +62,10 @@ if (process.env.NODE_ENV !== 'production') {
 ratesCache.initializeNotificationService(prisma);
 logger.info('NotificationService initialized via db.ts');
 
+// Feature 029: 初始化模擬追蹤服務
+ratesCache.initializeTrackingService(prisma);
+logger.info('SimulatedTrackingService initialized via db.ts');
+
 // 優雅關閉資料庫連線
 process.on('beforeExit', async () => {
   await prisma.$disconnect();

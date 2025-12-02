@@ -407,6 +407,7 @@ model User {
   auditLogs            AuditLog[]
   notificationWebhooks NotificationWebhook[]
   opportunityEndHistories OpportunityEndHistory[]
+  simulatedTrackings      SimulatedTracking[]
 
   @@index([email])
   @@map("users")
@@ -620,4 +621,107 @@ model OpportunityEndHistory {
   @@index([symbol])
   @@index([disappearedAt(sort: Desc)])
   @@map("opportunity_end_histories")
+}
+
+// ===== 模擬套利追蹤 (Feature 029) =====
+model SimulatedTracking {
+  id                String   @id @default(cuid())
+  userId            String
+
+  // 套利機會識別
+  symbol            String   @db.VarChar(20)
+  longExchange      String   @db.VarChar(20)
+  shortExchange     String   @db.VarChar(20)
+
+  // 模擬設定
+  simulatedCapital  Decimal  @db.Decimal(18, 8)
+  autoStopOnExpire  Boolean  @default(true)
+
+  // 開始追蹤時的狀態快照
+  initialSpread     Decimal  @db.Decimal(10, 6)
+  initialAPY        Decimal  @db.Decimal(10, 2)
+  initialLongRate   Decimal  @db.Decimal(10, 8)
+  initialShortRate  Decimal  @db.Decimal(10, 8)
+
+  // 交易所結算週期
+  longIntervalHours    Int   @db.SmallInt
+  shortIntervalHours   Int   @db.SmallInt
+
+  // 追蹤狀態
+  status            TrackingStatus @default(ACTIVE)
+
+  // 時間資訊
+  startedAt         DateTime @default(now()) @db.Timestamptz
+  stoppedAt         DateTime? @db.Timestamptz
+
+  // 累計統計（每次快照後更新）
+  totalFundingProfit   Decimal  @default(0) @db.Decimal(18, 8)
+  totalSettlements     Int      @default(0)
+  maxSpread            Decimal  @default(0) @db.Decimal(10, 6)
+  minSpread            Decimal  @default(0) @db.Decimal(10, 6)
+
+  createdAt         DateTime @default(now()) @db.Timestamptz
+  updatedAt         DateTime @updatedAt @db.Timestamptz
+
+  // Relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshots         TrackingSnapshot[]
+
+  // Constraints
+  @@unique([userId, symbol, longExchange, shortExchange, status])
+  @@index([userId, status])
+  @@index([symbol])
+  @@index([startedAt(sort: Desc)])
+  @@map("simulated_trackings")
+}
+
+enum TrackingStatus {
+  ACTIVE
+  STOPPED
+  EXPIRED
+}
+
+model TrackingSnapshot {
+  id                String   @id @default(cuid())
+  trackingId        String
+
+  // 快照類型
+  snapshotType      SnapshotType
+
+  // 費率數據
+  longRate          Decimal  @db.Decimal(10, 8)
+  shortRate         Decimal  @db.Decimal(10, 8)
+  spread            Decimal  @db.Decimal(10, 6)
+  annualizedReturn  Decimal  @db.Decimal(10, 2)
+
+  // 價格數據（選填）
+  longPrice         Decimal? @db.Decimal(18, 8)
+  shortPrice        Decimal? @db.Decimal(18, 8)
+  priceDiffPercent  Decimal? @db.Decimal(10, 4)
+
+  // 結算時特有欄位
+  settlementSide    SettlementSide?
+  fundingProfit     Decimal? @db.Decimal(18, 8)
+  cumulativeProfit  Decimal  @db.Decimal(18, 8)
+
+  recordedAt        DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  tracking          SimulatedTracking @relation(fields: [trackingId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([trackingId, recordedAt(sort: Desc)])
+  @@index([trackingId, snapshotType])
+  @@map("tracking_snapshots")
+}
+
+enum SnapshotType {
+  SETTLEMENT
+  PERIODIC
+}
+
+enum SettlementSide {
+  LONG
+  SHORT
+  BOTH
 }

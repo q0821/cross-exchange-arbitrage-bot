@@ -1,0 +1,288 @@
+/**
+ * Tracking Detail Page - 追蹤詳情頁面
+ * 顯示單個追蹤的完整資訊和快照歷史
+ *
+ * Feature 029: Simulated APY Tracking (T039)
+ */
+
+'use client';
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  RefreshCw,
+  AlertCircle,
+  Target,
+  TrendingUp,
+  TrendingDown,
+  Square,
+} from 'lucide-react';
+import { TrackingStatCards } from '../components/TrackingStatCards';
+import { SnapshotTimeline } from '../components/SnapshotTimeline';
+
+interface TrackingData {
+  id: string;
+  symbol: string;
+  longExchange: string;
+  shortExchange: string;
+  simulatedCapital: number;
+  autoStopOnExpire: boolean;
+  initialSpread: number;
+  initialAPY: number;
+  initialLongRate: number;
+  initialShortRate: number;
+  status: string;
+  startedAt: string;
+  stoppedAt: string | null;
+  totalFundingProfit: number;
+  totalSettlements: number;
+  maxSpread: number;
+  minSpread: number;
+  durationFormatted?: string;
+}
+
+interface SnapshotData {
+  id: string;
+  snapshotType: string;
+  longRate: number;
+  shortRate: number;
+  spread: number;
+  annualizedReturn: number;
+  longPrice: number | null;
+  shortPrice: number | null;
+  priceDiffPercent: number | null;
+  settlementSide: string | null;
+  fundingProfit: number | null;
+  cumulativeProfit: number;
+  recordedAt: string;
+}
+
+export default function TrackingDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const trackingId = params?.id as string;
+
+  const [tracking, setTracking] = useState<TrackingData | null>(null);
+  const [snapshots, setSnapshots] = useState<SnapshotData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSnapshotsLoading, setIsSnapshotsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isStopLoading, setIsStopLoading] = useState(false);
+
+  // 獲取追蹤詳情
+  const fetchTracking = useCallback(async () => {
+    try {
+      setError(null);
+      const response = await fetch(`/api/simulated-tracking/${trackingId}`);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push('/login');
+          return;
+        }
+        if (response.status === 404) {
+          setError('追蹤記錄不存在');
+          return;
+        }
+        throw new Error('Failed to fetch tracking');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data?.tracking) {
+        setTracking(data.data.tracking);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tracking:', err);
+      setError('無法載入追蹤詳情');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [trackingId, router]);
+
+  // 獲取快照歷史
+  const fetchSnapshots = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/simulated-tracking/${trackingId}/snapshots?limit=100`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch snapshots');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data?.snapshots) {
+        setSnapshots(data.data.snapshots);
+      }
+    } catch (err) {
+      console.error('Failed to fetch snapshots:', err);
+    } finally {
+      setIsSnapshotsLoading(false);
+    }
+  }, [trackingId]);
+
+  // 初始載入
+  useEffect(() => {
+    fetchTracking();
+    fetchSnapshots();
+  }, [fetchTracking, fetchSnapshots]);
+
+  // 停止追蹤
+  const handleStop = async () => {
+    if (!tracking || !confirm('確定要停止此追蹤嗎？')) {
+      return;
+    }
+
+    setIsStopLoading(true);
+
+    try {
+      const response = await fetch(`/api/simulated-tracking/${trackingId}/stop`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to stop tracking');
+      }
+
+      // 更新本地狀態
+      setTracking((prev) =>
+        prev
+          ? { ...prev, status: 'STOPPED', stoppedAt: new Date().toISOString() }
+          : null
+      );
+    } catch (err) {
+      console.error('Failed to stop tracking:', err);
+      setError(err instanceof Error ? err.message : 'Failed to stop tracking');
+    } finally {
+      setIsStopLoading(false);
+    }
+  };
+
+  // 刷新
+  const handleRefresh = () => {
+    setIsLoading(true);
+    setIsSnapshotsLoading(true);
+    fetchTracking();
+    fetchSnapshots();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !tracking) {
+    return (
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
+          <p className="text-red-700">{error || '追蹤記錄不存在'}</p>
+          <Link
+            href="/simulated-tracking"
+            className="inline-flex items-center gap-2 mt-4 text-blue-600 hover:text-blue-800"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            返回列表
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-6 max-w-4xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/simulated-tracking"
+            className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {tracking.symbol}
+              </h1>
+              <span
+                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
+                  tracking.status === 'ACTIVE'
+                    ? 'bg-green-100 text-green-700'
+                    : tracking.status === 'STOPPED'
+                    ? 'bg-gray-100 text-gray-700'
+                    : 'bg-orange-100 text-orange-700'
+                }`}
+              >
+                <Target className="w-3 h-3" />
+                {tracking.status === 'ACTIVE'
+                  ? '追蹤中'
+                  : tracking.status === 'STOPPED'
+                  ? '已停止'
+                  : '已過期'}
+              </span>
+            </div>
+
+            {/* Exchange Pair */}
+            <div className="mt-1 flex items-center gap-2 text-sm text-gray-600">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded">
+                <TrendingUp className="w-3 h-3" />
+                <span className="capitalize">{tracking.longExchange}</span>
+              </span>
+              <span className="text-gray-400">→</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-700 rounded">
+                <TrendingDown className="w-3 h-3" />
+                <span className="capitalize">{tracking.shortExchange}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            title="刷新"
+          >
+            <RefreshCw className="w-5 h-5" />
+          </button>
+
+          {tracking.status === 'ACTIVE' && (
+            <button
+              onClick={handleStop}
+              disabled={isStopLoading}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            >
+              <Square className="w-4 h-4" />
+              {isStopLoading ? '處理中...' : '停止追蹤'}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="mb-8">
+        <TrackingStatCards tracking={tracking} />
+      </div>
+
+      {/* Snapshot Timeline */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          結算歷史 ({snapshots.length})
+        </h2>
+        <SnapshotTimeline snapshots={snapshots} isLoading={isSnapshotsLoading} />
+      </div>
+    </div>
+  );
+}

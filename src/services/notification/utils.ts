@@ -164,12 +164,17 @@ export function formatTime(date: Date): string {
 
 /**
  * 格式化模擬收益資訊
+ * Feature 030: 顯示各交易所的結算間隔，方便用戶驗證計算正確性
  * @param params 收益參數
  * @returns 格式化的收益資訊字串
  */
 export function formatProfitInfo(params: {
   longSettlementCount: number;
   shortSettlementCount: number;
+  longExchange: string;
+  shortExchange: string;
+  longIntervalHours: number;
+  shortIntervalHours: number;
   totalFundingProfit: number;
   totalCost: number;
   netProfit: number;
@@ -178,6 +183,10 @@ export function formatProfitInfo(params: {
   const {
     longSettlementCount,
     shortSettlementCount,
+    longExchange,
+    shortExchange,
+    longIntervalHours,
+    shortIntervalHours,
     totalFundingProfit,
     totalCost,
     netProfit,
@@ -189,7 +198,52 @@ export function formatProfitInfo(params: {
   const netSign = netProfit >= 0 ? '+' : '';
 
   return [
-    `結算次數：${totalCount} 次（做多 ${longSettlementCount} + 做空 ${shortSettlementCount}）`,
+    `結算次數：${totalCount} 次`,
+    `├ 做多 ${longExchange.toUpperCase()} (${longIntervalHours}h)：${longSettlementCount} 次`,
+    `└ 做空 ${shortExchange.toUpperCase()} (${shortIntervalHours}h)：${shortSettlementCount} 次`,
+    `總費率收益：${profitSign}${(totalFundingProfit * 100).toFixed(2)}%`,
+    `開平倉成本：-${(totalCost * 100).toFixed(2)}%`,
+    `淨收益：${netSign}${(netProfit * 100).toFixed(2)}%`,
+    `實際 APY：${realizedAPY.toFixed(0)}%`,
+  ].join('\n');
+}
+
+/**
+ * 格式化模擬收益資訊（Discord 版本，支援粗體）
+ */
+export function formatProfitInfoDiscord(params: {
+  longSettlementCount: number;
+  shortSettlementCount: number;
+  longExchange: string;
+  shortExchange: string;
+  longIntervalHours: number;
+  shortIntervalHours: number;
+  totalFundingProfit: number;
+  totalCost: number;
+  netProfit: number;
+  realizedAPY: number;
+}): string {
+  const {
+    longSettlementCount,
+    shortSettlementCount,
+    longExchange,
+    shortExchange,
+    longIntervalHours,
+    shortIntervalHours,
+    totalFundingProfit,
+    totalCost,
+    netProfit,
+    realizedAPY,
+  } = params;
+
+  const totalCount = longSettlementCount + shortSettlementCount;
+  const profitSign = totalFundingProfit >= 0 ? '+' : '';
+  const netSign = netProfit >= 0 ? '+' : '';
+
+  return [
+    `結算次數：${totalCount} 次`,
+    `├ 做多 ${longExchange.toUpperCase()} (${longIntervalHours}h)：${longSettlementCount} 次`,
+    `└ 做空 ${shortExchange.toUpperCase()} (${shortIntervalHours}h)：${shortSettlementCount} 次`,
     `總費率收益：${profitSign}${(totalFundingProfit * 100).toFixed(2)}%`,
     `開平倉成本：-${(totalCost * 100).toFixed(2)}%`,
     `淨收益：**${netSign}${(netProfit * 100).toFixed(2)}%**`,

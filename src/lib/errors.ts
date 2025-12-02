@@ -249,6 +249,12 @@ export class DuplicateError extends ValidationError {
   }
 }
 
+export class BadRequestError extends BaseError {
+  constructor(message: string, context?: Record<string, unknown>) {
+    super(message, 'BAD_REQUEST', 400, true, context);
+  }
+}
+
 // 持倉錯誤
 export class PositionError extends BaseError {
   constructor(message: string, context?: Record<string, unknown>) {

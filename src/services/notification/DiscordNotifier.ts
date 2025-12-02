@@ -10,7 +10,7 @@ import {
   generateExchangeUrl,
   formatPriceSmart,
   formatTime,
-  formatProfitInfo,
+  formatProfitInfoDiscord,
 } from './utils';
 
 /**
@@ -184,10 +184,14 @@ export class DiscordNotifier implements INotifier {
       // 費差統計
       const spreadStats = `初始：${(message.initialSpread * 100).toFixed(2)}% → 最高：${(message.maxSpread * 100).toFixed(2)}%（${formatTime(message.maxSpreadAt)}）→ 結束：${(message.finalSpread * 100).toFixed(2)}%`;
 
-      // 收益資訊
-      const profitInfo = formatProfitInfo({
+      // 收益資訊（Feature 030: 顯示各交易所結算間隔）
+      const profitInfo = formatProfitInfoDiscord({
         longSettlementCount: message.longSettlementCount,
         shortSettlementCount: message.shortSettlementCount,
+        longExchange: message.longExchange,
+        shortExchange: message.shortExchange,
+        longIntervalHours: message.longIntervalHours,
+        shortIntervalHours: message.shortIntervalHours,
         totalFundingProfit: message.totalFundingProfit,
         totalCost: message.totalCost,
         netProfit: message.netProfit,

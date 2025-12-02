@@ -17,6 +17,7 @@ import {
 } from '../../lib/constants';
 import { PrismaClient } from '@prisma/client';
 import { NotificationService } from '../notification/NotificationService';
+import { SimulatedTrackingService } from '../tracking/SimulatedTrackingService';
 
 /**
  * 快取的費率數據（包含時間戳）
@@ -62,6 +63,9 @@ export class RatesCache {
   // Feature 026: 通知服務
   private notificationService: NotificationService | null = null;
 
+  // Feature 029: 模擬追蹤服務
+  private trackingService: SimulatedTrackingService | null = null;
+
   private constructor() {
     logger.info('RatesCache initialized');
   }
@@ -73,6 +77,15 @@ export class RatesCache {
   initializeNotificationService(prisma: PrismaClient): void {
     this.notificationService = NotificationService.getInstance(prisma);
     logger.info('NotificationService initialized in RatesCache');
+  }
+
+  /**
+   * 初始化模擬追蹤服務
+   * Feature 029: Simulated APY Tracking
+   */
+  initializeTrackingService(prisma: PrismaClient): void {
+    this.trackingService = SimulatedTrackingService.getInstance(prisma);
+    logger.info('SimulatedTrackingService initialized in RatesCache');
   }
 
   /**
@@ -123,6 +136,18 @@ export class RatesCache {
     if (this.notificationService) {
       this.notificationService.checkAndNotify(rates).catch((error) => {
         logger.error({ error }, 'Failed to check and notify');
+      });
+    }
+
+    // Feature 029: 觸發模擬追蹤快照記錄（非同步，不阻塞主流程）
+    if (this.trackingService) {
+      this.trackingService.recordSettlementSnapshots(rates).catch((error) => {
+        logger.error({ error }, 'Failed to record settlement snapshots');
+      });
+
+      // T041: 同時檢查自動過期
+      this.trackingService.checkAndExpireTrackings(rates).catch((error) => {
+        logger.error({ error }, 'Failed to check and expire trackings');
       });
     }
   }

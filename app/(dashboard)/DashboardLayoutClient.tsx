@@ -32,6 +32,7 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
 
   const navLinks = [
     { href: '/market-monitor', label: '市場監控' },
+    { href: '/simulated-tracking', label: '模擬追蹤' }, // Feature 029
     { href: '/settings/api-keys', label: 'API 金鑰管理' },
     { href: '/settings/notifications', label: '通知設定' },
   ];
