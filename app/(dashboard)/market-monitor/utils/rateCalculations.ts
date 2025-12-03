@@ -252,14 +252,14 @@ function formatPaybackFormula(
 
   if (status === 'payback_needed' && periods !== undefined && priceDiff !== null) {
     const absPriceDiff = Math.abs(priceDiff).toFixed(2);
-    const formattedSpread = rateSpread.toFixed(2);
+    const formattedSpread = typeof rateSpread === 'number' ? rateSpread.toFixed(2) : String(rateSpread);
     const formattedPeriods = periods.toFixed(1);
     return `回本次數 = |價差| ÷ 費率差 = ${absPriceDiff}% ÷ ${formattedSpread}% = ${formattedPeriods} 次`;
   }
 
   if (status === 'too_many' && periods !== undefined && priceDiff !== null) {
     const absPriceDiff = Math.abs(priceDiff).toFixed(2);
-    const formattedSpread = rateSpread.toFixed(2);
+    const formattedSpread = typeof rateSpread === 'number' ? rateSpread.toFixed(2) : String(rateSpread);
     return `回本次數 = ${absPriceDiff}% ÷ ${formattedSpread}% = ${Math.floor(periods)} 次`;
   }
 
