@@ -236,14 +236,45 @@ export class SimulatedTrackingRepository {
 
       return this.toTrackingWithUser(tracking);
     } catch (error) {
+      // 保留業務邏輯錯誤
       if (error instanceof Error && error.message.includes('Maximum')) {
         throw error;
       }
       if (error instanceof Error && error.message.includes('Already tracking')) {
         throw error;
       }
-      logger.error({ error, userId, symbol: data.symbol }, 'Failed to create tracking');
-      throw new DatabaseError('Failed to create tracking', { userId });
+
+      // 解析 Prisma 錯誤並提供友好訊息
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // 外鍵約束錯誤 (P2003) - 用戶不存在
+      if (errorMessage.includes('Foreign key constraint') || errorMessage.includes('P2003')) {
+        logger.error({ error, userId, symbol: data.symbol }, 'User not found in database');
+        throw new DatabaseError('用戶帳號不存在，請重新登入', { userId });
+      }
+
+      // 唯一性約束錯誤 (P2002) - 重複追蹤
+      if (errorMessage.includes('Unique constraint') || errorMessage.includes('P2002')) {
+        logger.error({ error, userId, symbol: data.symbol }, 'Duplicate tracking attempt');
+        throw new DatabaseError('此套利機會已在追蹤中', { userId });
+      }
+
+      // 其他錯誤：記錄完整訊息以便排查
+      logger.error(
+        {
+          error,
+          errorMessage,
+          userId,
+          symbol: data.symbol,
+          data: {
+            longExchange: data.longExchange,
+            shortExchange: data.shortExchange,
+            simulatedCapital: data.simulatedCapital,
+          },
+        },
+        'Failed to create tracking'
+      );
+      throw new DatabaseError(`建立追蹤失敗: ${errorMessage}`, { userId });
     }
   }
 
