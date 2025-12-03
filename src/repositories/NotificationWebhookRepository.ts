@@ -67,8 +67,9 @@ export class NotificationWebhookRepository {
 
       return webhooks.map((w) => this.toWebhookConfig(w, false));
     } catch (error) {
-      logger.error({ error, userId }, 'Failed to find webhooks by user ID');
-      throw new DatabaseError('Failed to find webhooks', { userId });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ error, errorMessage, userId }, 'Failed to find webhooks by user ID');
+      throw new DatabaseError(`Failed to find webhooks: ${errorMessage}`, { userId });
     }
   }
 
