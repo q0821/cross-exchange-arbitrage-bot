@@ -25,6 +25,7 @@ import type {
 } from '../../models/SimulatedTracking';
 import { MAX_ACTIVE_TRACKINGS } from '../../models/SimulatedTracking';
 import type { FundingRatePair } from '../../models/FundingRate';
+import { TRADING_FEES_RATE } from '../../lib/cost-constants';
 
 /**
  * 結算時間檢查結果
@@ -507,7 +508,8 @@ export class SimulatedTrackingService {
    * 計算並記錄損益：
    * - 幣價損益 = (平倉價格 - 開倉價格) × 顆數 (多空合計)
    * - 資費差損益 = totalFundingProfit (累計的資費收益)
-   * - 合計損益 = 幣價損益 + 資費差損益
+   * - 交易成本 = 倉位價值 × TRADING_FEES_RATE × 2 (雙邊開平倉)
+   * - 合計損益 = 幣價損益 + 資費差損益 - 交易成本
    */
   async stopTracking(
     id: string,
@@ -527,6 +529,7 @@ export class SimulatedTrackingService {
           exitShortPrice: number;
           pricePnl: number;
           fundingPnl: number;
+          tradingCost: number;
           totalPnl: number;
         }
       | undefined;
@@ -555,14 +558,24 @@ export class SimulatedTrackingService {
       // 資費差損益
       const fundingPnl = existingTracking.totalFundingProfit;
 
-      // 合計損益
-      const totalPnl = pricePnl + fundingPnl;
+      // 計算交易成本（開平倉手續費）
+      // 使用開倉價和平倉價的平均值計算倉位價值
+      const avgLongPrice = (existingTracking.initialLongPrice + exitLongPrice) / 2;
+      const avgShortPrice = (existingTracking.initialShortPrice + exitShortPrice) / 2;
+      // 多頭倉位價值 + 空頭倉位價值
+      const totalPositionValue = quantity * (avgLongPrice + avgShortPrice);
+      // 交易成本 = 倉位價值 × 手續費率（開倉 + 平倉 = 2次）
+      const tradingCost = totalPositionValue * TRADING_FEES_RATE;
+
+      // 合計損益（扣除交易成本）
+      const totalPnl = pricePnl + fundingPnl - tradingCost;
 
       pnlData = {
         exitLongPrice,
         exitShortPrice,
         pricePnl,
         fundingPnl,
+        tradingCost,
         totalPnl,
       };
 
@@ -578,6 +591,7 @@ export class SimulatedTrackingService {
           shortPricePnl,
           pricePnl,
           fundingPnl,
+          tradingCost,
           totalPnl,
         },
         'Calculated PnL for tracking stop'

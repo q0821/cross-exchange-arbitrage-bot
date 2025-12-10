@@ -29,6 +29,7 @@ interface TrackingData {
   // 損益明細
   fundingPnl: number | null;
   pricePnl: number | null;
+  tradingCost: number | null;
   status: string;
   startedAt: string;
   stoppedAt: string | null;

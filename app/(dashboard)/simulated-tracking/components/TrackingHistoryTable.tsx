@@ -29,6 +29,7 @@ interface TrackingData {
   // 損益明細
   fundingPnl: number | null;
   pricePnl: number | null;
+  tradingCost: number | null;
   status: string;
   startedAt: string;
   stoppedAt: string | null;
@@ -206,6 +207,14 @@ export function TrackingHistoryTable({
                                   <span className="text-gray-400">幣價損益：</span>
                                   <span className={tracking.pricePnl >= 0 ? 'text-green-400' : 'text-red-400'}>
                                     {tracking.pricePnl >= 0 ? '+' : ''}${tracking.pricePnl.toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                              {tracking.tradingCost != null && (
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">交易成本：</span>
+                                  <span className="text-yellow-400">
+                                    -${tracking.tradingCost.toFixed(2)}
                                   </span>
                                 </div>
                               )}

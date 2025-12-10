@@ -82,6 +82,7 @@ export interface TrackingResponse {
   exitShortPrice: number | null;
   pricePnl: number | null;
   fundingPnl: number | null;
+  tradingCost: number | null;
   totalPnl: number | null;
   longIntervalHours: number;
   shortIntervalHours: number;
@@ -156,6 +157,7 @@ export interface TrackingWithUser {
   exitShortPrice: number | null;
   pricePnl: number | null;
   fundingPnl: number | null;
+  tradingCost: number | null;
   totalPnl: number | null;
   longIntervalHours: number;
   shortIntervalHours: number;

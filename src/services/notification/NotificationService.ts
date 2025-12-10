@@ -28,6 +28,7 @@ import type {
 } from './types';
 import type { FundingRatePair, ExchangeName, ExchangeRateData } from '../../models/FundingRate';
 import { formatDuration } from './utils';
+import { TRADING_FEES_RATE } from '../../lib/cost-constants';
 
 /**
  * 已通知的機會記錄（用於重複過濾）
@@ -730,8 +731,8 @@ export class NotificationService {
     );
     const totalFundingProfit = longProfit + shortProfit;
 
-    // 開平倉成本（固定 0.2%）
-    const totalCost = 0.002;
+    // 開平倉成本（使用統一常數 TRADING_FEES_RATE = 0.2%）
+    const totalCost = TRADING_FEES_RATE;
     const netProfit = totalFundingProfit - totalCost;
 
     // 計算實際 APY

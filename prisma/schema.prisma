@@ -653,7 +653,8 @@ model SimulatedTracking {
   exitShortPrice    Decimal? @db.Decimal(18, 8)  // 做空交易所平倉價格
   pricePnl          Decimal? @db.Decimal(18, 8)  // 幣價損益
   fundingPnl        Decimal? @db.Decimal(18, 8)  // 資費差損益（= totalFundingProfit）
-  totalPnl          Decimal? @db.Decimal(18, 8)  // 合計損益
+  tradingCost       Decimal? @db.Decimal(18, 8)  // 交易成本（開平倉手續費）
+  totalPnl          Decimal? @db.Decimal(18, 8)  // 合計損益（已扣除交易成本）
 
   // 交易所結算週期
   longIntervalHours    Int   @db.SmallInt

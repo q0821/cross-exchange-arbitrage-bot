@@ -47,6 +47,7 @@ export class SimulatedTrackingRepository {
       exitShortPrice: tracking.exitShortPrice ? Number(tracking.exitShortPrice) : null,
       pricePnl: tracking.pricePnl ? Number(tracking.pricePnl) : null,
       fundingPnl: tracking.fundingPnl ? Number(tracking.fundingPnl) : null,
+      tradingCost: tracking.tradingCost ? Number(tracking.tradingCost) : null,
       totalPnl: tracking.totalPnl ? Number(tracking.totalPnl) : null,
       longIntervalHours: tracking.longIntervalHours,
       shortIntervalHours: tracking.shortIntervalHours,
@@ -88,6 +89,7 @@ export class SimulatedTrackingRepository {
       exitShortPrice: tracking.exitShortPrice,
       pricePnl: tracking.pricePnl,
       fundingPnl: tracking.fundingPnl,
+      tradingCost: tracking.tradingCost,
       totalPnl: tracking.totalPnl,
       longIntervalHours: tracking.longIntervalHours,
       shortIntervalHours: tracking.shortIntervalHours,
@@ -364,6 +366,7 @@ export class SimulatedTrackingRepository {
       exitShortPrice: number;
       pricePnl: number;
       fundingPnl: number;
+      tradingCost: number;
       totalPnl: number;
     }
   ): Promise<TrackingWithUser> {
@@ -391,6 +394,7 @@ export class SimulatedTrackingRepository {
             exitShortPrice: pnlData.exitShortPrice,
             pricePnl: pnlData.pricePnl,
             fundingPnl: pnlData.fundingPnl,
+            tradingCost: pnlData.tradingCost,
             totalPnl: pnlData.totalPnl,
           }),
         },
@@ -402,6 +406,7 @@ export class SimulatedTrackingRepository {
           userId,
           pricePnl: pnlData?.pricePnl,
           fundingPnl: pnlData?.fundingPnl,
+          tradingCost: pnlData?.tradingCost,
           totalPnl: pnlData?.totalPnl,
         },
         'Tracking stopped successfully'
