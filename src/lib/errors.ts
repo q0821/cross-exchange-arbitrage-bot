@@ -255,6 +255,12 @@ export class BadRequestError extends BaseError {
   }
 }
 
+export class TooManyRequestsError extends BaseError {
+  constructor(message: string = 'Too many requests', context?: Record<string, unknown>) {
+    super(message, 'TOO_MANY_REQUESTS', 429, true, context);
+  }
+}
+
 // 持倉錯誤
 export class PositionError extends BaseError {
   constructor(message: string, context?: Record<string, unknown>) {

@@ -1,10 +1,17 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
+import { PrismaClient } from '@prisma/client';
 import { initializeSocketServer } from './src/websocket/SocketServer';
 import { logger } from './src/lib/logger';
 import { startMonitorService, stopMonitorService } from './src/services/MonitorService';
 import { startOIRefreshService, stopOIRefreshService } from './src/services/OIRefreshService';
+import {
+  startAssetSnapshotScheduler,
+  stopAssetSnapshotScheduler,
+} from './src/services/assets/AssetSnapshotScheduler';
+
+const prisma = new PrismaClient();
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || 'localhost';
@@ -66,6 +73,19 @@ app.prepare().then(() => {
     } else {
       console.log(`> OI cache refresh service disabled (set ENABLE_OI_REFRESH=true to enable)`);
     }
+
+    // 啟動資產快照排程服務 (Feature 031)
+    if (process.env.ENABLE_ASSET_SNAPSHOT !== 'false') {
+      try {
+        await startAssetSnapshotScheduler(prisma);
+        console.log(`> Asset snapshot scheduler enabled`);
+      } catch (error) {
+        logger.error({ error }, 'Failed to start asset snapshot scheduler');
+        console.error('> Warning: Asset snapshot scheduler failed to start');
+      }
+    } else {
+      console.log(`> Asset snapshot scheduler disabled (set ENABLE_ASSET_SNAPSHOT=true to enable)`);
+    }
   });
 
   // 優雅關閉
@@ -75,6 +95,7 @@ app.prepare().then(() => {
     // 停止背景服務
     await stopMonitorService();
     await stopOIRefreshService();
+    await stopAssetSnapshotScheduler();
 
     io.close(() => {
       logger.info('Socket.io server closed');

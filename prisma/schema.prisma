@@ -408,6 +408,7 @@ model User {
   notificationWebhooks NotificationWebhook[]
   opportunityEndHistories OpportunityEndHistory[]
   simulatedTrackings      SimulatedTracking[]
+  assetSnapshots          AssetSnapshot[]
 
   @@index([email])
   @@map("users")
@@ -737,4 +738,36 @@ enum SettlementSide {
   LONG
   SHORT
   BOTH
+}
+
+// ===== 資產快照 (Feature 031) =====
+model AssetSnapshot {
+  id                String   @id @default(cuid())
+  userId            String
+
+  // 各交易所餘額（USD）- 可為 null 表示該交易所未設定 API Key 或查詢失敗
+  binanceBalanceUSD Decimal? @db.Decimal(18, 8)
+  okxBalanceUSD     Decimal? @db.Decimal(18, 8)
+  mexcBalanceUSD    Decimal? @db.Decimal(18, 8)
+  gateioBalanceUSD  Decimal? @db.Decimal(18, 8)
+
+  // 總資產（已設定交易所的加總）
+  totalBalanceUSD   Decimal  @db.Decimal(18, 8)
+
+  // 各交易所連線狀態
+  binanceStatus     String?  @db.VarChar(50) // 'success' | 'no_api_key' | 'api_error' | 'rate_limited'
+  okxStatus         String?  @db.VarChar(50)
+  mexcStatus        String?  @db.VarChar(50)
+  gateioStatus      String?  @db.VarChar(50)
+
+  // 時間資訊
+  recordedAt        DateTime @db.Timestamptz
+  createdAt         DateTime @default(now()) @db.Timestamptz
+
+  // Relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, recordedAt(sort: Desc)])
+  @@index([recordedAt(sort: Desc)])
+  @@map("asset_snapshots")
 }

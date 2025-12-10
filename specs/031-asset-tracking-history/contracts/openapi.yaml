@@ -1,0 +1,389 @@
+openapi: 3.0.3
+info:
+  title: Asset Tracking API
+  description: 交易所資產追蹤和歷史曲線 API
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: Next.js API Routes
+
+paths:
+  /assets:
+    get:
+      summary: 獲取即時資產餘額
+      description: 查詢用戶在各交易所的當前總資產（USD），從資料庫最新快照或即時 API 查詢
+      tags:
+        - Assets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: refresh
+          in: query
+          description: 是否強制從交易所 API 重新查詢（手動刷新）
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 成功返回資產餘額
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetBalanceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          description: 刷新頻率過高
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "請稍後再試，刷新頻率過高"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /assets/history:
+    get:
+      summary: 獲取資產歷史曲線資料
+      description: 查詢用戶指定天數內的資產快照，用於繪製曲線圖
+      tags:
+        - Assets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: days
+          in: query
+          description: 查詢天數
+          required: false
+          schema:
+            type: integer
+            enum: [7, 14, 30]
+            default: 7
+      responses:
+        '200':
+          description: 成功返回歷史快照
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetHistoryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /assets/positions:
+    get:
+      summary: 獲取當前持倉
+      description: 即時查詢用戶在各交易所的期貨持倉
+      tags:
+        - Assets
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功返回持倉列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AssetBalanceResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - exchanges
+            - totalBalanceUSD
+            - lastUpdated
+          properties:
+            exchanges:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExchangeBalance'
+            totalBalanceUSD:
+              type: number
+              format: double
+              description: 所有交易所總資產（USD）
+              example: 15234.56
+            lastUpdated:
+              type: string
+              format: date-time
+              description: 最後更新時間
+              example: "2025-12-11T08:00:00Z"
+
+    ExchangeBalance:
+      type: object
+      required:
+        - exchange
+        - status
+      properties:
+        exchange:
+          type: string
+          enum: [binance, okx, mexc, gate]
+          example: binance
+        balanceUSD:
+          type: number
+          format: double
+          nullable: true
+          description: 總資產（USD），null 表示未設定或查詢失敗
+          example: 5000.00
+        status:
+          type: string
+          enum: [success, no_api_key, api_error, rate_limited]
+          description: 連線狀態
+          example: success
+        errorMessage:
+          type: string
+          nullable: true
+          description: 當 status 為錯誤時的詳細訊息
+          example: "API key expired"
+
+    AssetHistoryResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - snapshots
+            - period
+          properties:
+            snapshots:
+              type: array
+              items:
+                $ref: '#/components/schemas/HistoryDataPoint'
+            period:
+              type: object
+              properties:
+                days:
+                  type: integer
+                  example: 7
+                from:
+                  type: string
+                  format: date-time
+                  example: "2025-12-04T00:00:00Z"
+                to:
+                  type: string
+                  format: date-time
+                  example: "2025-12-11T08:00:00Z"
+            summary:
+              type: object
+              description: 期間統計摘要
+              properties:
+                startTotal:
+                  type: number
+                  format: double
+                  description: 期間起始總資產
+                  example: 14500.00
+                endTotal:
+                  type: number
+                  format: double
+                  description: 期間結束總資產
+                  example: 15234.56
+                changeUSD:
+                  type: number
+                  format: double
+                  description: 資產變化（USD）
+                  example: 734.56
+                changePercent:
+                  type: number
+                  format: double
+                  description: 資產變化百分比
+                  example: 5.07
+
+    HistoryDataPoint:
+      type: object
+      required:
+        - timestamp
+        - total
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: 快照時間
+          example: "2025-12-11T08:00:00Z"
+        binance:
+          type: number
+          format: double
+          nullable: true
+          description: Binance 餘額（USD）
+          example: 5000.00
+        okx:
+          type: number
+          format: double
+          nullable: true
+          description: OKX 餘額（USD）
+          example: 4000.00
+        mexc:
+          type: number
+          format: double
+          nullable: true
+          description: MEXC 餘額（USD）
+          example: 3500.00
+        gate:
+          type: number
+          format: double
+          nullable: true
+          description: Gate.io 餘額（USD）
+          example: 2734.56
+        total:
+          type: number
+          format: double
+          description: 總資產（USD）
+          example: 15234.56
+
+    PositionsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - positions
+            - lastUpdated
+          properties:
+            positions:
+              type: array
+              items:
+                $ref: '#/components/schemas/Position'
+            totalUnrealizedPnl:
+              type: number
+              format: double
+              description: 所有持倉的未實現損益總和
+              example: 125.50
+            lastUpdated:
+              type: string
+              format: date-time
+              example: "2025-12-11T08:15:30Z"
+
+    Position:
+      type: object
+      required:
+        - exchange
+        - symbol
+        - side
+        - quantity
+        - entryPrice
+        - markPrice
+        - leverage
+        - unrealizedPnl
+      properties:
+        exchange:
+          type: string
+          enum: [binance, okx, mexc, gate]
+          example: binance
+        symbol:
+          type: string
+          description: 交易對
+          example: BTCUSDT
+        side:
+          type: string
+          enum: [LONG, SHORT]
+          example: LONG
+        quantity:
+          type: number
+          format: double
+          description: 持倉數量
+          example: 0.1
+        entryPrice:
+          type: number
+          format: double
+          description: 開倉價格
+          example: 42000.00
+        markPrice:
+          type: number
+          format: double
+          description: 當前標記價格
+          example: 43250.00
+        leverage:
+          type: integer
+          description: 槓桿倍數
+          example: 3
+        marginUsed:
+          type: number
+          format: double
+          description: 已用保證金
+          example: 1400.00
+        unrealizedPnl:
+          type: number
+          format: double
+          description: 未實現損益
+          example: 125.00
+        liquidationPrice:
+          type: number
+          format: double
+          nullable: true
+          description: 強平價格
+          example: 28000.00
+        timestamp:
+          type: string
+          format: date-time
+          description: 持倉更新時間
+          example: "2025-12-11T08:00:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: 錯誤訊息
+          example: "認證失敗"
+
+  responses:
+    Unauthorized:
+      description: 未授權（需要登入）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "請先登入"
+
+    InternalError:
+      description: 伺服器內部錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "伺服器錯誤，請稍後再試"
