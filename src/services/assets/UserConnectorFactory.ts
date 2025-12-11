@@ -367,21 +367,23 @@ class BinanceUserConnector implements IExchangeConnector {
         '/papi/v1/balance'
       )) as Array<{
         asset: string;
-        balance: string;
-        crossWalletBalance: string;
-        crossUnPnl: string;
-        availableBalance: string;
+        totalWalletBalance: string;
+        crossMarginAsset: string;
+        crossMarginFree: string;
+        crossMarginLocked: string;
+        umWalletBalance: string;
+        cmWalletBalance: string;
       }>;
 
       let totalEquityUSD = 0;
       const prices = await this.getSpotPrices();
 
       const balances = pmData
-        .filter((b) => parseFloat(b.balance) > 0)
+        .filter((b) => parseFloat(b.totalWalletBalance) > 0)
         .map((b) => {
-          const total = parseFloat(b.balance);
-          const free = parseFloat(b.availableBalance);
-          const locked = total - free;
+          const total = parseFloat(b.totalWalletBalance);
+          const free = parseFloat(b.crossMarginFree) || 0;
+          const locked = parseFloat(b.crossMarginLocked) || 0;
 
           // 計算 USD 價值
           let usdValue = 0;
