@@ -276,16 +276,25 @@ export class UserConnectorFactory {
 class BinanceUserConnector implements IExchangeConnector {
   readonly name: ExchangeName = 'binance';
   private connected: boolean = false;
-  private readonly baseUrl: string;
+  private readonly spotBaseUrl: string;
+  private readonly futuresBaseUrl: string;
+  private readonly portfolioMarginBaseUrl: string;
 
   constructor(
     private readonly apiKey: string,
     private readonly apiSecret: string,
     readonly isTestnet: boolean = false
   ) {
-    this.baseUrl = isTestnet
+    // Spot API - 只需要「啟用讀取」權限
+    this.spotBaseUrl = isTestnet
+      ? 'https://testnet.binance.vision'
+      : 'https://api.binance.com';
+    // Futures API - 需要 Futures 權限
+    this.futuresBaseUrl = isTestnet
       ? 'https://testnet.binancefuture.com'
       : 'https://fapi.binance.com';
+    // Portfolio Margin API - 統一保證金帳戶
+    this.portfolioMarginBaseUrl = 'https://papi.binance.com';
   }
 
   async connect(): Promise<void> {
@@ -300,7 +309,11 @@ class BinanceUserConnector implements IExchangeConnector {
     return this.connected;
   }
 
-  private async signedRequest(endpoint: string, params: Record<string, string> = {}): Promise<unknown> {
+  private async signedRequest(
+    baseUrl: string,
+    endpoint: string,
+    params: Record<string, string> = {}
+  ): Promise<unknown> {
     const crypto = await import('crypto');
     const timestamp = Date.now().toString();
     const queryParams = { ...params, timestamp, recvWindow: '5000' };
@@ -310,7 +323,7 @@ class BinanceUserConnector implements IExchangeConnector {
       .update(queryString)
       .digest('hex');
 
-    const url = `${this.baseUrl}${endpoint}?${queryString}&signature=${signature}`;
+    const url = `${baseUrl}${endpoint}?${queryString}&signature=${signature}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -327,68 +340,207 @@ class BinanceUserConnector implements IExchangeConnector {
     return response.json();
   }
 
+  /**
+   * 取得現貨價格（用於計算 USD 總值）
+   */
+  private async getSpotPrices(): Promise<Record<string, number>> {
+    try {
+      const response = await fetch(`${this.spotBaseUrl}/api/v3/ticker/price`);
+      if (!response.ok) return {};
+
+      const data = (await response.json()) as Array<{ symbol: string; price: string }>;
+      const prices: Record<string, number> = {};
+      for (const item of data) {
+        prices[item.symbol] = parseFloat(item.price);
+      }
+      return prices;
+    } catch {
+      return {};
+    }
+  }
+
   async getBalance(): Promise<AccountBalance> {
-    const data = await this.signedRequest('/fapi/v2/account') as {
-      totalWalletBalance: string;
-      assets: Array<{
+    // 優先使用 Portfolio Margin API（統一保證金帳戶）
+    try {
+      const pmData = (await this.signedRequest(
+        this.portfolioMarginBaseUrl,
+        '/papi/v1/balance'
+      )) as Array<{
         asset: string;
-        walletBalance: string;
+        balance: string;
+        crossWalletBalance: string;
+        crossUnPnl: string;
         availableBalance: string;
+      }>;
+
+      let totalEquityUSD = 0;
+      const prices = await this.getSpotPrices();
+
+      const balances = pmData
+        .filter((b) => parseFloat(b.balance) > 0)
+        .map((b) => {
+          const total = parseFloat(b.balance);
+          const free = parseFloat(b.availableBalance);
+          const locked = total - free;
+
+          // 計算 USD 價值
+          let usdValue = 0;
+          if (b.asset === 'USDT' || b.asset === 'BUSD' || b.asset === 'USDC' || b.asset === 'USD') {
+            usdValue = total;
+          } else {
+            const price = prices[`${b.asset}USDT`];
+            if (price) usdValue = total * price;
+          }
+          totalEquityUSD += usdValue;
+
+          return { asset: b.asset, free, locked, total };
+        });
+
+      return {
+        exchange: 'binance',
+        balances,
+        totalEquityUSD,
+        timestamp: new Date(),
+      };
+    } catch {
+      // Fallback 到 Spot API
+    }
+
+    // Fallback: 使用 Spot API（只需要「啟用讀取」權限）
+    const data = (await this.signedRequest(this.spotBaseUrl, '/api/v3/account')) as {
+      balances: Array<{
+        asset: string;
+        free: string;
+        locked: string;
       }>;
     };
 
+    // 取得價格用於計算 USD 總值
+    const prices = await this.getSpotPrices();
+
+    let totalEquityUSD = 0;
+    const balances = data.balances
+      .filter((b) => parseFloat(b.free) > 0 || parseFloat(b.locked) > 0)
+      .map((b) => {
+        const free = parseFloat(b.free);
+        const locked = parseFloat(b.locked);
+        const total = free + locked;
+
+        // 計算 USD 價值
+        let usdValue = 0;
+        if (b.asset === 'USDT' || b.asset === 'BUSD' || b.asset === 'USDC' || b.asset === 'USD') {
+          usdValue = total;
+        } else {
+          const priceUsdt = prices[`${b.asset}USDT`];
+          const priceBusd = prices[`${b.asset}BUSD`];
+          if (priceUsdt) usdValue = total * priceUsdt;
+          else if (priceBusd) usdValue = total * priceBusd;
+        }
+        totalEquityUSD += usdValue;
+
+        return { asset: b.asset, free, locked, total };
+      });
+
     return {
       exchange: 'binance',
-      balances: data.assets
-        .filter((a) => parseFloat(a.walletBalance) > 0)
-        .map((a) => ({
-          asset: a.asset,
-          free: parseFloat(a.availableBalance),
-          locked: parseFloat(a.walletBalance) - parseFloat(a.availableBalance),
-          total: parseFloat(a.walletBalance),
-        })),
-      totalEquityUSD: parseFloat(data.totalWalletBalance),
+      balances,
+      totalEquityUSD,
       timestamp: new Date(),
     };
   }
 
   async getPositions(): Promise<PositionInfo> {
-    const data = await this.signedRequest('/fapi/v2/positionRisk') as Array<{
-      symbol: string;
-      positionAmt: string;
-      entryPrice: string;
-      markPrice: string;
-      unRealizedProfit: string;
-      liquidationPrice: string;
-      leverage: string;
-      isolatedMargin: string;
-      positionSide: string;
-      updateTime: number;
-    }>;
+    // 優先使用 Portfolio Margin API（統一保證金帳戶）
+    try {
+      const data = (await this.signedRequest(
+        this.portfolioMarginBaseUrl,
+        '/papi/v1/um/positionRisk'
+      )) as Array<{
+        symbol: string;
+        positionAmt: string;
+        entryPrice: string;
+        markPrice: string;
+        unRealizedProfit: string;
+        liquidationPrice: string;
+        leverage: string;
+        isolatedMargin: string;
+        positionSide: string;
+        updateTime: number;
+      }>;
 
-    const positions = data
-      .filter((p) => Math.abs(parseFloat(p.positionAmt)) > 0)
-      .map((p) => {
-        const positionAmt = parseFloat(p.positionAmt);
-        return {
-          symbol: p.symbol,
-          side: (positionAmt > 0 ? 'LONG' : 'SHORT') as 'LONG' | 'SHORT',
-          quantity: Math.abs(positionAmt),
-          entryPrice: parseFloat(p.entryPrice),
-          markPrice: parseFloat(p.markPrice),
-          leverage: parseInt(p.leverage),
-          marginUsed: parseFloat(p.isolatedMargin),
-          unrealizedPnl: parseFloat(p.unRealizedProfit),
-          liquidationPrice: parseFloat(p.liquidationPrice) || undefined,
-          timestamp: new Date(p.updateTime),
-        };
-      });
+      const positions = data
+        .filter((p) => Math.abs(parseFloat(p.positionAmt)) > 0)
+        .map((p) => {
+          const positionAmt = parseFloat(p.positionAmt);
+          return {
+            symbol: p.symbol,
+            side: (positionAmt > 0 ? 'LONG' : 'SHORT') as 'LONG' | 'SHORT',
+            quantity: Math.abs(positionAmt),
+            entryPrice: parseFloat(p.entryPrice),
+            markPrice: parseFloat(p.markPrice),
+            leverage: parseInt(p.leverage),
+            marginUsed: parseFloat(p.isolatedMargin),
+            unrealizedPnl: parseFloat(p.unRealizedProfit),
+            liquidationPrice: parseFloat(p.liquidationPrice) || undefined,
+            timestamp: new Date(p.updateTime),
+          };
+        });
 
-    return {
-      exchange: 'binance',
-      positions,
-      timestamp: new Date(),
-    };
+      return {
+        exchange: 'binance',
+        positions,
+        timestamp: new Date(),
+      };
+    } catch {
+      // Fallback 到傳統 Futures API
+    }
+
+    // Fallback: 嘗試使用 Futures API
+    try {
+      const data = (await this.signedRequest(this.futuresBaseUrl, '/fapi/v2/positionRisk')) as Array<{
+        symbol: string;
+        positionAmt: string;
+        entryPrice: string;
+        markPrice: string;
+        unRealizedProfit: string;
+        liquidationPrice: string;
+        leverage: string;
+        isolatedMargin: string;
+        positionSide: string;
+        updateTime: number;
+      }>;
+
+      const positions = data
+        .filter((p) => Math.abs(parseFloat(p.positionAmt)) > 0)
+        .map((p) => {
+          const positionAmt = parseFloat(p.positionAmt);
+          return {
+            symbol: p.symbol,
+            side: (positionAmt > 0 ? 'LONG' : 'SHORT') as 'LONG' | 'SHORT',
+            quantity: Math.abs(positionAmt),
+            entryPrice: parseFloat(p.entryPrice),
+            markPrice: parseFloat(p.markPrice),
+            leverage: parseInt(p.leverage),
+            marginUsed: parseFloat(p.isolatedMargin),
+            unrealizedPnl: parseFloat(p.unRealizedProfit),
+            liquidationPrice: parseFloat(p.liquidationPrice) || undefined,
+            timestamp: new Date(p.updateTime),
+          };
+        });
+
+      return {
+        exchange: 'binance',
+        positions,
+        timestamp: new Date(),
+      };
+    } catch {
+      // 都沒權限，返回空持倉
+      return {
+        exchange: 'binance',
+        positions: [],
+        timestamp: new Date(),
+      };
+    }
   }
 
   // 以下方法不需要實作（資產追蹤不需要）
