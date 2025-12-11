@@ -113,11 +113,11 @@ export class UserConnectorFactory {
         return new OkxUserConnector(apiKey, apiSecret, passphrase || '', isTestnet);
 
       case 'mexc':
+        return new MexcUserConnector(apiKey, apiSecret, isTestnet);
+
       case 'gateio':
       case 'gate':
-        // TODO: 實作 MEXC 和 Gate.io 連接器
-        logger.debug({ exchange }, 'Exchange connector not implemented yet');
-        return null;
+        return new GateioUserConnector(apiKey, apiSecret, isTestnet);
 
       default:
         logger.warn({ exchange }, 'Unknown exchange');
@@ -614,6 +614,7 @@ class OkxUserConnector implements IExchangeConnector {
       secret: this.apiSecret,
       password: this.passphrase,
       sandbox: this.isTestnet,
+      timeout: 30000, // 30 秒超時
       options: {
         defaultType: 'swap',
       },
@@ -686,6 +687,362 @@ class OkxUserConnector implements IExchangeConnector {
   }
 
   // 以下方法不需要實作
+  async getFundingRate(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getFundingRates(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPrice(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPrices(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getSymbolInfo(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPosition(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async createOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async cancelOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async subscribeWS(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async unsubscribeWS(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async validateSymbol(): Promise<boolean> {
+    throw new Error('Not implemented');
+  }
+  async formatQuantity(): Promise<number> {
+    throw new Error('Not implemented');
+  }
+  async formatPrice(): Promise<number> {
+    throw new Error('Not implemented');
+  }
+}
+
+/**
+ * 用戶特定的 MEXC 連接器
+ * Feature 032: MEXC 和 Gate.io 資產追蹤
+ */
+class MexcUserConnector implements IExchangeConnector {
+  readonly name: ExchangeName = 'mexc';
+  private connected: boolean = false;
+  private ccxt: typeof import('ccxt') | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private exchange: any = null;
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly apiSecret: string,
+    readonly isTestnet: boolean = false
+  ) {}
+
+  async connect(): Promise<void> {
+    this.ccxt = await import('ccxt');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.exchange = new (this.ccxt as any).mexc({
+      apiKey: this.apiKey,
+      secret: this.apiSecret,
+      enableRateLimit: true,
+      timeout: 30000, // 30 秒超時
+      options: {
+        defaultType: 'swap',
+      },
+    });
+    this.connected = true;
+  }
+
+  async disconnect(): Promise<void> {
+    this.exchange = null;
+    this.connected = false;
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  async getBalance(): Promise<AccountBalance> {
+    if (!this.exchange) throw new Error('Not connected');
+
+    // 使用 swap 模式查詢合約帳戶餘額
+    const balance = await this.exchange.fetchBalance({ type: 'swap' });
+    const totalUSD = balance.total?.USDT || balance.total?.USD || 0;
+
+    const balances = Object.entries(balance.total || {})
+      .filter(([_, value]) => (value as number) > 0)
+      .map(([asset, total]) => ({
+        asset,
+        free: (balance.free?.[asset] as number) || 0,
+        locked: (total as number) - ((balance.free?.[asset] as number) || 0),
+        total: total as number,
+      }));
+
+    return {
+      exchange: 'mexc',
+      balances,
+      totalEquityUSD: totalUSD as number,
+      timestamp: new Date(),
+    };
+  }
+
+  async getPositions(): Promise<PositionInfo> {
+    if (!this.exchange) throw new Error('Not connected');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const positions: any[] = await this.exchange.fetchPositions();
+
+    const filteredPositions = positions
+      .filter((p) => parseFloat(p.contracts?.toString() || '0') > 0)
+      .map((p) => ({
+        symbol: p.symbol,
+        side: (p.side === 'long' ? 'LONG' : 'SHORT') as 'LONG' | 'SHORT',
+        quantity: parseFloat(p.contracts?.toString() || '0'),
+        entryPrice: parseFloat(p.entryPrice?.toString() || '0'),
+        markPrice: parseFloat(p.markPrice?.toString() || '0'),
+        leverage: parseFloat(p.leverage?.toString() || '1'),
+        marginUsed: parseFloat(p.initialMargin?.toString() || '0'),
+        unrealizedPnl: parseFloat(p.unrealizedPnl?.toString() || '0'),
+        liquidationPrice: p.liquidationPrice
+          ? parseFloat(p.liquidationPrice.toString())
+          : undefined,
+        timestamp: p.timestamp ? new Date(p.timestamp) : new Date(),
+      }));
+
+    return {
+      exchange: 'mexc',
+      positions: filteredPositions,
+      timestamp: new Date(),
+    };
+  }
+
+  // 以下方法不需要實作（資產追蹤不需要）
+  async getFundingRate(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getFundingRates(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPrice(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPrices(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getSymbolInfo(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPosition(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async createOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async cancelOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async subscribeWS(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async unsubscribeWS(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async validateSymbol(): Promise<boolean> {
+    throw new Error('Not implemented');
+  }
+  async formatQuantity(): Promise<number> {
+    throw new Error('Not implemented');
+  }
+  async formatPrice(): Promise<number> {
+    throw new Error('Not implemented');
+  }
+}
+
+/**
+ * 用戶特定的 Gate.io 連接器
+ * Feature 032: MEXC 和 Gate.io 資產追蹤
+ */
+class GateioUserConnector implements IExchangeConnector {
+  readonly name: ExchangeName = 'gateio';
+  private connected: boolean = false;
+  private ccxt: typeof import('ccxt') | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private exchange: any = null;
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly apiSecret: string,
+    readonly isTestnet: boolean = false
+  ) {}
+
+  async connect(): Promise<void> {
+    this.ccxt = await import('ccxt');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.exchange = new (this.ccxt as any).gateio({
+      apiKey: this.apiKey,
+      secret: this.apiSecret,
+      enableRateLimit: true,
+      timeout: 30000, // 30 秒超時
+      options: {
+        defaultType: 'swap',
+      },
+    });
+    this.connected = true;
+  }
+
+  async disconnect(): Promise<void> {
+    this.exchange = null;
+    this.connected = false;
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  async getBalance(): Promise<AccountBalance> {
+    if (!this.exchange) throw new Error('Not connected');
+
+    // 優先使用統一帳戶 API (跨幣種保證金模式)
+    try {
+      const unifiedBalance = await this.fetchUnifiedAccountBalance();
+      if (unifiedBalance && unifiedBalance.totalEquityUSD > 0) {
+        return unifiedBalance;
+      }
+    } catch (error) {
+      // 統一帳戶 API 失敗，fallback 到 swap
+      logger.debug({ error }, 'Gate.io unified account API failed, falling back to swap');
+    }
+
+    // Fallback: 使用 swap 帳戶
+    const balance = await this.exchange.fetchBalance({ type: 'swap' });
+    const totalUSD = balance.total?.USDT || balance.total?.USD || 0;
+
+    const balances = Object.entries(balance.total || {})
+      .filter(([_, value]) => (value as number) > 0)
+      .map(([asset, total]) => ({
+        asset,
+        free: (balance.free?.[asset] as number) || 0,
+        locked: (total as number) - ((balance.free?.[asset] as number) || 0),
+        total: total as number,
+      }));
+
+    return {
+      exchange: 'gateio',
+      balances,
+      totalEquityUSD: totalUSD as number,
+      timestamp: new Date(),
+    };
+  }
+
+  /**
+   * 查詢 Gate.io 統一帳戶餘額 (跨幣種保證金模式)
+   */
+  private async fetchUnifiedAccountBalance(): Promise<AccountBalance | null> {
+    const crypto = await import('crypto');
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const method = 'GET';
+    const url = '/api/v4/unified/accounts';
+    const queryString = '';
+    const bodyHash = crypto.createHash('sha512').update('').digest('hex');
+
+    const signString = `${method}\n${url}\n${queryString}\n${bodyHash}\n${timestamp}`;
+    const signature = crypto.createHmac('sha512', this.apiSecret).update(signString).digest('hex');
+
+    const response = await fetch(`https://api.gateio.ws${url}`, {
+      method,
+      headers: {
+        KEY: this.apiKey,
+        Timestamp: timestamp,
+        SIGN: signature,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+
+    // 檢查是否有錯誤
+    if (data.label || data.message) {
+      return null;
+    }
+
+    // 解析統一帳戶餘額
+    const totalEquityUSD = parseFloat(data.unified_account_total_equity || '0');
+    const balancesData = data.balances || {};
+
+    const balances = Object.entries(balancesData)
+      .filter(([_, v]) => {
+        const val = v as { equity?: string };
+        return parseFloat(val.equity || '0') > 0;
+      })
+      .map(([asset, v]) => {
+        const val = v as { available?: string; freeze?: string; equity?: string };
+        const available = parseFloat(val.available || '0');
+        const freeze = parseFloat(val.freeze || '0');
+        const equity = parseFloat(val.equity || '0');
+        return {
+          asset,
+          free: available,
+          locked: freeze,
+          total: equity,
+        };
+      });
+
+    return {
+      exchange: 'gateio',
+      balances,
+      totalEquityUSD,
+      timestamp: new Date(),
+    };
+  }
+
+  async getPositions(): Promise<PositionInfo> {
+    if (!this.exchange) throw new Error('Not connected');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const positions: any[] = await this.exchange.fetchPositions();
+
+    const filteredPositions = positions
+      .filter((p) => parseFloat(p.contracts?.toString() || '0') > 0)
+      .map((p) => ({
+        symbol: p.symbol,
+        side: (p.side === 'long' ? 'LONG' : 'SHORT') as 'LONG' | 'SHORT',
+        quantity: parseFloat(p.contracts?.toString() || '0'),
+        entryPrice: parseFloat(p.entryPrice?.toString() || '0'),
+        markPrice: parseFloat(p.markPrice?.toString() || '0'),
+        leverage: parseFloat(p.leverage?.toString() || '1'),
+        marginUsed: parseFloat(p.initialMargin?.toString() || '0'),
+        unrealizedPnl: parseFloat(p.unrealizedPnl?.toString() || '0'),
+        liquidationPrice: p.liquidationPrice
+          ? parseFloat(p.liquidationPrice.toString())
+          : undefined,
+        timestamp: p.timestamp ? new Date(p.timestamp) : new Date(),
+      }));
+
+    return {
+      exchange: 'gateio',
+      positions: filteredPositions,
+      timestamp: new Date(),
+    };
+  }
+
+  // 以下方法不需要實作（資產追蹤不需要）
   async getFundingRate(): Promise<never> {
     throw new Error('Not implemented');
   }
