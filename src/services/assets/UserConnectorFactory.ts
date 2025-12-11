@@ -176,8 +176,16 @@ export class UserConnectorFactory {
           balanceUSD: balance.totalEquityUSD,
         });
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.error({ error, userId, exchange }, 'Failed to get balance');
+        // 提取詳細錯誤資訊
+        const errorName = error instanceof Error ? error.name : 'Unknown';
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errorDetails = (error as any)?.response?.data || (error as any)?.body || null;
+
+        logger.error(
+          { errorName, errorMessage, errorDetails, userId, exchange },
+          'Failed to get balance'
+        );
 
         // 判斷是否為 rate limit 錯誤
         const isRateLimit =
@@ -189,7 +197,7 @@ export class UserConnectorFactory {
           exchange,
           status: isRateLimit ? 'rate_limited' : 'api_error',
           balanceUSD: null,
-          errorMessage,
+          errorMessage: `${errorName}: ${errorMessage}`,
         });
       }
     }
@@ -404,8 +412,15 @@ class BinanceUserConnector implements IExchangeConnector {
         totalEquityUSD,
         timestamp: new Date(),
       };
-    } catch {
-      // Fallback 到 Spot API
+    } catch (pmError) {
+      // Portfolio Margin API 失敗，記錄錯誤後 fallback 到 Spot API
+      logger.debug(
+        {
+          error: pmError instanceof Error ? pmError.message : String(pmError),
+          apiKey: this.apiKey.slice(0, 8) + '...',
+        },
+        'Binance Portfolio Margin API failed, falling back to Spot API'
+      );
     }
 
     // Fallback: 使用 Spot API（只需要「啟用讀取」權限）
@@ -493,8 +508,12 @@ class BinanceUserConnector implements IExchangeConnector {
         positions,
         timestamp: new Date(),
       };
-    } catch {
-      // Fallback 到傳統 Futures API
+    } catch (pmError) {
+      // Portfolio Margin API 失敗，記錄錯誤後 fallback 到 Futures API
+      logger.debug(
+        { error: pmError instanceof Error ? pmError.message : String(pmError) },
+        'Binance Portfolio Margin positions API failed, falling back to Futures API'
+      );
     }
 
     // Fallback: 嘗試使用 Futures API
@@ -535,8 +554,12 @@ class BinanceUserConnector implements IExchangeConnector {
         positions,
         timestamp: new Date(),
       };
-    } catch {
-      // 都沒權限，返回空持倉
+    } catch (futuresError) {
+      // Futures API 也失敗，記錄錯誤並返回空持倉
+      logger.debug(
+        { error: futuresError instanceof Error ? futuresError.message : String(futuresError) },
+        'Binance Futures positions API also failed, returning empty positions'
+      );
       return {
         exchange: 'binance',
         positions: [],
