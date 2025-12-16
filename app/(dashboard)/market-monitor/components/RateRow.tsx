@@ -19,6 +19,7 @@ import { PaybackTooltip } from './PaybackTooltip';
 import { TrackButton } from './TrackButton';
 import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
 import { calculatePaybackPeriods } from '../utils/rateCalculations';
+import { getPriceRiskLevel, PRICE_DIFF_WARNING_THRESHOLD } from '@/lib/priceRisk';
 import type {
   ExchangeName,
   MarketRate,
@@ -330,15 +331,74 @@ export const RateRow = React.memo(function RateRow({
         </span>
       </td>
 
-      {/* 價差 + 回本指標 (Feature 025) */}
+      {/* 價差 + 回本指標 (Feature 025) + 風險警告 (Feature 033) */}
       <td className="px-4 py-3 text-right">
         <div className="flex flex-col items-end gap-1">
-          {/* 價差百分比 */}
-          <span className="font-mono text-sm">
-            {rate.bestPair && typeof rate.bestPair.priceDiffPercent === 'number' && !isNaN(rate.bestPair.priceDiffPercent)
-              ? `${rate.bestPair.priceDiffPercent >= 0 ? '+' : ''}${rate.bestPair.priceDiffPercent.toFixed(2)}%`
-              : 'N/A'}
-          </span>
+          {/* 價差百分比 + 風險警告 */}
+          {(() => {
+            const priceDiff = rate.bestPair?.priceDiffPercent;
+            const riskLevel = getPriceRiskLevel(priceDiff);
+
+            // 格式化價差顯示
+            const formatPriceDiff = (value: number) =>
+              `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+
+            if (riskLevel === 'unknown') {
+              // 無價差資訊
+              return (
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <span className="font-mono text-sm text-orange-500 font-medium cursor-help">
+                      ⚠️ N/A
+                    </span>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-orange-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs"
+                      sideOffset={5}
+                    >
+                      <div className="font-semibold mb-1">風險提示</div>
+                      <div>無價差資訊，開倉前請自行確認兩交易所的價差，避免因價差過大導致虧損。</div>
+                      <Tooltip.Arrow className="fill-orange-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              );
+            }
+
+            if (riskLevel === 'warning') {
+              // 價差過大警告
+              return (
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <span className="font-mono text-sm text-orange-500 font-medium cursor-help">
+                      ⚠️ {formatPriceDiff(priceDiff!)}
+                    </span>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-orange-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs"
+                      sideOffset={5}
+                    >
+                      <div className="font-semibold mb-1">價差警告</div>
+                      <div>
+                        價差 {Math.abs(priceDiff!).toFixed(2)}% 超過 {PRICE_DIFF_WARNING_THRESHOLD}%，
+                        開倉成本較高，請評估是否值得進場。
+                      </div>
+                      <Tooltip.Arrow className="fill-orange-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              );
+            }
+
+            // 安全範圍
+            return (
+              <span className="font-mono text-sm">
+                {formatPriceDiff(priceDiff!)}
+              </span>
+            );
+          })()}
 
           {/* Feature 025: 回本次數指標 + Tooltip (US3) */}
           {rate.bestPair && (() => {

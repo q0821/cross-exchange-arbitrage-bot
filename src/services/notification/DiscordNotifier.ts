@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { logger } from '../../lib/logger';
+import { getPriceRiskLevel, PRICE_DIFF_WARNING_THRESHOLD } from '../../lib/priceRisk';
 import type {
   INotifier,
   NotificationResult,
@@ -37,6 +38,10 @@ export class DiscordNotifier implements INotifier {
 
       // 計算建議
       const recommendation = this.getRecommendation(message);
+
+      // Feature 033: 價差風險警告
+      const priceRiskLevel = getPriceRiskLevel(message.priceDiffPercent);
+      const riskWarningField = this.getRiskWarningField(priceRiskLevel, message.priceDiffPercent);
 
       const embed = {
         title: `套利機會：${message.symbol}`,
@@ -80,6 +85,8 @@ export class DiscordNotifier implements INotifier {
             value: priceAnalysis,
             inline: false,
           },
+          // Feature 033: 風險警告區塊（如果有）
+          ...(riskWarningField ? [riskWarningField] : []),
           {
             name: '🔗 交易連結',
             value: [
@@ -314,5 +321,34 @@ export class DiscordNotifier implements INotifier {
       text: '❌ 不建議套利（價差損失過大）',
       color: 0xff0000, // 紅色
     };
+  }
+
+  /**
+   * Feature 033: 取得風險警告欄位
+   * @param riskLevel - 風險等級
+   * @param priceDiffPercent - 價差百分比
+   * @returns Discord embed field 或 null
+   */
+  private getRiskWarningField(
+    riskLevel: ReturnType<typeof getPriceRiskLevel>,
+    priceDiffPercent?: number
+  ): { name: string; value: string; inline: boolean } | null {
+    if (riskLevel === 'unknown') {
+      return {
+        name: '⚠️ 風險提示',
+        value: '**無價差資訊**\n開倉前請自行確認兩交易所的價差，避免因價差過大導致虧損。',
+        inline: false,
+      };
+    }
+
+    if (riskLevel === 'warning' && priceDiffPercent !== undefined) {
+      return {
+        name: '⚠️ 價差警告',
+        value: `**價差 ${Math.abs(priceDiffPercent).toFixed(2)}% 超過 ${PRICE_DIFF_WARNING_THRESHOLD}%**\n開倉成本較高，請評估是否值得進場。`,
+        inline: false,
+      };
+    }
+
+    return null;
   }
 }

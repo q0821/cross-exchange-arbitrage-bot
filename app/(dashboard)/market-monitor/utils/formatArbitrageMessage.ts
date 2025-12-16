@@ -1,5 +1,6 @@
 import { MarketRate, ExchangeName, TimeBasis } from '../types';
 import { calculatePaybackPeriods } from './rateCalculations';
+import { getPriceRiskLevel, PRICE_DIFF_WARNING_THRESHOLD } from '@/lib/priceRisk';
 
 /**
  * 交易所顯示名稱映射表
@@ -121,6 +122,26 @@ function formatPriceDiffWithExplanation(
 }
 
 /**
+ * Feature 033: 格式化價差風險警告訊息
+ *
+ * @param priceDiffPercent - 價格差異百分比
+ * @returns 風險警告字串，或空字串（無風險時）
+ */
+function formatPriceRiskWarning(priceDiffPercent: number | null): string {
+  const riskLevel = getPriceRiskLevel(priceDiffPercent);
+
+  if (riskLevel === 'unknown') {
+    return '\n⚠️ 【風險提示】無價差資訊，開倉前請自行確認兩交易所的價差！';
+  }
+
+  if (riskLevel === 'warning' && priceDiffPercent !== null) {
+    return `\n⚠️ 【價差警告】價差 ${Math.abs(priceDiffPercent).toFixed(2)}% 超過 ${PRICE_DIFF_WARNING_THRESHOLD}%，開倉成本較高！`;
+  }
+
+  return '';
+}
+
+/**
  * Feature 025 (US4): 格式化價差回本資訊
  *
  * @param priceDiffPercent - 價格差異百分比
@@ -214,6 +235,9 @@ export function formatArbitrageMessage(
   // Feature 025 (US4): 價差回本資訊
   const paybackInfoDisplay = formatPaybackInfo(priceDiffPercent, spreadPercent, timeBasis);
 
+  // Feature 033: 價差風險警告
+  const priceRiskWarning = formatPriceRiskWarning(priceDiffPercent);
+
   // 組裝完整訊息（User Story 4: 術語改善）
   const message = `=======
 【套套摳訊】
@@ -235,7 +259,7 @@ ${symbolDisplay}
 
 🚨 風險提示：
  • 價格偏差為負表示不利，可能影響平倉收益
- • 資金費率可能波動，請持續觀察
+ • 資金費率可能波動，請持續觀察${priceRiskWarning}
 =======`;
 
   return message;

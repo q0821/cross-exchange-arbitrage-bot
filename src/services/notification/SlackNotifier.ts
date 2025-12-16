@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { logger } from '../../lib/logger';
+import { getPriceRiskLevel, PRICE_DIFF_WARNING_THRESHOLD } from '../../lib/priceRisk';
 import type {
   INotifier,
   NotificationResult,
@@ -37,6 +38,10 @@ export class SlackNotifier implements INotifier {
 
       // 計算建議
       const recommendation = this.getRecommendation(message);
+
+      // Feature 033: 價差風險警告
+      const priceRiskLevel = getPriceRiskLevel(message.priceDiffPercent);
+      const riskWarningBlock = this.getRiskWarningBlock(priceRiskLevel, message.priceDiffPercent);
 
       const blocks = [
         {
@@ -96,6 +101,8 @@ export class SlackNotifier implements INotifier {
             text: `*📊 價差分析*\n${priceAnalysis}`,
           },
         },
+        // Feature 033: 風險警告區塊（如果有）
+        ...(riskWarningBlock ? [riskWarningBlock] : []),
         {
           type: 'context',
           elements: [
@@ -348,5 +355,38 @@ export class SlackNotifier implements INotifier {
     }
 
     return '❌ 不建議套利（價差損失過大）';
+  }
+
+  /**
+   * Feature 033: 取得風險警告區塊
+   * @param riskLevel - 風險等級
+   * @param priceDiffPercent - 價差百分比
+   * @returns Slack Block 或 null
+   */
+  private getRiskWarningBlock(
+    riskLevel: ReturnType<typeof getPriceRiskLevel>,
+    priceDiffPercent?: number
+  ): { type: string; text: { type: string; text: string } } | null {
+    if (riskLevel === 'unknown') {
+      return {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: '⚠️ *風險提示*\n無價差資訊，開倉前請自行確認兩交易所的價差，避免因價差過大導致虧損。',
+        },
+      };
+    }
+
+    if (riskLevel === 'warning' && priceDiffPercent !== undefined) {
+      return {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `⚠️ *價差警告*\n價差 ${Math.abs(priceDiffPercent).toFixed(2)}% 超過 ${PRICE_DIFF_WARNING_THRESHOLD}%，開倉成本較高，請評估是否值得進場。`,
+        },
+      };
+    }
+
+    return null;
   }
 }
