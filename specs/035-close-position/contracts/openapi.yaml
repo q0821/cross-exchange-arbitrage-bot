@@ -1,0 +1,430 @@
+openapi: 3.0.3
+info:
+  title: Close Position API
+  description: 一鍵平倉功能 API 規格
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: Next.js API Routes
+
+paths:
+  /positions/{id}/close:
+    post:
+      summary: 平倉指定持倉
+      description: |
+        同時在兩個交易所執行平倉操作（賣出多頭、買入空頭）。
+        平倉完成後自動創建 Trade 績效記錄。
+      operationId: closePosition
+      tags:
+        - Positions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 持倉 ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 平倉成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClosePositionSuccessResponse'
+        '400':
+          description: 請求錯誤（持倉狀態不正確）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_status:
+                  summary: 持倉狀態不正確
+                  value:
+                    success: false
+                    error: 'INVALID_STATUS'
+                    message: '只有 OPEN 狀態的持倉可以平倉，當前狀態: CLOSING'
+        '403':
+          description: 無權操作（非持倉所有者）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                forbidden:
+                  summary: 非持倉所有者
+                  value:
+                    success: false
+                    error: 'FORBIDDEN'
+                    message: '無權操作此持倉'
+        '404':
+          description: 持倉不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                not_found:
+                  summary: 持倉不存在
+                  value:
+                    success: false
+                    error: 'NOT_FOUND'
+                    message: '持倉不存在'
+        '409':
+          description: 操作衝突（正在執行其他操作）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                lock_conflict:
+                  summary: 操作衝突
+                  value:
+                    success: false
+                    error: 'LOCK_CONFLICT'
+                    message: '此持倉正在執行其他操作，請稍後再試'
+        '500':
+          description: 伺服器錯誤或部分平倉
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+                  - $ref: '#/components/schemas/PartialCloseResponse'
+              examples:
+                partial_close:
+                  summary: 部分平倉
+                  value:
+                    success: false
+                    error: 'PARTIAL_CLOSE'
+                    message: '部分平倉成功，請手動處理剩餘倉位'
+                    position:
+                      id: 'clxxx123'
+                      status: 'PARTIAL'
+                    partialClosed:
+                      exchange: 'binance'
+                      orderId: '123456789'
+                      side: 'LONG'
+                      price: '42150.50'
+                      quantity: '0.0237'
+                    failedSide:
+                      exchange: 'okx'
+                      error: 'Insufficient margin'
+
+  /trades:
+    get:
+      summary: 查詢交易歷史
+      description: 獲取用戶的交易績效記錄列表
+      operationId: getTrades
+      tags:
+        - Trades
+      parameters:
+        - name: limit
+          in: query
+          description: 返回數量上限
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: 分頁偏移
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: symbol
+          in: query
+          description: 交易對過濾
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradesListResponse'
+
+  /positions/{id}/market-data:
+    get:
+      summary: 獲取持倉相關市場數據
+      description: 獲取指定持倉的即時市場價格，用於平倉確認對話框顯示
+      operationId: getPositionMarketData
+      tags:
+        - Positions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 持倉 ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionMarketDataResponse'
+        '404':
+          description: 持倉不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    ClosePositionSuccessResponse:
+      type: object
+      required:
+        - success
+        - position
+        - trade
+        - message
+      properties:
+        success:
+          type: boolean
+          example: true
+        position:
+          $ref: '#/components/schemas/PositionInfo'
+        trade:
+          $ref: '#/components/schemas/TradeInfo'
+        message:
+          type: string
+          example: '平倉成功'
+
+    PartialCloseResponse:
+      type: object
+      required:
+        - success
+        - error
+        - message
+        - position
+        - partialClosed
+        - failedSide
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: 'PARTIAL_CLOSE'
+        message:
+          type: string
+          example: '部分平倉成功，請手動處理剩餘倉位'
+        position:
+          $ref: '#/components/schemas/PositionInfo'
+        partialClosed:
+          type: object
+          properties:
+            exchange:
+              type: string
+            orderId:
+              type: string
+            side:
+              type: string
+              enum: [LONG, SHORT]
+            price:
+              type: string
+            quantity:
+              type: string
+        failedSide:
+          type: object
+          properties:
+            exchange:
+              type: string
+            error:
+              type: string
+
+    PositionInfo:
+      type: object
+      required:
+        - id
+        - userId
+        - symbol
+        - longExchange
+        - shortExchange
+        - status
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        symbol:
+          type: string
+        longExchange:
+          type: string
+        shortExchange:
+          type: string
+        longEntryPrice:
+          type: string
+        shortEntryPrice:
+          type: string
+        longPositionSize:
+          type: string
+        shortPositionSize:
+          type: string
+        leverage:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, OPENING, OPEN, CLOSING, CLOSED, FAILED, PARTIAL]
+        openedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TradeInfo:
+      type: object
+      required:
+        - id
+        - positionId
+        - symbol
+        - priceDiffPnL
+        - fundingRatePnL
+        - totalPnL
+        - roi
+        - holdingDuration
+      properties:
+        id:
+          type: string
+        positionId:
+          type: string
+        symbol:
+          type: string
+        longExchange:
+          type: string
+        shortExchange:
+          type: string
+        longEntryPrice:
+          type: string
+        longExitPrice:
+          type: string
+        shortEntryPrice:
+          type: string
+        shortExitPrice:
+          type: string
+        openedAt:
+          type: string
+          format: date-time
+        closedAt:
+          type: string
+          format: date-time
+        holdingDuration:
+          type: integer
+          description: 持倉時間（秒）
+        priceDiffPnL:
+          type: string
+          description: 價差損益 (USDT)
+        fundingRatePnL:
+          type: string
+          description: 資金費率損益 (USDT)
+        totalPnL:
+          type: string
+          description: 總損益 (USDT)
+        roi:
+          type: string
+          description: 投資報酬率 (%)
+        status:
+          type: string
+          enum: [SUCCESS, PARTIAL]
+        createdAt:
+          type: string
+          format: date-time
+
+    TradesListResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            trades:
+              type: array
+              items:
+                $ref: '#/components/schemas/TradeInfo'
+            total:
+              type: integer
+
+    PositionMarketDataResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            positionId:
+              type: string
+            symbol:
+              type: string
+            longExchange:
+              type: object
+              properties:
+                name:
+                  type: string
+                currentPrice:
+                  type: number
+                entryPrice:
+                  type: string
+                unrealizedPnL:
+                  type: number
+            shortExchange:
+              type: object
+              properties:
+                name:
+                  type: string
+                currentPrice:
+                  type: number
+                entryPrice:
+                  type: string
+                unrealizedPnL:
+                  type: number
+            estimatedPnL:
+              type: object
+              properties:
+                priceDiffPnL:
+                  type: number
+                fees:
+                  type: number
+                netPnL:
+                  type: number
+            updatedAt:
+              type: string
+              format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - message
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: 錯誤代碼
+        message:
+          type: string
+          description: 錯誤訊息

@@ -1,0 +1,300 @@
+openapi: 3.0.3
+info:
+  title: Manual Open Position API
+  description: API for manual position opening in cross-exchange arbitrage
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: Next.js API Routes
+
+paths:
+  /positions:
+    get:
+      summary: List user positions
+      description: Get all positions for the authenticated user
+      operationId: listPositions
+      tags:
+        - Positions
+      parameters:
+        - name: status
+          in: query
+          description: Filter by position status
+          schema:
+            type: string
+            enum: [PENDING, OPENING, OPEN, CLOSING, CLOSED, FAILED, PARTIAL]
+        - name: symbol
+          in: query
+          description: Filter by trading symbol
+          schema:
+            type: string
+            example: BTCUSDT
+      responses:
+        '200':
+          description: List of positions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  positions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Position'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /positions/open:
+    post:
+      summary: Open a new hedge position
+      description: |
+        Opens a hedge position by executing long and short orders on two different exchanges.
+        This operation is protected by a distributed lock to prevent concurrent execution.
+      operationId: openPosition
+      tags:
+        - Positions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenPositionRequest'
+      responses:
+        '200':
+          description: Position opened successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenPositionResponse'
+        '400':
+          description: Validation error or insufficient balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Concurrent operation in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error or partial failure
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /balances:
+    get:
+      summary: Get exchange balances
+      description: Get available USDT balance from specified exchanges
+      operationId: getBalances
+      tags:
+        - Balances
+      parameters:
+        - name: exchanges
+          in: query
+          required: true
+          description: Comma-separated list of exchanges
+          schema:
+            type: string
+            example: binance,okx
+      responses:
+        '200':
+          description: Balance information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalancesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  schemas:
+    OpenPositionRequest:
+      type: object
+      required:
+        - symbol
+        - longExchange
+        - shortExchange
+        - positionSizeUsdt
+      properties:
+        symbol:
+          type: string
+          description: Trading pair symbol
+          example: BTCUSDT
+        longExchange:
+          type: string
+          enum: [binance, okx, mexc, gateio]
+          description: Exchange for long position
+          example: binance
+        shortExchange:
+          type: string
+          enum: [binance, okx, mexc, gateio]
+          description: Exchange for short position
+          example: okx
+        positionSizeUsdt:
+          type: number
+          minimum: 10
+          maximum: 100000
+          description: Position size in USDT
+          example: 1000
+        leverage:
+          type: integer
+          enum: [1, 2]
+          default: 1
+          description: Leverage multiplier
+
+    OpenPositionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        position:
+          $ref: '#/components/schemas/Position'
+        trades:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trade'
+        message:
+          type: string
+          example: Position opened successfully
+
+    Position:
+      type: object
+      properties:
+        id:
+          type: string
+          example: clxxx123
+        userId:
+          type: string
+        symbol:
+          type: string
+          example: BTCUSDT
+        longExchange:
+          type: string
+          example: binance
+        shortExchange:
+          type: string
+          example: okx
+        leverage:
+          type: integer
+          example: 2
+        status:
+          type: string
+          enum: [PENDING, OPENING, OPEN, CLOSING, CLOSED, FAILED, PARTIAL]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        trades:
+          type: array
+          items:
+            $ref: '#/components/schemas/Trade'
+
+    Trade:
+      type: object
+      properties:
+        id:
+          type: string
+        positionId:
+          type: string
+        exchange:
+          type: string
+          example: binance
+        side:
+          type: string
+          enum: [LONG, SHORT]
+        action:
+          type: string
+          enum: [OPEN, CLOSE]
+        orderId:
+          type: string
+          nullable: true
+        quantity:
+          type: string
+          description: Decimal string
+          example: "0.05"
+        price:
+          type: string
+          description: Decimal string
+          example: "42150.50"
+        fee:
+          type: string
+          description: Decimal string
+          example: "0.42"
+        status:
+          type: string
+          enum: [PENDING, FILLED, FAILED]
+        executedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    BalancesResponse:
+      type: object
+      properties:
+        balances:
+          type: array
+          items:
+            type: object
+            properties:
+              exchange:
+                type: string
+                example: binance
+              available:
+                type: number
+                description: Available USDT balance
+                example: 5000.50
+              total:
+                type: number
+                description: Total USDT balance
+                example: 6000.00
+              status:
+                type: string
+                enum: [success, error]
+              error:
+                type: string
+                nullable: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: INSUFFICIENT_BALANCE
+        message:
+          type: string
+          example: "Insufficient balance on OKX: required 1100 USDT, available 500 USDT"
+        details:
+          type: object
+          additionalProperties: true
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: UNAUTHORIZED
+              message:
+                type: string
+                example: Please log in to continue
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+
+security:
+  - cookieAuth: []

@@ -112,7 +112,8 @@
       "Bash(npx next build)",
       "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/026-discord-slack-notification/checklists\" ])",
       "WebFetch(domain:futures.mexc.com)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "WebFetch(domain:www.okx.com)"
     ],
     "deny": [],
     "ask": []

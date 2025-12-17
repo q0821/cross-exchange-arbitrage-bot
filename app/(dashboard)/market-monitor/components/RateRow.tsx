@@ -17,6 +17,7 @@ import { formatFundingInterval } from '../utils/formatters';
 import { FeeEstimateTooltip } from './FeeEstimateTooltip';
 import { PaybackTooltip } from './PaybackTooltip';
 import { TrackButton } from './TrackButton';
+import { OpenPositionButton } from './OpenPositionButton';
 import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
 import { calculatePaybackPeriods } from '../utils/rateCalculations';
 import { getPriceRiskLevel, PRICE_DIFF_WARNING_THRESHOLD } from '@/lib/priceRisk';
@@ -60,12 +61,7 @@ export const RateRow = React.memo(function RateRow({
     }
   };
 
-  const handleQuickOpen = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 防止觸發行點擊事件
-    if (onQuickOpen) {
-      onQuickOpen(rate);
-    }
-  };
+  // 現在直接在 onClick 中調用 onQuickOpen，不需要單獨的處理函數
 
   // Feature 020 + Feature 023: 複製套利資訊到剪貼板
   const handleCopy = async (e: React.MouseEvent) => {
@@ -489,13 +485,12 @@ export const RateRow = React.memo(function RateRow({
             />
           )}
 
-          {rate.status === 'opportunity' && (
-            <button
-              onClick={handleQuickOpen}
-              className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              快速開倉
-            </button>
+          {/* Feature 033: 開倉按鈕 - 只在 opportunity 狀態顯示 (T031, T033) */}
+          {onQuickOpen && rate.status === 'opportunity' && rate.bestPair && (
+            <OpenPositionButton
+              disabled={false}
+              onClick={() => onQuickOpen(rate)}
+            />
           )}
         </div>
       </td>

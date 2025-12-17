@@ -15,10 +15,13 @@ import { StatsCard } from './components/StatsCard';
 import { SymbolSelector } from './components/SymbolSelector';
 import { TimeBasisSelector } from './components/TimeBasisSelector';
 import { StartTrackingDialog } from './components/StartTrackingDialog';
+import { OpenPositionDialog } from './components/OpenPositionDialog';
+import { RollbackFailedAlert } from './components/RollbackFailedAlert';
 import { useMarketRates } from './hooks/useMarketRates';
 import { useSymbolGroups } from './hooks/useSymbolGroups';
 import { useTableSort } from './hooks/useTableSort';
 import { useTrackingStatus } from './hooks/useTrackingStatus';
+import { useOpenPosition } from './hooks/useOpenPosition';
 import type { MarketRate } from './types';
 
 /**
@@ -53,6 +56,23 @@ export default function MarketMonitorPage() {
     openDialog: openTrackingDialog,
     closeDialog: closeTrackingDialog,
   } = useTrackingStatus();
+
+  // Feature 033: 開倉功能
+  const {
+    selectedRate: openPositionRate,
+    isDialogOpen: isOpenPositionDialogOpen,
+    isLoading: openPositionLoading,
+    error: openPositionError,
+    balances,
+    isLoadingBalances,
+    openDialog: openPositionDialog,
+    closeDialog: closeOpenPositionDialog,
+    executeOpen,
+    refreshMarketData,
+    requiresManualIntervention,
+    rollbackFailedDetails,
+    clearRollbackFailed,
+  } = useOpenPosition();
 
   // 根據選中的群組過濾費率數據 (Feature 009: 使用 Map)
   const filteredRatesMap = useMemo(() => {
@@ -120,12 +140,10 @@ export default function MarketMonitorPage() {
     // TODO: 顯示詳情對話框或導航到詳情頁面
   };
 
-  // 處理快速開倉
+  // 處理快速開倉 (Feature 033)
   const handleQuickOpen = (rate: MarketRate) => {
     console.log('[MarketMonitor] Quick open:', rate);
-    // TODO: 打開開倉對話框
-    const spreadPercent = rate.bestPair?.spreadPercent.toFixed(4) || '0';
-    alert(`快速開倉功能開發中\n交易對: ${rate.symbol}\n費率差異: ${spreadPercent}%`);
+    openPositionDialog(rate);
   };
 
   // 載入狀態
@@ -254,6 +272,32 @@ export default function MarketMonitorPage() {
           });
         }}
       />
+
+      {/* Feature 033: 開倉對話框 */}
+      <OpenPositionDialog
+        isOpen={isOpenPositionDialogOpen}
+        onClose={closeOpenPositionDialog}
+        rate={openPositionRate}
+        onConfirm={executeOpen}
+        isLoading={openPositionLoading}
+        error={openPositionError}
+        balances={balances}
+        isLoadingBalances={isLoadingBalances}
+        onRefreshMarketData={refreshMarketData}
+      />
+
+      {/* Feature 033: 回滾失敗警告 */}
+      {requiresManualIntervention && rollbackFailedDetails && (
+        <RollbackFailedAlert
+          positionId=""
+          exchange={rollbackFailedDetails.exchange}
+          orderId={rollbackFailedDetails.orderId}
+          side={rollbackFailedDetails.side as 'LONG' | 'SHORT'}
+          quantity={rollbackFailedDetails.quantity}
+          symbol={openPositionRate?.symbol}
+          onDismiss={clearRollbackFailed}
+        />
+      )}
 
       {/* 底部提示 */}
       {!isConnected && (

@@ -453,11 +453,15 @@ model Position {
   longEntryPrice       Decimal          @db.Decimal(18, 8)
   longPositionSize     Decimal          @db.Decimal(18, 8)
   longLeverage         Int              @default(3)
+  longExitPrice        Decimal?         @db.Decimal(18, 8) // Feature: 035-close-position
+  longCloseOrderId     String?          @db.VarChar(100)   // Feature: 035-close-position
   shortExchange        String           @db.VarChar(50)
   shortOrderId         String?          @db.VarChar(100)
   shortEntryPrice      Decimal          @db.Decimal(18, 8)
   shortPositionSize    Decimal          @db.Decimal(18, 8)
   shortLeverage        Int              @default(3)
+  shortExitPrice       Decimal?         @db.Decimal(18, 8) // Feature: 035-close-position
+  shortCloseOrderId    String?          @db.VarChar(100)   // Feature: 035-close-position
   status               PositionWebStatus @default(PENDING)
   openFundingRateLong  Decimal          @db.Decimal(10, 8)
   openFundingRateShort Decimal          @db.Decimal(10, 8)
@@ -500,15 +504,18 @@ model Trade {
   longEntryPrice      Decimal      @db.Decimal(18, 8)
   longExitPrice       Decimal      @db.Decimal(18, 8)
   longPositionSize    Decimal      @db.Decimal(18, 8)
+  longFee             Decimal      @default(0) @db.Decimal(18, 8) // Feature: 035-close-position
   shortExchange       String       @db.VarChar(50)
   shortEntryPrice     Decimal      @db.Decimal(18, 8)
   shortExitPrice      Decimal      @db.Decimal(18, 8)
   shortPositionSize   Decimal      @db.Decimal(18, 8)
+  shortFee            Decimal      @default(0) @db.Decimal(18, 8) // Feature: 035-close-position
   openedAt            DateTime     @db.Timestamptz
   closedAt            DateTime     @db.Timestamptz
   holdingDuration     Int          // seconds
   priceDiffPnL        Decimal      @db.Decimal(18, 8)
   fundingRatePnL      Decimal      @db.Decimal(18, 8)
+  totalFees           Decimal      @default(0) @db.Decimal(18, 8) // Feature: 035-close-position
   totalPnL            Decimal      @db.Decimal(18, 8)
   roi                 Decimal      @db.Decimal(10, 4)
   status              TradeWebStatus @default(SUCCESS)

@@ -42,6 +42,9 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - PostgreSQL 15 + TimescaleDB extension (existing) (031-asset-tracking-history)
 - TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象庫，已安裝) (032-mexc-gateio-assets)
 - PostgreSQL 15 + TimescaleDB (現有 AssetSnapshot 模型已有 mexcBalanceUSD 和 gateioBalanceUSD 欄位) (032-mexc-gateio-assets)
+- PostgreSQL 15 + TimescaleDB（現有 HedgePosition、TradeRecord 模型） (033-manual-open-position)
+- TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1, CCXT 4.x, Decimal.js (035-close-position)
+- PostgreSQL 15 + TimescaleDB (現有 Position、Trade 模型) (035-close-position)
 
 ## Project Structure
 ```
@@ -56,9 +59,69 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 035-close-position: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1, CCXT 4.x, Decimal.js
+- 033-manual-open-position: Added TypeScript 5.6 + Node.js 20.x LTS
 - 032-mexc-gateio-assets: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象庫，已安裝)
-- 031-asset-tracking-history: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14.2.33 (App Router), Prisma 5.22.0, Socket.io 4.8.1, Recharts 2.15.4, CCXT 4.5.11, @binance/connector 3.6.1
-- 030-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (已安裝)
 
 <!-- MANUAL ADDITIONS START -->
+
+## Feature 033: Manual Open Position
+
+### Key Paths
+- **開倉服務**: `src/services/trading/PositionOrchestrator.ts` - Saga Pattern 雙邊開倉協調器
+- **分散式鎖**: `src/services/trading/PositionLockService.ts` - Redis 分散式鎖
+- **餘額驗證**: `src/services/trading/BalanceValidator.ts` - 保證金計算
+- **審計日誌**: `src/services/trading/AuditLogger.ts` - 交易操作記錄
+- **WebSocket 進度**: `src/services/websocket/PositionProgressEmitter.ts` - 開倉進度推送
+
+### API Endpoints
+- `GET /api/balances` - 查詢用戶交易所餘額
+- `POST /api/positions/open` - 執行雙邊開倉
+- `GET /api/positions` - 查詢持倉列表
+- `GET /api/market-data/refresh` - 刷新市場數據
+
+### Frontend Components
+- `app/(dashboard)/market-monitor/components/OpenPositionDialog.tsx` - 開倉對話框
+- `app/(dashboard)/market-monitor/components/OpenPositionButton.tsx` - 開倉按鈕
+- `app/(dashboard)/market-monitor/components/PositionProgressOverlay.tsx` - 進度覆蓋層
+- `app/(dashboard)/market-monitor/components/RollbackFailedAlert.tsx` - 回滾失敗警告
+- `app/(dashboard)/positions/page.tsx` - 持倉列表頁面
+- `app/(dashboard)/positions/components/PositionCard.tsx` - 持倉卡片
+
+### Hooks
+- `app/(dashboard)/market-monitor/hooks/useOpenPosition.ts` - 開倉邏輯管理
+
+## Feature 035: Close Position (一鍵平倉)
+
+### Key Paths
+- **平倉服務**: `src/services/trading/PositionCloser.ts` - 雙邊平倉協調器
+- **審計日誌**: `src/services/trading/AuditLogger.ts` - 平倉操作記錄
+- **WebSocket 進度**: `src/services/websocket/PositionProgressEmitter.ts` - 平倉進度推送
+- **PnL 計算**: `src/lib/pnl-calculator.ts` - 損益計算工具
+
+### API Endpoints
+- `POST /api/positions/[id]/close` - 執行雙邊平倉
+- `GET /api/positions/[id]/market-data` - 獲取平倉前市場數據
+- `GET /api/trades` - 查詢交易績效歷史
+
+### Frontend Components
+- `app/(dashboard)/positions/page.tsx` - 持倉列表頁面（含平倉功能）
+- `app/(dashboard)/positions/components/PositionCard.tsx` - 持倉卡片
+- `app/(dashboard)/positions/components/ClosePositionDialog.tsx` - 平倉確認對話框
+- `app/(dashboard)/positions/components/CloseProgressOverlay.tsx` - 平倉進度覆蓋層
+- `app/(dashboard)/positions/components/PartialCloseAlert.tsx` - 部分平倉警告
+- `app/(dashboard)/positions/components/ClosePositionErrorBoundary.tsx` - 錯誤邊界
+- `app/(dashboard)/trades/page.tsx` - 交易歷史頁面
+- `app/(dashboard)/trades/components/TradeCard.tsx` - 交易績效卡片
+- `app/(dashboard)/trades/components/TradeCardSkeleton.tsx` - 載入骨架
+
+### Hooks
+- `app/(dashboard)/positions/hooks/useClosePosition.ts` - 平倉邏輯管理（含 WebSocket 監聽）
+
+### WebSocket Events
+- `position:close:progress` - 平倉進度更新
+- `position:close:success` - 平倉成功
+- `position:close:failed` - 平倉失敗
+- `position:close:partial` - 部分平倉
+
 <!-- MANUAL ADDITIONS END -->
