@@ -336,8 +336,13 @@ export const RateRow = React.memo(function RateRow({
             const riskLevel = getPriceRiskLevel(priceDiff);
 
             // 格式化價差顯示
-            const formatPriceDiff = (value: number) =>
-              `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+            const formatPriceDiff = (value: number | string | null | undefined) => {
+              const numValue = typeof value === 'string' ? parseFloat(value) : value;
+              if (numValue === null || numValue === undefined || Number.isNaN(numValue)) {
+                return 'N/A';
+              }
+              return `${numValue >= 0 ? '+' : ''}${numValue.toFixed(2)}%`;
+            };
 
             if (riskLevel === 'unknown') {
               // 無價差資訊
@@ -378,7 +383,7 @@ export const RateRow = React.memo(function RateRow({
                     >
                       <div className="font-semibold mb-1">價差警告</div>
                       <div>
-                        價差 {Math.abs(priceDiff!).toFixed(2)}% 超過 {PRICE_DIFF_WARNING_THRESHOLD}%，
+                        價差 {Math.abs(typeof priceDiff === 'string' ? parseFloat(priceDiff) : priceDiff ?? 0).toFixed(2)}% 超過 {PRICE_DIFF_WARNING_THRESHOLD}%，
                         開倉成本較高，請評估是否值得進場。
                       </div>
                       <Tooltip.Arrow className="fill-orange-900" />
