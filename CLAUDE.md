@@ -40,6 +40,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - N/A（純前端功能，資料已存在於 API 回應中） (030-specify-scripts-bash)
 - TypeScript 5.6 + Node.js 20.x LTS + Next.js 14.2.33 (App Router), Prisma 5.22.0, Socket.io 4.8.1, Recharts 2.15.4, CCXT 4.5.11, @binance/connector 3.6.1 (031-asset-tracking-history)
 - PostgreSQL 15 + TimescaleDB extension (existing) (031-asset-tracking-history)
+- TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象庫，已安裝) (032-mexc-gateio-assets)
+- PostgreSQL 15 + TimescaleDB (現有 AssetSnapshot 模型已有 mexcBalanceUSD 和 gateioBalanceUSD 欄位) (032-mexc-gateio-assets)
 
 ## Project Structure
 ```
@@ -54,9 +56,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 032-mexc-gateio-assets: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象庫，已安裝)
 - 031-asset-tracking-history: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14.2.33 (App Router), Prisma 5.22.0, Socket.io 4.8.1, Recharts 2.15.4, CCXT 4.5.11, @binance/connector 3.6.1
 - 030-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (已安裝)
-- 029-simulated-apy-tracking: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 (App Router), React 18, Prisma 5.x, Socket.io 4.8.1, Tailwind CSS
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->
