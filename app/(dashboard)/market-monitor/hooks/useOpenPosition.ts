@@ -89,22 +89,36 @@ export function useOpenPosition(): UseOpenPositionReturn {
 
   /**
    * 獲取用戶餘額
+   * @param exchanges 要查詢的交易所列表
    */
-  const fetchBalances = useCallback(async () => {
+  const fetchBalances = useCallback(async (exchanges: string[]) => {
+    if (exchanges.length === 0) {
+      console.warn('[useOpenPosition] No exchanges provided for balance fetch');
+      return;
+    }
+
     setIsLoadingBalances(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/balances');
+      const exchangeParam = exchanges.join(',');
+      const response = await fetch(`/api/balances?exchanges=${exchangeParam}`);
       const data = await response.json();
 
-      if (data.success) {
-        setBalances(data.data.balances || {});
+      if (data.success && data.data?.balances) {
+        // 將陣列格式轉換為物件格式 { exchange: balance }
+        const balanceMap: Record<string, number> = {};
+        for (const item of data.data.balances) {
+          balanceMap[item.exchange] = item.available ?? 0;
+        }
+        setBalances(balanceMap);
       } else {
-        console.error('Failed to fetch balances:', data.error);
+        console.error('[useOpenPosition] Failed to fetch balances:', data.error);
+        setError('無法獲取餘額資訊');
       }
     } catch (err) {
-      console.error('Error fetching balances:', err);
+      console.error('[useOpenPosition] Error fetching balances:', err);
+      setError('獲取餘額時發生錯誤');
     } finally {
       setIsLoadingBalances(false);
     }
@@ -121,8 +135,13 @@ export function useOpenPosition(): UseOpenPositionReturn {
     setRequiresManualIntervention(false);
     setRollbackFailedDetails(null);
 
-    // 獲取餘額
-    fetchBalances();
+    // 從 bestPair 中提取交易所並獲取餘額
+    if (rate.bestPair) {
+      const exchanges = [rate.bestPair.longExchange, rate.bestPair.shortExchange];
+      fetchBalances(exchanges);
+    } else {
+      console.warn('[useOpenPosition] No bestPair available for rate:', rate.symbol);
+    }
   }, [fetchBalances]);
 
   /**
