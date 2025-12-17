@@ -6,8 +6,8 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { logger } from '../../lib/logger.js';
-import type { AuditAction, AuditLogDetails, SupportedExchange } from '../../types/trading.js';
+import { logger } from '../../lib/logger';
+import type { AuditAction, AuditLogDetails, SupportedExchange } from '../../types/trading';
 
 /**
  * AuditLogger

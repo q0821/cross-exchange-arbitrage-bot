@@ -17,7 +17,7 @@ import {
   SAFETY_MARGIN_RATE,
   TOTAL_COST_RATE,
   FUNDING_SETTLEMENTS_PER_YEAR,
-} from './cost-constants.js';
+} from './cost-constants';
 
 /**
  * Cost breakdown structure

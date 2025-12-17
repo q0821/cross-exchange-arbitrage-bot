@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { logger } from './logger.js';
+import { logger } from './logger';
 
 /**
  * Redis Client Singleton

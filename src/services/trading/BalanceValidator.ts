@@ -7,18 +7,18 @@
 
 import { PrismaClient } from '@prisma/client';
 import { Decimal } from 'decimal.js';
-import { logger } from '../../lib/logger.js';
-import { UserConnectorFactory } from '../assets/UserConnectorFactory.js';
+import { logger } from '../../lib/logger';
+import { UserConnectorFactory } from '../assets/UserConnectorFactory';
 import {
   InsufficientBalanceError,
   ApiKeyNotFoundError,
   ExchangeApiError,
   type SupportedExchange,
-} from '../../lib/errors/trading-errors.js';
+} from '../../lib/errors/trading-errors';
 import type {
   BalanceValidationResult,
   LeverageOption,
-} from '../../types/trading.js';
+} from '../../types/trading';
 
 /**
  * 餘額驗證配置

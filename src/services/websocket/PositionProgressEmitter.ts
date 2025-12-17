@@ -6,7 +6,7 @@
  */
 
 import { Server as SocketIOServer, Socket } from 'socket.io';
-import { logger } from '../../lib/logger.js';
+import { logger } from '../../lib/logger';
 import type {
   PositionProgressEvent,
   PositionSuccessEvent,
@@ -20,7 +20,7 @@ import type {
   ClosePartialEvent,
   SupportedExchange,
   TradeSide,
-} from '../../types/trading.js';
+} from '../../types/trading';
 
 /**
  * WebSocket 事件名稱

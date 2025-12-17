@@ -7,23 +7,23 @@
 
 import { PrismaClient, PositionWebStatus, Position } from '@prisma/client';
 import { Decimal } from 'decimal.js';
-import { logger } from '../../lib/logger.js';
-import { decrypt } from '../../lib/encryption.js';
-import { PositionLockService, LockContext } from './PositionLockService.js';
-import { BalanceValidator } from './BalanceValidator.js';
+import { logger } from '../../lib/logger';
+import { decrypt } from '../../lib/encryption';
+import { PositionLockService, LockContext } from './PositionLockService';
+import { BalanceValidator } from './BalanceValidator';
 import {
   TradingError,
   ExchangeApiError,
   RollbackFailedError,
   type SupportedExchange,
-} from '../../lib/errors/trading-errors.js';
+} from '../../lib/errors/trading-errors';
 import type {
   OpenPositionParams,
   ExecuteOpenResult,
   BilateralOpenResult,
   RollbackResult,
   LeverageOption,
-} from '../../types/trading.js';
+} from '../../types/trading';
 
 /**
  * 回滾配置

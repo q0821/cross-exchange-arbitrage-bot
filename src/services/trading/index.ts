@@ -6,9 +6,9 @@
  * Feature: 035-close-position
  */
 
-export { PositionLockService, type LockContext } from './PositionLockService.js';
-export { BalanceValidator } from './BalanceValidator.js';
-export { PositionOrchestrator } from './PositionOrchestrator.js';
-export { AuditLogger } from './AuditLogger.js';
+export { PositionLockService, type LockContext } from './PositionLockService';
+export { BalanceValidator } from './BalanceValidator';
+export { PositionOrchestrator } from './PositionOrchestrator';
+export { AuditLogger } from './AuditLogger';
 // Feature: 035-close-position
-export { PositionCloser, type ClosePositionResult, type ClosePositionSuccessResult, type ClosePositionPartialResult } from './PositionCloser.js';
+export { PositionCloser, type ClosePositionResult, type ClosePositionSuccessResult, type ClosePositionPartialResult } from './PositionCloser';

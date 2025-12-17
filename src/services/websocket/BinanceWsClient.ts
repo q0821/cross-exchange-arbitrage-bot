@@ -8,10 +8,10 @@
 
 import { EventEmitter } from 'events';
 import WebSocket from 'ws';
-import { ReconnectionManager } from '../../lib/websocket/ReconnectionManager.js';
-import { HealthChecker } from '../../lib/websocket/HealthChecker.js';
-import type { PriceData } from '../../types/service-interfaces.js';
-import { logger } from '../../lib/logger.js';
+import { ReconnectionManager } from '../../lib/websocket/ReconnectionManager';
+import { HealthChecker } from '../../lib/websocket/HealthChecker';
+import type { PriceData } from '../../types/service-interfaces';
+import { logger } from '../../lib/logger';
 
 /**
  * Binance WebSocket 配置

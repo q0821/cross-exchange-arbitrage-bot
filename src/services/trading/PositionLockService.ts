@@ -5,9 +5,9 @@
  * Feature: 033-manual-open-position
  */
 
-import { acquireLock, releaseLock } from '../../lib/redis.js';
-import { logger } from '../../lib/logger.js';
-import { LockConflictError } from '../../lib/errors/trading-errors.js';
+import { acquireLock, releaseLock } from '../../lib/redis';
+import { logger } from '../../lib/logger';
+import { LockConflictError } from '../../lib/errors/trading-errors';
 import { randomUUID } from 'crypto';
 
 /**
@@ -118,7 +118,7 @@ export class PositionLockService {
    * @returns 是否持有鎖
    */
   static async isLocked(userId: string, symbol: string): Promise<boolean> {
-    const { getRedisClient } = await import('../../lib/redis.js');
+    const { getRedisClient } = await import('../../lib/redis');
     const redis = getRedisClient();
     const key = this.generateLockKey(userId, symbol);
 

@@ -7,25 +7,25 @@
 
 import { PrismaClient, PositionWebStatus, Position, Trade } from '@prisma/client';
 import { Decimal } from 'decimal.js';
-import { logger } from '../../lib/logger.js';
-import { decrypt } from '../../lib/encryption.js';
-import { acquireLock, releaseLock } from '../../lib/redis.js';
+import { logger } from '../../lib/logger';
+import { decrypt } from '../../lib/encryption';
+import { acquireLock, releaseLock } from '../../lib/redis';
 import { randomUUID } from 'crypto';
 import {
   TradingError,
   ExchangeApiError,
-} from '../../lib/errors/trading-errors.js';
+} from '../../lib/errors/trading-errors';
 import type {
   SupportedExchange,
   ClosePositionParams,
   ExecuteCloseResult,
   BilateralCloseResult,
   TradeSide,
-} from '../../types/trading.js';
+} from '../../types/trading';
 import {
   calculatePnL,
   type PnLCalculationInput,
-} from '../../lib/pnl-calculator.js';
+} from '../../lib/pnl-calculator';
 
 /**
  * 鎖的配置
