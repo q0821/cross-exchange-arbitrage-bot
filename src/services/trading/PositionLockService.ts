@@ -3,9 +3,11 @@
  *
  * 分散式鎖服務，防止同一用戶對同一交易對並發開倉
  * Feature: 033-manual-open-position
+ *
+ * 注意：當 Redis 不可用時，鎖機制會被跳過（單實例部署可接受）
  */
 
-import { acquireLock, releaseLock } from '../../lib/redis';
+import { acquireLock, releaseLock, isRedisConfigured } from '../../lib/redis';
 import { logger } from '../../lib/logger';
 import { LockConflictError } from '../../lib/errors/trading-errors';
 import { randomUUID } from 'crypto';
@@ -29,6 +31,8 @@ export interface LockContext {
   userId: string;
   symbol: string;
   acquiredAt: number;
+  /** 是否為無操作鎖（Redis 不可用時） */
+  isNoOp?: boolean;
 }
 
 /**
@@ -57,6 +61,22 @@ export class PositionLockService {
     const value = randomUUID();
     const acquiredAt = Date.now();
 
+    // 如果 Redis 未配置，跳過鎖機制
+    if (!isRedisConfigured()) {
+      logger.warn(
+        { userId, symbol },
+        'Redis not configured - skipping distributed lock (single instance mode)',
+      );
+      return {
+        key,
+        value,
+        userId,
+        symbol,
+        acquiredAt,
+        isNoOp: true,
+      };
+    }
+
     logger.info({ userId, symbol, key }, 'Attempting to acquire position lock');
 
     const acquired = await acquireLock(key, LOCK_CONFIG.TTL_SECONDS, value);
@@ -84,8 +104,14 @@ export class PositionLockService {
    * @returns 是否成功釋放
    */
   static async release(context: LockContext): Promise<boolean> {
-    const { key, value, userId, symbol, acquiredAt } = context;
+    const { key, value, userId, symbol, acquiredAt, isNoOp } = context;
     const holdDuration = Date.now() - acquiredAt;
+
+    // 如果是無操作鎖，直接返回成功
+    if (isNoOp) {
+      logger.debug({ userId, symbol, holdDuration }, 'No-op lock release (Redis not configured)');
+      return true;
+    }
 
     logger.info(
       { userId, symbol, key, holdDuration },

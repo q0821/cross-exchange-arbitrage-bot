@@ -19,6 +19,37 @@ import { logger } from './logger';
  */
 
 let redisClient: Redis | null = null;
+let redisAvailable: boolean | null = null;
+
+/**
+ * Check if Redis is configured and available
+ */
+export function isRedisConfigured(): boolean {
+  return !!(process.env.REDIS_URL || process.env.REDIS_HOST);
+}
+
+/**
+ * Check if Redis is available (cached result)
+ */
+export function isRedisAvailable(): boolean {
+  // If not configured, it's not available
+  if (!isRedisConfigured()) {
+    return false;
+  }
+  // Return cached result if we've already checked
+  if (redisAvailable !== null) {
+    return redisAvailable;
+  }
+  // Default to true until proven otherwise
+  return true;
+}
+
+/**
+ * Set Redis availability status
+ */
+export function setRedisAvailable(available: boolean): void {
+  redisAvailable = available;
+}
 
 /**
  * Get or create Redis client instance
@@ -84,6 +115,10 @@ export function getRedisClient(): Redis {
 
   redisClient.on('error', (err) => {
     logger.error({ error: err.message }, 'Redis client error');
+    // Mark Redis as unavailable on connection errors
+    if (err.message.includes('ECONNREFUSED') || err.message.includes('ENOTFOUND')) {
+      setRedisAvailable(false);
+    }
   });
 
   redisClient.on('close', () => {
