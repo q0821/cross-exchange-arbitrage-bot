@@ -68,7 +68,7 @@ export function PaybackTooltip({ payback, children }: PaybackTooltipProps) {
                   <span className="text-gray-600">當前價差：</span>
                   <span className="font-mono font-medium text-gray-900">
                     {details.priceDiff !== null
-                      ? `${details.priceDiff >= 0 ? '+' : ''}${details.priceDiff.toFixed(2)}%`
+                      ? `${Number(details.priceDiff) >= 0 ? '+' : ''}${Number(details.priceDiff).toFixed(2)}%`
                       : 'N/A'}
                   </span>
                 </div>
@@ -77,7 +77,7 @@ export function PaybackTooltip({ payback, children }: PaybackTooltipProps) {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">費率差異：</span>
                   <span className="font-mono font-medium text-gray-900">
-                    {details.rateSpread.toFixed(2)}%
+                    {Number(details.rateSpread).toFixed(2)}%
                   </span>
                 </div>
 
