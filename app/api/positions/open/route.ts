@@ -256,7 +256,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 其他錯誤
+    // 其他錯誤 - 詳細記錄以便調試
+    logger.error(
+      {
+        correlationId,
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      },
+      'Open position failed with unexpected error',
+    );
     return handleError(error, correlationId);
   }
 }

@@ -98,6 +98,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       { status: 200 },
     );
   } catch (error) {
+    // 詳細記錄錯誤以便調試
+    logger.error(
+      {
+        correlationId,
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      },
+      'Get balances failed',
+    );
     return handleError(error, correlationId);
   }
 }

@@ -78,7 +78,23 @@ export class BalanceValidator {
   ): Promise<Map<SupportedExchange, number>> {
     logger.info({ userId, exchanges }, 'Fetching user balances');
 
-    const allBalances = await this.userConnectorFactory.getBalancesForUser(userId);
+    let allBalances;
+    try {
+      allBalances = await this.userConnectorFactory.getBalancesForUser(userId);
+      logger.info({ userId, balanceCount: allBalances.length }, 'Got balances from factory');
+    } catch (error) {
+      logger.error(
+        {
+          userId,
+          exchanges,
+          errorName: error instanceof Error ? error.name : 'Unknown',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+        },
+        'Failed to get balances from UserConnectorFactory',
+      );
+      throw error;
+    }
     const balanceMap = new Map<SupportedExchange, number>();
 
     for (const exchange of exchanges) {
