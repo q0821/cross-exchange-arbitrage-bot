@@ -598,7 +598,8 @@ export class PositionOrchestrator {
     };
 
     const exchangeId = exchangeMap[exchange];
-    const ExchangeClass = ccxt[exchangeId];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ExchangeClass = (ccxt as any)[exchangeId];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
@@ -640,7 +641,22 @@ export class PositionOrchestrator {
         }
 
         // 執行市價單
-        const orderParams = isPortfolioMargin ? { portfolioMargin: true } : {};
+        // Binance Portfolio Margin 使用 Hedge Mode，需要指定 positionSide
+        // - 開多倉: side='buy', positionSide='LONG'
+        // - 開空倉: side='sell', positionSide='SHORT'
+        let orderParams: Record<string, unknown>;
+
+        if (isPortfolioMargin) {
+          const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
+          orderParams = {
+            portfolioMargin: true,
+            positionSide,
+          };
+          logger.info({ exchange, symbol, side, positionSide, quantity, leverage }, 'Opening position with Hedge Mode params');
+        } else {
+          orderParams = {};
+        }
+
         const order = await ccxtExchange.createMarketOrder(symbol, side, quantity, undefined, orderParams);
 
         return {
@@ -653,10 +669,25 @@ export class PositionOrchestrator {
 
       closePosition: async (symbol, side, quantity) => {
         // 執行平倉（與開倉方向相反）
+        // Binance Portfolio Margin 使用 Hedge Mode，需要指定 positionSide
+        // - 平多倉: closeSide='sell', positionSide='LONG'
+        // - 平空倉: closeSide='buy', positionSide='SHORT'
         const closeSide = side === 'buy' ? 'sell' : 'buy';
-        const orderParams = isPortfolioMargin
-          ? { reduceOnly: true, portfolioMargin: true }
-          : { reduceOnly: true };
+        let orderParams: Record<string, unknown>;
+
+        if (isPortfolioMargin) {
+          // side='buy' 代表原本是做多，要用 sell 平倉，positionSide='LONG'
+          // side='sell' 代表原本是做空，要用 buy 平倉，positionSide='SHORT'
+          const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
+          orderParams = {
+            portfolioMargin: true,
+            positionSide,
+          };
+          logger.info({ exchange, symbol, closeSide, positionSide, quantity }, 'Closing position with Hedge Mode params');
+        } else {
+          orderParams = { reduceOnly: true };
+        }
+
         const order = await ccxtExchange.createMarketOrder(symbol, closeSide, quantity, undefined, orderParams);
 
         return {

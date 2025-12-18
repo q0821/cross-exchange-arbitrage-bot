@@ -663,7 +663,8 @@ export class PositionCloser {
     };
 
     const exchangeId = exchangeMap[exchange];
-    const ExchangeClass = ccxt[exchangeId];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ExchangeClass = (ccxt as any)[exchangeId];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config: any = {
@@ -694,10 +695,25 @@ export class PositionCloser {
 
     return {
       closePosition: async (symbol, side, quantity) => {
-        // 執行平倉（reduceOnly）
-        const orderParams = isPortfolioMargin
-          ? { reduceOnly: true, portfolioMargin: true }
-          : { reduceOnly: true };
+        // 執行平倉
+        // Binance Portfolio Margin 使用 Hedge Mode，需要指定 positionSide
+        // - 平多倉 (long): side='sell', positionSide='LONG'
+        // - 平空倉 (short): side='buy', positionSide='SHORT'
+        let orderParams: Record<string, unknown>;
+
+        if (isPortfolioMargin) {
+          // Hedge Mode: 使用 positionSide 來平倉
+          const positionSide = side === 'sell' ? 'LONG' : 'SHORT';
+          orderParams = {
+            portfolioMargin: true,
+            positionSide,
+          };
+          logger.info({ exchange, symbol, side, positionSide, quantity }, 'Closing position with Hedge Mode params');
+        } else {
+          // One-way Mode: 使用 reduceOnly
+          orderParams = { reduceOnly: true };
+        }
+
         const order = await ccxtExchange.createMarketOrder(symbol, side, quantity, undefined, orderParams);
 
         return {
