@@ -26,6 +26,7 @@ import {
   calculatePnL,
   type PnLCalculationInput,
 } from '../../lib/pnl-calculator';
+import * as ccxt from 'ccxt';
 
 /**
  * 鎖的配置
@@ -654,9 +655,6 @@ export class PositionCloser {
     passphrase?: string,
     isTestnet: boolean = false,
   ): ExchangeTrader {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const ccxt = require('ccxt');
-
     const exchangeMap: Record<SupportedExchange, string> = {
       binance: 'binance',
       okx: 'okx',
@@ -673,10 +671,17 @@ export class PositionCloser {
       secret: apiSecret,
       sandbox: isTestnet,
       enableRateLimit: true,
+      timeout: 30000, // 30 秒超時
       options: {
         defaultType: 'swap',
       },
     };
+
+    // Binance Portfolio Margin 帳戶需要設定 portfolioMargin 和 defaultType: future
+    if (exchange === 'binance') {
+      config.options.defaultType = 'future';
+      config.options.portfolioMargin = true;
+    }
 
     if (passphrase && exchange === 'okx') {
       config.password = passphrase;
@@ -684,12 +689,16 @@ export class PositionCloser {
 
     const ccxtExchange = new ExchangeClass(config);
 
+    // Binance Portfolio Margin 需要在訂單參數中傳遞 portfolioMargin
+    const isPortfolioMargin = exchange === 'binance';
+
     return {
       closePosition: async (symbol, side, quantity) => {
         // 執行平倉（reduceOnly）
-        const order = await ccxtExchange.createMarketOrder(symbol, side, quantity, undefined, {
-          reduceOnly: true,
-        });
+        const orderParams = isPortfolioMargin
+          ? { reduceOnly: true, portfolioMargin: true }
+          : { reduceOnly: true };
+        const order = await ccxtExchange.createMarketOrder(symbol, side, quantity, undefined, orderParams);
 
         return {
           orderId: order.id,

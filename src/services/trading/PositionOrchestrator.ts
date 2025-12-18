@@ -24,6 +24,7 @@ import type {
   RollbackResult,
   LeverageOption,
 } from '../../types/trading';
+import * as ccxt from 'ccxt';
 
 /**
  * 回滾配置
@@ -589,9 +590,6 @@ export class PositionOrchestrator {
     passphrase?: string,
     isTestnet: boolean = false,
   ): ExchangeTrader {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const ccxt = require('ccxt');
-
     const exchangeMap: Record<SupportedExchange, string> = {
       binance: 'binance',
       okx: 'okx',
@@ -608,10 +606,17 @@ export class PositionOrchestrator {
       secret: apiSecret,
       sandbox: isTestnet,
       enableRateLimit: true,
+      timeout: 30000, // 30 秒超時
       options: {
         defaultType: 'swap',
       },
     };
+
+    // Binance Portfolio Margin 帳戶需要設定 portfolioMargin 和 defaultType: future
+    if (exchange === 'binance') {
+      config.options.defaultType = 'future';
+      config.options.portfolioMargin = true;
+    }
 
     if (passphrase && exchange === 'okx') {
       config.password = passphrase;
@@ -619,19 +624,24 @@ export class PositionOrchestrator {
 
     const ccxtExchange = new ExchangeClass(config);
 
+    // Binance Portfolio Margin 需要在訂單參數中傳遞 portfolioMargin
+    const isPortfolioMargin = exchange === 'binance';
+
     return {
       createMarketOrder: async (symbol, side, quantity, leverage) => {
-        // 設置槓桿
-        if (leverage && leverage !== 1) {
+        // 設置槓桿（始終設定，確保使用正確的槓桿倍數）
+        if (leverage) {
           try {
             await ccxtExchange.setLeverage(leverage, symbol);
+            logger.info({ exchange, symbol, leverage }, 'Leverage set successfully');
           } catch (e) {
             logger.warn({ exchange, symbol, leverage, error: e }, 'Failed to set leverage, continuing...');
           }
         }
 
         // 執行市價單
-        const order = await ccxtExchange.createMarketOrder(symbol, side, quantity);
+        const orderParams = isPortfolioMargin ? { portfolioMargin: true } : {};
+        const order = await ccxtExchange.createMarketOrder(symbol, side, quantity, undefined, orderParams);
 
         return {
           orderId: order.id,
@@ -644,9 +654,10 @@ export class PositionOrchestrator {
       closePosition: async (symbol, side, quantity) => {
         // 執行平倉（與開倉方向相反）
         const closeSide = side === 'buy' ? 'sell' : 'buy';
-        const order = await ccxtExchange.createMarketOrder(symbol, closeSide, quantity, undefined, {
-          reduceOnly: true,
-        });
+        const orderParams = isPortfolioMargin
+          ? { reduceOnly: true, portfolioMargin: true }
+          : { reduceOnly: true };
+        const order = await ccxtExchange.createMarketOrder(symbol, closeSide, quantity, undefined, orderParams);
 
         return {
           orderId: order.id,
