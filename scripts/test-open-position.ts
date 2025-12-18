@@ -25,19 +25,19 @@ async function test() {
 
   try {
     console.log('Attempting to open position...');
-    console.log('  Symbol: BTCUSDT');
+    console.log('  Symbol: FOLKSUSDT');
     console.log('  Long: binance');
     console.log('  Short: gateio');
-    console.log('  Quantity: 0.001');
+    console.log('  Quantity: 1');
     console.log('  Leverage: 1');
     console.log('');
 
     const position = await orchestrator.openPosition({
       userId: user.id,
-      symbol: 'BTCUSDT',
+      symbol: 'FOLKSUSDT',
       longExchange: 'binance',
       shortExchange: 'gateio',
-      quantity: new Decimal(0.001),
+      quantity: new Decimal(1),
       leverage: 1,
     });
 
