@@ -625,8 +625,11 @@ export class PositionOrchestrator {
 
     const ccxtExchange = new ExchangeClass(config);
 
-    // Binance Portfolio Margin 需要在訂單參數中傳遞 portfolioMargin
-    const isPortfolioMargin = exchange === 'binance';
+    // Binance Portfolio Margin 和 OKX 都使用 Hedge Mode
+    // Binance: positionSide='LONG'/'SHORT' (大寫)
+    // OKX: posSide='long'/'short' (小寫)
+    const isBinancePortfolioMargin = exchange === 'binance';
+    const isOkxHedgeMode = exchange === 'okx';
 
     return {
       createMarketOrder: async (symbol, side, quantity, leverage) => {
@@ -641,20 +644,22 @@ export class PositionOrchestrator {
         }
 
         // 執行市價單
-        // Binance Portfolio Margin 使用 Hedge Mode，需要指定 positionSide
-        // - 開多倉: side='buy', positionSide='LONG'
-        // - 開空倉: side='sell', positionSide='SHORT'
-        let orderParams: Record<string, unknown>;
+        // Hedge Mode 需要指定 positionSide/posSide
+        // - 開多倉: side='buy', positionSide='LONG'/posSide='long'
+        // - 開空倉: side='sell', positionSide='SHORT'/posSide='short'
+        let orderParams: Record<string, unknown> = {};
 
-        if (isPortfolioMargin) {
+        if (isBinancePortfolioMargin) {
           const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
           orderParams = {
             portfolioMargin: true,
             positionSide,
           };
-          logger.info({ exchange, symbol, side, positionSide, quantity, leverage }, 'Opening position with Hedge Mode params');
-        } else {
-          orderParams = {};
+          logger.info({ exchange, symbol, side, positionSide, quantity, leverage }, 'Opening position with Binance Hedge Mode params');
+        } else if (isOkxHedgeMode) {
+          const posSide = side === 'buy' ? 'long' : 'short';
+          orderParams = { posSide };
+          logger.info({ exchange, symbol, side, posSide, quantity, leverage }, 'Opening position with OKX Hedge Mode params');
         }
 
         const order = await ccxtExchange.createMarketOrder(symbol, side, quantity, undefined, orderParams);
@@ -669,13 +674,13 @@ export class PositionOrchestrator {
 
       closePosition: async (symbol, side, quantity) => {
         // 執行平倉（與開倉方向相反）
-        // Binance Portfolio Margin 使用 Hedge Mode，需要指定 positionSide
-        // - 平多倉: closeSide='sell', positionSide='LONG'
-        // - 平空倉: closeSide='buy', positionSide='SHORT'
+        // Hedge Mode 需要指定 positionSide/posSide
+        // - 平多倉: closeSide='sell', positionSide='LONG'/posSide='long'
+        // - 平空倉: closeSide='buy', positionSide='SHORT'/posSide='short'
         const closeSide = side === 'buy' ? 'sell' : 'buy';
         let orderParams: Record<string, unknown>;
 
-        if (isPortfolioMargin) {
+        if (isBinancePortfolioMargin) {
           // side='buy' 代表原本是做多，要用 sell 平倉，positionSide='LONG'
           // side='sell' 代表原本是做空，要用 buy 平倉，positionSide='SHORT'
           const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
@@ -683,7 +688,13 @@ export class PositionOrchestrator {
             portfolioMargin: true,
             positionSide,
           };
-          logger.info({ exchange, symbol, closeSide, positionSide, quantity }, 'Closing position with Hedge Mode params');
+          logger.info({ exchange, symbol, closeSide, positionSide, quantity }, 'Closing position with Binance Hedge Mode params');
+        } else if (isOkxHedgeMode) {
+          // side='buy' 代表原本是做多，要用 sell 平倉，posSide='long'
+          // side='sell' 代表原本是做空，要用 buy 平倉，posSide='short'
+          const posSide = side === 'buy' ? 'long' : 'short';
+          orderParams = { posSide };
+          logger.info({ exchange, symbol, closeSide, posSide, quantity }, 'Closing position with OKX Hedge Mode params');
         } else {
           orderParams = { reduceOnly: true };
         }
