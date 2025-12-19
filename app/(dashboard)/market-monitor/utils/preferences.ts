@@ -74,3 +74,101 @@ export function clearTimeBasisPreference(): void {
     console.error('Failed to clear time basis preference:', error);
   }
 }
+
+// ============================================================================
+// Opportunity Threshold Preferences (Feature 036)
+// ============================================================================
+
+export const OPPORTUNITY_THRESHOLD_KEY = 'market-monitor-opportunity-threshold';
+export const DEFAULT_OPPORTUNITY_THRESHOLD = 800;
+export const MIN_THRESHOLD = 1;
+export const MAX_THRESHOLD = 10000;
+
+/**
+ * Check if localStorage is available
+ */
+export function isLocalStorageAvailable(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    const testKey = '__localStorage_test__';
+    localStorage.setItem(testKey, 'test');
+    localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate threshold value is within allowed range
+ */
+export function isValidThreshold(value: number): boolean {
+  return !isNaN(value) && value >= MIN_THRESHOLD && value <= MAX_THRESHOLD;
+}
+
+/**
+ * Get opportunity threshold preference from localStorage
+ * Returns default value (800) if not set or invalid
+ */
+export function getOpportunityThresholdPreference(): number {
+  if (typeof window === 'undefined') {
+    return DEFAULT_OPPORTUNITY_THRESHOLD;
+  }
+
+  try {
+    const stored = localStorage.getItem(OPPORTUNITY_THRESHOLD_KEY);
+    if (!stored) {
+      return DEFAULT_OPPORTUNITY_THRESHOLD;
+    }
+
+    const parsed = parseInt(stored, 10);
+    if (isValidThreshold(parsed)) {
+      return parsed;
+    }
+
+    // Invalid value, reset to default
+    setOpportunityThresholdPreference(DEFAULT_OPPORTUNITY_THRESHOLD);
+    return DEFAULT_OPPORTUNITY_THRESHOLD;
+  } catch (error) {
+    console.error('Failed to load opportunity threshold preference:', error);
+    return DEFAULT_OPPORTUNITY_THRESHOLD;
+  }
+}
+
+/**
+ * Save opportunity threshold preference to localStorage
+ */
+export function setOpportunityThresholdPreference(threshold: number): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    if (!isValidThreshold(threshold)) {
+      console.error('Invalid threshold value:', threshold);
+      return;
+    }
+
+    localStorage.setItem(OPPORTUNITY_THRESHOLD_KEY, threshold.toString());
+  } catch (error) {
+    console.error('Failed to save opportunity threshold preference:', error);
+  }
+}
+
+/**
+ * Clear opportunity threshold preference (reset to default)
+ */
+export function clearOpportunityThresholdPreference(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(OPPORTUNITY_THRESHOLD_KEY);
+  } catch (error) {
+    console.error('Failed to clear opportunity threshold preference:', error);
+  }
+}

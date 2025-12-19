@@ -113,7 +113,8 @@
       "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/026-discord-slack-notification/checklists\" ])",
       "WebFetch(domain:futures.mexc.com)",
       "Bash(docker exec:*)",
-      "WebFetch(domain:www.okx.com)"
+      "WebFetch(domain:www.okx.com)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": []

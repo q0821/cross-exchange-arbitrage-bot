@@ -5,6 +5,7 @@
  * Feature: 006-web-trading-platform (User Story 2.5)
  * Feature: 012-specify-scripts-bash (User Story 1 - T018)
  * Feature: 019-fix-time-basis-switching - 支援前端動態重新計算費率差
+ * Feature: 036-opportunity-threshold-settings - 可配置年化收益門檻
  */
 
 'use client';
@@ -14,7 +15,13 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import type { MarketRate, MarketRatesUpdatePayload, MarketStatsPayload } from '../types';
 import type { MarketStats } from '../components/StatsCard';
 import type { TimeBasis } from '../utils/preferences';
-import { getTimeBasisPreference, setTimeBasisPreference } from '../utils/preferences';
+import {
+  getTimeBasisPreference,
+  setTimeBasisPreference,
+  getOpportunityThresholdPreference,
+  OPPORTUNITY_THRESHOLD_KEY,
+  isValidThreshold,
+} from '../utils/preferences';
 import { recalculateBestPair } from '../utils/rateCalculations';
 
 interface UseMarketRatesReturn {
@@ -34,6 +41,10 @@ interface UseMarketRatesReturn {
   timeBasis: TimeBasis;
   /** 設置時間基準 */
   setTimeBasis: (basis: TimeBasis) => void;
+  /** 當前年化收益門檻 (Feature 036) */
+  opportunityThreshold: number;
+  /** 設置年化收益門檻 (Feature 036) */
+  setOpportunityThreshold: (threshold: number) => void;
 }
 
 /**
@@ -41,6 +52,7 @@ interface UseMarketRatesReturn {
  * 自動訂閱 WebSocket 事件並管理即時費率數據
  *
  * Feature 012: 支援標準化費率時間基準選擇
+ * Feature 036: 支援可配置年化收益門檻
  */
 export function useMarketRates(): UseMarketRatesReturn {
   const [ratesMap, setRatesMap] = useState<Map<string, MarketRate>>(new Map());
@@ -48,6 +60,10 @@ export function useMarketRates(): UseMarketRatesReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [timeBasis, setTimeBasisState] = useState<TimeBasis>(() => getTimeBasisPreference());
+  // Feature 036: 年化收益門檻狀態
+  const [opportunityThreshold, setOpportunityThresholdState] = useState<number>(
+    () => getOpportunityThresholdPreference()
+  );
 
   // WebSocket 連線
   const { isConnected, on, off, emit } = useWebSocket({
@@ -77,22 +93,30 @@ export function useMarketRates(): UseMarketRatesReturn {
     }
   }, [isConnected, emit]);
 
-  // 處理費率更新 (根據當前 timeBasis 重新計算 bestPair)
+  // Feature 036: 處理年化收益門檻變更
+  const handleSetOpportunityThreshold = useCallback((threshold: number) => {
+    setOpportunityThresholdState(threshold);
+    // 注意：門檻的 localStorage 儲存由 useOpportunityThreshold hook 負責
+    // 這裡只更新本地狀態，用於重新計算費率
+  }, []);
+
+  // 處理費率更新 (根據當前 timeBasis 和 opportunityThreshold 重新計算 bestPair)
   // Feature 019: 前端即時計算最佳套利對
+  // Feature 036: 使用可配置門檻
   const handleRatesUpdate = useCallback((event: MarketRatesUpdatePayload) => {
     console.log('[useMarketRates] Rates updated:', event.data.rates.length, 'rates');
     setRatesMap((prev) => {
       const next = new Map(prev);
       event.data.rates.forEach((rate) => {
-        // 根據當前 timeBasis 重新計算 bestPair
-        const recalculatedRate = recalculateBestPair(rate, timeBasis);
+        // 根據當前 timeBasis 和 opportunityThreshold 重新計算 bestPair
+        const recalculatedRate = recalculateBestPair(rate, timeBasis, opportunityThreshold);
         next.set(rate.symbol, recalculatedRate); // O(1) update per symbol
       });
       return next;
     });
     setIsLoading(false);
     setError(null);
-  }, [timeBasis]);
+  }, [timeBasis, opportunityThreshold]);
 
   // 處理統計更新
   const handleStatsUpdate = useCallback((event: MarketStatsPayload) => {
@@ -117,7 +141,7 @@ export function useMarketRates(): UseMarketRatesReturn {
     };
   }, [isConnected, on, off, handleRatesUpdate, handleStatsUpdate]);
 
-  // Feature 019: 當 timeBasis 變更時，重新計算所有已快取的費率
+  // Feature 019/036: 當 timeBasis 或 opportunityThreshold 變更時，重新計算所有已快取的費率
   useEffect(() => {
     setRatesMap((prev) => {
       // 如果沒有數據，不需要重新計算
@@ -125,17 +149,33 @@ export function useMarketRates(): UseMarketRatesReturn {
         return prev;
       }
 
-      console.log('[useMarketRates] Recalculating all rates for timeBasis:', timeBasis);
+      console.log('[useMarketRates] Recalculating all rates for timeBasis:', timeBasis, 'threshold:', opportunityThreshold);
       const next = new Map<string, MarketRate>();
 
       prev.forEach((rate, symbol) => {
-        const recalculatedRate = recalculateBestPair(rate, timeBasis);
+        const recalculatedRate = recalculateBestPair(rate, timeBasis, opportunityThreshold);
         next.set(symbol, recalculatedRate);
       });
 
       return next;
     });
-  }, [timeBasis]);
+  }, [timeBasis, opportunityThreshold]);
+
+  // Feature 036: 跨標籤頁同步門檻變更
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === OPPORTUNITY_THRESHOLD_KEY && event.newValue) {
+        const newThreshold = parseInt(event.newValue, 10);
+        if (isValidThreshold(newThreshold)) {
+          console.log('[useMarketRates] Threshold updated from another tab:', newThreshold);
+          setOpportunityThresholdState(newThreshold);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // 手動重新載入（從 REST API）
   const reload = useCallback(async () => {
@@ -183,5 +223,7 @@ export function useMarketRates(): UseMarketRatesReturn {
     reload,
     timeBasis,
     setTimeBasis: handleSetTimeBasis,
+    opportunityThreshold,
+    setOpportunityThreshold: handleSetOpportunityThreshold,
   };
 }

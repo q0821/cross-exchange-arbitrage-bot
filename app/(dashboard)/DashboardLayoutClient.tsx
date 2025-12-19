@@ -38,6 +38,7 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
     { href: '/trades', label: '交易歷史' }, // Feature 035
     { href: '/settings/api-keys', label: 'API 金鑰管理' },
     { href: '/settings/notifications', label: '通知設定' },
+    { href: '/settings/trading', label: '交易設定' }, // Feature 036
   ];
 
   return (

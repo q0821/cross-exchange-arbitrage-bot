@@ -4,6 +4,7 @@
  * 根據用戶選擇的時間基準重新計算最佳套利對
  * Feature 019: 修復費率差異根據時間基準動態計算
  * Feature 022: 年化收益門檻套利機會偵測
+ * Feature 036: 可配置年化收益門檻
  */
 
 import type {
@@ -120,13 +121,17 @@ function calculatePriceDiff(
  * 此函數會遍歷所有交易所對，找出利差最大的兩個交易所，
  * 並計算對應的費率差、年化收益等資訊。
  *
+ * Feature 036: 新增可配置年化收益門檻參數
+ *
  * @param rate 原始市場費率數據
  * @param timeBasis 目標時間基準（1, 4, 8, 24 小時）
+ * @param opportunityThreshold 可選的年化收益門檻（預設 800%）
  * @returns 更新後的市場費率數據（包含重新計算的 bestPair）
  */
 export function recalculateBestPair(
   rate: MarketRate,
-  timeBasis: TimeBasis
+  timeBasis: TimeBasis,
+  opportunityThreshold: number = DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED
 ): MarketRate {
   const exchangeNames = Object.keys(rate.exchanges) as ExchangeName[];
 
@@ -187,13 +192,15 @@ export function recalculateBestPair(
     }
   }
 
-  // 確定狀態（Feature 022: 使用年化收益門檻）
+  // 確定狀態（Feature 022/036: 使用可配置年化收益門檻）
+  // 接近門檻 = 主門檻 × 75%
+  const approachingThreshold = opportunityThreshold * APPROACHING_THRESHOLD_RATIO;
   let status: 'opportunity' | 'approaching' | 'normal' = 'normal';
   if (bestPair) {
     const annualizedReturn = bestPair.annualizedReturn;
-    if (annualizedReturn >= DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED) {
+    if (annualizedReturn >= opportunityThreshold) {
       status = 'opportunity';
-    } else if (annualizedReturn >= DEFAULT_APPROACHING_THRESHOLD_ANNUALIZED) {
+    } else if (annualizedReturn >= approachingThreshold) {
       status = 'approaching';
     }
   }
@@ -208,15 +215,19 @@ export function recalculateBestPair(
 /**
  * 批量重新計算所有費率的最佳套利對
  *
+ * Feature 036: 新增可配置年化收益門檻參數
+ *
  * @param rates 費率陣列
  * @param timeBasis 目標時間基準
+ * @param opportunityThreshold 可選的年化收益門檻（預設 800%）
  * @returns 更新後的費率陣列
  */
 export function recalculateAllBestPairs(
   rates: MarketRate[],
-  timeBasis: TimeBasis
+  timeBasis: TimeBasis,
+  opportunityThreshold: number = DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED
 ): MarketRate[] {
-  return rates.map((rate) => recalculateBestPair(rate, timeBasis));
+  return rates.map((rate) => recalculateBestPair(rate, timeBasis, opportunityThreshold));
 }
 
 // ============================================================================
