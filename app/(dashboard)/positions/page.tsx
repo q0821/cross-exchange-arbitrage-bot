@@ -4,6 +4,7 @@
  *
  * Feature 033: Manual Open Position (T018)
  * Feature 035: Close Position (T011)
+ * Feature 037: Mark Position Closed (T006)
  */
 
 'use client';
@@ -46,6 +47,7 @@ export default function PositionsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [markingAsClosedId, setMarkingAsClosedId] = useState<string | null>(null);
 
   // 平倉功能
   const closePosition = useClosePosition();
@@ -104,6 +106,37 @@ export default function PositionsPage() {
    */
   const handleCancelClose = () => {
     closePosition.cancelClose();
+  };
+
+  /**
+   * 處理標記已平倉
+   */
+  const handleMarkAsClosed = async (positionId: string) => {
+    setMarkingAsClosedId(positionId);
+    try {
+      const response = await fetch(`/api/positions/${positionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'markAsClosed' }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 成功，刷新列表
+        await fetchPositions();
+      } else {
+        // 顯示錯誤
+        setError(data.error?.message || '標記失敗');
+      }
+    } catch (err) {
+      console.error('Failed to mark position as closed:', err);
+      setError('標記持倉時發生錯誤');
+    } finally {
+      setMarkingAsClosedId(null);
+    }
   };
 
   // 找到正在平倉的持倉
@@ -181,7 +214,12 @@ export default function PositionsPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {partialPositions.map((position) => (
-                <PositionCard key={position.id} position={position} />
+                <PositionCard
+                  key={position.id}
+                  position={position}
+                  onMarkAsClosed={handleMarkAsClosed}
+                  isMarkingAsClosed={markingAsClosedId === position.id}
+                />
               ))}
             </div>
           </div>
@@ -305,6 +343,8 @@ export default function PositionsPage() {
                   position={position}
                   onClose={handleClosePosition}
                   isClosing={closePosition.closingPositionId === position.id && closePosition.isLoading}
+                  onMarkAsClosed={handleMarkAsClosed}
+                  isMarkingAsClosed={markingAsClosedId === position.id}
                 />
               ))}
             </div>
@@ -339,7 +379,12 @@ export default function PositionsPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {failedPositions.map((position) => (
-                <PositionCard key={position.id} position={position} />
+                <PositionCard
+                  key={position.id}
+                  position={position}
+                  onMarkAsClosed={handleMarkAsClosed}
+                  isMarkingAsClosed={markingAsClosedId === position.id}
+                />
               ))}
             </div>
           </div>
