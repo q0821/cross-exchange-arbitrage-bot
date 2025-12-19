@@ -1,5 +1,11 @@
 /**
  * 測試開倉流程
+ *
+ * Usage:
+ *   pnpm tsx scripts/test-open-position.ts <symbol> <quantity> <longExchange> <shortExchange>
+ *
+ * Example:
+ *   pnpm tsx scripts/test-open-position.ts BEATUSDT 40 binance okx
  */
 
 import { PrismaClient } from '@prisma/client';
@@ -9,6 +15,13 @@ import { PositionOrchestrator } from '../src/services/trading/PositionOrchestrat
 const prisma = new PrismaClient();
 
 async function test() {
+  // 解析命令列參數
+  const args = process.argv.slice(2);
+  const symbol = args[0] || 'BEATUSDT';
+  const quantity = parseFloat(args[1]) || 40;
+  const longExchange = (args[2] || 'binance') as 'binance' | 'okx' | 'mexc' | 'gateio';
+  const shortExchange = (args[3] || 'okx') as 'binance' | 'okx' | 'mexc' | 'gateio';
+
   // 使用 q0821yeh1@gmail.com 的 userId
   const user = await prisma.user.findFirst({
     where: { email: 'q0821yeh1@gmail.com' }
@@ -25,19 +38,19 @@ async function test() {
 
   try {
     console.log('Attempting to open position...');
-    console.log('  Symbol: FOLKSUSDT');
-    console.log('  Long: binance');
-    console.log('  Short: gateio');
-    console.log('  Quantity: 1');
+    console.log(`  Symbol: ${symbol}`);
+    console.log(`  Long: ${longExchange}`);
+    console.log(`  Short: ${shortExchange}`);
+    console.log(`  Quantity: ${quantity}`);
     console.log('  Leverage: 1');
     console.log('');
 
     const position = await orchestrator.openPosition({
       userId: user.id,
-      symbol: 'FOLKSUSDT',
-      longExchange: 'binance',
-      shortExchange: 'gateio',
-      quantity: new Decimal(1),
+      symbol,
+      longExchange,
+      shortExchange,
+      quantity: new Decimal(quantity),
       leverage: 1,
     });
 
