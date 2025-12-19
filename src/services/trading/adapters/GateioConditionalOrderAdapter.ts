@@ -53,10 +53,10 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
    */
   async cancelConditionalOrder(symbol: string, orderId: string): Promise<boolean> {
     try {
-      // Gate.io 使用 DELETE /futures/usdt/price_orders/{order_id}
-      await this.ccxtExchange.privateFuturesDeletePriceOrdersOrderId({
-        order_id: orderId,
+      // Gate.io 使用 DELETE /futures/{settle}/price_orders/{order_id}
+      await this.ccxtExchange.privateFuturesDeleteSettlePriceOrdersOrderId({
         settle: 'usdt',
+        order_id: orderId,
       });
 
       return true;
@@ -105,6 +105,7 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
       );
 
       // 構建 Price Order 參數
+      // Gate.io API: POST /futures/{settle}/price_orders
       const orderParams = {
         settle: 'usdt',
         contract: exchangeSymbol,
@@ -123,8 +124,8 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
         },
       };
 
-      // 使用 CCXT 的原生 API 調用
-      const response = await this.ccxtExchange.privateFuturesPostPriceOrders(orderParams);
+      // 使用 CCXT 的原生 API 調用 (privateFuturesPostSettlePriceOrders)
+      const response = await this.ccxtExchange.privateFuturesPostSettlePriceOrders(orderParams);
 
       const orderId = response.id?.toString();
 
