@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { OpportunityEndHistoryRepository } from '@/src/repositories/OpportunityEndHistoryRepository';
 import { HistoryQuerySchema } from '@/src/models/OpportunityEndHistory';
 import { handleError } from '@/src/middleware/errorHandler';
@@ -7,7 +7,6 @@ import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 
-const prisma = new PrismaClient();
 const historyRepository = new OpportunityEndHistoryRepository(prisma);
 
 /**

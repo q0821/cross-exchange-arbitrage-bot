@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { SimulatedTrackingService } from '@/src/services/tracking/SimulatedTrackingService';
 import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 import { NotFoundError } from '@/src/lib/errors';
-
-const prisma = new PrismaClient();
 
 interface RouteParams {
   params: Promise<{ id: string }>;

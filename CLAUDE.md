@@ -49,6 +49,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - PostgreSQL 15 + TimescaleDB (現有 Position 模型) (037-specify-scripts-bash)
 - TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x, Prisma 5.x, Socket.io 4.8.1 (038-specify-scripts-bash)
 - PostgreSQL 15 + TimescaleDB (現有 Position 模型擴展) (038-specify-scripts-bash)
+- TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x ORM (039-specify-scripts-bash)
+- PostgreSQL 15 + TimescaleDB (via Docker Compose) (039-specify-scripts-bash)
 
 ## Project Structure
 ```
@@ -63,9 +65,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 039-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x ORM
 - 038-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x, Prisma 5.x, Socket.io 4.8.1
 - 037-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, React 18
-- 035-close-position: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1, CCXT 4.x, Decimal.js
 
 <!-- MANUAL ADDITIONS START -->
 

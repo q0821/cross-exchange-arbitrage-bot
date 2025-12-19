@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { Decimal } from 'decimal.js';
 import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
@@ -28,8 +28,6 @@ import {
   RollbackFailedError,
   formatErrorForResponse,
 } from '@/src/lib/errors/trading-errors';
-
-const prisma = new PrismaClient();
 
 /**
  * POST /api/positions/open

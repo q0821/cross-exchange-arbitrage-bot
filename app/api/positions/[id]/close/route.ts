@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
@@ -20,8 +20,6 @@ import type {
   SupportedExchange,
   TradePerformanceInfo,
 } from '@/src/types/trading';
-
-const prisma = new PrismaClient();
 
 /**
  * POST /api/positions/[id]/close

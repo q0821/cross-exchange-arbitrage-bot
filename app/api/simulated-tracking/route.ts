@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { SimulatedTrackingService } from '@/src/services/tracking/SimulatedTrackingService';
 import {
   CreateTrackingSchema,
@@ -11,8 +11,6 @@ import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 import { ratesCache } from '@/src/services/monitor/RatesCache';
 import { BadRequestError, NotFoundError } from '@/src/lib/errors';
-
-const prisma = new PrismaClient();
 
 /**
  * GET /api/simulated-tracking

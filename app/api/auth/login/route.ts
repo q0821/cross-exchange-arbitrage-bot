@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { AuthService } from '@/src/services/auth/AuthService';
 import { SessionManager } from '@/src/services/auth/SessionManager';
 import { loginSchema } from '@/src/lib/validation';
@@ -7,7 +7,6 @@ import { handleError } from '@/src/middleware/errorHandler';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 
-const prisma = new PrismaClient();
 const authService = new AuthService(prisma);
 
 /**

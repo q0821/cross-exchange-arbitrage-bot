@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { NotificationWebhookRepository } from '@/src/repositories/NotificationWebhookRepository';
 import { CreateWebhookSchema, validateWebhookUrl } from '@/src/models/NotificationWebhook';
 import { handleError } from '@/src/middleware/errorHandler';
@@ -8,7 +8,6 @@ import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 import type { NotificationPlatform } from '@/src/services/notification/types';
 
-const prisma = new PrismaClient();
 const webhookRepository = new NotificationWebhookRepository(prisma);
 
 /**

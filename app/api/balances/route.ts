@@ -6,15 +6,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 import { BalanceValidator } from '@/src/services/trading/BalanceValidator';
 import { GetBalancesRequestSchema, type BalancesResponse, type SupportedExchange } from '@/src/types/trading';
-
-const prisma = new PrismaClient();
 
 /**
  * GET /api/balances?exchanges=binance,okx

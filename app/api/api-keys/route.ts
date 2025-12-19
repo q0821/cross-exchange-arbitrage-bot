@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { ApiKeyService } from '@/src/services/apikey/ApiKeyService';
 import { createApiKeySchema } from '@/src/lib/validation';
 import { handleError } from '@/src/middleware/errorHandler';
@@ -8,7 +8,6 @@ import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 import { decrypt } from '@/src/lib/encryption';
 
-const prisma = new PrismaClient();
 const apiKeyService = new ApiKeyService(prisma);
 
 /**

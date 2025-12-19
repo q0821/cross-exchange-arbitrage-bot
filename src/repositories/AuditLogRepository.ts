@@ -7,7 +7,8 @@
  * Based on FR-053: Record all key operations (login, API key changes, trades)
  */
 
-import { PrismaClient, AuditLog, Prisma } from '@prisma/client';
+import { AuditLog, Prisma, PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/db';
 import { logger } from '../lib/logger.js';
 
 export class AuditLogRepository {
@@ -312,4 +313,4 @@ export class AuditLogRepository {
 }
 
 // Export singleton instance
-export const auditLogRepository = new AuditLogRepository(new PrismaClient());
+export const auditLogRepository = new AuditLogRepository(prisma);

@@ -6,14 +6,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, PositionWebStatus } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
+import { PositionWebStatus } from '@prisma/client';
 import { z } from 'zod';
 import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
-
-const prisma = new PrismaClient();
 
 /**
  * 請求驗證 Schema

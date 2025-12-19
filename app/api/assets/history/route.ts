@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/src/lib/db';
 import { AssetSnapshotService } from '@/src/services/assets/AssetSnapshotService';
 import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 import { BadRequestError } from '@/src/lib/errors';
-
-const prisma = new PrismaClient();
 
 /**
  * GET /api/assets/history

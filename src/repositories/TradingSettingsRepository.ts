@@ -5,10 +5,9 @@
  * Feature: 038-specify-scripts-bash
  */
 
-import { PrismaClient, TradingSettings } from '@prisma/client';
+import { TradingSettings } from '@prisma/client';
+import { prisma } from '../lib/db';
 import type { TradingSettings as TradingSettingsType } from '../types/trading';
-
-const prisma = new PrismaClient();
 
 /**
  * 交易設定預設值

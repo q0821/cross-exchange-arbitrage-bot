@@ -117,7 +117,9 @@
       "Bash(git pull:*)",
       "Bash(http://localhost:3000/api/positions/cmjcpolea000112a1o09syp4e)",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs"
+      "mcp__context7__get-library-docs",
+      "Bash(wc:*)",
+      "Skill(speckit.specify)"
     ],
     "deny": [],
     "ask": []
