@@ -409,6 +409,7 @@ model User {
   opportunityEndHistories OpportunityEndHistory[]
   simulatedTrackings      SimulatedTracking[]
   assetSnapshots          AssetSnapshot[]
+  tradingSettings         TradingSettings?
 
   @@index([email])
   @@map("users")
@@ -472,6 +473,26 @@ model Position {
   createdAt            DateTime         @default(now()) @db.Timestamptz
   updatedAt            DateTime         @updatedAt @db.Timestamptz
 
+  // ===== 停損設定 (Feature 038) =====
+  stopLossEnabled       Boolean   @default(false)
+  stopLossPercent       Decimal?  @db.Decimal(5, 2)  // 0.50 - 50.00
+  longStopLossPrice     Decimal?  @db.Decimal(20, 8)
+  longStopLossOrderId   String?   @db.VarChar(100)
+  shortStopLossPrice    Decimal?  @db.Decimal(20, 8)
+  shortStopLossOrderId  String?   @db.VarChar(100)
+
+  // ===== 停利設定 (Feature 038) =====
+  takeProfitEnabled       Boolean   @default(false)
+  takeProfitPercent       Decimal?  @db.Decimal(5, 2)  // 0.50 - 100.00
+  longTakeProfitPrice     Decimal?  @db.Decimal(20, 8)
+  longTakeProfitOrderId   String?   @db.VarChar(100)
+  shortTakeProfitPrice    Decimal?  @db.Decimal(20, 8)
+  shortTakeProfitOrderId  String?   @db.VarChar(100)
+
+  // ===== 條件單設定狀態 (Feature 038) =====
+  conditionalOrderStatus  ConditionalOrderStatus @default(PENDING)
+  conditionalOrderError   String?                @db.Text
+
   // Relations
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   trade Trade?
@@ -492,6 +513,17 @@ enum PositionWebStatus {
   PARTIAL // 部分成功
 
   @@map("position_web_status")
+}
+
+// ===== 條件單狀態 (Feature 038) =====
+enum ConditionalOrderStatus {
+  PENDING  // 尚未設定
+  SETTING  // 設定中
+  SET      // 設定成功
+  PARTIAL  // 部分成功
+  FAILED   // 設定失敗
+
+  @@map("conditional_order_status")
 }
 
 // ===== 交易記錄 =====
@@ -777,4 +809,28 @@ model AssetSnapshot {
   @@index([userId, recordedAt(sort: Desc)])
   @@index([recordedAt(sort: Desc)])
   @@map("asset_snapshots")
+}
+
+// ===== 交易設定 (Feature 038) =====
+model TradingSettings {
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 停損預設值
+  defaultStopLossEnabled    Boolean  @default(true)
+  defaultStopLossPercent    Decimal  @default(5.00) @db.Decimal(5, 2)
+
+  // 停利預設值
+  defaultTakeProfitEnabled  Boolean  @default(false)
+  defaultTakeProfitPercent  Decimal  @default(3.00) @db.Decimal(5, 2)
+
+  // 其他交易設定
+  defaultLeverage           Int      @default(1)
+  maxPositionSizeUSD        Decimal  @default(10000) @db.Decimal(20, 2)
+
+  createdAt                 DateTime @default(now()) @db.Timestamptz
+  updatedAt                 DateTime @updatedAt @db.Timestamptz
+
+  @@map("trading_settings")
 }

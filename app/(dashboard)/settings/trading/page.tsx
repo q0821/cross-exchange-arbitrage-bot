@@ -1,11 +1,13 @@
 'use client';
 
 import { OpportunityThresholdSettings } from './components/OpportunityThresholdSettings';
+import { StopLossTakeProfitSettings } from './components/StopLossTakeProfitSettings';
 
 /**
  * 交易設定頁面
  *
  * Feature 036: 可配置年化收益門檻
+ * Feature 038: 停損停利預設值管理
  */
 export default function TradingSettingsPage() {
   return (
@@ -17,10 +19,13 @@ export default function TradingSettingsPage() {
         </p>
       </div>
 
+      {/* 停損停利預設值設定 (Feature 038) */}
+      <div className="mb-6">
+        <StopLossTakeProfitSettings />
+      </div>
+
       {/* 年化收益門檻設定 */}
       <OpportunityThresholdSettings />
-
-      {/* 未來可在此新增其他交易設定 */}
     </div>
   );
 }

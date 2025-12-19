@@ -17,8 +17,10 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
+  Shield,
+  Target,
 } from 'lucide-react';
-import type { PositionInfo, PositionStatus } from '@/src/types/trading';
+import type { PositionInfo, PositionStatus, ConditionalOrderStatus } from '@/src/types/trading';
 
 interface PositionCardProps {
   position: PositionInfo;
@@ -83,6 +85,41 @@ const STATUS_CONFIG: Record<PositionStatus, {
  */
 const MARKABLE_STATUSES: PositionStatus[] = ['OPEN', 'PARTIAL', 'FAILED'];
 
+/**
+ * 條件單狀態配置 (Feature 038)
+ */
+const CONDITIONAL_ORDER_STATUS_CONFIG: Record<ConditionalOrderStatus, {
+  label: string;
+  color: string;
+  bgColor: string;
+}> = {
+  PENDING: {
+    label: '待設定',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-100',
+  },
+  SETTING: {
+    label: '設定中',
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-100',
+  },
+  SET: {
+    label: '已設定',
+    color: 'text-green-600',
+    bgColor: 'bg-green-100',
+  },
+  PARTIAL: {
+    label: '部分設定',
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-100',
+  },
+  FAILED: {
+    label: '設定失敗',
+    color: 'text-red-600',
+    bgColor: 'bg-red-100',
+  },
+};
+
 export function PositionCard({
   position,
   onClose,
@@ -143,6 +180,70 @@ export function PositionCard({
             <span className="font-medium text-gray-900">{position.leverage}x</span>
           </div>
         </div>
+
+        {/* Stop Loss / Take Profit Info (Feature 038) */}
+        {(position.stopLossEnabled || position.takeProfitEnabled) && (
+          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+            {/* Conditional Order Status Badge */}
+            {position.conditionalOrderStatus && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">條件單狀態</span>
+                <span
+                  className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                    CONDITIONAL_ORDER_STATUS_CONFIG[position.conditionalOrderStatus]?.bgColor || 'bg-gray-100'
+                  } ${
+                    CONDITIONAL_ORDER_STATUS_CONFIG[position.conditionalOrderStatus]?.color || 'text-gray-600'
+                  }`}
+                >
+                  {CONDITIONAL_ORDER_STATUS_CONFIG[position.conditionalOrderStatus]?.label || position.conditionalOrderStatus}
+                </span>
+              </div>
+            )}
+
+            {/* Stop Loss Info */}
+            {position.stopLossEnabled && (
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1 text-orange-600">
+                  <Shield className="w-3 h-3" />
+                  <span className="text-xs">停損</span>
+                </div>
+                <span className="text-xs text-gray-600">
+                  {position.stopLossPercent}%
+                  {position.longStopLossPrice && (
+                    <span className="ml-1 text-gray-400">
+                      (L: ${Number(position.longStopLossPrice).toFixed(2)})
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+
+            {/* Take Profit Info */}
+            {position.takeProfitEnabled && (
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-1 text-green-600">
+                  <Target className="w-3 h-3" />
+                  <span className="text-xs">停利</span>
+                </div>
+                <span className="text-xs text-gray-600">
+                  {position.takeProfitPercent}%
+                  {position.longTakeProfitPrice && (
+                    <span className="ml-1 text-gray-400">
+                      (L: ${Number(position.longTakeProfitPrice).toFixed(2)})
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+
+            {/* Conditional Order Error */}
+            {position.conditionalOrderError && (
+              <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                {position.conditionalOrderError}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Partial Warning */}
         {position.status === 'PARTIAL' && (

@@ -117,6 +117,17 @@ export interface PositionInfo {
   createdAt: string;
   updatedAt: string;
   trades?: TradeInfo[];
+  // 停損停利資訊 (Feature 038)
+  stopLossEnabled?: boolean;
+  stopLossPercent?: number;
+  takeProfitEnabled?: boolean;
+  takeProfitPercent?: number;
+  conditionalOrderStatus?: ConditionalOrderStatus;
+  conditionalOrderError?: string | null;
+  longStopLossPrice?: number | null;
+  shortStopLossPrice?: number | null;
+  longTakeProfitPrice?: number | null;
+  shortTakeProfitPrice?: number | null;
 }
 
 /**
@@ -189,6 +200,11 @@ export interface OpenPositionParams {
   shortExchange: SupportedExchange;
   quantity: Decimal;
   leverage: LeverageOption;
+  // 停損停利參數 (Feature 038)
+  stopLossEnabled?: boolean;
+  stopLossPercent?: number;
+  takeProfitEnabled?: boolean;
+  takeProfitPercent?: number;
 }
 
 /**
@@ -567,5 +583,208 @@ export interface ClosePartialEvent {
     side: TradeSide;
     error: string;
     errorCode: string;
+  };
+}
+
+// ============================================================================
+// Conditional Order Types (Feature 038: Stop Loss / Take Profit)
+// ============================================================================
+
+/**
+ * 條件單狀態
+ */
+export const CONDITIONAL_ORDER_STATUSES = [
+  'PENDING',
+  'SETTING',
+  'SET',
+  'PARTIAL',
+  'FAILED',
+] as const;
+export type ConditionalOrderStatus = (typeof CONDITIONAL_ORDER_STATUSES)[number];
+
+/**
+ * 停損停利百分比限制
+ */
+export const STOP_LOSS_PERCENT_MIN = 0.5;
+export const STOP_LOSS_PERCENT_MAX = 50;
+export const TAKE_PROFIT_PERCENT_MIN = 0.5;
+export const TAKE_PROFIT_PERCENT_MAX = 100;
+
+/**
+ * 停損停利參數驗證 schema
+ */
+export const StopLossTakeProfitSchema = z.object({
+  stopLossEnabled: z.boolean().default(false),
+  stopLossPercent: z
+    .number()
+    .min(STOP_LOSS_PERCENT_MIN, `停損百分比最小為 ${STOP_LOSS_PERCENT_MIN}%`)
+    .max(STOP_LOSS_PERCENT_MAX, `停損百分比最大為 ${STOP_LOSS_PERCENT_MAX}%`)
+    .optional(),
+  takeProfitEnabled: z.boolean().default(false),
+  takeProfitPercent: z
+    .number()
+    .min(TAKE_PROFIT_PERCENT_MIN, `停利百分比最小為 ${TAKE_PROFIT_PERCENT_MIN}%`)
+    .max(TAKE_PROFIT_PERCENT_MAX, `停利百分比最大為 ${TAKE_PROFIT_PERCENT_MAX}%`)
+    .optional(),
+}).refine(
+  (data) => !data.stopLossEnabled || (data.stopLossEnabled && data.stopLossPercent !== undefined),
+  { message: '啟用停損時必須設定停損百分比', path: ['stopLossPercent'] },
+).refine(
+  (data) => !data.takeProfitEnabled || (data.takeProfitEnabled && data.takeProfitPercent !== undefined),
+  { message: '啟用停利時必須設定停利百分比', path: ['takeProfitPercent'] },
+);
+
+export type StopLossTakeProfitParams = z.infer<typeof StopLossTakeProfitSchema>;
+
+/**
+ * 條件單設定請求參數
+ */
+export interface ConditionalOrderParams {
+  positionId: string;
+  symbol: string;
+  side: TradeSide;
+  quantity: Decimal;
+  entryPrice: Decimal;
+  exchange: SupportedExchange;
+  stopLossPercent?: number;
+  takeProfitPercent?: number;
+}
+
+/**
+ * 單一條件單設定結果
+ */
+export interface SingleConditionalOrderResult {
+  success: boolean;
+  orderId?: string;
+  triggerPrice?: Decimal;
+  error?: string;
+}
+
+/**
+ * 條件單設定結果 (單一交易所)
+ */
+export interface ConditionalOrderResult {
+  exchange: SupportedExchange;
+  side: TradeSide;
+  stopLoss?: SingleConditionalOrderResult;
+  takeProfit?: SingleConditionalOrderResult;
+}
+
+/**
+ * 雙邊條件單設定結果
+ */
+export interface BilateralConditionalOrderResult {
+  longResult: ConditionalOrderResult;
+  shortResult: ConditionalOrderResult;
+  overallStatus: ConditionalOrderStatus;
+  errors: string[];
+}
+
+/**
+ * 交易設定
+ */
+export interface TradingSettings {
+  defaultStopLossEnabled: boolean;
+  defaultStopLossPercent: number;
+  defaultTakeProfitEnabled: boolean;
+  defaultTakeProfitPercent: number;
+  defaultLeverage: number;
+  maxPositionSizeUSD: number;
+}
+
+/**
+ * 更新交易設定請求
+ */
+export const UpdateTradingSettingsSchema = z.object({
+  defaultStopLossEnabled: z.boolean().optional(),
+  defaultStopLossPercent: z
+    .number()
+    .min(STOP_LOSS_PERCENT_MIN)
+    .max(STOP_LOSS_PERCENT_MAX)
+    .optional(),
+  defaultTakeProfitEnabled: z.boolean().optional(),
+  defaultTakeProfitPercent: z
+    .number()
+    .min(TAKE_PROFIT_PERCENT_MIN)
+    .max(TAKE_PROFIT_PERCENT_MAX)
+    .optional(),
+  defaultLeverage: z.number().int().min(1).max(125).optional(),
+  maxPositionSizeUSD: z.number().min(100).optional(),
+});
+
+export type UpdateTradingSettingsRequest = z.infer<typeof UpdateTradingSettingsSchema>;
+
+// ============================================================================
+// Conditional Order WebSocket Event Types
+// ============================================================================
+
+/**
+ * 條件單進度步驟
+ */
+export type ConditionalOrderStep =
+  | 'setting_long_stop_loss'
+  | 'setting_long_take_profit'
+  | 'setting_short_stop_loss'
+  | 'setting_short_take_profit'
+  | 'completing';
+
+/**
+ * 條件單進度事件
+ */
+export interface ConditionalOrderProgressEvent {
+  positionId: string;
+  step: ConditionalOrderStep;
+  progress: number;
+  message: string;
+  exchange?: SupportedExchange;
+}
+
+/**
+ * 條件單設定成功事件
+ */
+export interface ConditionalOrderSuccessEvent {
+  positionId: string;
+  stopLoss?: {
+    longOrderId?: string;
+    longTriggerPrice?: string;
+    shortOrderId?: string;
+    shortTriggerPrice?: string;
+  };
+  takeProfit?: {
+    longOrderId?: string;
+    longTriggerPrice?: string;
+    shortOrderId?: string;
+    shortTriggerPrice?: string;
+  };
+}
+
+/**
+ * 條件單設定部分成功事件
+ */
+export interface ConditionalOrderPartialEvent {
+  positionId: string;
+  message: string;
+  succeeded: Array<{
+    exchange: SupportedExchange;
+    type: 'stopLoss' | 'takeProfit';
+    orderId: string;
+    triggerPrice: string;
+  }>;
+  failed: Array<{
+    exchange: SupportedExchange;
+    type: 'stopLoss' | 'takeProfit';
+    error: string;
+  }>;
+}
+
+/**
+ * 條件單設定失敗事件
+ */
+export interface ConditionalOrderFailedEvent {
+  positionId: string;
+  error: string;
+  details?: {
+    exchange?: SupportedExchange;
+    type?: 'stopLoss' | 'takeProfit';
   };
 }

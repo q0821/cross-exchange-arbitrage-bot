@@ -1,0 +1,246 @@
+openapi: 3.0.3
+info:
+  title: Stop Loss / Take Profit API
+  description: 開倉停損停利設定 API
+  version: 1.0.0
+
+paths:
+  /api/positions/open:
+    post:
+      summary: 開倉並設定停損停利
+      description: 執行雙邊開倉，可選擇性地同時設定停損和停利條件單
+      tags:
+        - Positions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenPositionRequest'
+      responses:
+        '200':
+          description: 開倉成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenPositionResponse'
+        '400':
+          description: 請求參數錯誤
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: 開倉失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/settings/trading:
+    get:
+      summary: 取得交易設定
+      description: 取得用戶的停損停利預設值設定
+      tags:
+        - Settings
+      responses:
+        '200':
+          description: 成功取得設定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingSettingsResponse'
+
+    patch:
+      summary: 更新交易設定
+      description: 更新用戶的停損停利預設值設定
+      tags:
+        - Settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTradingSettingsRequest'
+      responses:
+        '200':
+          description: 成功更新設定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingSettingsResponse'
+        '400':
+          description: 請求參數錯誤
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    OpenPositionRequest:
+      type: object
+      required:
+        - symbol
+        - longExchange
+        - shortExchange
+        - quantity
+      properties:
+        symbol:
+          type: string
+          description: 交易對符號
+          example: BTC/USDT
+        longExchange:
+          type: string
+          description: Long 倉位交易所
+          enum: [binance, okx, gateio, mexc]
+        shortExchange:
+          type: string
+          description: Short 倉位交易所
+          enum: [binance, okx, gateio, mexc]
+        quantity:
+          type: number
+          description: 開倉數量
+          example: 0.01
+        leverage:
+          type: integer
+          description: 槓桿倍數
+          default: 1
+          minimum: 1
+          maximum: 125
+        stopLossEnabled:
+          type: boolean
+          description: 是否啟用停損
+          default: false
+        stopLossPercent:
+          type: number
+          description: 停損百分比 (0.5-50)
+          minimum: 0.5
+          maximum: 50
+          example: 5.0
+        takeProfitEnabled:
+          type: boolean
+          description: 是否啟用停利
+          default: false
+        takeProfitPercent:
+          type: number
+          description: 停利百分比 (0.5-100)
+          minimum: 0.5
+          maximum: 100
+          example: 3.0
+
+    OpenPositionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            positionId:
+              type: string
+              description: 持倉 ID
+            symbol:
+              type: string
+            longExchange:
+              type: string
+            shortExchange:
+              type: string
+            quantity:
+              type: number
+            longEntryPrice:
+              type: number
+              description: Long 倉位開倉均價
+            shortEntryPrice:
+              type: number
+              description: Short 倉位開倉均價
+            stopLoss:
+              $ref: '#/components/schemas/ConditionalOrderResult'
+            takeProfit:
+              $ref: '#/components/schemas/ConditionalOrderResult'
+
+    ConditionalOrderResult:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        percent:
+          type: number
+        longTriggerPrice:
+          type: number
+          description: Long 倉位觸發價格
+        longOrderId:
+          type: string
+          description: Long 倉位條件單 ID
+        shortTriggerPrice:
+          type: number
+          description: Short 倉位觸發價格
+        shortOrderId:
+          type: string
+          description: Short 倉位條件單 ID
+        status:
+          type: string
+          enum: [PENDING, SETTING, SET, PARTIAL, FAILED]
+        error:
+          type: string
+          description: 設定失敗時的錯誤訊息
+
+    TradingSettingsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            defaultStopLossEnabled:
+              type: boolean
+              description: 預設啟用停損
+            defaultStopLossPercent:
+              type: number
+              description: 預設停損百分比
+            defaultTakeProfitEnabled:
+              type: boolean
+              description: 預設啟用停利
+            defaultTakeProfitPercent:
+              type: number
+              description: 預設停利百分比
+            defaultLeverage:
+              type: integer
+              description: 預設槓桿倍數
+            maxPositionSizeUSD:
+              type: number
+              description: 最大倉位金額 (USD)
+
+    UpdateTradingSettingsRequest:
+      type: object
+      properties:
+        defaultStopLossEnabled:
+          type: boolean
+        defaultStopLossPercent:
+          type: number
+          minimum: 0.5
+          maximum: 50
+        defaultTakeProfitEnabled:
+          type: boolean
+        defaultTakeProfitPercent:
+          type: number
+          minimum: 0.5
+          maximum: 100
+        defaultLeverage:
+          type: integer
+          minimum: 1
+          maximum: 125
+        maxPositionSizeUSD:
+          type: number
+          minimum: 100
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: 錯誤訊息

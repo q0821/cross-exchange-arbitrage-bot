@@ -17,6 +17,7 @@ import { AuditLogger } from '@/src/services/trading/AuditLogger';
 import { positionProgressEmitter } from '@/src/services/websocket/PositionProgressEmitter';
 import {
   OpenPositionRequestSchema,
+  StopLossTakeProfitSchema,
   type OpenPositionResponse,
   type PositionInfo,
 } from '@/src/types/trading';
@@ -74,7 +75,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
     const validatedInput = OpenPositionRequestSchema.parse(body);
 
+    // 驗證停損停利參數 (Feature 038)
+    const stopLossTakeProfitInput = StopLossTakeProfitSchema.parse({
+      stopLossEnabled: body.stopLossEnabled ?? false,
+      stopLossPercent: body.stopLossPercent,
+      takeProfitEnabled: body.takeProfitEnabled ?? false,
+      takeProfitPercent: body.takeProfitPercent,
+    });
+
     const { symbol, longExchange, shortExchange, quantity, leverage } = validatedInput;
+    const { stopLossEnabled, stopLossPercent, takeProfitEnabled, takeProfitPercent } =
+      stopLossTakeProfitInput;
 
     logger.info(
       {
@@ -85,6 +96,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         shortExchange,
         quantity,
         leverage,
+        stopLossEnabled,
+        stopLossPercent,
+        takeProfitEnabled,
+        takeProfitPercent,
       },
       'Open position request received',
     );
@@ -93,7 +108,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const auditLogger = new AuditLogger(prisma);
     // Note: positionId 會在 orchestrator 中創建後更新
 
-    // 4. 執行開倉
+    // 4. 執行開倉 (含停損停利設定)
     const orchestrator = new PositionOrchestrator(prisma);
 
     const position = await orchestrator.openPosition({
@@ -103,6 +118,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       shortExchange,
       quantity: new Decimal(quantity),
       leverage,
+      // 停損停利參數 (Feature 038)
+      stopLossEnabled,
+      stopLossPercent,
+      takeProfitEnabled,
+      takeProfitPercent,
     });
 
     // 5. 記錄審計日誌 - 成功
@@ -143,7 +163,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 7. 格式化回應
+    // 7. 格式化回應（含停損停利資訊 Feature 038）
     const positionInfo: PositionInfo = {
       id: position.id,
       userId: position.userId,
@@ -154,6 +174,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       status: position.status as any,
       createdAt: position.createdAt.toISOString(),
       updatedAt: position.updatedAt.toISOString(),
+      // 停損停利資訊 (Feature 038)
+      stopLossEnabled: position.stopLossEnabled,
+      stopLossPercent: position.stopLossPercent ? Number(position.stopLossPercent) : undefined,
+      takeProfitEnabled: position.takeProfitEnabled,
+      takeProfitPercent: position.takeProfitPercent ? Number(position.takeProfitPercent) : undefined,
+      conditionalOrderStatus: position.conditionalOrderStatus as any,
+      conditionalOrderError: position.conditionalOrderError,
+      longStopLossPrice: position.longStopLossPrice ? Number(position.longStopLossPrice) : null,
+      shortStopLossPrice: position.shortStopLossPrice ? Number(position.shortStopLossPrice) : null,
+      longTakeProfitPrice: position.longTakeProfitPrice ? Number(position.longTakeProfitPrice) : null,
+      shortTakeProfitPrice: position.shortTakeProfitPrice ? Number(position.shortTakeProfitPrice) : null,
     };
 
     const response: OpenPositionResponse = {

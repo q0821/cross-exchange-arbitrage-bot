@@ -114,7 +114,10 @@
       "WebFetch(domain:futures.mexc.com)",
       "Bash(docker exec:*)",
       "WebFetch(domain:www.okx.com)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(http://localhost:3000/api/positions/cmjcpolea000112a1o09syp4e)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs"
     ],
     "deny": [],
     "ask": []

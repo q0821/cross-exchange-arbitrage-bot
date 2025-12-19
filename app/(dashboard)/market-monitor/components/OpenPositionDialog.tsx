@@ -18,8 +18,18 @@ import {
   RefreshCw,
   ArrowUpCircle,
   ArrowDownCircle,
+  Shield,
+  Target,
 } from 'lucide-react';
 import type { MarketRate, ExchangeName } from '../types';
+
+/** 停損停利設定 */
+interface StopLossTakeProfitConfig {
+  stopLossEnabled: boolean;
+  stopLossPercent?: number;
+  takeProfitEnabled: boolean;
+  takeProfitPercent?: number;
+}
 
 interface OpenPositionDialogProps {
   isOpen: boolean;
@@ -31,6 +41,10 @@ interface OpenPositionDialogProps {
     shortExchange: string;
     quantity: number;
     leverage: 1 | 2;
+    stopLossEnabled: boolean;
+    stopLossPercent?: number;
+    takeProfitEnabled: boolean;
+    takeProfitPercent?: number;
   }) => Promise<void>;
   isLoading: boolean;
   error: string | null;
@@ -40,11 +54,21 @@ interface OpenPositionDialogProps {
   isLoadingBalances: boolean;
   /** 刷新市場數據回調 */
   onRefreshMarketData?: () => Promise<void>;
+  /** 預設停損停利設定 */
+  defaultStopLossConfig?: StopLossTakeProfitConfig;
 }
 
 const MIN_QUANTITY = 0.0001;
 const MAX_QUANTITY = 1000000;
 const MARGIN_BUFFER = 0.1; // 10% 緩衝
+
+// 停損停利百分比限制 (Feature 038)
+const STOP_LOSS_PERCENT_MIN = 0.5;
+const STOP_LOSS_PERCENT_MAX = 50;
+const TAKE_PROFIT_PERCENT_MIN = 0.5;
+const TAKE_PROFIT_PERCENT_MAX = 100;
+const DEFAULT_STOP_LOSS_PERCENT = 5;
+const DEFAULT_TAKE_PROFIT_PERCENT = 3;
 
 export function OpenPositionDialog({
   isOpen,
@@ -56,12 +80,27 @@ export function OpenPositionDialog({
   balances,
   isLoadingBalances,
   onRefreshMarketData,
+  defaultStopLossConfig,
 }: OpenPositionDialogProps) {
   const [quantity, setQuantity] = useState<number>(0);
   const [leverage, setLeverage] = useState<1 | 2>(1);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // 停損停利狀態 (Feature 038)
+  const [stopLossEnabled, setStopLossEnabled] = useState<boolean>(
+    defaultStopLossConfig?.stopLossEnabled ?? true
+  );
+  const [stopLossPercent, setStopLossPercent] = useState<number>(
+    defaultStopLossConfig?.stopLossPercent ?? DEFAULT_STOP_LOSS_PERCENT
+  );
+  const [takeProfitEnabled, setTakeProfitEnabled] = useState<boolean>(
+    defaultStopLossConfig?.takeProfitEnabled ?? false
+  );
+  const [takeProfitPercent, setTakeProfitPercent] = useState<number>(
+    defaultStopLossConfig?.takeProfitPercent ?? DEFAULT_TAKE_PROFIT_PERCENT
+  );
 
   // 獲取最佳交易對資訊
   const bestPair = rate?.bestPair;
@@ -114,8 +153,13 @@ export function OpenPositionDialog({
       setLeverage(1);
       setValidationError(null);
       setLastUpdated(null);
+      // 重置停損停利到預設值
+      setStopLossEnabled(defaultStopLossConfig?.stopLossEnabled ?? true);
+      setStopLossPercent(defaultStopLossConfig?.stopLossPercent ?? DEFAULT_STOP_LOSS_PERCENT);
+      setTakeProfitEnabled(defaultStopLossConfig?.takeProfitEnabled ?? false);
+      setTakeProfitPercent(defaultStopLossConfig?.takeProfitPercent ?? DEFAULT_TAKE_PROFIT_PERCENT);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultStopLossConfig]);
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
@@ -180,12 +224,37 @@ export function OpenPositionDialog({
       return;
     }
 
+    // 驗證停損百分比 (Feature 038)
+    if (stopLossEnabled) {
+      if (stopLossPercent < STOP_LOSS_PERCENT_MIN || stopLossPercent > STOP_LOSS_PERCENT_MAX) {
+        setValidationError(
+          `停損百分比必須在 ${STOP_LOSS_PERCENT_MIN}% 到 ${STOP_LOSS_PERCENT_MAX}% 之間`
+        );
+        return;
+      }
+    }
+
+    // 驗證停利百分比 (Feature 038)
+    if (takeProfitEnabled) {
+      if (takeProfitPercent < TAKE_PROFIT_PERCENT_MIN || takeProfitPercent > TAKE_PROFIT_PERCENT_MAX) {
+        setValidationError(
+          `停利百分比必須在 ${TAKE_PROFIT_PERCENT_MIN}% 到 ${TAKE_PROFIT_PERCENT_MAX}% 之間`
+        );
+        return;
+      }
+    }
+
     await onConfirm({
       symbol: rate!.symbol,
       longExchange: bestPair.longExchange,
       shortExchange: bestPair.shortExchange,
       quantity,
       leverage,
+      // 停損停利參數 (Feature 038)
+      stopLossEnabled,
+      stopLossPercent: stopLossEnabled ? stopLossPercent : undefined,
+      takeProfitEnabled,
+      takeProfitPercent: takeProfitEnabled ? takeProfitPercent : undefined,
     });
   };
 
@@ -349,6 +418,105 @@ export function OpenPositionDialog({
                   2x
                 </button>
               </div>
+            </div>
+
+            {/* Stop Loss / Take Profit Settings (Feature 038) */}
+            <div className="border border-gray-200 rounded-lg p-3 mb-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-orange-500" />
+                風險管理
+              </h4>
+
+              {/* Stop Loss */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={stopLossEnabled}
+                      onChange={(e) => setStopLossEnabled(e.target.checked)}
+                      disabled={isLoading}
+                      className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                    />
+                    <Shield className="w-3 h-3 text-orange-500" />
+                    啟用停損
+                  </label>
+                  {stopLossEnabled && (
+                    <span className="text-xs text-gray-500">
+                      {STOP_LOSS_PERCENT_MIN}% - {STOP_LOSS_PERCENT_MAX}%
+                    </span>
+                  )}
+                </div>
+                {stopLossEnabled && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={stopLossPercent}
+                      onChange={(e) => setStopLossPercent(parseFloat(e.target.value) || 0)}
+                      min={STOP_LOSS_PERCENT_MIN}
+                      max={STOP_LOSS_PERCENT_MAX}
+                      step="0.1"
+                      disabled={isLoading}
+                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100"
+                    />
+                    <span className="text-sm text-gray-600">%</span>
+                    {avgPrice && (
+                      <span className="text-xs text-gray-500">
+                        (觸發價 ≈ ${(avgPrice * (1 - stopLossPercent / 100)).toFixed(2)})
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Take Profit */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      checked={takeProfitEnabled}
+                      onChange={(e) => setTakeProfitEnabled(e.target.checked)}
+                      disabled={isLoading}
+                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                    />
+                    <Target className="w-3 h-3 text-green-500" />
+                    啟用停利
+                  </label>
+                  {takeProfitEnabled && (
+                    <span className="text-xs text-gray-500">
+                      {TAKE_PROFIT_PERCENT_MIN}% - {TAKE_PROFIT_PERCENT_MAX}%
+                    </span>
+                  )}
+                </div>
+                {takeProfitEnabled && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={takeProfitPercent}
+                      onChange={(e) => setTakeProfitPercent(parseFloat(e.target.value) || 0)}
+                      min={TAKE_PROFIT_PERCENT_MIN}
+                      max={TAKE_PROFIT_PERCENT_MAX}
+                      step="0.1"
+                      disabled={isLoading}
+                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
+                    />
+                    <span className="text-sm text-gray-600">%</span>
+                    {avgPrice && (
+                      <span className="text-xs text-gray-500">
+                        (觸發價 ≈ ${(avgPrice * (1 + takeProfitPercent / 100)).toFixed(2)})
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {!stopLossEnabled && !takeProfitEnabled && (
+                <p className="text-xs text-yellow-600 mt-2 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  建議啟用停損以降低風險
+                </p>
+              )}
             </div>
 
             {/* Margin Requirements */}

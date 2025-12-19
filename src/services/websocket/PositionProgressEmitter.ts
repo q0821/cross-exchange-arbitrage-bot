@@ -20,6 +20,7 @@ import type {
   ClosePartialEvent,
   SupportedExchange,
   TradeSide,
+  ConditionalOrderStatus,
 } from '../../types/trading';
 
 /**
@@ -49,6 +50,17 @@ const WS_EVENTS = {
   CLOSE_FAILED: 'position:close:failed',
   /** 部分平倉（需手動處理） */
   CLOSE_PARTIAL: 'position:close:partial',
+  // ============================================================================
+  // Conditional Order Events (Feature: 038-specify-scripts-bash)
+  // ============================================================================
+  /** 條件單設定進度更新 */
+  CONDITIONAL_ORDER_PROGRESS: 'position:conditional:progress',
+  /** 條件單設定成功 */
+  CONDITIONAL_ORDER_SUCCESS: 'position:conditional:success',
+  /** 條件單設定失敗 */
+  CONDITIONAL_ORDER_FAILED: 'position:conditional:failed',
+  /** 條件單部分設定成功 */
+  CONDITIONAL_ORDER_PARTIAL: 'position:conditional:partial',
 } as const;
 
 /**
@@ -465,6 +477,138 @@ export class PositionProgressEmitter {
       { positionId, closedExchange: closedSide.exchange, failedExchange: failedSide.exchange },
       'Close partial event emitted',
     );
+  }
+
+  // ============================================================================
+  // Conditional Order Events (Feature: 038-specify-scripts-bash)
+  // ============================================================================
+
+  /**
+   * 發送條件單設定進度更新
+   */
+  emitConditionalOrderProgress(
+    positionId: string,
+    status: ConditionalOrderStatus,
+    message: string,
+    exchange?: SupportedExchange,
+  ): void {
+    if (!this.io) {
+      logger.warn('PositionProgressEmitter not initialized');
+      return;
+    }
+
+    const event = {
+      positionId,
+      status,
+      message,
+      exchange,
+    };
+
+    const roomName = this.getPositionRoomName(positionId);
+    this.io.to(roomName).emit(WS_EVENTS.CONDITIONAL_ORDER_PROGRESS, event);
+
+    logger.debug({ positionId, status, message }, 'Conditional order progress emitted');
+  }
+
+  /**
+   * 發送條件單設定成功事件
+   */
+  emitConditionalOrderSuccess(
+    positionId: string,
+    details: {
+      stopLossEnabled: boolean;
+      stopLossPercent?: number;
+      takeProfitEnabled: boolean;
+      takeProfitPercent?: number;
+      longStopLossPrice?: number;
+      shortStopLossPrice?: number;
+      longTakeProfitPrice?: number;
+      shortTakeProfitPrice?: number;
+    },
+  ): void {
+    if (!this.io) {
+      logger.warn('PositionProgressEmitter not initialized');
+      return;
+    }
+
+    const event = {
+      positionId,
+      status: 'SET' as ConditionalOrderStatus,
+      message: '條件單設定成功',
+      ...details,
+    };
+
+    const roomName = this.getPositionRoomName(positionId);
+    this.io.to(roomName).emit(WS_EVENTS.CONDITIONAL_ORDER_SUCCESS, event);
+
+    logger.info({ positionId }, 'Conditional order success event emitted');
+  }
+
+  /**
+   * 發送條件單設定失敗事件
+   */
+  emitConditionalOrderFailed(
+    positionId: string,
+    error: string,
+    details?: {
+      exchange?: SupportedExchange;
+      side?: TradeSide;
+    },
+  ): void {
+    if (!this.io) {
+      logger.warn('PositionProgressEmitter not initialized');
+      return;
+    }
+
+    const event = {
+      positionId,
+      status: 'FAILED' as ConditionalOrderStatus,
+      error,
+      message: `條件單設定失敗: ${error}`,
+      details,
+    };
+
+    const roomName = this.getPositionRoomName(positionId);
+    this.io.to(roomName).emit(WS_EVENTS.CONDITIONAL_ORDER_FAILED, event);
+
+    logger.warn({ positionId, error }, 'Conditional order failed event emitted');
+  }
+
+  /**
+   * 發送條件單部分設定成功事件
+   */
+  emitConditionalOrderPartial(
+    positionId: string,
+    message: string,
+    successDetails: Array<{
+      exchange: SupportedExchange;
+      type: 'stopLoss' | 'takeProfit';
+      price?: number;
+      orderId?: string;
+    }>,
+    failedDetails: Array<{
+      exchange: SupportedExchange;
+      type: 'stopLoss' | 'takeProfit';
+      error: string;
+    }>,
+  ): void {
+    if (!this.io) {
+      logger.warn('PositionProgressEmitter not initialized');
+      return;
+    }
+
+    const event = {
+      positionId,
+      status: 'PARTIAL' as ConditionalOrderStatus,
+      message,
+      successDetails,
+      failedDetails,
+    };
+
+    const roomName = this.getPositionRoomName(positionId);
+    this.io.to(roomName).emit(WS_EVENTS.CONDITIONAL_ORDER_PARTIAL, event);
+
+    logger.warn({ positionId, successCount: successDetails.length, failedCount: failedDetails.length }, 'Conditional order partial event emitted');
   }
 }
 

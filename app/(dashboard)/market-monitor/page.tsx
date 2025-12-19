@@ -22,6 +22,7 @@ import { useSymbolGroups } from './hooks/useSymbolGroups';
 import { useTableSort } from './hooks/useTableSort';
 import { useTrackingStatus } from './hooks/useTrackingStatus';
 import { useOpenPosition } from './hooks/useOpenPosition';
+import { useTradingSettings } from './hooks/useTradingSettings';
 import type { MarketRate } from './types';
 
 /**
@@ -73,6 +74,9 @@ export default function MarketMonitorPage() {
     rollbackFailedDetails,
     clearRollbackFailed,
   } = useOpenPosition();
+
+  // Feature 038: 交易設定（停損停利預設值）
+  const { settings: tradingSettings } = useTradingSettings();
 
   // 根據選中的群組過濾費率數據 (Feature 009: 使用 Map)
   const filteredRatesMap = useMemo(() => {
@@ -285,6 +289,12 @@ export default function MarketMonitorPage() {
         balances={balances}
         isLoadingBalances={isLoadingBalances}
         onRefreshMarketData={refreshMarketData}
+        defaultStopLossConfig={tradingSettings ? {
+          stopLossEnabled: tradingSettings.defaultStopLossEnabled,
+          stopLossPercent: tradingSettings.defaultStopLossPercent,
+          takeProfitEnabled: tradingSettings.defaultTakeProfitEnabled,
+          takeProfitPercent: tradingSettings.defaultTakeProfitPercent,
+        } : undefined}
       />
 
       {/* Feature 033: 回滾失敗警告 */}

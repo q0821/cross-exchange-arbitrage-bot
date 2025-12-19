@@ -1,0 +1,178 @@
+/**
+ * Binance Conditional Order Adapter
+ *
+ * Binance 期貨條件單適配器：使用 STOP_MARKET 和 TAKE_PROFIT_MARKET
+ * Feature: 038-specify-scripts-bash
+ *
+ * API Reference: https://binance-docs.github.io/apidocs/futures/en/
+ */
+
+import { logger } from '../../../lib/logger';
+import { formatPriceForExchange } from '../../../lib/conditional-order-calculator';
+import type { SingleConditionalOrderResult } from '../../../types/trading';
+import type {
+  ConditionalOrderAdapter,
+  SetStopLossOrderParams,
+  SetTakeProfitOrderParams,
+} from './ConditionalOrderAdapter';
+import { getClosingSide, convertSymbolForExchange } from './ConditionalOrderAdapter';
+
+/**
+ * Binance 條件單適配器
+ */
+export class BinanceConditionalOrderAdapter implements ConditionalOrderAdapter {
+  readonly exchangeName = 'binance';
+  private ccxtExchange: any; // CCXT Binance instance
+  private isHedgeMode: boolean;
+  private isPortfolioMargin: boolean;
+
+  constructor(
+    ccxtExchange: any,
+    options: { isHedgeMode: boolean; isPortfolioMargin: boolean } = {
+      isHedgeMode: true,
+      isPortfolioMargin: false,
+    },
+  ) {
+    this.ccxtExchange = ccxtExchange;
+    this.isHedgeMode = options.isHedgeMode;
+    this.isPortfolioMargin = options.isPortfolioMargin;
+  }
+
+  /**
+   * 設定停損市價單
+   */
+  async setStopLossOrder(params: SetStopLossOrderParams): Promise<SingleConditionalOrderResult> {
+    return this.setConditionalOrder({
+      ...params,
+      type: 'STOP_MARKET',
+    });
+  }
+
+  /**
+   * 設定停利市價單
+   */
+  async setTakeProfitOrder(params: SetTakeProfitOrderParams): Promise<SingleConditionalOrderResult> {
+    return this.setConditionalOrder({
+      ...params,
+      type: 'TAKE_PROFIT_MARKET',
+    });
+  }
+
+  /**
+   * 取消條件單
+   */
+  async cancelConditionalOrder(symbol: string, orderId: string): Promise<boolean> {
+    try {
+      const exchangeSymbol = convertSymbolForExchange(symbol, 'binance');
+      await this.ccxtExchange.cancelOrder(orderId, exchangeSymbol);
+      return true;
+    } catch (error) {
+      logger.error({ error, symbol, orderId }, 'Failed to cancel Binance conditional order');
+      return false;
+    }
+  }
+
+  /**
+   * 設定條件單（內部方法）
+   */
+  private async setConditionalOrder(
+    params: SetStopLossOrderParams & { type: 'STOP_MARKET' | 'TAKE_PROFIT_MARKET' },
+  ): Promise<SingleConditionalOrderResult> {
+    const { symbol, side, quantity, triggerPrice, type } = params;
+
+    try {
+      const exchangeSymbol = convertSymbolForExchange(symbol, 'binance');
+      const closingSide = getClosingSide(side);
+      const formattedPrice = formatPriceForExchange(triggerPrice);
+      const formattedQuantity = quantity.toString();
+
+      logger.info(
+        {
+          exchangeSymbol,
+          type,
+          closingSide,
+          positionSide: side,
+          triggerPrice: formattedPrice,
+          quantity: formattedQuantity,
+          isHedgeMode: this.isHedgeMode,
+          isPortfolioMargin: this.isPortfolioMargin,
+        },
+        'Creating Binance conditional order',
+      );
+
+      // 構建訂單參數
+      const orderParams: Record<string, any> = {
+        stopPrice: formattedPrice,
+        reduceOnly: !this.isHedgeMode, // One-way mode 需要 reduceOnly
+        workingType: 'MARK_PRICE', // 使用標記價格觸發
+      };
+
+      // Hedge Mode 需要指定 positionSide
+      if (this.isHedgeMode) {
+        orderParams.positionSide = side; // LONG or SHORT
+      }
+
+      // Portfolio Margin 使用不同的 API
+      if (this.isPortfolioMargin) {
+        orderParams.portfolioMargin = true;
+      }
+
+      const order = await this.ccxtExchange.createOrder(
+        exchangeSymbol,
+        type.toLowerCase(), // 'stop_market' or 'take_profit_market'
+        closingSide.toLowerCase(), // 'buy' or 'sell'
+        parseFloat(formattedQuantity),
+        undefined, // price (市價單不需要)
+        orderParams,
+      );
+
+      logger.info(
+        { orderId: order.id, exchangeSymbol, type },
+        'Binance conditional order created successfully',
+      );
+
+      return {
+        success: true,
+        orderId: order.id,
+        triggerPrice,
+      };
+    } catch (error) {
+      const errorMessage = this.parseError(error);
+      logger.error(
+        { error, symbol, side, type, triggerPrice: triggerPrice.toString() },
+        'Failed to create Binance conditional order',
+      );
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
+   * 解析錯誤訊息
+   */
+  private parseError(error: unknown): string {
+    if (error instanceof Error) {
+      // Binance 特定錯誤碼處理
+      const message = error.message;
+
+      if (message.includes('-4061')) {
+        return 'Position mode mismatch. Please check if Hedge Mode is enabled.';
+      }
+      if (message.includes('-2021')) {
+        return 'Order would trigger immediately. Please adjust the trigger price.';
+      }
+      if (message.includes('-4015')) {
+        return 'Invalid order type for symbol.';
+      }
+      if (message.includes('-1121')) {
+        return 'Invalid symbol.';
+      }
+
+      return message;
+    }
+    return 'Unknown error';
+  }
+}

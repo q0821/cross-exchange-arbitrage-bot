@@ -94,7 +94,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }),
     ]);
 
-    // 5. 格式化回應
+    // 5. 格式化回應（含停損停利資訊 Feature 038）
     const positionInfos: PositionInfo[] = positions.map((p) => ({
       id: p.id,
       userId: p.userId,
@@ -105,6 +105,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       status: p.status as any,
       createdAt: p.createdAt.toISOString(),
       updatedAt: p.updatedAt.toISOString(),
+      // 停損停利資訊 (Feature 038)
+      stopLossEnabled: p.stopLossEnabled,
+      stopLossPercent: p.stopLossPercent ? Number(p.stopLossPercent) : undefined,
+      takeProfitEnabled: p.takeProfitEnabled,
+      takeProfitPercent: p.takeProfitPercent ? Number(p.takeProfitPercent) : undefined,
+      conditionalOrderStatus: p.conditionalOrderStatus as any,
+      conditionalOrderError: p.conditionalOrderError,
+      longStopLossPrice: p.longStopLossPrice ? Number(p.longStopLossPrice) : null,
+      shortStopLossPrice: p.shortStopLossPrice ? Number(p.shortStopLossPrice) : null,
+      longTakeProfitPrice: p.longTakeProfitPrice ? Number(p.longTakeProfitPrice) : null,
+      shortTakeProfitPrice: p.shortTakeProfitPrice ? Number(p.shortTakeProfitPrice) : null,
     }));
 
     logger.info(

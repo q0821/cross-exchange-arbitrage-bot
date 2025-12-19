@@ -45,6 +45,10 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - PostgreSQL 15 + TimescaleDB（現有 HedgePosition、TradeRecord 模型） (033-manual-open-position)
 - TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1, CCXT 4.x, Decimal.js (035-close-position)
 - PostgreSQL 15 + TimescaleDB (現有 Position、Trade 模型) (035-close-position)
+- TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, React 18 (037-specify-scripts-bash)
+- PostgreSQL 15 + TimescaleDB (現有 Position 模型) (037-specify-scripts-bash)
+- TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x, Prisma 5.x, Socket.io 4.8.1 (038-specify-scripts-bash)
+- PostgreSQL 15 + TimescaleDB (現有 Position 模型擴展) (038-specify-scripts-bash)
 
 ## Project Structure
 ```
@@ -59,9 +63,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 038-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x, Prisma 5.x, Socket.io 4.8.1
+- 037-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, React 18
 - 035-close-position: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1, CCXT 4.x, Decimal.js
-- 033-manual-open-position: Added TypeScript 5.6 + Node.js 20.x LTS
-- 032-mexc-gateio-assets: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (多交易所抽象庫，已安裝)
 
 <!-- MANUAL ADDITIONS START -->
 
@@ -123,5 +127,46 @@ TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 - `position:close:success` - 平倉成功
 - `position:close:failed` - 平倉失敗
 - `position:close:partial` - 部分平倉
+
+## Feature 038: Stop Loss / Take Profit (開倉停損停利)
+
+### Key Paths
+- **條件單服務**: `src/services/trading/ConditionalOrderService.ts` - 統一管理停損停利訂單設定
+- **觸發價格計算**: `src/lib/conditional-order-calculator.ts` - 計算停損停利觸發價格
+- **適配器工廠**: `src/services/trading/ConditionalOrderAdapterFactory.ts` - 創建交易所特定適配器
+- **Binance 適配器**: `src/services/trading/adapters/BinanceConditionalOrderAdapter.ts`
+- **OKX 適配器**: `src/services/trading/adapters/OkxConditionalOrderAdapter.ts`
+- **Gate.io 適配器**: `src/services/trading/adapters/GateioConditionalOrderAdapter.ts`
+- **MEXC 適配器**: `src/services/trading/adapters/MexcConditionalOrderAdapter.ts`
+- **交易設定 Repository**: `src/repositories/TradingSettingsRepository.ts` - 用戶預設值管理
+
+### API Endpoints
+- `GET /api/settings/trading` - 獲取用戶交易設定
+- `PATCH /api/settings/trading` - 更新用戶交易設定
+
+### Frontend Components
+- `app/(dashboard)/market-monitor/components/OpenPositionDialog.tsx` - 開倉對話框（含停損停利設定）
+- `app/(dashboard)/positions/components/PositionCard.tsx` - 持倉卡片（顯示停損停利狀態）
+- `app/(dashboard)/positions/components/ConditionalOrderWarning.tsx` - 條件單警告元件
+- `app/(dashboard)/settings/trading/page.tsx` - 交易設定頁面
+- `app/(dashboard)/settings/trading/components/StopLossTakeProfitSettings.tsx` - 停損停利預設值設定
+
+### Hooks
+- `app/(dashboard)/market-monitor/hooks/useTradingSettings.ts` - 獲取用戶交易設定
+
+### WebSocket Events
+- `position:conditional:progress` - 條件單設定進度
+- `position:conditional:success` - 條件單設定成功
+- `position:conditional:failed` - 條件單設定失敗
+- `position:conditional:partial` - 條件單部分設定成功
+
+### Data Model (Prisma)
+- `TradingSettings` - 用戶交易設定（停損停利預設值）
+- `Position` 擴展欄位:
+  - `stopLossEnabled`, `stopLossPercent` - 停損設定
+  - `takeProfitEnabled`, `takeProfitPercent` - 停利設定
+  - `conditionalOrderStatus` - 條件單狀態 (PENDING, SETTING, SET, PARTIAL, FAILED)
+  - `longStopLossPrice`, `shortStopLossPrice` - 停損觸發價
+  - `longTakeProfitPrice`, `shortTakeProfitPrice` - 停利觸發價
 
 <!-- MANUAL ADDITIONS END -->

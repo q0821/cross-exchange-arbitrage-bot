@@ -24,6 +24,7 @@ import type {
   RollbackResult,
   LeverageOption,
 } from '../../types/trading';
+import { ConditionalOrderService } from './ConditionalOrderService';
 import * as ccxt from 'ccxt';
 
 /**
@@ -76,10 +77,12 @@ interface ExchangeTrader {
 export class PositionOrchestrator {
   private readonly prisma: PrismaClient;
   private readonly balanceValidator: BalanceValidator;
+  private readonly conditionalOrderService: ConditionalOrderService;
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
     this.balanceValidator = new BalanceValidator(prisma);
+    this.conditionalOrderService = new ConditionalOrderService();
   }
 
   /**
@@ -116,7 +119,19 @@ export class PositionOrchestrator {
     params: OpenPositionParams,
     _lockContext: LockContext,
   ): Promise<Position> {
-    const { userId, symbol, longExchange, shortExchange, quantity, leverage } = params;
+    const {
+      userId,
+      symbol,
+      longExchange,
+      shortExchange,
+      quantity,
+      leverage,
+      // 停損停利參數 (Feature 038)
+      stopLossEnabled,
+      stopLossPercent,
+      takeProfitEnabled,
+      takeProfitPercent,
+    } = params;
 
     // 1. 創建 Position 記錄 (PENDING)
     const position = await this.createPendingPosition(params);
@@ -149,8 +164,14 @@ export class PositionOrchestrator {
         leverage,
       );
 
-      // 6. 處理結果
-      return await this.handleOpenResult(position, result, quantity);
+      // 6. 處理結果（含停損停利設定）
+      return await this.handleOpenResult(
+        position,
+        result,
+        quantity,
+        { enabled: stopLossEnabled ?? false, percent: stopLossPercent },
+        { enabled: takeProfitEnabled ?? false, percent: takeProfitPercent },
+      );
     } catch (error) {
       // 更新 Position 為 FAILED
       await this.updatePositionStatus(
@@ -318,12 +339,21 @@ export class PositionOrchestrator {
     position: Position,
     result: BilateralOpenResult,
     quantity: Decimal,
+    stopLossParams?: { enabled: boolean; percent?: number },
+    takeProfitParams?: { enabled: boolean; percent?: number },
   ): Promise<Position> {
     const { longResult, shortResult } = result;
 
     // 兩邊都成功
     if (longResult.success && shortResult.success) {
-      return this.handleBothSuccess(position, longResult, shortResult, quantity);
+      return this.handleBothSuccess(
+        position,
+        longResult,
+        shortResult,
+        quantity,
+        stopLossParams,
+        takeProfitParams,
+      );
     }
 
     // 兩邊都失敗
@@ -343,6 +373,8 @@ export class PositionOrchestrator {
     longResult: ExecuteOpenResult,
     shortResult: ExecuteOpenResult,
     quantity: Decimal,
+    stopLossParams?: { enabled: boolean; percent?: number },
+    takeProfitParams?: { enabled: boolean; percent?: number },
   ): Promise<Position> {
     logger.info(
       {
@@ -353,7 +385,8 @@ export class PositionOrchestrator {
       'Both sides opened successfully',
     );
 
-    const updatedPosition = await this.prisma.position.update({
+    // 更新 Position 為 OPEN 狀態
+    let updatedPosition = await this.prisma.position.update({
       where: { id: position.id },
       data: {
         status: 'OPEN',
@@ -364,10 +397,122 @@ export class PositionOrchestrator {
         shortEntryPrice: shortResult.price!.toNumber(),
         shortPositionSize: quantity.toNumber(),
         openedAt: new Date(),
+        // 停損停利設定 (Feature 038)
+        stopLossEnabled: stopLossParams?.enabled ?? false,
+        stopLossPercent: stopLossParams?.percent,
+        takeProfitEnabled: takeProfitParams?.enabled ?? false,
+        takeProfitPercent: takeProfitParams?.percent,
+        conditionalOrderStatus: 'PENDING',
       },
     });
 
+    // 設定停損停利條件單 (Feature 038)
+    const shouldSetConditionalOrders =
+      (stopLossParams?.enabled && stopLossParams?.percent) ||
+      (takeProfitParams?.enabled && takeProfitParams?.percent);
+
+    if (shouldSetConditionalOrders) {
+      updatedPosition = await this.setConditionalOrders(
+        updatedPosition,
+        quantity,
+        stopLossParams,
+        takeProfitParams,
+      );
+    }
+
     return updatedPosition;
+  }
+
+  /**
+   * 設定停損停利條件單 (Feature 038)
+   */
+  private async setConditionalOrders(
+    position: Position,
+    quantity: Decimal,
+    stopLossParams?: { enabled: boolean; percent?: number },
+    takeProfitParams?: { enabled: boolean; percent?: number },
+  ): Promise<Position> {
+    logger.info(
+      {
+        positionId: position.id,
+        stopLossEnabled: stopLossParams?.enabled,
+        stopLossPercent: stopLossParams?.percent,
+        takeProfitEnabled: takeProfitParams?.enabled,
+        takeProfitPercent: takeProfitParams?.percent,
+      },
+      'Setting conditional orders for position',
+    );
+
+    try {
+      // 更新狀態為 SETTING
+      await this.prisma.position.update({
+        where: { id: position.id },
+        data: { conditionalOrderStatus: 'SETTING' },
+      });
+
+      // 調用 ConditionalOrderService
+      const result = await this.conditionalOrderService.setConditionalOrders({
+        positionId: position.id,
+        symbol: position.symbol,
+        longExchange: position.longExchange as SupportedExchange,
+        longEntryPrice: new Decimal(position.longEntryPrice),
+        longQuantity: quantity,
+        shortExchange: position.shortExchange as SupportedExchange,
+        shortEntryPrice: new Decimal(position.shortEntryPrice),
+        shortQuantity: quantity,
+        stopLossEnabled: stopLossParams?.enabled ?? false,
+        stopLossPercent: stopLossParams?.percent,
+        takeProfitEnabled: takeProfitParams?.enabled ?? false,
+        takeProfitPercent: takeProfitParams?.percent,
+        userId: position.userId,
+      });
+
+      // 更新 Position 記錄條件單結果
+      const updatedPosition = await this.prisma.position.update({
+        where: { id: position.id },
+        data: {
+          conditionalOrderStatus: result.overallStatus,
+          conditionalOrderError:
+            result.errors.length > 0 ? result.errors.join('; ') : null,
+          // 停損
+          longStopLossPrice: result.longResult.stopLoss?.triggerPrice?.toNumber(),
+          longStopLossOrderId: result.longResult.stopLoss?.orderId,
+          shortStopLossPrice: result.shortResult.stopLoss?.triggerPrice?.toNumber(),
+          shortStopLossOrderId: result.shortResult.stopLoss?.orderId,
+          // 停利
+          longTakeProfitPrice: result.longResult.takeProfit?.triggerPrice?.toNumber(),
+          longTakeProfitOrderId: result.longResult.takeProfit?.orderId,
+          shortTakeProfitPrice: result.shortResult.takeProfit?.triggerPrice?.toNumber(),
+          shortTakeProfitOrderId: result.shortResult.takeProfit?.orderId,
+        },
+      });
+
+      logger.info(
+        {
+          positionId: position.id,
+          overallStatus: result.overallStatus,
+          errors: result.errors,
+        },
+        'Conditional orders setting completed',
+      );
+
+      return updatedPosition;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(
+        { error, positionId: position.id },
+        'Failed to set conditional orders',
+      );
+
+      // 更新狀態為 FAILED，但不影響開倉成功狀態
+      return this.prisma.position.update({
+        where: { id: position.id },
+        data: {
+          conditionalOrderStatus: 'FAILED',
+          conditionalOrderError: errorMessage,
+        },
+      });
+    }
   }
 
   /**

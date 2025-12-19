@@ -13,6 +13,11 @@ export interface OpenPositionData {
   shortExchange: string;
   quantity: number;
   leverage: 1 | 2;
+  // 停損停利參數 (Feature 038)
+  stopLossEnabled: boolean;
+  stopLossPercent?: number;
+  takeProfitEnabled: boolean;
+  takeProfitPercent?: number;
 }
 
 interface UseOpenPositionReturn {
