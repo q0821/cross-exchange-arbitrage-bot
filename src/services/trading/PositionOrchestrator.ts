@@ -686,8 +686,9 @@ export class PositionOrchestrator {
           logger.info({ exchange, symbol, side, positionSide, quantity, leverage }, 'Opening position with Binance Hedge Mode params');
         } else if (isOkxHedgeMode) {
           const posSide = side === 'buy' ? 'long' : 'short';
-          orderParams = { posSide };
-          logger.info({ exchange, symbol, side, posSide, quantity, leverage }, 'Opening position with OKX Hedge Mode params');
+          // OKX 需要指定 tdMode（交易模式）: cross=全倉, isolated=逐倉
+          orderParams = { posSide, tdMode: 'cross' };
+          logger.info({ exchange, symbol, side, posSide, tdMode: 'cross', quantity, leverage }, 'Opening position with OKX Hedge Mode params');
         } else {
           logger.info({ exchange, symbol, side, quantity, leverage }, 'Opening position with One-way Mode (no positionSide)');
         }
@@ -720,8 +721,9 @@ export class PositionOrchestrator {
           // side='buy' 代表原本是做多，要用 sell 平倉，posSide='long'
           // side='sell' 代表原本是做空，要用 buy 平倉，posSide='short'
           const posSide = side === 'buy' ? 'long' : 'short';
-          orderParams = { posSide };
-          logger.info({ exchange, symbol, closeSide, posSide, quantity }, 'Closing position with OKX Hedge Mode params');
+          // OKX 需要指定 tdMode（交易模式）: cross=全倉, isolated=逐倉
+          orderParams = { posSide, tdMode: 'cross' };
+          logger.info({ exchange, symbol, closeSide, posSide, tdMode: 'cross', quantity }, 'Closing position with OKX Hedge Mode params');
         } else {
           orderParams = { reduceOnly: true };
           logger.info({ exchange, symbol, closeSide, quantity }, 'Closing position with One-way Mode (reduceOnly)');
