@@ -570,8 +570,8 @@ export class PositionOrchestrator {
       ? decrypt(apiKey.encryptedPassphrase)
       : undefined;
 
-    // 創建 CCXT 交易所實例
-    return this.createCcxtTrader(
+    // 創建 CCXT 交易所實例（使用異步版本以偵測持倉模式）
+    return this.createCcxtTraderAsync(
       exchange,
       decryptedKey,
       decryptedSecret,
@@ -581,15 +581,42 @@ export class PositionOrchestrator {
   }
 
   /**
+   * 偵測 Binance 帳戶是否為 Hedge Mode（雙向持倉）
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async detectBinanceHedgeMode(ccxtExchange: any): Promise<boolean> {
+    try {
+      // 使用 Binance API 查詢持倉模式
+      // fapiPrivateGetPositionSideDual 返回 { dualSidePosition: true/false }
+      const result = await ccxtExchange.fapiPrivateGetPositionSideDual();
+      const isHedgeMode = result?.dualSidePosition === true || result?.dualSidePosition === 'true';
+      logger.info({ isHedgeMode, result }, 'Binance position mode detected');
+      return isHedgeMode;
+    } catch (error) {
+      // 如果是 Portfolio Margin 帳戶，可能需要用不同的 API
+      // 嘗試使用 papi (Portfolio Margin API)
+      try {
+        const papiResult = await ccxtExchange.papiGetUmPositionSideDual();
+        const isHedgeMode = papiResult?.dualSidePosition === true || papiResult?.dualSidePosition === 'true';
+        logger.info({ isHedgeMode, papiResult }, 'Binance Portfolio Margin position mode detected');
+        return isHedgeMode;
+      } catch (papiError) {
+        logger.warn({ error, papiError }, 'Failed to detect Binance hedge mode, defaulting to One-way Mode');
+        return false;
+      }
+    }
+  }
+
+  /**
    * 創建 CCXT 交易器
    */
-  private createCcxtTrader(
+  private async createCcxtTraderAsync(
     exchange: SupportedExchange,
     apiKey: string,
     apiSecret: string,
     passphrase?: string,
     isTestnet: boolean = false,
-  ): ExchangeTrader {
+  ): Promise<ExchangeTrader> {
     const exchangeMap: Record<SupportedExchange, string> = {
       binance: 'binance',
       okx: 'okx',
@@ -613,10 +640,9 @@ export class PositionOrchestrator {
       },
     };
 
-    // Binance Portfolio Margin 帳戶需要設定 portfolioMargin 和 defaultType: future
+    // Binance 使用 future 類型
     if (exchange === 'binance') {
       config.options.defaultType = 'future';
-      config.options.portfolioMargin = true;
     }
 
     if (passphrase && exchange === 'okx') {
@@ -625,11 +651,16 @@ export class PositionOrchestrator {
 
     const ccxtExchange = new ExchangeClass(config);
 
-    // Binance Portfolio Margin 和 OKX 都使用 Hedge Mode
-    // Binance: positionSide='LONG'/'SHORT' (大寫)
-    // OKX: posSide='long'/'short' (小寫)
-    const isBinancePortfolioMargin = exchange === 'binance';
+    // 動態偵測 Binance 帳戶的持倉模式
+    let isBinanceHedgeMode = false;
+    if (exchange === 'binance') {
+      isBinanceHedgeMode = await this.detectBinanceHedgeMode(ccxtExchange);
+    }
+
+    // OKX 預設使用 Hedge Mode
     const isOkxHedgeMode = exchange === 'okx';
+
+    logger.info({ exchange, isBinanceHedgeMode, isOkxHedgeMode }, 'Position mode configuration');
 
     return {
       createMarketOrder: async (symbol, side, quantity, leverage) => {
@@ -649,17 +680,16 @@ export class PositionOrchestrator {
         // - 開空倉: side='sell', positionSide='SHORT'/posSide='short'
         let orderParams: Record<string, unknown> = {};
 
-        if (isBinancePortfolioMargin) {
+        if (exchange === 'binance' && isBinanceHedgeMode) {
           const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-          orderParams = {
-            portfolioMargin: true,
-            positionSide,
-          };
+          orderParams = { positionSide };
           logger.info({ exchange, symbol, side, positionSide, quantity, leverage }, 'Opening position with Binance Hedge Mode params');
         } else if (isOkxHedgeMode) {
           const posSide = side === 'buy' ? 'long' : 'short';
           orderParams = { posSide };
           logger.info({ exchange, symbol, side, posSide, quantity, leverage }, 'Opening position with OKX Hedge Mode params');
+        } else {
+          logger.info({ exchange, symbol, side, quantity, leverage }, 'Opening position with One-way Mode (no positionSide)');
         }
 
         const order = await ccxtExchange.createMarketOrder(symbol, side, quantity, undefined, orderParams);
@@ -678,16 +708,13 @@ export class PositionOrchestrator {
         // - 平多倉: closeSide='sell', positionSide='LONG'/posSide='long'
         // - 平空倉: closeSide='buy', positionSide='SHORT'/posSide='short'
         const closeSide = side === 'buy' ? 'sell' : 'buy';
-        let orderParams: Record<string, unknown>;
+        let orderParams: Record<string, unknown> = {};
 
-        if (isBinancePortfolioMargin) {
+        if (exchange === 'binance' && isBinanceHedgeMode) {
           // side='buy' 代表原本是做多，要用 sell 平倉，positionSide='LONG'
           // side='sell' 代表原本是做空，要用 buy 平倉，positionSide='SHORT'
           const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-          orderParams = {
-            portfolioMargin: true,
-            positionSide,
-          };
+          orderParams = { positionSide };
           logger.info({ exchange, symbol, closeSide, positionSide, quantity }, 'Closing position with Binance Hedge Mode params');
         } else if (isOkxHedgeMode) {
           // side='buy' 代表原本是做多，要用 sell 平倉，posSide='long'
@@ -697,6 +724,7 @@ export class PositionOrchestrator {
           logger.info({ exchange, symbol, closeSide, posSide, quantity }, 'Closing position with OKX Hedge Mode params');
         } else {
           orderParams = { reduceOnly: true };
+          logger.info({ exchange, symbol, closeSide, quantity }, 'Closing position with One-way Mode (reduceOnly)');
         }
 
         const order = await ccxtExchange.createMarketOrder(symbol, closeSide, quantity, undefined, orderParams);
