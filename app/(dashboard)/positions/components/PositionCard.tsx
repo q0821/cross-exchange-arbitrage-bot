@@ -3,6 +3,7 @@
  * 顯示單一持倉的詳細資訊
  *
  * Feature 033: Manual Open Position (T019)
+ * Feature 037: Mark Position Closed (T005)
  */
 
 'use client';
@@ -23,6 +24,8 @@ interface PositionCardProps {
   position: PositionInfo;
   onClose?: (positionId: string) => void;
   isClosing?: boolean;
+  onMarkAsClosed?: (positionId: string) => void;
+  isMarkingAsClosed?: boolean;
 }
 
 const STATUS_CONFIG: Record<PositionStatus, {
@@ -75,7 +78,18 @@ const STATUS_CONFIG: Record<PositionStatus, {
   },
 };
 
-export function PositionCard({ position, onClose, isClosing = false }: PositionCardProps) {
+/**
+ * 可以手動標記為已平倉的狀態
+ */
+const MARKABLE_STATUSES: PositionStatus[] = ['OPEN', 'PARTIAL', 'FAILED'];
+
+export function PositionCard({
+  position,
+  onClose,
+  isClosing = false,
+  onMarkAsClosed,
+  isMarkingAsClosed = false,
+}: PositionCardProps) {
   const statusConfig = STATUS_CONFIG[position.status] || STATUS_CONFIG.PENDING;
   const StatusIcon = statusConfig.icon;
 
@@ -141,24 +155,45 @@ export function PositionCard({ position, onClose, isClosing = false }: PositionC
       </div>
 
       {/* Actions (if applicable) */}
-      {position.status === 'OPEN' && onClose && (
-        <div className="px-4 pb-4">
-          <button
-            onClick={() => onClose(position.id)}
-            disabled={isClosing}
-            className="w-full py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isClosing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                平倉中...
-              </>
-            ) : (
-              '平倉'
-            )}
-          </button>
+      {(position.status === 'OPEN' && onClose) || (MARKABLE_STATUSES.includes(position.status) && onMarkAsClosed) ? (
+        <div className="px-4 pb-4 space-y-2">
+          {/* 平倉按鈕 - 僅 OPEN 狀態 */}
+          {position.status === 'OPEN' && onClose && (
+            <button
+              onClick={() => onClose(position.id)}
+              disabled={isClosing || isMarkingAsClosed}
+              className="w-full py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isClosing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  平倉中...
+                </>
+              ) : (
+                '平倉'
+              )}
+            </button>
+          )}
+
+          {/* 標記已平倉按鈕 - OPEN、PARTIAL、FAILED 狀態 */}
+          {MARKABLE_STATUSES.includes(position.status) && onMarkAsClosed && (
+            <button
+              onClick={() => onMarkAsClosed(position.id)}
+              disabled={isClosing || isMarkingAsClosed}
+              className="w-full py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isMarkingAsClosed ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  處理中...
+                </>
+              ) : (
+                '標記已平倉'
+              )}
+            </button>
+          )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

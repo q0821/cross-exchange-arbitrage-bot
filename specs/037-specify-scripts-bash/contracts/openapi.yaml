@@ -1,0 +1,123 @@
+openapi: 3.0.3
+info:
+  title: Position Manual Close API
+  description: API for manually marking positions as closed
+  version: 1.0.0
+
+paths:
+  /api/positions/{id}:
+    patch:
+      summary: Mark position as closed
+      description: |
+        Manually mark a position as closed.
+        Only positions with status OPEN, PARTIAL, or FAILED can be marked as closed.
+      operationId: markPositionAsClosed
+      tags:
+        - Positions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Position ID (cuid)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum: [markAsClosed]
+                  description: The action to perform
+            example:
+              action: markAsClosed
+      responses:
+        '200':
+          description: Position successfully marked as closed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: clxxxxxxxxxxxxx
+                      status:
+                        type: string
+                        enum: [CLOSED]
+                        example: CLOSED
+                      closedAt:
+                        type: string
+                        format: date-time
+                        example: "2025-12-19T12:00:00.000Z"
+        '400':
+          description: Invalid request (invalid action or status transition not allowed)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalidAction:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_ACTION
+                      message: Invalid action specified
+                invalidTransition:
+                  value:
+                    success: false
+                    error:
+                      code: INVALID_STATUS_TRANSITION
+                      message: Cannot mark position with status OPENING as closed
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - position belongs to another user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Position not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
