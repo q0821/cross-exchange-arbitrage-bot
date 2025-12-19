@@ -239,11 +239,17 @@ export function useOpenPosition(): UseOpenPositionReturn {
    * 刷新市場數據
    */
   const refreshMarketData = useCallback(async () => {
-    if (!selectedRate) return;
+    if (!selectedRate || !selectedRate.bestPair) return;
 
     try {
+      // 從 bestPair 中取得交易所列表
+      const exchanges = [
+        selectedRate.bestPair.longExchange,
+        selectedRate.bestPair.shortExchange,
+      ].join(',');
+
       const response = await fetch(
-        `/api/market-data/refresh?symbol=${selectedRate.symbol}`
+        `/api/market-data/refresh?symbol=${selectedRate.symbol}&exchanges=${exchanges}`
       );
       const data = await response.json();
 
@@ -254,14 +260,23 @@ export function useOpenPosition(): UseOpenPositionReturn {
 
           const updatedExchanges = { ...prev.exchanges };
 
+          // API 回傳的 exchanges 是陣列格式
+          // [{ exchange: "binance", price: 43500, fundingRate: 0.0001, ... }, ...]
+          const exchangeDataArray = data.data.exchanges as Array<{
+            exchange: string;
+            price: number;
+            fundingRate: number;
+            status: string;
+          }>;
+
           // 更新每個交易所的數據
-          Object.entries(data.data.exchanges || {}).forEach(([exchange, exchangeData]: [string, unknown]) => {
-            if (updatedExchanges[exchange as keyof typeof updatedExchanges]) {
-              const typedData = exchangeData as { price?: number; rate?: number };
-              updatedExchanges[exchange as keyof typeof updatedExchanges] = {
-                ...updatedExchanges[exchange as keyof typeof updatedExchanges]!,
-                price: typedData.price ?? updatedExchanges[exchange as keyof typeof updatedExchanges]!.price,
-                rate: typedData.rate ?? updatedExchanges[exchange as keyof typeof updatedExchanges]!.rate,
+          exchangeDataArray?.forEach((exchangeData) => {
+            const exchangeName = exchangeData.exchange as keyof typeof updatedExchanges;
+            if (updatedExchanges[exchangeName] && exchangeData.status === 'success') {
+              updatedExchanges[exchangeName] = {
+                ...updatedExchanges[exchangeName]!,
+                price: exchangeData.price ?? updatedExchanges[exchangeName]!.price,
+                rate: exchangeData.fundingRate ?? updatedExchanges[exchangeName]!.rate,
               };
             }
           });
