@@ -163,7 +163,7 @@ export function SnapshotTimeline({ snapshots, isLoading }: SnapshotTimelineProps
                 <div>
                   <div className="text-xs text-gray-500 mb-1">年化收益</div>
                   <div className="font-mono text-blue-600">
-                    {snapshot.annualizedReturn.toFixed(2)}%
+                    {Number(snapshot.annualizedReturn).toFixed(2)}%
                   </div>
                 </div>
               </div>

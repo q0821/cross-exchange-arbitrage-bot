@@ -312,8 +312,8 @@ export const RateRow = React.memo(function RateRow({
               : 'text-gray-600'
           }`}
         >
-          {rate.bestPair && typeof rate.bestPair.spreadPercent === 'number'
-            ? rate.bestPair.spreadPercent.toFixed(4) + '%'
+          {rate.bestPair
+            ? Number(rate.bestPair.spreadPercent).toFixed(4) + '%'
             : '-'}
         </span>
       </td>
@@ -321,8 +321,8 @@ export const RateRow = React.memo(function RateRow({
       {/* 年化收益 */}
       <td className="px-4 py-3 text-right">
         <span className="font-mono text-sm">
-          {rate.bestPair && typeof rate.bestPair.annualizedReturn === 'number'
-            ? rate.bestPair.annualizedReturn.toFixed(2) + '%'
+          {rate.bestPair
+            ? Number(rate.bestPair.annualizedReturn).toFixed(2) + '%'
             : '-'}
         </span>
       </td>

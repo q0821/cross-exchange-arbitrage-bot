@@ -82,7 +82,8 @@ function formatSingleFundingReturn(
   spreadPercent: number,
   timeBasis: TimeBasis
 ): string {
-  return `約 ${spreadPercent.toFixed(2)}%（每 ${timeBasis} 小時結算一次）`;
+  // 確保 spreadPercent 為數字類型（API 回傳可能為字串）
+  return `約 ${Number(spreadPercent).toFixed(2)}%（每 ${timeBasis} 小時結算一次）`;
 }
 
 /**
@@ -109,12 +110,15 @@ function formatPriceDiffWithExplanation(
     return 'N/A（無價格數據）';
   }
 
+  // 確保 priceDiffPercent 為數字類型（API 回傳可能為字串）
+  const numericValue = Number(priceDiffPercent);
+
   // 格式化數值（2 位小數）
-  const sign = priceDiffPercent >= 0 ? '+' : '';
-  const value = `${sign}${priceDiffPercent.toFixed(2)}%`;
+  const sign = numericValue >= 0 ? '+' : '';
+  const value = `${sign}${numericValue.toFixed(2)}%`;
 
   // 根據正負值決定說明
-  if (priceDiffPercent >= 0) {
+  if (numericValue >= 0) {
     return `${value}（✓ 做空方價格較高，有利平倉）`;
   } else {
     return `${value}（✗ 做多方價格較高，不利平倉）`;

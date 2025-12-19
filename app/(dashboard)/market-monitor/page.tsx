@@ -110,11 +110,12 @@ export default function MarketMonitorPage() {
     let maxSpread: { symbol: string; spread: string } | null = null;
     filteredRatesArray.forEach((rate) => {
       if (rate.bestPair) {
-        const spread = rate.bestPair.spreadPercent;
+        // API 回傳 spreadPercent 為字串，WebSocket 回傳為數字，需統一處理
+        const spread = Number(rate.bestPair.spreadPercent);
         if (!maxSpread || spread > parseFloat(maxSpread.spread)) {
           maxSpread = {
             symbol: rate.symbol,
-            spread: rate.bestPair.spreadPercent.toFixed(4),
+            spread: spread.toFixed(4),
           };
         }
       }

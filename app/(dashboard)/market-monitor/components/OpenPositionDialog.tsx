@@ -225,7 +225,7 @@ export function OpenPositionDialog({
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-700">{rate.symbol}</h3>
               <span className="text-lg font-bold text-green-600">
-                {bestPair?.annualizedReturn.toFixed(2)}% APY
+                {bestPair ? Number(bestPair.annualizedReturn).toFixed(2) : '-'}% APY
               </span>
             </div>
 
@@ -278,7 +278,7 @@ export function OpenPositionDialog({
               <div>
                 <span className="text-blue-600">費率差：</span>
                 <span className="font-mono text-blue-800">
-                  {bestPair?.spreadPercent.toFixed(4)}%
+                  {bestPair ? Number(bestPair.spreadPercent).toFixed(4) : '-'}%
                 </span>
               </div>
               <div>

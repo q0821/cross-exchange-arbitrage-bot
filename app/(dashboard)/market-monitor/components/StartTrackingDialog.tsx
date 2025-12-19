@@ -142,7 +142,7 @@ export function StartTrackingDialog({
               <div>
                 <span className="text-gray-500">年化收益</span>
                 <p className="font-medium text-green-600">
-                  {rate.bestPair.annualizedReturn.toFixed(2)}%
+                  {Number(rate.bestPair.annualizedReturn).toFixed(2)}%
                 </p>
               </div>
               <div>
@@ -216,11 +216,11 @@ export function StartTrackingDialog({
               <p className="text-sm text-green-800">
                 <span className="font-medium">預估每次結算收益：</span>
                 <span className="float-right font-mono">
-                  {(simulatedCapital * (rate.bestPair.spreadPercent / 100)).toFixed(2)} USDT
+                  {(simulatedCapital * (Number(rate.bestPair.spreadPercent) / 100)).toFixed(2)} USDT
                 </span>
               </p>
               <p className="text-xs text-green-600 mt-1">
-                基於當前費率差 {rate.bestPair.spreadPercent.toFixed(4)}%
+                基於當前費率差 {Number(rate.bestPair.spreadPercent).toFixed(4)}%
               </p>
             </div>
 
