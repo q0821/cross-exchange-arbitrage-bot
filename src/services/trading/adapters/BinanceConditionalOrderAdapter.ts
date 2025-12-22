@@ -42,20 +42,70 @@ export class BinanceConditionalOrderAdapter implements ConditionalOrderAdapter {
    * 設定停損市價單
    */
   async setStopLossOrder(params: SetStopLossOrderParams): Promise<SingleConditionalOrderResult> {
-    return this.setConditionalOrder({
+    logger.info(
+      {
+        exchange: 'binance',
+        orderType: 'stopLoss',
+        symbol: params.symbol,
+        side: params.side,
+        quantity: params.quantity.toString(),
+        triggerPrice: params.triggerPrice.toString(),
+      },
+      'Setting Binance stop loss order',
+    );
+
+    const result = await this.setConditionalOrder({
       ...params,
       type: 'STOP_MARKET',
     });
+
+    logger.info(
+      {
+        exchange: 'binance',
+        orderType: 'stopLoss',
+        success: result.success,
+        orderId: result.orderId,
+        error: result.error,
+      },
+      'Binance stop loss order result',
+    );
+
+    return result;
   }
 
   /**
    * 設定停利市價單
    */
   async setTakeProfitOrder(params: SetTakeProfitOrderParams): Promise<SingleConditionalOrderResult> {
-    return this.setConditionalOrder({
+    logger.info(
+      {
+        exchange: 'binance',
+        orderType: 'takeProfit',
+        symbol: params.symbol,
+        side: params.side,
+        quantity: params.quantity.toString(),
+        triggerPrice: params.triggerPrice.toString(),
+      },
+      'Setting Binance take profit order',
+    );
+
+    const result = await this.setConditionalOrder({
       ...params,
       type: 'TAKE_PROFIT_MARKET',
     });
+
+    logger.info(
+      {
+        exchange: 'binance',
+        orderType: 'takeProfit',
+        success: result.success,
+        orderId: result.orderId,
+        error: result.error,
+      },
+      'Binance take profit order result',
+    );
+
+    return result;
   }
 
   /**

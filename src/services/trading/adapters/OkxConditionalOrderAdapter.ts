@@ -41,20 +41,72 @@ export class OkxConditionalOrderAdapter implements ConditionalOrderAdapter {
    * 設定停損市價單
    */
   async setStopLossOrder(params: SetStopLossOrderParams): Promise<SingleConditionalOrderResult> {
-    return this.setConditionalOrder({
+    logger.info(
+      {
+        exchange: 'okx',
+        orderType: 'stopLoss',
+        symbol: params.symbol,
+        side: params.side,
+        quantity: params.quantity.toString(),
+        triggerPrice: params.triggerPrice.toString(),
+        positionMode: this.positionMode,
+      },
+      'Setting OKX stop loss order',
+    );
+
+    const result = await this.setConditionalOrder({
       ...params,
       type: 'stopLoss',
     });
+
+    logger.info(
+      {
+        exchange: 'okx',
+        orderType: 'stopLoss',
+        success: result.success,
+        orderId: result.orderId,
+        error: result.error,
+      },
+      'OKX stop loss order result',
+    );
+
+    return result;
   }
 
   /**
    * 設定停利市價單
    */
   async setTakeProfitOrder(params: SetTakeProfitOrderParams): Promise<SingleConditionalOrderResult> {
-    return this.setConditionalOrder({
+    logger.info(
+      {
+        exchange: 'okx',
+        orderType: 'takeProfit',
+        symbol: params.symbol,
+        side: params.side,
+        quantity: params.quantity.toString(),
+        triggerPrice: params.triggerPrice.toString(),
+        positionMode: this.positionMode,
+      },
+      'Setting OKX take profit order',
+    );
+
+    const result = await this.setConditionalOrder({
       ...params,
       type: 'takeProfit',
     });
+
+    logger.info(
+      {
+        exchange: 'okx',
+        orderType: 'takeProfit',
+        success: result.success,
+        orderId: result.orderId,
+        error: result.error,
+      },
+      'OKX take profit order result',
+    );
+
+    return result;
   }
 
   /**

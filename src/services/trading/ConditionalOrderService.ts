@@ -10,6 +10,8 @@ import { logger } from '../../lib/logger';
 import {
   calculateTriggerPrices,
   formatPriceForExchange,
+  isStopLossPriceValid,
+  isTakeProfitPriceValid,
 } from '../../lib/conditional-order-calculator';
 import type {
   SupportedExchange,
@@ -42,6 +44,9 @@ export interface SetConditionalOrdersParams {
   takeProfitPercent?: number;
   // 用戶認證
   userId: string;
+  // 當前市場價格（用於驗證條件單是否可能立即觸發）
+  longCurrentPrice?: Decimal;
+  shortCurrentPrice?: Decimal;
 }
 
 /**
@@ -74,6 +79,8 @@ export class ConditionalOrderService {
       takeProfitEnabled,
       takeProfitPercent,
       userId,
+      longCurrentPrice,
+      shortCurrentPrice,
     } = params;
 
     logger.info(
@@ -106,6 +113,25 @@ export class ConditionalOrderService {
       side: 'SHORT',
       stopLossPercent: stopLossEnabled ? stopLossPercent : undefined,
       takeProfitPercent: takeProfitEnabled ? takeProfitPercent : undefined,
+    });
+
+    // 價格驗證：檢查條件單是否可能立即觸發
+    this.validatePrices({
+      side: 'LONG',
+      currentPrice: longCurrentPrice,
+      stopLossPrice: longTriggerPrices.stopLossPrice,
+      takeProfitPrice: longTriggerPrices.takeProfitPrice,
+      stopLossEnabled,
+      takeProfitEnabled,
+    });
+
+    this.validatePrices({
+      side: 'SHORT',
+      currentPrice: shortCurrentPrice,
+      stopLossPrice: shortTriggerPrices.stopLossPrice,
+      takeProfitPrice: shortTriggerPrices.takeProfitPrice,
+      stopLossEnabled,
+      takeProfitEnabled,
     });
 
     // 設定 Long 倉位條件單
@@ -273,6 +299,54 @@ export class ConditionalOrderService {
     }
 
     return result;
+  }
+
+  /**
+   * 驗證條件單價格是否可能立即觸發
+   * 如果可能立即觸發，記錄警告但仍繼續設定
+   */
+  private validatePrices(params: {
+    side: TradeSide;
+    currentPrice?: Decimal;
+    stopLossPrice?: Decimal;
+    takeProfitPrice?: Decimal;
+    stopLossEnabled: boolean;
+    takeProfitEnabled: boolean;
+  }): void {
+    const { side, currentPrice, stopLossPrice, takeProfitPrice, stopLossEnabled, takeProfitEnabled } = params;
+
+    // 如果沒有提供當前價格，跳過驗證
+    if (!currentPrice) {
+      return;
+    }
+
+    // 驗證停損價格
+    if (stopLossEnabled && stopLossPrice) {
+      if (!isStopLossPriceValid(stopLossPrice, currentPrice, side)) {
+        logger.warn(
+          {
+            side,
+            stopLossPrice: formatPriceForExchange(stopLossPrice),
+            currentPrice: formatPriceForExchange(currentPrice),
+          },
+          'Stop loss price may trigger immediately',
+        );
+      }
+    }
+
+    // 驗證停利價格
+    if (takeProfitEnabled && takeProfitPrice) {
+      if (!isTakeProfitPriceValid(takeProfitPrice, currentPrice, side)) {
+        logger.warn(
+          {
+            side,
+            takeProfitPrice: formatPriceForExchange(takeProfitPrice),
+            currentPrice: formatPriceForExchange(currentPrice),
+          },
+          'Take profit price may trigger immediately',
+        );
+      }
+    }
   }
 
   /**

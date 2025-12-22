@@ -15,6 +15,7 @@ import { BinanceConditionalOrderAdapter } from './adapters/BinanceConditionalOrd
 import { OkxConditionalOrderAdapter } from './adapters/OkxConditionalOrderAdapter';
 import { GateioConditionalOrderAdapter } from './adapters/GateioConditionalOrderAdapter';
 import { MexcConditionalOrderAdapter } from './adapters/MexcConditionalOrderAdapter';
+import { detectOkxPositionMode } from './okx-position-mode';
 
 /**
  * 條件單適配器工廠
@@ -189,7 +190,7 @@ export class ConditionalOrderAdapterFactory {
   }
 
   /**
-   * 創建 OKX 適配器
+   * 創建 OKX 適配器（需要偵測帳戶模式）
    */
   private async createOkxAdapter(options: {
     apiKey: string;
@@ -198,9 +199,17 @@ export class ConditionalOrderAdapterFactory {
     sandbox: boolean;
   }): Promise<OkxConditionalOrderAdapter> {
     const ccxtExchange = this.createCcxtExchange('okx', options);
-    // OKX 默認使用 long_short_mode
+
+    // 動態偵測 OKX 帳戶模式
+    const positionMode = await detectOkxPositionMode(ccxtExchange);
+
+    logger.info(
+      { exchange: 'okx', positionMode, sandbox: options.sandbox },
+      'Creating OKX conditional order adapter',
+    );
+
     return new OkxConditionalOrderAdapter(ccxtExchange, {
-      positionMode: 'long_short_mode',
+      positionMode,
     });
   }
 
@@ -225,3 +234,6 @@ export class ConditionalOrderAdapterFactory {
 
 // Export singleton instance
 export const conditionalOrderAdapterFactory = new ConditionalOrderAdapterFactory();
+
+// Re-export types for convenience
+export { detectOkxPositionMode, type OkxPositionMode } from './okx-position-mode';

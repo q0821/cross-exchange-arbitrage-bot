@@ -93,9 +93,22 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
       const triggerRule = this.getTriggerRule(side, type);
 
       // Gate.io 合約用整數張數，需要轉換
-      const sizeInt = Math.abs(parseInt(sizeValue.toString(), 10));
+      // 使用 Math.round() 四捨五入，並確保至少為 1
+      const sizeAbs = Math.abs(parseFloat(sizeValue.toString()));
+      const sizeInt = Math.max(1, Math.round(sizeAbs));
       // 根據方向設定正負號
       const finalSize = side === 'LONG' ? -sizeInt : sizeInt;
+
+      logger.info(
+        {
+          originalQuantity: quantity.toString(),
+          sizeAbs,
+          sizeInt,
+          finalSize,
+          side,
+        },
+        'Gate.io contract size conversion',
+      );
 
       logger.info(
         {
