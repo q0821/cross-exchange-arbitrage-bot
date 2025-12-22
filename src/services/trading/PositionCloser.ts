@@ -335,17 +335,44 @@ export class PositionCloser {
     exchange: SupportedExchange,
   ): Promise<ExecuteCloseResult> {
     try {
+      logger.info(
+        { exchange, symbol, side, quantity },
+        'Executing close order',
+      );
+
       const result = await Promise.race([
         trader.closePosition(symbol, side, quantity),
         this.createTimeoutPromise(ORDER_TIMEOUT_MS, exchange),
       ]);
 
+      // 詳細記錄訂單結果
+      logger.info(
+        {
+          exchange,
+          symbol,
+          side,
+          orderId: result.orderId,
+          price: result.price,
+          quantity: result.quantity,
+          fee: result.fee,
+        },
+        'Close order executed successfully - raw result',
+      );
+
+      // 警告：如果價格為 0，可能需要重新獲取訂單資訊
+      if (!result.price || result.price === 0) {
+        logger.warn(
+          { exchange, orderId: result.orderId },
+          'Close order returned price 0 - API may not have returned fill price immediately',
+        );
+      }
+
       return {
         success: true,
         orderId: result.orderId,
-        price: new Decimal(result.price),
-        quantity: new Decimal(result.quantity),
-        fee: new Decimal(result.fee),
+        price: new Decimal(result.price || 0),
+        quantity: new Decimal(result.quantity || quantity),
+        fee: new Decimal(result.fee || 0),
       };
     } catch (error) {
       logger.error(
@@ -402,34 +429,93 @@ export class PositionCloser {
     longResult: ExecuteCloseResult,
     shortResult: ExecuteCloseResult,
   ): Promise<ClosePositionSuccessResult> {
+    // 詳細記錄平倉結果，用於偵錯 PnL 計算
     logger.info(
       {
         positionId: position.id,
-        longOrderId: longResult.orderId,
-        shortOrderId: shortResult.orderId,
+        long: {
+          exchange: position.longExchange,
+          orderId: longResult.orderId,
+          price: longResult.price?.toString(),
+          quantity: longResult.quantity?.toString(),
+          fee: longResult.fee?.toString(),
+        },
+        short: {
+          exchange: position.shortExchange,
+          orderId: shortResult.orderId,
+          price: shortResult.price?.toString(),
+          quantity: shortResult.quantity?.toString(),
+          fee: shortResult.fee?.toString(),
+        },
       },
-      'Both sides closed successfully',
+      'Both sides closed successfully - detailed results',
     );
 
     const closedAt = new Date();
 
+    // 確保價格和費用有有效值
+    const longExitPrice = longResult.price ?? new Decimal(0);
+    const shortExitPrice = shortResult.price ?? new Decimal(0);
+    const longFee = longResult.fee ?? new Decimal(0);
+    const shortFee = shortResult.fee ?? new Decimal(0);
+
+    // 警告：如果價格為 0，可能是 API 返回資料有問題
+    if (longExitPrice.isZero()) {
+      logger.warn(
+        { positionId: position.id, exchange: position.longExchange },
+        'Long exit price is 0 - this may indicate an API issue',
+      );
+    }
+    if (shortExitPrice.isZero()) {
+      logger.warn(
+        { positionId: position.id, exchange: position.shortExchange },
+        'Short exit price is 0 - this may indicate an API issue',
+      );
+    }
+
     // 計算損益
     const pnlInput: PnLCalculationInput = {
       longEntryPrice: new Decimal(position.longEntryPrice),
-      longExitPrice: longResult.price!,
+      longExitPrice,
       longPositionSize: new Decimal(position.longPositionSize),
-      longFee: longResult.fee!,
+      longFee,
       shortEntryPrice: new Decimal(position.shortEntryPrice),
-      shortExitPrice: shortResult.price!,
+      shortExitPrice,
       shortPositionSize: new Decimal(position.shortPositionSize),
-      shortFee: shortResult.fee!,
+      shortFee,
       leverage: position.longLeverage,
       openedAt: position.openedAt || new Date(),
       closedAt,
       fundingRatePnL: new Decimal(0), // 簡化：資金費率損益設為 0
     };
 
+    // 記錄 PnL 計算輸入
+    logger.debug(
+      {
+        positionId: position.id,
+        longEntryPrice: pnlInput.longEntryPrice.toString(),
+        longExitPrice: pnlInput.longExitPrice.toString(),
+        longPositionSize: pnlInput.longPositionSize.toString(),
+        shortEntryPrice: pnlInput.shortEntryPrice.toString(),
+        shortExitPrice: pnlInput.shortExitPrice.toString(),
+        shortPositionSize: pnlInput.shortPositionSize.toString(),
+      },
+      'PnL calculation input',
+    );
+
     const pnlResult = calculatePnL(pnlInput);
+
+    // 記錄 PnL 計算結果
+    logger.info(
+      {
+        positionId: position.id,
+        priceDiffPnL: pnlResult.priceDiffPnL.toString(),
+        totalFees: pnlResult.totalFees.toString(),
+        totalPnL: pnlResult.totalPnL.toString(),
+        roi: pnlResult.roi.toString(),
+      },
+      'PnL calculation result',
+    );
 
     // 更新 Position 狀態
     const updatedPosition = await this.prisma.position.update({
@@ -437,9 +523,9 @@ export class PositionCloser {
       data: {
         status: 'CLOSED',
         closedAt,
-        longExitPrice: longResult.price!.toNumber(),
+        longExitPrice: longExitPrice.toNumber(),
         longCloseOrderId: longResult.orderId,
-        shortExitPrice: shortResult.price!.toNumber(),
+        shortExitPrice: shortExitPrice.toNumber(),
         shortCloseOrderId: shortResult.orderId,
       },
     });
@@ -453,13 +539,13 @@ export class PositionCloser {
         longExchange: position.longExchange,
         shortExchange: position.shortExchange,
         longEntryPrice: position.longEntryPrice,
-        longExitPrice: longResult.price!.toNumber(),
+        longExitPrice: longExitPrice.toNumber(),
         longPositionSize: position.longPositionSize,
-        longFee: longResult.fee!.toNumber(),
+        longFee: longFee.toNumber(),
         shortEntryPrice: position.shortEntryPrice,
-        shortExitPrice: shortResult.price!.toNumber(),
+        shortExitPrice: shortExitPrice.toNumber(),
         shortPositionSize: position.shortPositionSize,
-        shortFee: shortResult.fee!.toNumber(),
+        shortFee: shortFee.toNumber(),
         openedAt: position.openedAt || new Date(),
         closedAt,
         holdingDuration: pnlResult.holdingDuration,
@@ -482,21 +568,25 @@ export class PositionCloser {
       'Trade performance record created',
     );
 
+    // 準備返回的 quantity
+    const longQuantity = longResult.quantity ?? new Decimal(position.longPositionSize);
+    const shortQuantity = shortResult.quantity ?? new Decimal(position.shortPositionSize);
+
     return {
       success: true,
       position: updatedPosition,
       trade,
       longClose: {
         orderId: longResult.orderId!,
-        price: longResult.price!,
-        quantity: longResult.quantity!,
-        fee: longResult.fee!,
+        price: longExitPrice,
+        quantity: longQuantity,
+        fee: longFee,
       },
       shortClose: {
         orderId: shortResult.orderId!,
-        price: shortResult.price!,
-        quantity: shortResult.quantity!,
-        fee: shortResult.fee!,
+        price: shortExitPrice,
+        quantity: shortQuantity,
+        fee: shortFee,
       },
     };
   }
@@ -813,11 +903,68 @@ export class PositionCloser {
 
         try {
           const order = await ccxtExchange.createMarketOrder(symbol, side, contractQuantity, undefined, orderParams);
+
+          // 詳細記錄原始訂單回應
+          logger.info(
+            {
+              exchange,
+              symbol,
+              orderId: order.id,
+              status: order.status,
+              average: order.average,
+              price: order.price,
+              filled: order.filled,
+              amount: order.amount,
+              fee: order.fee,
+              cost: order.cost,
+              rawInfo: JSON.stringify(order.info).substring(0, 500), // 限制長度
+            },
+            'Raw order response from exchange (closePosition)',
+          );
+
+          // 獲取價格：優先使用 average，其次使用 price
+          let fillPrice = order.average || order.price || 0;
+
+          // 如果價格為 0，嘗試獲取訂單詳情（某些交易所需要）
+          if (!fillPrice || fillPrice === 0) {
+            logger.warn(
+              { exchange, orderId: order.id },
+              'Price not available in order response, attempting to fetch order details',
+            );
+
+            try {
+              // 等待一小段時間讓訂單狀態更新
+              await new Promise(resolve => setTimeout(resolve, 500));
+
+              const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
+              fillPrice = fetchedOrder.average || fetchedOrder.price || 0;
+
+              logger.info(
+                {
+                  exchange,
+                  orderId: order.id,
+                  fetchedAverage: fetchedOrder.average,
+                  fetchedPrice: fetchedOrder.price,
+                  finalPrice: fillPrice,
+                },
+                'Fetched order details for price',
+              );
+            } catch (fetchError) {
+              logger.error(
+                { exchange, orderId: order.id, error: fetchError },
+                'Failed to fetch order details, using 0 as price',
+              );
+            }
+          }
+
+          // 獲取手續費
+          const fee = order.fee?.cost || 0;
+
           return {
             orderId: order.id,
-            price: order.average || order.price || 0,
+            price: fillPrice,
             quantity: order.filled || order.amount || quantity, // 返回原始數量
-            fee: order.fee?.cost || 0,
+            fee,
           };
         } catch (error: unknown) {
           // 檢查是否為 Binance 持倉模式不匹配錯誤 (-4061)
@@ -836,9 +983,40 @@ export class PositionCloser {
             );
 
             const order = await ccxtExchange.createMarketOrder(symbol, side, contractQuantity, undefined, orderParams);
+
+            // 詳細記錄重試後的訂單回應
+            logger.info(
+              {
+                exchange,
+                symbol,
+                orderId: order.id,
+                average: order.average,
+                price: order.price,
+                filled: order.filled,
+              },
+              'Retry order response (closePosition)',
+            );
+
+            // 獲取價格
+            let retryFillPrice = order.average || order.price || 0;
+
+            // 如果價格為 0，嘗試獲取訂單詳情
+            if (!retryFillPrice || retryFillPrice === 0) {
+              try {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
+                retryFillPrice = fetchedOrder.average || fetchedOrder.price || 0;
+              } catch (fetchError) {
+                logger.error(
+                  { exchange, orderId: order.id, error: fetchError },
+                  'Failed to fetch retry order details',
+                );
+              }
+            }
+
             return {
               orderId: order.id,
-              price: order.average || order.price || 0,
+              price: retryFillPrice,
               quantity: order.filled || order.amount || quantity,
               fee: order.fee?.cost || 0,
             };
