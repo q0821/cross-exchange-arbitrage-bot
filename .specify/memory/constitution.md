@@ -1,7 +1,19 @@
 <!--
-Sync Impact Report - Constitution v1.1.0
+Sync Impact Report - Constitution v1.2.0
 Created: 2025-10-19
-Last Updated: 2025-11-12
+Last Updated: 2025-12-23
+
+Changes in v1.2.0:
+- Added Principle VII: Test-Driven Development (TDD) Discipline (NON-NEGOTIABLE)
+  - Mandates strict Red-Green-Refactor cycle
+  - Prohibits writing production code without tests first
+  - Requires test failure verification before implementation
+  - Establishes TDD execution flow for all implementations
+- Templates requiring updates:
+  ✅ plan-template.md - already has Constitution Check section
+  ✅ spec-template.md - no changes needed
+  ✅ tasks-template.md - already mentions "tests MUST be written and FAIL before implementation"
+- Follow-up TODOs: None
 
 Changes in v1.1.0:
 - Added Principle VI: System Architecture Boundaries
@@ -135,6 +147,54 @@ Exchange APIs         TimescaleDB                 React Client
 
 **Rationale**: Clear separation of concerns prevents complexity creep. CLI focuses on reliable data collection, Web focuses on user experience. Database acts as the contract between both systems, enabling independent development and scaling.
 
+### VII. Test-Driven Development (TDD) Discipline (NON-NEGOTIABLE)
+
+**MUST** requirements for all implementation work:
+
+- All production code MUST be written using strict TDD workflow
+- Tests MUST be written BEFORE any production code
+- Tests MUST be run and verified to FAIL before implementing production code
+- Only the minimum code necessary to pass the test MUST be written
+- Refactoring MUST only occur after tests pass (never during Red or Green phases)
+
+**TDD Execution Flow** (MUST follow in order):
+
+1. **🔴 Red Phase - Write Failing Test First**
+   - Write a single test case for the expected behavior
+   - Run the test and verify it FAILS
+   - The test failure message MUST clearly indicate what is missing
+   - DO NOT proceed to Green phase until test failure is verified
+
+2. **🟢 Green Phase - Minimal Implementation**
+   - Write the MINIMUM code to make the test pass
+   - DO NOT add extra functionality, optimizations, or "nice-to-haves"
+   - Run the test and verify it PASSES
+   - DO NOT proceed to Refactor phase until test passes
+
+3. **🔵 Refactor Phase - Improve Code Quality**
+   - Improve code structure, naming, and clarity
+   - Run ALL tests after each refactoring step
+   - If any test fails, revert the refactoring change
+   - Only proceed to next test cycle when all tests pass
+
+**TDD Prohibitions**:
+
+- ❌ Writing production code without a failing test first
+- ❌ Writing more than one failing test at a time
+- ❌ Writing more code than necessary to pass the current test
+- ❌ Skipping the Red phase ("I know this will work")
+- ❌ Skipping the Refactor phase due to time pressure
+- ❌ Mocking everything - prefer integration tests where feasible
+
+**SHOULD** guidelines:
+
+- Prefer small, focused tests over large, complex ones
+- Prefer testing behavior over implementation details
+- Prefer real dependencies over mocks when performance allows
+- Name tests using Given-When-Then or Arrange-Act-Assert patterns
+
+**Rationale**: TDD ensures code quality, prevents regression bugs, and forces thoughtful API design. In a trading system where bugs can cause financial losses, TDD discipline is not optional - it is a safety mechanism. Writing tests first guarantees that every piece of production code has corresponding test coverage.
+
 ## Trading Safety Requirements
 
 ### Position Management
@@ -236,4 +296,4 @@ Before merging to main branch:
 - Principles should be challenged if they block necessary improvements
 - But convenience is not sufficient justification for weakening safety (Principle I)
 
-**Version**: 1.1.0 | **Ratified**: 2025-10-19 | **Last Amended**: 2025-11-12
+**Version**: 1.2.0 | **Ratified**: 2025-10-19 | **Last Amended**: 2025-12-23
