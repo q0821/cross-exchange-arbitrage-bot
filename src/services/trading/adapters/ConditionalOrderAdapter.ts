@@ -75,28 +75,64 @@ export function getClosingSide(positionSide: TradeSide): 'BUY' | 'SELL' {
 }
 
 /**
+ * 解析交易對符號為 base 和 quote
+ * 支援 'BTCUSDT', 'BTC/USDT', 'BTC-USDT' 等格式
+ */
+function parseSymbol(symbol: string): { base: string; quote: string } {
+  // 先處理帶分隔符的格式
+  if (symbol.includes('/')) {
+    const parts = symbol.split('/');
+    return { base: parts[0] || symbol, quote: parts[1] || 'USDT' };
+  }
+  if (symbol.includes('-')) {
+    const parts = symbol.split('-');
+    // OKX 格式可能是 BTC-USDT-SWAP，取前兩個
+    return { base: parts[0] || symbol, quote: parts[1] || 'USDT' };
+  }
+  if (symbol.includes('_')) {
+    const parts = symbol.split('_');
+    return { base: parts[0] || symbol, quote: parts[1] || 'USDT' };
+  }
+
+  // 處理不帶分隔符的格式 (BTCUSDT)
+  // 支援常見的 quote 貨幣
+  const quotePatterns = ['USDT', 'USDC', 'BUSD', 'USD', 'BTC', 'ETH'];
+  for (const quote of quotePatterns) {
+    if (symbol.endsWith(quote) && symbol.length > quote.length) {
+      return {
+        base: symbol.slice(0, -quote.length),
+        quote,
+      };
+    }
+  }
+
+  // 無法解析，返回原始值
+  return { base: symbol, quote: 'USDT' };
+}
+
+/**
  * 轉換交易對符號格式
- * 將 CCXT 格式 (BTC/USDT) 轉換為交易所格式
+ * 支援多種輸入格式: 'BTCUSDT', 'BTC/USDT', 'BTC-USDT' 等
+ * 轉換為各交易所需要的格式
  */
 export function convertSymbolForExchange(
   symbol: string,
   exchange: 'binance' | 'okx' | 'gateio' | 'mexc',
 ): string {
-  // 移除 '/'
-  const baseQuote = symbol.replace('/', '');
+  const { base, quote } = parseSymbol(symbol);
 
   switch (exchange) {
     case 'binance':
     case 'mexc':
       // Binance/MEXC: BTCUSDT
-      return baseQuote;
+      return `${base}${quote}`;
     case 'okx':
       // OKX: BTC-USDT-SWAP
-      return `${symbol.replace('/', '-')}-SWAP`;
+      return `${base}-${quote}-SWAP`;
     case 'gateio':
       // Gate.io: BTC_USDT
-      return symbol.replace('/', '_');
+      return `${base}_${quote}`;
     default:
-      return baseQuote;
+      return `${base}${quote}`;
   }
 }

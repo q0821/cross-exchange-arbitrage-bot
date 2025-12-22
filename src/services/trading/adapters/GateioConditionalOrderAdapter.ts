@@ -92,12 +92,17 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
       // Short 停利: 價格下跌到目標 → rule: 2 (<=)
       const triggerRule = this.getTriggerRule(side, type);
 
+      // Gate.io 合約用整數張數，需要轉換
+      const sizeInt = Math.abs(parseInt(sizeValue.toString(), 10));
+      // 根據方向設定正負號
+      const finalSize = side === 'LONG' ? -sizeInt : sizeInt;
+
       logger.info(
         {
           exchangeSymbol,
           type,
           side,
-          size: sizeValue.toString(),
+          size: finalSize,
           triggerPrice: formattedPrice,
           triggerRule,
         },
@@ -106,23 +111,25 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
 
       // 構建 Price Order 參數
       // Gate.io API: POST /futures/{settle}/price_orders
+      // 參考: https://www.gate.io/docs/developers/futures/en/#create-a-price-triggered-order
       const orderParams = {
         settle: 'usdt',
-        contract: exchangeSymbol,
-        size: parseInt(sizeValue.toString(), 10), // Gate.io 使用整數
-        price: '0', // 市價單
+        initial: {
+          contract: exchangeSymbol,
+          size: finalSize,
+          price: '0', // 市價單
+          tif: 'ioc', // Immediate or Cancel
+          is_reduce_only: true,
+        },
         trigger: {
+          strategy_type: 0, // 0: by price
+          price_type: 0, // 0: 最新價格, 1: 標記價格
           price: formattedPrice,
           rule: triggerRule, // 1: >=, 2: <=
-          price_type: 1, // 1: 標記價格, 0: 最新價格
-        },
-        initial: {
-          size: parseInt(sizeValue.toString(), 10),
-          price: '0', // 市價
-          tif: 'ioc', // Immediate or Cancel
-          reduce_only: true,
         },
       };
+
+      logger.debug({ orderParams }, 'Gate.io price order params');
 
       // 使用 CCXT 的原生 API 調用 (privateFuturesPostSettlePriceOrders)
       const response = await this.ccxtExchange.privateFuturesPostSettlePriceOrders(orderParams);
