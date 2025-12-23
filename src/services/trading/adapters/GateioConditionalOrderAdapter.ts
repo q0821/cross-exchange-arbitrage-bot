@@ -132,7 +132,8 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
           size: finalSize,
           price: '0', // 市價單
           tif: 'ioc', // Immediate or Cancel
-          is_reduce_only: true,
+          reduce_only: true, // 僅平倉不開新倉位
+          close: false, // 雙倉模式部分平倉
         },
         trigger: {
           strategy_type: 0, // 0: by price
