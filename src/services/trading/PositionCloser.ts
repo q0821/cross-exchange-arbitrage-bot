@@ -28,6 +28,7 @@ import {
 } from '../../lib/pnl-calculator';
 import * as ccxt from 'ccxt';
 import { FundingFeeQueryService } from './FundingFeeQueryService';
+import { ConditionalOrderAdapterFactory } from './ConditionalOrderAdapterFactory';
 
 /**
  * 鎖的配置
@@ -126,10 +127,12 @@ export type ClosePositionResult = ClosePositionSuccessResult | ClosePositionPart
 export class PositionCloser {
   private readonly prisma: PrismaClient;
   private readonly fundingFeeQueryService: FundingFeeQueryService;
+  private readonly conditionalOrderAdapterFactory: ConditionalOrderAdapterFactory;
 
   constructor(prisma: PrismaClient, fundingFeeQueryService?: FundingFeeQueryService) {
     this.prisma = prisma;
     this.fundingFeeQueryService = fundingFeeQueryService || new FundingFeeQueryService(prisma);
+    this.conditionalOrderAdapterFactory = new ConditionalOrderAdapterFactory(prisma);
   }
 
   /**
@@ -590,6 +593,10 @@ export class PositionCloser {
       },
       'Trade performance record created',
     );
+
+    // 取消條件單（停損停利）
+    // 平倉成功後清理殘留的條件單，失敗不影響平倉結果
+    await this.cancelConditionalOrders(position);
 
     // 準備返回的 quantity
     const longQuantity = longResult.quantity ?? new Decimal(position.longPositionSize);
@@ -1081,6 +1088,121 @@ export class PositionCloser {
       return `${base}/USDT:USDT`;
     }
     return symbol;
+  }
+
+  /**
+   * 取消倉位的所有條件單（停損停利）
+   *
+   * 平倉成功後呼叫此方法清理殘留的條件單
+   * 失敗時僅記錄警告，不影響平倉結果
+   */
+  private async cancelConditionalOrders(position: Position): Promise<void> {
+    const conditionalOrders = [
+      {
+        exchange: position.longExchange as SupportedExchange,
+        orderId: position.longStopLossOrderId,
+        type: 'longStopLoss',
+      },
+      {
+        exchange: position.longExchange as SupportedExchange,
+        orderId: position.longTakeProfitOrderId,
+        type: 'longTakeProfit',
+      },
+      {
+        exchange: position.shortExchange as SupportedExchange,
+        orderId: position.shortStopLossOrderId,
+        type: 'shortStopLoss',
+      },
+      {
+        exchange: position.shortExchange as SupportedExchange,
+        orderId: position.shortTakeProfitOrderId,
+        type: 'shortTakeProfit',
+      },
+    ].filter(order => order.orderId); // 只處理有 orderId 的
+
+    if (conditionalOrders.length === 0) {
+      logger.debug(
+        { positionId: position.id },
+        'No conditional orders to cancel',
+      );
+      return;
+    }
+
+    logger.info(
+      {
+        positionId: position.id,
+        orderCount: conditionalOrders.length,
+        orders: conditionalOrders.map(o => ({ type: o.type, exchange: o.exchange })),
+      },
+      'Canceling conditional orders after position close',
+    );
+
+    // 並行取消所有條件單
+    const cancelResults = await Promise.allSettled(
+      conditionalOrders.map(async order => {
+        try {
+          const adapter = await this.conditionalOrderAdapterFactory.getAdapter(
+            order.exchange,
+            position.userId,
+          );
+          const success = await adapter.cancelConditionalOrder(
+            position.symbol,
+            order.orderId!,
+          );
+
+          if (success) {
+            logger.info(
+              {
+                positionId: position.id,
+                type: order.type,
+                exchange: order.exchange,
+                orderId: order.orderId,
+              },
+              'Conditional order cancelled successfully',
+            );
+          } else {
+            logger.warn(
+              {
+                positionId: position.id,
+                type: order.type,
+                exchange: order.exchange,
+                orderId: order.orderId,
+              },
+              'Failed to cancel conditional order (adapter returned false)',
+            );
+          }
+
+          return { type: order.type, success };
+        } catch (error) {
+          logger.warn(
+            {
+              positionId: position.id,
+              type: order.type,
+              exchange: order.exchange,
+              orderId: order.orderId,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            'Error canceling conditional order',
+          );
+          return { type: order.type, success: false };
+        }
+      }),
+    );
+
+    // 統計結果
+    const successCount = cancelResults.filter(
+      r => r.status === 'fulfilled' && r.value.success,
+    ).length;
+
+    logger.info(
+      {
+        positionId: position.id,
+        total: conditionalOrders.length,
+        success: successCount,
+        failed: conditionalOrders.length - successCount,
+      },
+      'Conditional orders cancellation completed',
+    );
   }
 }
 

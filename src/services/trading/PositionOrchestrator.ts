@@ -898,9 +898,34 @@ export class PositionOrchestrator {
 
         try {
           const order = await ccxtExchange.createMarketOrder(symbol, side, contractQuantity, undefined, orderParams);
+
+          // 獲取成交價格（OKX 市價單需要額外查詢）
+          let price = order.average || order.price;
+          if (!price || price === 0) {
+            logger.info(
+              { exchange, symbol, orderId: order.id },
+              'Price not in order response, fetching order details',
+            );
+            try {
+              // 等待短暫時間讓訂單結算
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
+              price = fetchedOrder.average || fetchedOrder.price || 0;
+              logger.info(
+                { exchange, symbol, orderId: order.id, price },
+                'Got price from fetched order',
+              );
+            } catch (fetchError) {
+              logger.warn(
+                { exchange, symbol, orderId: order.id, error: fetchError },
+                'Failed to fetch order details for price, using 0',
+              );
+            }
+          }
+
           return {
             orderId: order.id,
-            price: order.average || order.price || 0,
+            price: price || 0,
             quantity: order.filled || order.amount || quantity, // 返回原始數量（非合約數量）
             fee: order.fee?.cost || 0,
           };
@@ -921,9 +946,22 @@ export class PositionOrchestrator {
             );
 
             const order = await ccxtExchange.createMarketOrder(symbol, side, contractQuantity, undefined, orderParams);
+
+            // 獲取成交價格
+            let price = order.average || order.price;
+            if (!price || price === 0) {
+              try {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
+                price = fetchedOrder.average || fetchedOrder.price || 0;
+              } catch {
+                // 忽略
+              }
+            }
+
             return {
               orderId: order.id,
-              price: order.average || order.price || 0,
+              price: price || 0,
               quantity: order.filled || order.amount || quantity,
               fee: order.fee?.cost || 0,
             };
@@ -971,9 +1009,22 @@ export class PositionOrchestrator {
 
         try {
           const order = await ccxtExchange.createMarketOrder(symbol, closeSide, contractQuantity, undefined, orderParams);
+
+          // 獲取成交價格（市價單可能需要額外查詢）
+          let price = order.average || order.price;
+          if (!price || price === 0) {
+            try {
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
+              price = fetchedOrder.average || fetchedOrder.price || 0;
+            } catch {
+              // 忽略
+            }
+          }
+
           return {
             orderId: order.id,
-            price: order.average || order.price || 0,
+            price: price || 0,
             quantity: order.filled || order.amount || quantity,
             fee: order.fee?.cost || 0,
           };
@@ -994,9 +1045,22 @@ export class PositionOrchestrator {
             );
 
             const order = await ccxtExchange.createMarketOrder(symbol, closeSide, contractQuantity, undefined, orderParams);
+
+            // 獲取成交價格
+            let price = order.average || order.price;
+            if (!price || price === 0) {
+              try {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
+                price = fetchedOrder.average || fetchedOrder.price || 0;
+              } catch {
+                // 忽略
+              }
+            }
+
             return {
               orderId: order.id,
-              price: order.average || order.price || 0,
+              price: price || 0,
               quantity: order.filled || order.amount || quantity,
               fee: order.fee?.cost || 0,
             };

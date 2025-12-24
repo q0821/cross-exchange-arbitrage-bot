@@ -110,11 +110,44 @@ export class BinanceConditionalOrderAdapter implements ConditionalOrderAdapter {
 
   /**
    * 取消條件單
+   *
+   * Portfolio Margin 使用: DELETE /papi/v1/um/conditional/order
+   * 標準合約使用: DELETE /fapi/v1/order
+   * 參考: https://developers.binance.com/docs/derivatives/portfolio-margin/trade/Cancel-UM-Conditional-Order
    */
   async cancelConditionalOrder(symbol: string, orderId: string): Promise<boolean> {
     try {
       const exchangeSymbol = convertSymbolForExchange(symbol, 'binance');
-      await this.ccxtExchange.cancelOrder(orderId, exchangeSymbol);
+
+      logger.info(
+        { symbol: exchangeSymbol, orderId, isPortfolioMargin: this.isPortfolioMargin },
+        'Canceling Binance conditional order',
+      );
+
+      if (this.isPortfolioMargin) {
+        // Portfolio Margin 條件單取消 API
+        const response = await this.ccxtExchange.papiDeleteUmConditionalOrder({
+          symbol: exchangeSymbol,
+          strategyId: orderId,
+        });
+
+        logger.info(
+          { symbol: exchangeSymbol, orderId, response },
+          'Binance Portfolio Margin conditional order cancelled',
+        );
+      } else {
+        // 標準合約取消 API
+        await this.ccxtExchange.fapiPrivateDeleteOrder({
+          symbol: exchangeSymbol,
+          orderId,
+        });
+
+        logger.info(
+          { symbol: exchangeSymbol, orderId },
+          'Binance standard conditional order cancelled',
+        );
+      }
+
       return true;
     } catch (error) {
       logger.error({ error, symbol, orderId }, 'Failed to cancel Binance conditional order');
