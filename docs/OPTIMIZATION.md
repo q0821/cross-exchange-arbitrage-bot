@@ -28,9 +28,10 @@
 - **影響**: 無法即時推送數據，套利機會檢測延遲
 - **檔案**: `src/connectors/binance.ts`, `okx.ts`, `gateio.ts`, `mexc.ts`
 
-#### 4. API Key 連線測試未實現
-- **檔案**: `src/services/apikey/ApiKeyService.ts` (L252-259)
-- **影響**: 用戶無法驗證 API Key 有效性
+#### 4. ~~API Key 連線測試未實現~~ ✅ 已完成
+- **檔案**: `src/services/apikey/ApiKeyValidator.ts`
+- **解決方案**: 實作多交易所 API Key 驗證，支援 Binance (多端點策略)、OKX、Gate.io、MEXC
+- **完成日期**: 2025-12-25 (Feature 042)
 
 ### 中優先級問題
 
@@ -126,7 +127,7 @@
 1. ~~Prisma Client Singleton 優化~~ ✅ 已完成
 
 ### 短期 (1-2 週)
-2. 實現 API Key 連線測試功能
+2. ~~實現 API Key 連線測試功能~~ ✅ 已完成 (Feature 042)
 3. 新增核心模組單元測試 (PositionOrchestrator, BalanceValidator)
 
 ### 中期 (2-4 週)
@@ -145,3 +146,4 @@
 | 日期 | 項目 | 狀態 |
 |------|------|------|
 | 2025-12-20 | Prisma Client Singleton 優化 | ✅ 完成 (Feature 039) |
+| 2025-12-25 | API Key 連線測試功能 | ✅ 完成 (Feature 042) |
