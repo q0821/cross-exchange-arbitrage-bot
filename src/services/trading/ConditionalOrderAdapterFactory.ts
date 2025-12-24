@@ -174,7 +174,7 @@ export class ConditionalOrderAdapterFactory {
     } catch (fapiError) {
       // 嘗試 Portfolio Margin API
       try {
-        const pmResult = await ccxtExchange.papi_get_um_positionSide_dual();
+        const pmResult = await ccxtExchange.papiGetUmPositionSideDual();
         const isHedgeMode =
           pmResult?.dualSidePosition === true || pmResult?.dualSidePosition === 'true';
         return { isPortfolioMargin: true, isHedgeMode };
