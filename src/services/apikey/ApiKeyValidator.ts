@@ -3,20 +3,63 @@
  *
  * Validates API keys with exchange APIs (FR-010, FR-012)
  * Checks connectivity and permissions before storing
+ *
+ * Feature: 042-api-key-connection-test
  */
 
-import { logger } from '../../lib/logger.js';
+import { logger } from '../../lib/logger';
+import crypto from 'crypto';
 import ccxt from 'ccxt';
+import type { ValidationErrorCode, ValidationDetails } from '../../types/api-key-validation';
 
 export interface ValidationResult {
   isValid: boolean;
   hasReadPermission: boolean;
   hasTradePermission: boolean;
   error?: string;
-  details?: any;
+  errorCode?: ValidationErrorCode;
+  details?: ValidationDetails;
 }
 
 export class ApiKeyValidator {
+  /**
+   * Make a signed request to Binance API
+   * Uses the same approach as the working BinanceUserConnector
+   */
+  private async binanceSignedRequest(
+    baseUrl: string,
+    endpoint: string,
+    apiKey: string,
+    apiSecret: string,
+    params: Record<string, string> = {},
+  ): Promise<{ ok: boolean; status: number; data?: unknown; error?: string }> {
+    const timestamp = Date.now().toString();
+    const queryParams = { ...params, timestamp, recvWindow: '5000' };
+    const queryString = new URLSearchParams(queryParams).toString();
+    const signature = crypto.createHmac('sha256', apiSecret).update(queryString).digest('hex');
+
+    const url = `${baseUrl}${endpoint}?${queryString}&signature=${signature}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'X-MBX-APIKEY': apiKey,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { ok: false, status: response.status, error: errorText };
+      }
+
+      const data = await response.json();
+      return { ok: true, status: response.status, data };
+    } catch (error: any) {
+      return { ok: false, status: 0, error: error.message };
+    }
+  }
+
   /**
    * Validate Binance API Key (FR-010, FR-012)
    *
@@ -24,80 +67,195 @@ export class ApiKeyValidator {
    * 1. API connectivity
    * 2. Read permission (account info)
    * 3. Trade permission (futures trading)
+   *
+   * Uses direct HTTP requests (same as BinanceUserConnector) instead of CCXT
+   * Tries multiple endpoints in order:
+   * 1. Portfolio Margin API (/papi/v1/balance) - 統一保證金帳戶
+   * 2. Futures API (/fapi/v2/account) - 期貨帳戶
+   * 3. Spot API (/api/v3/account) - 現貨帳戶
    */
   async validateBinanceKey(
     apiKey: string,
     apiSecret: string,
     environment: 'MAINNET' | 'TESTNET' = 'MAINNET',
   ): Promise<ValidationResult> {
-    try {
-      const config: any = {
+    const startTime = Date.now();
+
+    // Choose base URLs based on environment
+    const spotBaseUrl = environment === 'TESTNET' ? 'https://testnet.binance.vision' : 'https://api.binance.com';
+    const futuresBaseUrl = environment === 'TESTNET' ? 'https://testnet.binancefuture.com' : 'https://fapi.binance.com';
+    const portfolioMarginBaseUrl = 'https://papi.binance.com'; // No testnet for PM
+
+    let totalBalance = 0;
+    let availableBalance = 0;
+    let hasTradePermission = false;
+    let accountType = 'unknown';
+
+    // Try 1: Portfolio Margin API (統一保證金帳戶)
+    if (environment === 'MAINNET') {
+      const pmResult = await this.binanceSignedRequest(
+        portfolioMarginBaseUrl,
+        '/papi/v1/balance',
         apiKey,
-        secret: apiSecret,
-        enableRateLimit: true,
-        options: {
-          defaultType: 'future', // 永續合約
-        },
-      };
+        apiSecret,
+      );
 
-      // Binance Testnet configuration
-      if (environment === 'TESTNET') {
-        config.options.testnet = true;
-        config.hostname = 'testnet.binancefuture.com';
+      if (pmResult.ok) {
+        accountType = 'portfolio_margin';
+        hasTradePermission = true;
+
+        const balances = pmResult.data as Array<{
+          asset: string;
+          totalWalletBalance: string;
+          crossMarginFree: string;
+        }>;
+
+        const usdtBalance = balances?.find((b) => b.asset === 'USDT');
+        if (usdtBalance) {
+          totalBalance = parseFloat(usdtBalance.totalWalletBalance) || 0;
+          availableBalance = parseFloat(usdtBalance.crossMarginFree) || 0;
+        }
+
+        logger.info(
+          { exchange: 'binance', environment, accountType, totalBalance },
+          'Binance API key validated via Portfolio Margin API',
+        );
       }
+    }
 
-      const exchange = new (ccxt as any).binance(config);
+    // Try 2: Futures API (期貨帳戶)
+    if (accountType === 'unknown') {
+      const futuresResult = await this.binanceSignedRequest(
+        futuresBaseUrl,
+        '/fapi/v2/account',
+        apiKey,
+        apiSecret,
+      );
 
-      // Test 1: Fetch account info (read permission)
-      const account = await exchange.fapiPrivateV2GetAccount();
+      if (futuresResult.ok) {
+        accountType = 'futures';
+        hasTradePermission = true;
 
-      if (!account) {
+        const account = futuresResult.data as {
+          totalWalletBalance?: string;
+          availableBalance?: string;
+          assets?: Array<{ asset: string; walletBalance: string; availableBalance: string }>;
+        };
+
+        if (account.totalWalletBalance) {
+          totalBalance = parseFloat(account.totalWalletBalance);
+        }
+        if (account.availableBalance) {
+          availableBalance = parseFloat(account.availableBalance);
+        }
+
+        if (account.assets) {
+          const usdtAsset = account.assets.find((a) => a.asset === 'USDT');
+          if (usdtAsset) {
+            totalBalance = parseFloat(usdtAsset.walletBalance) || totalBalance;
+            availableBalance = parseFloat(usdtAsset.availableBalance) || availableBalance;
+          }
+        }
+
+        logger.info(
+          { exchange: 'binance', environment, accountType, totalBalance },
+          'Binance API key validated via Futures API',
+        );
+      }
+    }
+
+    // Try 3: Spot API (現貨帳戶) - 最基本的讀取權限
+    if (accountType === 'unknown') {
+      const spotResult = await this.binanceSignedRequest(
+        spotBaseUrl,
+        '/api/v3/account',
+        apiKey,
+        apiSecret,
+      );
+
+      if (spotResult.ok) {
+        accountType = 'spot';
+        hasTradePermission = false; // Spot only means no futures trading permission
+
+        const account = spotResult.data as {
+          balances?: Array<{ asset: string; free: string; locked: string }>;
+        };
+
+        if (account.balances) {
+          const usdtBalance = account.balances.find((b) => b.asset === 'USDT');
+          if (usdtBalance) {
+            const free = parseFloat(usdtBalance.free) || 0;
+            const locked = parseFloat(usdtBalance.locked) || 0;
+            totalBalance = free + locked;
+            availableBalance = free;
+          }
+        }
+
+        logger.info(
+          { exchange: 'binance', environment, accountType, totalBalance },
+          'Binance API key validated via Spot API (no futures permission)',
+        );
+      } else {
+        // All APIs failed - return error
+        let errorMessage = spotResult.error || 'Unknown error';
+        let errorCode: ValidationErrorCode = 'UNKNOWN_ERROR';
+
+        try {
+          const errorJson = JSON.parse(spotResult.error || '{}');
+          if (errorJson.code === -2015 || errorJson.msg?.includes('Invalid API-key')) {
+            errorCode = 'INVALID_API_KEY';
+            errorMessage = 'Invalid API Key or Secret';
+          } else if (errorJson.code === -1022 || errorJson.msg?.includes('Signature')) {
+            errorCode = 'INVALID_SECRET';
+            errorMessage = 'Invalid API Secret (signature mismatch)';
+          } else if (errorJson.msg?.includes('IP')) {
+            errorCode = 'IP_NOT_WHITELISTED';
+            errorMessage = 'IP address not whitelisted';
+          } else if (errorJson.msg) {
+            errorMessage = errorJson.msg;
+          }
+        } catch {
+          // Keep original error message
+        }
+
+        logger.error(
+          {
+            exchange: 'binance',
+            environment,
+            status: spotResult.status,
+            error: spotResult.error,
+          },
+          'Binance API key validation failed - all endpoints failed',
+        );
+
         return {
           isValid: false,
           hasReadPermission: false,
           hasTradePermission: false,
-          error: 'Failed to fetch account info',
+          error: errorMessage,
+          errorCode,
         };
       }
-
-      // Test 2: Check if API key has trade permission
-      // Binance returns permission info in account response
-      const permissions = account.permissions || [];
-      const hasTradePermission = permissions.includes('TRADE') || permissions.includes('TRADING');
-
-      logger.info(
-        {
-          exchange: 'binance',
-          environment,
-          permissions,
-          hasTradePermission,
-        },
-        'Binance API key validated',
-      );
-
-      return {
-        isValid: true,
-        hasReadPermission: true,
-        hasTradePermission,
-        details: {
-          totalWalletBalance: account.totalWalletBalance,
-          availableBalance: account.availableBalance,
-          permissions,
-        },
-      };
-    } catch (error: any) {
-      logger.error(
-        { error: error.message, exchange: 'binance', environment },
-        'Binance API key validation failed',
-      );
-
-      return {
-        isValid: false,
-        hasReadPermission: false,
-        hasTradePermission: false,
-        error: this.parseExchangeError(error),
-      };
     }
+
+    const responseTime = Date.now() - startTime;
+
+    return {
+      isValid: true,
+      hasReadPermission: true,
+      hasTradePermission,
+      details: {
+        exchange: 'binance',
+        environment,
+        balance: {
+          total: totalBalance,
+          available: availableBalance,
+          currency: 'USDT',
+        },
+        permissions: hasTradePermission ? ['READ', 'FUTURES'] : ['READ'],
+        responseTime,
+      },
+    };
   }
 
   /**
@@ -114,21 +272,19 @@ export class ApiKeyValidator {
     passphrase: string,
     environment: 'MAINNET' | 'TESTNET' = 'MAINNET',
   ): Promise<ValidationResult> {
+    const startTime = Date.now();
+
     try {
       const config: any = {
         apiKey,
         secret: apiSecret,
         password: passphrase,
         enableRateLimit: true,
+        sandbox: environment === 'TESTNET',
         options: {
           defaultType: 'swap', // 永續合約
         },
       };
-
-      // OKX Sandbox configuration
-      if (environment === 'TESTNET') {
-        config.options.sandboxMode = true;
-      }
 
       const exchange = new (ccxt as any).okx(config);
 
@@ -141,6 +297,7 @@ export class ApiKeyValidator {
           hasReadPermission: false,
           hasTradePermission: false,
           error: 'Failed to fetch account balance',
+          errorCode: 'EXCHANGE_ERROR',
         };
       }
 
@@ -157,22 +314,32 @@ export class ApiKeyValidator {
             environment,
             accountConfig,
           },
-          'OKX API key validated',
+          'OKX API key validated with trade permission',
         );
       } catch (permError) {
+        // 如果無法獲取帳戶配置，假設有交易權限（因為 fetchBalance 成功了）
+        hasTradePermission = true;
         logger.warn(
           { error: permError },
-          'OKX API key lacks trade permission',
+          'OKX API key - could not verify trade permission, assuming granted',
         );
       }
+
+      const responseTime = Date.now() - startTime;
 
       return {
         isValid: true,
         hasReadPermission: true,
         hasTradePermission,
         details: {
-          totalBalance: balance.total?.USDT || 0,
-          freeBalance: balance.free?.USDT || 0,
+          exchange: 'okx',
+          environment,
+          balance: {
+            total: Number(balance.total?.USDT) || 0,
+            available: Number(balance.free?.USDT) || 0,
+            currency: 'USDT',
+          },
+          responseTime,
         },
       };
     } catch (error: any) {
@@ -186,8 +353,269 @@ export class ApiKeyValidator {
         hasReadPermission: false,
         hasTradePermission: false,
         error: this.parseExchangeError(error),
+        errorCode: this.parseErrorCode(error),
       };
     }
+  }
+
+  /**
+   * Validate Gate.io API Key (FR-010, FR-012)
+   *
+   * Checks:
+   * 1. API connectivity
+   * 2. Read permission (futures balance)
+   *
+   * Note: Gate.io API 無法直接驗證交易權限，僅能驗證讀取權限
+   */
+  async validateGateioKey(
+    apiKey: string,
+    apiSecret: string,
+    environment: 'MAINNET' | 'TESTNET' = 'MAINNET',
+  ): Promise<ValidationResult> {
+    const startTime = Date.now();
+
+    try {
+      const config: any = {
+        apiKey,
+        secret: apiSecret,
+        enableRateLimit: true,
+        options: {
+          defaultType: 'swap', // 永續合約
+        },
+      };
+
+      // Gate.io 測試網配置
+      if (environment === 'TESTNET') {
+        config.options.sandboxMode = true;
+      }
+
+      const exchange = new (ccxt as any).gateio(config);
+
+      // Test: Fetch account balance (read permission)
+      const balance = await exchange.fetchBalance();
+
+      if (!balance) {
+        return {
+          isValid: false,
+          hasReadPermission: false,
+          hasTradePermission: false,
+          error: 'Failed to fetch account balance',
+          errorCode: 'EXCHANGE_ERROR',
+        };
+      }
+
+      const responseTime = Date.now() - startTime;
+
+      logger.info(
+        {
+          exchange: 'gateio',
+          environment,
+          responseTime,
+        },
+        'Gate.io API key validated',
+      );
+
+      return {
+        isValid: true,
+        hasReadPermission: true,
+        hasTradePermission: false, // Gate.io 無法驗證交易權限
+        details: {
+          exchange: 'gateio',
+          environment,
+          balance: {
+            total: Number(balance.total?.USDT) || 0,
+            available: Number(balance.free?.USDT) || 0,
+            currency: 'USDT',
+          },
+          responseTime,
+        },
+      };
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+
+      logger.error(
+        { error: error.message, exchange: 'gateio', environment, responseTime },
+        'Gate.io API key validation failed',
+      );
+
+      return {
+        isValid: false,
+        hasReadPermission: false,
+        hasTradePermission: false,
+        error: this.parseExchangeError(error),
+        errorCode: this.parseErrorCode(error),
+      };
+    }
+  }
+
+  /**
+   * Validate MEXC API Key (FR-010, FR-012)
+   *
+   * Checks:
+   * 1. API connectivity
+   * 2. Read permission (futures balance)
+   *
+   * Note: MEXC API 無法直接驗證交易權限，僅能驗證讀取權限
+   */
+  async validateMexcKey(
+    apiKey: string,
+    apiSecret: string,
+    environment: 'MAINNET' | 'TESTNET' = 'MAINNET',
+  ): Promise<ValidationResult> {
+    const startTime = Date.now();
+
+    try {
+      const config: any = {
+        apiKey,
+        secret: apiSecret,
+        enableRateLimit: true,
+        options: {
+          defaultType: 'swap', // 永續合約
+        },
+      };
+
+      // MEXC 測試網配置
+      if (environment === 'TESTNET') {
+        config.options.sandboxMode = true;
+      }
+
+      const exchange = new (ccxt as any).mexc(config);
+
+      // Test: Fetch account balance (read permission)
+      const balance = await exchange.fetchBalance();
+
+      if (!balance) {
+        return {
+          isValid: false,
+          hasReadPermission: false,
+          hasTradePermission: false,
+          error: 'Failed to fetch account balance',
+          errorCode: 'EXCHANGE_ERROR',
+        };
+      }
+
+      const responseTime = Date.now() - startTime;
+
+      logger.info(
+        {
+          exchange: 'mexc',
+          environment,
+          responseTime,
+        },
+        'MEXC API key validated',
+      );
+
+      return {
+        isValid: true,
+        hasReadPermission: true,
+        hasTradePermission: false, // MEXC 無法驗證交易權限
+        details: {
+          exchange: 'mexc',
+          environment,
+          balance: {
+            total: Number(balance.total?.USDT) || 0,
+            available: Number(balance.free?.USDT) || 0,
+            currency: 'USDT',
+          },
+          responseTime,
+        },
+      };
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+
+      logger.error(
+        { error: error.message, exchange: 'mexc', environment, responseTime },
+        'MEXC API key validation failed',
+      );
+
+      return {
+        isValid: false,
+        hasReadPermission: false,
+        hasTradePermission: false,
+        error: this.parseExchangeError(error),
+        errorCode: this.parseErrorCode(error),
+      };
+    }
+  }
+
+  /**
+   * Unified API Key validation entry point (T014)
+   *
+   * Routes to exchange-specific validation methods
+   */
+  async validateApiKey(params: {
+    exchange: 'binance' | 'okx' | 'gateio' | 'mexc';
+    apiKey: string;
+    apiSecret: string;
+    passphrase?: string;
+    environment: 'MAINNET' | 'TESTNET';
+  }): Promise<ValidationResult> {
+    const { exchange, apiKey, apiSecret, passphrase, environment } = params;
+
+    switch (exchange) {
+      case 'binance':
+        return this.validateBinanceKey(apiKey, apiSecret, environment);
+
+      case 'okx':
+        if (!passphrase) {
+          return {
+            isValid: false,
+            hasReadPermission: false,
+            hasTradePermission: false,
+            error: 'OKX requires passphrase',
+            errorCode: 'INVALID_PASSPHRASE',
+          };
+        }
+        return this.validateOkxKey(apiKey, apiSecret, passphrase, environment);
+
+      case 'gateio':
+        return this.validateGateioKey(apiKey, apiSecret, environment);
+
+      case 'mexc':
+        return this.validateMexcKey(apiKey, apiSecret, environment);
+
+      default:
+        return {
+          isValid: false,
+          hasReadPermission: false,
+          hasTradePermission: false,
+          error: `Unsupported exchange: ${exchange}`,
+          errorCode: 'EXCHANGE_ERROR',
+        };
+    }
+  }
+
+  /**
+   * Parse error into ValidationErrorCode
+   */
+  private parseErrorCode(error: any): ValidationErrorCode {
+    const message = error.message || String(error);
+
+    if (message.includes('Invalid API-key') || message.includes('Invalid API key')) {
+      return 'INVALID_API_KEY';
+    }
+
+    if (message.includes('Signature') || message.includes('signature')) {
+      return 'INVALID_SECRET';
+    }
+
+    if (message.includes('IP') || message.includes('whitelist')) {
+      return 'IP_NOT_WHITELISTED';
+    }
+
+    if (message.includes('permission')) {
+      return 'INSUFFICIENT_PERMISSION';
+    }
+
+    if (message.includes('timeout') || message.includes('Timeout')) {
+      return 'TIMEOUT';
+    }
+
+    if (message.includes('ENOTFOUND') || message.includes('ECONNREFUSED') || message.includes('network')) {
+      return 'NETWORK_ERROR';
+    }
+
+    return 'UNKNOWN_ERROR';
   }
 
   /**

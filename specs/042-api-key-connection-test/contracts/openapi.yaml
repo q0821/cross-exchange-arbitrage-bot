@@ -1,0 +1,205 @@
+openapi: 3.0.3
+info:
+  title: API Key Connection Test API
+  description: API endpoints for testing API key connectivity with exchanges
+  version: 1.0.0
+
+paths:
+  /api/api-keys/test:
+    post:
+      summary: Test API key connection (before saving)
+      description: |
+        Test the connectivity and permissions of an API key before saving it.
+        This endpoint does not store the API key.
+      operationId: testApiKeyConnection
+      tags:
+        - API Keys
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectionTestRequest'
+      responses:
+        '200':
+          description: Test completed (check success field for result)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+        '408':
+          description: Request timeout
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/api-keys/{id}/test:
+    post:
+      summary: Revalidate saved API key
+      description: |
+        Test the connectivity of an already saved API key.
+        Updates lastValidatedAt on success.
+      operationId: revalidateApiKey
+      tags:
+        - API Keys
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: API Key ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Test completed (check success field for result)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectionTestResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - API key belongs to another user
+        '404':
+          description: API key not found
+        '408':
+          description: Request timeout
+        '429':
+          description: Too many requests
+
+components:
+  schemas:
+    ConnectionTestRequest:
+      type: object
+      required:
+        - exchange
+        - environment
+        - apiKey
+        - apiSecret
+      properties:
+        exchange:
+          type: string
+          enum: [binance, okx, gateio, mexc]
+          description: Exchange identifier
+          example: binance
+        environment:
+          type: string
+          enum: [MAINNET, TESTNET]
+          description: Trading environment
+          example: MAINNET
+        apiKey:
+          type: string
+          minLength: 1
+          description: API key from exchange
+          example: "vmPUZE6mv9SD5VNHk4HlWFsOr6aKE2zvsw0MuIgwCIPy6utIco14y7Ju91duEh8A"
+        apiSecret:
+          type: string
+          minLength: 1
+          description: API secret from exchange
+          example: "NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j"
+        passphrase:
+          type: string
+          description: Passphrase (required for OKX)
+          example: "my-passphrase"
+
+    ConnectionTestResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: Whether the test completed successfully
+        data:
+          type: object
+          properties:
+            isValid:
+              type: boolean
+              description: Whether the API key is valid
+            hasReadPermission:
+              type: boolean
+              description: Whether the API key has read permission
+            hasTradePermission:
+              type: boolean
+              description: Whether the API key has trade permission
+            details:
+              type: object
+              properties:
+                balance:
+                  type: object
+                  properties:
+                    total:
+                      type: number
+                      description: Total balance in USDT
+                    available:
+                      type: number
+                      description: Available balance in USDT
+                    currency:
+                      type: string
+                      default: USDT
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                  description: List of permissions (exchange-specific)
+                responseTime:
+                  type: integer
+                  description: Response time in milliseconds
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - INVALID_API_KEY
+                - INVALID_SECRET
+                - INVALID_PASSPHRASE
+                - IP_NOT_WHITELISTED
+                - INSUFFICIENT_PERMISSION
+                - TIMEOUT
+                - NETWORK_ERROR
+                - EXCHANGE_ERROR
+                - UNKNOWN_ERROR
+            message:
+              type: string
+              description: Human-readable error message
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+  securitySchemes:
+    session:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+
+security:
+  - session: []
