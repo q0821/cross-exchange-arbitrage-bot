@@ -12,7 +12,7 @@
  *   pnpm tsx src/scripts/test-funding-history.ts --environment=TESTNET
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ApiEnvironment } from '@prisma/client';
 import * as ccxt from 'ccxt';
 import { decrypt } from '../lib/encryption.js';
 import { logger } from '../lib/logger.js';
@@ -24,22 +24,27 @@ const SUPPORTED_EXCHANGES = ['binance', 'okx', 'gateio', 'mexc'] as const;
 type SupportedExchange = (typeof SUPPORTED_EXCHANGES)[number];
 
 // 解析命令行參數
-function parseArgs(): { days: number; symbol: string; userId?: string; environment: string } {
+function parseArgs(): { days: number; symbol: string; userId?: string; environment: ApiEnvironment } {
   const args = process.argv.slice(2);
   let days = 7;
   let symbol = 'BTCUSDT';
   let userId: string | undefined;
-  let environment = 'MAINNET'; // 預設使用 MAINNET
+  let environment: ApiEnvironment = ApiEnvironment.MAINNET; // 預設使用 MAINNET
 
   for (const arg of args) {
     if (arg.startsWith('--days=')) {
-      days = parseInt(arg.split('=')[1], 10);
+      const val = arg.split('=')[1];
+      if (val) days = parseInt(val, 10);
     } else if (arg.startsWith('--symbol=')) {
-      symbol = arg.split('=')[1];
+      const val = arg.split('=')[1];
+      if (val) symbol = val;
     } else if (arg.startsWith('--userId=')) {
       userId = arg.split('=')[1];
     } else if (arg.startsWith('--environment=')) {
-      environment = arg.split('=')[1].toUpperCase();
+      const val = arg.split('=')[1];
+      if (val && val.toUpperCase() in ApiEnvironment) {
+        environment = val.toUpperCase() as ApiEnvironment;
+      }
     }
   }
 

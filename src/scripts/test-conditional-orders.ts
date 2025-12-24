@@ -43,11 +43,11 @@ function parseArgs(): {
         exchange = ex;
       }
     } else if (arg.startsWith('--userId=')) {
-      userId = arg.split('=')[1];
+      userId = arg.split('=')[1] ?? userId;
     } else if (arg === '--dry-run') {
       dryRun = true;
     } else if (arg.startsWith('--symbol=')) {
-      symbol = arg.split('=')[1];
+      symbol = arg.split('=')[1] ?? symbol;
     }
   }
 
