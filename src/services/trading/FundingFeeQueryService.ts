@@ -28,6 +28,38 @@ export class FundingFeeQueryService {
   }
 
   /**
+   * 偵測 Binance 帳戶類型（標準合約 vs Portfolio Margin）
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async detectBinanceAccountType(ccxtExchange: any): Promise<{
+    isPortfolioMargin: boolean;
+  }> {
+    // 先嘗試標準 Futures API
+    try {
+      await ccxtExchange.fapiPrivateGetPositionSideDual();
+      logger.info('Binance standard Futures account detected (FundingFeeQueryService)');
+      return { isPortfolioMargin: false };
+    } catch (fapiError: unknown) {
+      const fapiErrorMsg = fapiError instanceof Error ? fapiError.message : String(fapiError);
+      logger.debug({ error: fapiErrorMsg }, 'Standard Futures API failed, trying Portfolio Margin');
+    }
+
+    // 標準 API 失敗，嘗試 Portfolio Margin API
+    try {
+      await ccxtExchange.papiGetUmPositionSideDual();
+      logger.info('Binance Portfolio Margin account detected (FundingFeeQueryService)');
+      return { isPortfolioMargin: true };
+    } catch (papiError: unknown) {
+      const papiErrorMsg = papiError instanceof Error ? papiError.message : String(papiError);
+      logger.debug({ error: papiErrorMsg }, 'Portfolio Margin API also failed');
+    }
+
+    // 無法偵測，預設標準帳戶
+    logger.info('Binance account type detection failed, defaulting to standard (FundingFeeQueryService)');
+    return { isPortfolioMargin: false };
+  }
+
+  /**
    * 創建已認證的 CCXT 交易所實例
    */
   private async createCcxtExchange(
@@ -65,7 +97,7 @@ export class FundingFeeQueryService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ExchangeClass = (ccxt as any)[exchangeId];
 
-    return new ExchangeClass({
+    const config = {
       apiKey: decryptedKey,
       secret: decryptedSecret,
       password: decryptedPassphrase,
@@ -75,7 +107,24 @@ export class FundingFeeQueryService {
         // Binance 使用 'future'，其他交易所使用 'swap'
         defaultType: exchange === 'binance' ? 'future' : 'swap',
       },
-    });
+    };
+
+    let ccxtExchange = new ExchangeClass(config);
+
+    // Binance Portfolio Margin 偵測
+    if (exchange === 'binance') {
+      const accountType = await this.detectBinanceAccountType(ccxtExchange);
+      if (accountType.isPortfolioMargin) {
+        logger.info('Recreating Binance exchange with Portfolio Margin enabled (FundingFeeQueryService)');
+        config.options = {
+          ...config.options,
+          portfolioMargin: true,
+        };
+        ccxtExchange = new ExchangeClass(config);
+      }
+    }
+
+    return ccxtExchange;
   }
 
   /**

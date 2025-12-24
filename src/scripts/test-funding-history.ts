@@ -58,6 +58,30 @@ function toCcxtSymbol(symbol: string): string {
   return symbol;
 }
 
+// 偵測 Binance 帳戶類型（標準合約 vs Portfolio Margin）
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function detectBinanceAccountType(ccxtExchange: any): Promise<boolean> {
+  // 先嘗試標準 Futures API
+  try {
+    await ccxtExchange.fapiPrivateGetPositionSideDual();
+    console.log('   ℹ️  偵測到標準合約帳戶');
+    return false;
+  } catch {
+    // 標準 API 失敗，嘗試 Portfolio Margin API
+  }
+
+  try {
+    await ccxtExchange.papiGetUmPositionSideDual();
+    console.log('   ℹ️  偵測到 Portfolio Margin（統一交易）帳戶');
+    return true;
+  } catch {
+    // 都失敗，預設標準帳戶
+  }
+
+  console.log('   ⚠️  無法偵測帳戶類型，使用標準模式');
+  return false;
+}
+
 // 創建 CCXT 交易所實例
 async function createExchange(
   exchange: SupportedExchange,
@@ -85,7 +109,7 @@ async function createExchange(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ExchangeClass = (ccxt as any)[exchangeId];
 
-  return new ExchangeClass({
+  const config = {
     apiKey: decryptedKey,
     secret: decryptedSecret,
     password: decryptedPassphrase,
@@ -94,7 +118,22 @@ async function createExchange(
     options: {
       defaultType: exchange === 'binance' ? 'future' : 'swap',
     },
-  });
+  };
+
+  let ccxtExchange = new ExchangeClass(config);
+
+  // Binance Portfolio Margin 偵測
+  if (exchange === 'binance') {
+    const isPortfolioMargin = await detectBinanceAccountType(ccxtExchange);
+    if (isPortfolioMargin) {
+      console.log('   🔄 重新建立 Binance 實例（啟用 Portfolio Margin 模式）');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (config.options as any).portfolioMargin = true;
+      ccxtExchange = new ExchangeClass(config);
+    }
+  }
+
+  return ccxtExchange;
 }
 
 // 查詢單一交易所的資金費率歷史
