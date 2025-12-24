@@ -27,6 +27,7 @@ import {
   type PnLCalculationInput,
 } from '../../lib/pnl-calculator';
 import * as ccxt from 'ccxt';
+import { FundingFeeQueryService } from './FundingFeeQueryService';
 
 /**
  * 鎖的配置
@@ -124,9 +125,11 @@ export type ClosePositionResult = ClosePositionSuccessResult | ClosePositionPart
  */
 export class PositionCloser {
   private readonly prisma: PrismaClient;
+  private readonly fundingFeeQueryService: FundingFeeQueryService;
 
-  constructor(prisma: PrismaClient) {
+  constructor(prisma: PrismaClient, fundingFeeQueryService?: FundingFeeQueryService) {
     this.prisma = prisma;
+    this.fundingFeeQueryService = fundingFeeQueryService || new FundingFeeQueryService(prisma);
   }
 
   /**
@@ -473,6 +476,26 @@ export class PositionCloser {
       );
     }
 
+    // 查詢資金費率損益
+    const fundingFeeResult = await this.fundingFeeQueryService.queryBilateralFundingFees(
+      position.longExchange as SupportedExchange,
+      position.shortExchange as SupportedExchange,
+      position.symbol,
+      position.openedAt || new Date(),
+      closedAt,
+      position.userId,
+    );
+
+    logger.info(
+      {
+        positionId: position.id,
+        longFundingFee: fundingFeeResult.longResult.totalAmount.toString(),
+        shortFundingFee: fundingFeeResult.shortResult.totalAmount.toString(),
+        totalFundingFee: fundingFeeResult.totalFundingFee.toString(),
+      },
+      'Funding fee query result',
+    );
+
     // 計算損益
     const pnlInput: PnLCalculationInput = {
       longEntryPrice: new Decimal(position.longEntryPrice),
@@ -486,7 +509,7 @@ export class PositionCloser {
       leverage: position.longLeverage,
       openedAt: position.openedAt || new Date(),
       closedAt,
-      fundingRatePnL: new Decimal(0), // 簡化：資金費率損益設為 0
+      fundingRatePnL: fundingFeeResult.totalFundingFee, // 使用實際查詢結果
     };
 
     // 記錄 PnL 計算輸入

@@ -788,3 +788,41 @@ export interface ConditionalOrderFailedEvent {
     type?: 'stopLoss' | 'takeProfit';
   };
 }
+
+// ============================================================================
+// Funding Fee Types (Feature: 041-funding-rate-pnl-display)
+// ============================================================================
+
+/**
+ * 單筆資金費率結算記錄
+ */
+export interface FundingFeeEntry {
+  timestamp: number; // 結算時間（毫秒）
+  datetime: string; // ISO 8601 格式
+  amount: Decimal; // 金額：正=收到，負=支付
+  symbol: string; // 統一市場符號
+  id: string; // 交易所記錄 ID
+}
+
+/**
+ * 單邊資金費率查詢結果
+ */
+export interface FundingFeeQueryResult {
+  exchange: SupportedExchange;
+  symbol: string;
+  startTime: Date;
+  endTime: Date;
+  entries: FundingFeeEntry[];
+  totalAmount: Decimal;
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * 雙邊資金費率查詢結果
+ */
+export interface BilateralFundingFeeResult {
+  longResult: FundingFeeQueryResult;
+  shortResult: FundingFeeQueryResult;
+  totalFundingFee: Decimal;
+}
