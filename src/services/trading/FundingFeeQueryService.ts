@@ -97,7 +97,8 @@ export class FundingFeeQueryService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ExchangeClass = (ccxt as any)[exchangeId];
 
-    const config = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const config: any = {
       apiKey: decryptedKey,
       secret: decryptedSecret,
       password: decryptedPassphrase,
