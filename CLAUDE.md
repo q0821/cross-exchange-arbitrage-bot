@@ -51,6 +51,9 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - PostgreSQL 15 + TimescaleDB (現有 Position 模型擴展) (038-specify-scripts-bash)
 - TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x ORM (039-specify-scripts-bash)
 - PostgreSQL 15 + TimescaleDB (via Docker Compose) (039-specify-scripts-bash)
+- TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（多交易所抽象）, Prisma 5.x（ORM）, Pino（日誌）, Vitest（測試） (040-fix-conditional-orders)
+- PostgreSQL 15 + TimescaleDB（現有 Position 模型已有條件單欄位） (040-fix-conditional-orders)
+- PostgreSQL 15 + TimescaleDB（現有 Trade 模型已有 fundingRatePnL 欄位） (041-funding-rate-pnl-display)
 
 ## Project Structure
 ```
@@ -65,9 +68,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 041-funding-rate-pnl-display: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（多交易所抽象）, Prisma 5.x（ORM）, Pino（日誌）, Vitest（測試）
+- 040-fix-conditional-orders: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（多交易所抽象）, Prisma 5.x（ORM）, Pino（日誌）, Vitest（測試）
 - 039-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x ORM
-- 038-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x, Prisma 5.x, Socket.io 4.8.1
-- 037-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x, React 18
 
 <!-- MANUAL ADDITIONS START -->
 
