@@ -3,9 +3,9 @@
  * 根據 GitHub Issue 報告，MEXC 不允許 BTC/ETH/LTC 透過 API 交易
  */
 
-import ccxt from 'ccxt';
 import { PrismaClient } from '@prisma/client';
 import { decrypt } from '../lib/encryption';
+import { createCcxtExchange } from '../lib/ccxt/exchangeFactory';
 
 const prisma = new PrismaClient();
 
@@ -31,10 +31,9 @@ async function testMexcAltSwap() {
   const apiKey = decrypt(apiKeyRecord.encryptedKey);
   const apiSecret = decrypt(apiKeyRecord.encryptedSecret);
 
-  const mexc = new (ccxt as any).mexc({
+  const mexc = createCcxtExchange('mexc', {
     apiKey,
     secret: apiSecret,
-    enableRateLimit: true,
     options: {
       defaultType: 'swap',
     },

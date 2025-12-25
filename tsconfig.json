@@ -81,9 +81,10 @@
     "dist",
     ".next",
     "src/test-*.ts",
+    "src/scripts/**/*",
     "test-*.ts",
     "tests/**/*",
-    "scripts/test-*.ts",
+    "scripts/**/*",
     "specs/**/*"
   ]
 }

@@ -79,7 +79,7 @@ async function testMexcOrderSupport() {
 
   // 5. 查看 CCXT 版本
   console.log('\n5️⃣ CCXT 版本資訊:');
-  console.log(`   CCXT 版本: ${ccxt.version}`);
+  console.log(`   CCXT 版本: ${(ccxt as any).version}`);
 
   console.log('\n' + '='.repeat(60));
   console.log('檢查完成');
