@@ -54,6 +54,10 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（多交易所抽象）, Prisma 5.x（ORM）, Pino（日誌）, Vitest（測試） (040-fix-conditional-orders)
 - PostgreSQL 15 + TimescaleDB（現有 Position 模型已有條件單欄位） (040-fix-conditional-orders)
 - PostgreSQL 15 + TimescaleDB（現有 Trade 模型已有 fundingRatePnL 欄位） (041-funding-rate-pnl-display)
+- TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x（多交易所抽象）, Prisma 5.x (ORM), Pino（結構化日誌） (042-api-key-connection-test)
+- PostgreSQL 15 + TimescaleDB（現有 ApiKey 模型已有 `lastValidatedAt` 欄位） (042-api-key-connection-test)
+- TypeScript 5.6+ with Node.js 20.x LTS + CCXT 4.x（BingX connector）, Prisma 5.x（ORM）, Next.js 14（Web）, Socket.io 4.8.1（WebSocket） (043-bingx-integration)
+- PostgreSQL 15 + TimescaleDB（現有 ApiKey、Position、Trade 模型） (043-bingx-integration)
 
 ## Project Structure
 ```
@@ -68,9 +72,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 043-bingx-integration: Added TypeScript 5.6+ with Node.js 20.x LTS + CCXT 4.x（BingX connector）, Prisma 5.x（ORM）, Next.js 14（Web）, Socket.io 4.8.1（WebSocket）
+- 042-api-key-connection-test: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x（多交易所抽象）, Prisma 5.x (ORM), Pino（結構化日誌）
 - 041-funding-rate-pnl-display: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（多交易所抽象）, Prisma 5.x（ORM）, Pino（日誌）, Vitest（測試）
-- 040-fix-conditional-orders: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（多交易所抽象）, Prisma 5.x（ORM）, Pino（日誌）, Vitest（測試）
-- 039-specify-scripts-bash: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, Prisma 5.x ORM
 
 <!-- MANUAL ADDITIONS START -->
 
@@ -173,5 +177,36 @@ TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
   - `conditionalOrderStatus` - 條件單狀態 (PENDING, SETTING, SET, PARTIAL, FAILED)
   - `longStopLossPrice`, `shortStopLossPrice` - 停損觸發價
   - `longTakeProfitPrice`, `shortTakeProfitPrice` - 停利觸發價
+
+## Feature 043: BingX 交易所整合
+
+### Key Paths
+- **交易所連接器**: `src/connectors/bingx.ts` - BingxConnector (IExchangeConnector 實作)
+- **用戶連接器**: `src/services/assets/UserConnectorFactory.ts` - BingxUserConnector 類別
+- **條件單適配器**: `src/services/trading/adapters/BingxConditionalOrderAdapter.ts` - 停損停利訂單
+- **適配器工廠**: `src/services/trading/ConditionalOrderAdapterFactory.ts` - BingX 適配器創建
+- **符號轉換**: `src/services/trading/adapters/ConditionalOrderAdapter.ts` - convertSymbolForExchange()
+
+### Frontend Components
+- `app/(dashboard)/market-monitor/components/RatesTable.tsx` - BingX 欄位標題
+- `app/(dashboard)/market-monitor/components/RateRow.tsx` - BingX 費率顯示
+- `app/(dashboard)/market-monitor/types.ts` - ExchangeName 含 'bingx'
+- `app/(dashboard)/market-monitor/utils/formatArbitrageMessage.ts` - BingX 顯示名稱
+
+### Symbol Formats
+- 內部格式：`BTCUSDT`
+- CCXT swap 格式：`BTC/USDT:USDT`
+- API 請求格式：`BTC-USDT`（部分 endpoint）
+
+### BingX API 特性
+- 使用 CCXT 4.x 作為統一封裝
+- 支援 Hedge Mode（雙向持倉）
+- 資金費率間隔：1h/4h/8h（透過 FundingIntervalCache 快取）
+- 條件單類型：STOP_MARKET、TAKE_PROFIT_MARKET
+
+### Data Model (Prisma)
+- `ApiKey` - exchange 欄位支援 'bingx'
+- `AssetSnapshot` - bingxBalanceUSD, bingxStatus 欄位
+- 其餘模型（Position、Trade）無需修改，已是通用設計
 
 <!-- MANUAL ADDITIONS END -->

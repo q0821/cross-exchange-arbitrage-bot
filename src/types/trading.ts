@@ -12,7 +12,7 @@ import { Decimal } from 'decimal.js';
 // Enums & Constants
 // ============================================================================
 
-export const SUPPORTED_EXCHANGES = ['binance', 'okx', 'mexc', 'gateio'] as const;
+export const SUPPORTED_EXCHANGES = ['binance', 'okx', 'mexc', 'gateio', 'bingx'] as const;
 export type SupportedExchange = (typeof SUPPORTED_EXCHANGES)[number];
 
 export const POSITION_STATUSES = [

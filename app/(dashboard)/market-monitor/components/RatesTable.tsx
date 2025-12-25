@@ -166,6 +166,11 @@ export function RatesTable({
                 Gate.io 費率
               </th>
 
+              {/* BingX 費率 */}
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                BingX 費率
+              </th>
+
               {/* 費率差異 */}
               <th
                 className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"

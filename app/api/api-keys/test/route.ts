@@ -18,7 +18,7 @@ import type { ConnectionTestResponse, ValidationErrorCode } from '@/src/types/ap
 
 // Request validation schema (T017)
 const connectionTestSchema = z.object({
-  exchange: z.enum(['binance', 'okx', 'gateio', 'mexc']),
+  exchange: z.enum(['binance', 'okx', 'gateio', 'mexc', 'bingx']),
   environment: z.enum(['MAINNET', 'TESTNET']),
   apiKey: z.string().min(1, 'API Key is required'),
   apiSecret: z.string().min(1, 'API Secret is required'),

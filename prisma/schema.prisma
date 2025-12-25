@@ -789,6 +789,7 @@ model AssetSnapshot {
   okxBalanceUSD     Decimal? @db.Decimal(18, 8)
   mexcBalanceUSD    Decimal? @db.Decimal(18, 8)
   gateioBalanceUSD  Decimal? @db.Decimal(18, 8)
+  bingxBalanceUSD   Decimal? @db.Decimal(18, 8) // Feature 043: BingX 整合
 
   // 總資產（已設定交易所的加總）
   totalBalanceUSD   Decimal  @db.Decimal(18, 8)
@@ -798,6 +799,7 @@ model AssetSnapshot {
   okxStatus         String?  @db.VarChar(50)
   mexcStatus        String?  @db.VarChar(50)
   gateioStatus      String?  @db.VarChar(50)
+  bingxStatus       String?  @db.VarChar(50) // Feature 043: BingX 整合
 
   // 時間資訊
   recordedAt        DateTime @db.Timestamptz

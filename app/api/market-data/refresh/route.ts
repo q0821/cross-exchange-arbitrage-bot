@@ -195,6 +195,7 @@ function createCcxtExchange(ccxt: any, exchange: SupportedExchange) {
     okx: 'okx',
     mexc: 'mexc',
     gateio: 'gateio',
+    bingx: 'bingx',
   };
 
   const exchangeId = exchangeMap[exchange];

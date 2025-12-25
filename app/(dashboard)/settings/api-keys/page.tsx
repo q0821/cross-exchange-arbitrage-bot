@@ -447,6 +447,7 @@ export default function ApiKeysPage() {
                 <option value="bybit">Bybit</option>
                 <option value="mexc">MEXC</option>
                 <option value="gateio">Gate.io</option>
+                <option value="bingx">BingX</option>
               </select>
             </div>
 
@@ -585,6 +586,11 @@ export default function ApiKeysPage() {
                     {(exchange === 'gateio' || exchange === 'mexc') && (
                       <div className="text-gray-500 text-xs mt-1">
                         注意：{exchange === 'gateio' ? 'Gate.io' : 'MEXC'} 無法驗證交易權限，請確認 API Key 已開啟交易權限
+                      </div>
+                    )}
+                    {exchange === 'bingx' && (
+                      <div className="text-gray-500 text-xs mt-1">
+                        注意：BingX 目前沒有公開測試網，請使用主網 API Key
                       </div>
                     )}
                   </div>
@@ -743,7 +749,7 @@ export default function ApiKeysPage() {
                         }`}
                       >
                         {revalidateResult.result.isValid ? (
-                          <span>✓ 連線成功 - 讀取權限：{revalidateResult.result.hasReadPermission ? '✓' : '✗'} | 交易權限：{revalidateResult.result.hasTradePermission ? '✓' : key.exchange === 'gateio' || key.exchange === 'mexc' ? '⚠️ 無法驗證' : '✗'}</span>
+                          <span>✓ 連線成功 - 讀取權限：{revalidateResult.result.hasReadPermission ? '✓' : '✗'} | 交易權限：{revalidateResult.result.hasTradePermission ? '✓' : key.exchange === 'gateio' || key.exchange === 'mexc' ? '⚠️ 無法驗證' : '✗'}{key.exchange === 'bingx' && ' (BingX)'}</span>
                         ) : (
                           <span>✗ 連線失敗 - {revalidateResult.result.error?.message || '未知錯誤'}</span>
                         )}

@@ -119,6 +119,9 @@ export class UserConnectorFactory {
       case 'gate':
         return new GateioUserConnector(apiKey, apiSecret, isTestnet);
 
+      case 'bingx':
+        return new BingxUserConnector(apiKey, apiSecret, isTestnet);
+
       default:
         logger.warn({ exchange }, 'Unknown exchange');
         return null;
@@ -130,7 +133,7 @@ export class UserConnectorFactory {
    */
   async getBalancesForUser(userId: string): Promise<ExchangeBalanceResult[]> {
     const results: ExchangeBalanceResult[] = [];
-    const supportedExchanges: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio'];
+    const supportedExchanges: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
     const userApiKeys = await this.getUserApiKeys(userId);
 
     for (const exchange of supportedExchanges) {
@@ -210,7 +213,7 @@ export class UserConnectorFactory {
    */
   async getPositionsForUser(userId: string): Promise<ExchangePositionsResult[]> {
     const results: ExchangePositionsResult[] = [];
-    const supportedExchanges: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio'];
+    const supportedExchanges: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
     const userApiKeys = await this.getUserApiKeys(userId);
 
     for (const exchange of supportedExchanges) {
@@ -1060,6 +1063,146 @@ class GateioUserConnector implements IExchangeConnector {
 
     return {
       exchange: 'gateio',
+      positions: filteredPositions,
+      timestamp: new Date(),
+    };
+  }
+
+  // 以下方法不需要實作（資產追蹤不需要）
+  async getFundingRate(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getFundingRates(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPrice(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPrices(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getSymbolInfo(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getPosition(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async createOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async cancelOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async getOrder(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async subscribeWS(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async unsubscribeWS(): Promise<never> {
+    throw new Error('Not implemented');
+  }
+  async validateSymbol(): Promise<boolean> {
+    throw new Error('Not implemented');
+  }
+  async formatQuantity(): Promise<number> {
+    throw new Error('Not implemented');
+  }
+  async formatPrice(): Promise<number> {
+    throw new Error('Not implemented');
+  }
+}
+
+/**
+ * 用戶特定的 BingX 連接器
+ * Feature 043: BingX 交易所整合
+ */
+class BingxUserConnector implements IExchangeConnector {
+  readonly name: ExchangeName = 'bingx';
+  private connected: boolean = false;
+  private ccxt: typeof import('ccxt') | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private exchange: any = null;
+
+  constructor(
+    private readonly apiKey: string,
+    private readonly apiSecret: string,
+    readonly isTestnet: boolean = false
+  ) {}
+
+  async connect(): Promise<void> {
+    this.ccxt = await import('ccxt');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.exchange = new (this.ccxt as any).bingx({
+      apiKey: this.apiKey,
+      secret: this.apiSecret,
+      enableRateLimit: true,
+      timeout: 30000,
+      options: {
+        defaultType: 'swap',
+      },
+    });
+    this.connected = true;
+  }
+
+  async disconnect(): Promise<void> {
+    this.exchange = null;
+    this.connected = false;
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+
+  async getBalance(): Promise<AccountBalance> {
+    if (!this.exchange) throw new Error('Not connected');
+
+    // 使用 swap 模式查詢合約帳戶餘額
+    const balance = await this.exchange.fetchBalance({ type: 'swap' });
+    const totalUSD = balance.total?.USDT || balance.total?.USD || 0;
+
+    const balances = Object.entries(balance.total || {})
+      .filter(([_, value]) => (value as number) > 0)
+      .map(([asset, total]) => ({
+        asset,
+        free: (balance.free?.[asset] as number) || 0,
+        locked: (total as number) - ((balance.free?.[asset] as number) || 0),
+        total: total as number,
+      }));
+
+    return {
+      exchange: 'bingx',
+      balances,
+      totalEquityUSD: totalUSD as number,
+      timestamp: new Date(),
+    };
+  }
+
+  async getPositions(): Promise<PositionInfo> {
+    if (!this.exchange) throw new Error('Not connected');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const positions: any[] = await this.exchange.fetchPositions();
+
+    const filteredPositions = positions
+      .filter((p) => parseFloat(p.contracts?.toString() || '0') > 0)
+      .map((p) => ({
+        symbol: p.symbol,
+        side: (p.side === 'long' ? 'LONG' : 'SHORT') as 'LONG' | 'SHORT',
+        quantity: parseFloat(p.contracts?.toString() || '0'),
+        entryPrice: parseFloat(p.entryPrice?.toString() || '0'),
+        markPrice: parseFloat(p.markPrice?.toString() || '0'),
+        leverage: parseFloat(p.leverage?.toString() || '1'),
+        marginUsed: parseFloat(p.initialMargin?.toString() || '0'),
+        unrealizedPnl: parseFloat(p.unrealizedPnl?.toString() || '0'),
+        liquidationPrice: p.liquidationPrice
+          ? parseFloat(p.liquidationPrice.toString())
+          : undefined,
+        timestamp: p.timestamp ? new Date(p.timestamp) : new Date(),
+      }));
+
+    return {
+      exchange: 'bingx',
       positions: filteredPositions,
       timestamp: new Date(),
     };

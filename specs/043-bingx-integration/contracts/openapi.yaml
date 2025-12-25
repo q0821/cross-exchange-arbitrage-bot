@@ -1,0 +1,365 @@
+openapi: 3.0.3
+info:
+  title: BingX Integration API
+  description: BingX 交易所整合 API 規格（Feature 043）
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: API Server
+
+paths:
+  # ===== API Key 管理 =====
+  /api-keys:
+    post:
+      summary: 新增 BingX API Key
+      tags: [API Keys]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '201':
+          description: API Key 新增成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyResponse'
+        '400':
+          description: 驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api-keys/{id}/test:
+    post:
+      summary: 測試 BingX API Key 連線
+      tags: [API Keys]
+      parameters:
+        - $ref: '#/components/parameters/ApiKeyId'
+      responses:
+        '200':
+          description: 連線測試結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyTestResponse'
+
+  # ===== 餘額查詢 =====
+  /balances:
+    get:
+      summary: 查詢所有交易所餘額（含 BingX）
+      tags: [Balances]
+      responses:
+        '200':
+          description: 餘額查詢成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalancesResponse'
+
+  # ===== 市場資料 =====
+  /market-rates:
+    get:
+      summary: 獲取資金費率（含 BingX）
+      tags: [Market Data]
+      parameters:
+        - name: symbols
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          description: 交易對列表
+      responses:
+        '200':
+          description: 資金費率資料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketRatesResponse'
+
+  # ===== 開倉 =====
+  /positions/open:
+    post:
+      summary: 開啟對沖持倉（支援 BingX）
+      tags: [Positions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenPositionRequest'
+      responses:
+        '202':
+          description: 開倉請求已接受
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenPositionResponse'
+        '400':
+          description: 驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ===== 平倉 =====
+  /positions/{id}/close:
+    post:
+      summary: 平倉（支援 BingX）
+      tags: [Positions]
+      parameters:
+        - $ref: '#/components/parameters/PositionId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClosePositionRequest'
+      responses:
+        '202':
+          description: 平倉請求已接受
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClosePositionResponse'
+
+components:
+  parameters:
+    ApiKeyId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: API Key ID
+
+    PositionId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Position ID
+
+  schemas:
+    # ===== API Key Schemas =====
+    CreateApiKeyRequest:
+      type: object
+      required: [exchange, label, apiKey, apiSecret]
+      properties:
+        exchange:
+          type: string
+          enum: [binance, okx, gateio, mexc, bingx]
+          description: 交易所名稱
+        label:
+          type: string
+          maxLength: 100
+          description: API Key 標籤
+        apiKey:
+          type: string
+          description: API Key
+        apiSecret:
+          type: string
+          description: API Secret
+        environment:
+          type: string
+          enum: [MAINNET, TESTNET]
+          default: MAINNET
+          description: 環境
+
+    ApiKeyResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        exchange:
+          type: string
+        label:
+          type: string
+        environment:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiKeyTestResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        details:
+          type: object
+          properties:
+            canRead:
+              type: boolean
+              description: 讀取權限
+            canTrade:
+              type: boolean
+              description: 交易權限
+            balance:
+              type: number
+              description: USDT 餘額
+
+    # ===== Balance Schemas =====
+    BalancesResponse:
+      type: object
+      properties:
+        balances:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExchangeBalance'
+        totalEquityUSD:
+          type: number
+
+    ExchangeBalance:
+      type: object
+      properties:
+        exchange:
+          type: string
+          enum: [binance, okx, gateio, mexc, bingx]
+        balanceUSD:
+          type: number
+        status:
+          type: string
+          enum: [success, no_api_key, api_error, rate_limited]
+
+    # ===== Market Data Schemas =====
+    MarketRatesResponse:
+      type: object
+      properties:
+        rates:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingRateData'
+        timestamp:
+          type: string
+          format: date-time
+
+    FundingRateData:
+      type: object
+      properties:
+        exchange:
+          type: string
+        symbol:
+          type: string
+        fundingRate:
+          type: number
+        nextFundingTime:
+          type: string
+          format: date-time
+        markPrice:
+          type: number
+        indexPrice:
+          type: number
+        fundingInterval:
+          type: integer
+          enum: [1, 4, 8]
+          description: 結算週期（小時）
+
+    # ===== Position Schemas =====
+    OpenPositionRequest:
+      type: object
+      required: [symbol, longExchange, shortExchange, marginUSD, leverage]
+      properties:
+        symbol:
+          type: string
+          description: 交易對符號 (e.g., BTCUSDT)
+        longExchange:
+          type: string
+          enum: [binance, okx, gateio, mexc, bingx]
+        shortExchange:
+          type: string
+          enum: [binance, okx, gateio, mexc, bingx]
+        marginUSD:
+          type: number
+          minimum: 10
+          description: 保證金 (USD)
+        leverage:
+          type: integer
+          minimum: 1
+          maximum: 125
+          default: 3
+        orderType:
+          type: string
+          enum: [MARKET, LIMIT]
+          default: MARKET
+        stopLoss:
+          $ref: '#/components/schemas/StopLossConfig'
+        takeProfit:
+          $ref: '#/components/schemas/TakeProfitConfig'
+
+    StopLossConfig:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: false
+        percent:
+          type: number
+          minimum: 0.5
+          maximum: 50
+          description: 停損百分比
+
+    TakeProfitConfig:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: false
+        percent:
+          type: number
+          minimum: 0.5
+          maximum: 100
+          description: 停利百分比
+
+    OpenPositionResponse:
+      type: object
+      properties:
+        positionId:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, OPENING]
+        message:
+          type: string
+
+    ClosePositionRequest:
+      type: object
+      properties:
+        closePercent:
+          type: number
+          minimum: 1
+          maximum: 100
+          default: 100
+          description: 平倉百分比
+
+    ClosePositionResponse:
+      type: object
+      properties:
+        positionId:
+          type: string
+        status:
+          type: string
+          enum: [CLOSING]
+        message:
+          type: string
+
+    # ===== Error Schema =====
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object

@@ -52,9 +52,11 @@
 
 ## 二、MEXC 交易能力確認
 
-### 重要發現: MEXC **完全支援**合約交易 API
+### 重要發現: MEXC 合約交易 API 需要特殊權限
 
-經過代碼審查確認，MEXC 的整合狀態：
+經過 2025-12-25 實際測試確認：
+
+#### 代碼層面（已實現）
 
 | 功能 | 狀態 | 檔案位置 |
 |------|------|---------|
@@ -65,10 +67,22 @@
 | 餘額查詢 | ✅ 已實現 | `src/connectors/mexc.ts` L283-312 |
 | WebSocket | ⚠️ TODO | `src/connectors/mexc.ts` L475-483 |
 
-### 結論
-**不需要**隱藏 MEXC 的開倉按鈕。MEXC 與 Binance、OKX、Gate.io 享有同等的交易功能支援。
+#### API 連線測試結果（2025-12-25）
 
-開倉按鈕顯示邏輯位於 `app/(dashboard)/market-monitor/components/RateRow.tsx` L493-499，目前沒有基於交易所類型的限制。
+| 端點類型 | 狀態 | 說明 |
+|----------|------|------|
+| 公開 API (fetchTicker, fetchFundingRate) | ✅ 正常 | |
+| 私有讀取 (fetchBalance, fetchPositions, fetchLeverage) | ✅ 正常 | |
+| 私有寫入 (createOrder) | ❌ 超時 | 需要合約交易權限 |
+
+#### 結論
+- CCXT 已實現 MEXC swap 下單功能（非 BTC/ETH/LTC 幣種）
+- **但需要 API Key 開啟「合約交易」權限**
+- 建議：在 MEXC 網站的 API 管理頁面確認權限設定
+
+#### 參考資料
+- [CCXT MEXC Issues #16672](https://github.com/ccxt/ccxt/issues/16672)
+- [CCXT MEXC Issues #14474](https://github.com/ccxt/ccxt/issues/14474)
 
 ---
 
@@ -147,3 +161,4 @@
 |------|------|------|
 | 2025-12-20 | Prisma Client Singleton 優化 | ✅ 完成 (Feature 039) |
 | 2025-12-25 | API Key 連線測試功能 | ✅ 完成 (Feature 042) |
+| 2025-12-25 | MEXC 合約交易 API 測試 | ⚠️ 需要 API 權限設定 |

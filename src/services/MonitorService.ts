@@ -70,9 +70,9 @@ export async function startMonitorService(): Promise<void> {
     const updateInterval = parseInt(process.env.FUNDING_RATE_CHECK_INTERVAL_MS || '300000', 10);
     const minSpreadThreshold = parseFloat(process.env.MIN_SPREAD_THRESHOLD || '0.005');
 
-    // 從環境變數讀取要監控的交易所列表（逗號分隔），預設為所有 4 個交易所
-    const exchangesEnv = process.env.MONITORED_EXCHANGES || 'binance,okx,mexc,gateio';
-    const exchanges = exchangesEnv.split(',').map((e) => e.trim()) as ('binance' | 'okx' | 'mexc' | 'gateio')[];
+    // 從環境變數讀取要監控的交易所列表（逗號分隔），預設為所有 5 個交易所
+    const exchangesEnv = process.env.MONITORED_EXCHANGES || 'binance,okx,mexc,gateio,bingx';
+    const exchanges = exchangesEnv.split(',').map((e) => e.trim()) as ('binance' | 'okx' | 'mexc' | 'gateio' | 'bingx')[];
 
     monitorInstance = new FundingRateMonitor(
       symbols,                                            // 第1個參數：交易對數組

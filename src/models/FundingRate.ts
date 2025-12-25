@@ -13,7 +13,7 @@ import { logger } from '../lib/logger';
 
 // Zod 驗證 Schema
 export const FundingRateSchema = z.object({
-  exchange: z.enum(['binance', 'okx', 'mexc', 'gateio']),
+  exchange: z.enum(['binance', 'okx', 'mexc', 'gateio', 'bingx']),
   symbol: z.string().min(1),
   fundingRate: z.number(),
   nextFundingTime: z.date(),
@@ -24,7 +24,7 @@ export const FundingRateSchema = z.object({
 
 // TypeScript 型別定義
 export type FundingRate = z.infer<typeof FundingRateSchema>;
-export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
+export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
 
 // 資金費率記錄類別
 export class FundingRateRecord implements FundingRate {

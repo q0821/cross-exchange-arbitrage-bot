@@ -9,7 +9,8 @@ const EXCHANGE_DISPLAY_NAMES: Record<ExchangeName, string> = {
   binance: 'BINANCE',
   okx: 'OKX',
   mexc: 'MEXC',
-  gateio: 'GATE'
+  gateio: 'GATE',
+  bingx: 'BINGX'
 };
 
 /**

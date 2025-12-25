@@ -15,6 +15,7 @@ import { BinanceConditionalOrderAdapter } from './adapters/BinanceConditionalOrd
 import { OkxConditionalOrderAdapter } from './adapters/OkxConditionalOrderAdapter';
 import { GateioConditionalOrderAdapter } from './adapters/GateioConditionalOrderAdapter';
 import { MexcConditionalOrderAdapter } from './adapters/MexcConditionalOrderAdapter';
+import { BingxConditionalOrderAdapter } from './adapters/BingxConditionalOrderAdapter';
 import { detectOkxPositionMode } from './okx-position-mode';
 
 /**
@@ -73,6 +74,8 @@ export class ConditionalOrderAdapterFactory {
         );
       case 'mexc':
         return this.createMexcAdapter(exchangeOptions, userId);
+      case 'bingx':
+        return this.createBingxAdapter(exchangeOptions);
       default:
         throw new Error(`Unsupported exchange: ${exchange}`);
     }
@@ -96,6 +99,7 @@ export class ConditionalOrderAdapterFactory {
       okx: 'okx',
       mexc: 'mexc',
       gateio: 'gateio',
+      bingx: 'bingx',
     };
 
     const exchangeId = exchangeMap[exchange];
@@ -229,6 +233,21 @@ export class ConditionalOrderAdapterFactory {
     // MEXC 默認使用 Hedge Mode
     // TODO: 如果需要，可以使用 _userId 添加帳戶模式檢測
     return new MexcConditionalOrderAdapter(ccxtExchange, { isHedgeMode: true });
+  }
+
+  /**
+   * 創建 BingX 適配器
+   * Feature: 043-bingx-integration
+   */
+  private createBingxAdapter(options: {
+    apiKey: string;
+    secret: string;
+    password?: string;
+    sandbox: boolean;
+  }): BingxConditionalOrderAdapter {
+    const ccxtExchange = this.createCcxtExchange('bingx', options);
+    // BingX 默認使用 Hedge Mode
+    return new BingxConditionalOrderAdapter(ccxtExchange, { isHedgeMode: true });
   }
 }
 

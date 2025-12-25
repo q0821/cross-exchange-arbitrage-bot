@@ -19,7 +19,7 @@ import { PositionTable } from './components/PositionTable';
  * 單一交易所餘額資料
  */
 interface ExchangeBalance {
-  exchange: 'binance' | 'okx' | 'mexc' | 'gateio';
+  exchange: 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
   status: 'success' | 'no_api_key' | 'api_error' | 'rate_limited';
   balanceUSD: number | null;
   errorMessage?: string;
@@ -70,7 +70,7 @@ interface Position {
 }
 
 interface ExchangePositions {
-  exchange: 'binance' | 'okx' | 'mexc' | 'gateio';
+  exchange: 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
   status: 'success' | 'no_api_key' | 'api_error' | 'rate_limited';
   positions: Position[];
   totalPnl: number;
@@ -292,7 +292,7 @@ export default function AssetsPage() {
 
         {/* 各交易所餘額卡片 */}
         {assetsData && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {assetsData.exchanges.map((exchange) => (
               <AssetSummaryCard
                 key={exchange.exchange}

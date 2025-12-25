@@ -195,6 +195,11 @@ export const apiKeys = {
     apiSecret: process.env.GATEIO_API_SECRET || '',
     testnet: process.env.GATEIO_TESTNET === 'true',
   },
+  bingx: {
+    apiKey: process.env.BINGX_API_KEY || '',
+    apiSecret: process.env.BINGX_API_SECRET || '',
+    testnet: process.env.BINGX_TESTNET === 'true',
+  },
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
     chatId: process.env.TELEGRAM_CHAT_ID || '',

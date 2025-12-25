@@ -10,7 +10,7 @@
 import React from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
 
-type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
+type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
 type ConnectionStatus = 'success' | 'no_api_key' | 'api_error' | 'rate_limited';
 
 /**
@@ -51,6 +51,7 @@ const exchangeDisplayNames: Record<ExchangeName, string> = {
   okx: 'OKX',
   mexc: 'MEXC',
   gateio: 'Gate.io',
+  bingx: 'BingX',
 };
 
 // 格式化金額
@@ -77,7 +78,7 @@ export function PositionTable({
   isLoading,
 }: PositionTableProps) {
   const [expandedExchanges, setExpandedExchanges] = React.useState<Set<string>>(
-    new Set(['binance', 'okx', 'mexc', 'gateio'])
+    new Set(['binance', 'okx', 'mexc', 'gateio', 'bingx'])
   );
 
   // 切換展開/收合

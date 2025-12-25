@@ -1,6 +1,7 @@
 import { logger } from './lib/logger.js';
-import { config, validateApiKeys } from './lib/config.js';
+import { config } from './lib/config.js';
 import { ErrorHandler } from './lib/errors.js';
+import { runStartupTasks } from './lib/startup.js';
 
 async function main() {
   try {
@@ -9,11 +10,16 @@ async function main() {
       env: config.app.env,
     }, 'Starting Cross-Exchange Arbitrage Bot');
 
-    // Validate API keys
-    validateApiKeys();
-    logger.info('API keys validated');
+    // Run startup tasks (includes exchange connectivity validation)
+    const startupResult = await runStartupTasks();
 
-    // TODO: Initialize exchange connectors
+    if (!startupResult.success) {
+      logger.warn(
+        { errors: startupResult.errors },
+        'Startup completed with warnings - some features may be unavailable',
+      );
+    }
+
     // TODO: Initialize arbitrage service
     // TODO: Start monitoring service
 

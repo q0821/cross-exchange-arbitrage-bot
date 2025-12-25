@@ -91,6 +91,7 @@ export class FundingFeeQueryService {
       okx: 'okx',
       mexc: 'mexc',
       gateio: 'gateio',
+      bingx: 'bingx',
     };
 
     const exchangeId = exchangeMap[exchange];

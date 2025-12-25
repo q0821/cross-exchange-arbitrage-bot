@@ -100,8 +100,8 @@ export class FundingRateMonitor extends EventEmitter {
     this.symbols = symbols;
     this.updateInterval = updateInterval;
 
-    // 從選項中獲取交易所列表，預設為 binance, okx, mexc, gateio
-    this.exchangeNames = options?.exchanges || ['binance', 'okx', 'mexc', 'gateio'];
+    // 從選項中獲取交易所列表，預設為 binance, okx, mexc, gateio, bingx
+    this.exchangeNames = options?.exchanges || ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
 
     // 創建所有交易所的連接器
     for (const exchangeName of this.exchangeNames) {

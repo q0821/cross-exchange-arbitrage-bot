@@ -128,7 +128,7 @@ export class ApiKey {
    * 靜態方法：驗證交易所名稱
    */
   static validateExchange(exchange: string): { valid: boolean; message?: string } {
-    const supportedExchanges = ['binance', 'okx', 'bybit', 'mexc', 'gateio'];
+    const supportedExchanges = ['binance', 'okx', 'bybit', 'mexc', 'gateio', 'bingx'];
 
     if (!supportedExchanges.includes(exchange.toLowerCase())) {
       return {

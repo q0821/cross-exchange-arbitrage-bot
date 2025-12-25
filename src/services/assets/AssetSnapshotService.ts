@@ -114,6 +114,10 @@ export class AssetSnapshotService {
           input.gateioBalanceUSD = result.balanceUSD;
           input.gateioStatus = result.status;
           break;
+        case 'bingx':
+          input.bingxBalanceUSD = result.balanceUSD;
+          input.bingxStatus = result.status;
+          break;
       }
 
       if (result.status === 'success' && result.balanceUSD !== null) {
@@ -227,6 +231,11 @@ export class AssetSnapshotService {
         exchange: 'gateio',
         status: (snapshot.gateioStatus as ExchangeBalanceResult['status']) || 'no_api_key',
         balanceUSD: snapshot.gateioBalanceUSD,
+      },
+      {
+        exchange: 'bingx',
+        status: (snapshot.bingxStatus as ExchangeBalanceResult['status']) || 'no_api_key',
+        balanceUSD: snapshot.bingxBalanceUSD,
       },
     ];
 

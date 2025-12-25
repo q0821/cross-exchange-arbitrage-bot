@@ -16,7 +16,7 @@
  * Supported exchange names
  * These correspond to the exchanges supported in the arbitrage platform
  */
-export type SupportedExchange = 'binance' | 'okx' | 'mexc' | 'gateio';
+export type SupportedExchange = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
 
 /**
  * Symbol format: "BASE/QUOTE" (e.g., "BTC/USDT")
@@ -134,6 +134,7 @@ export const SUPPORTED_EXCHANGES: readonly SupportedExchange[] = [
   'okx',
   'mexc',
   'gateio',
+  'bingx',
 ] as const;
 
 /**
@@ -144,6 +145,7 @@ export const EXCHANGE_DISPLAY_NAMES: Record<SupportedExchange, string> = {
   okx: 'OKX',
   mexc: 'MEXC',
   gateio: 'Gate.io',
+  bingx: 'BingX',
 };
 
 /**

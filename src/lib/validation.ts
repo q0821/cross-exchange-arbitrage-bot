@@ -17,8 +17,8 @@ export const passwordSchema = z
   .min(6, 'Password must be at least 6 characters')
   .max(100, 'Password must not exceed 100 characters');
 
-export const exchangeSchema = z.enum(['binance', 'okx', 'mexc', 'gateio'], {
-  errorMap: () => ({ message: 'Exchange must be one of: binance, okx, mexc, gateio' }),
+export const exchangeSchema = z.enum(['binance', 'okx', 'mexc', 'gateio', 'bingx'], {
+  errorMap: () => ({ message: 'Exchange must be one of: binance, okx, mexc, gateio, bingx' }),
 });
 
 export const apiEnvironmentSchema = z.enum(['MAINNET', 'TESTNET'], {

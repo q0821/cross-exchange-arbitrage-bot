@@ -4,4 +4,7 @@ export * from './types.js';
 export * from './base.js';
 export * from './binance.js';
 export * from './okx.js';
+export * from './mexc.js';
+export * from './gateio.js';
+export * from './bingx.js';
 export * from './factory.js';

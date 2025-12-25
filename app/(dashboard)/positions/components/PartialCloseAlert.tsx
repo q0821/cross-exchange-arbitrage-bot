@@ -39,6 +39,7 @@ const EXCHANGE_URLS: Record<SupportedExchange, string> = {
   okx: 'https://www.okx.com/trade-swap',
   mexc: 'https://futures.mexc.com/',
   gateio: 'https://www.gate.io/futures_trade',
+  bingx: 'https://bingx.com/en-us/futures',
 };
 
 export function PartialCloseAlert({

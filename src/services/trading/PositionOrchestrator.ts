@@ -247,6 +247,7 @@ export class PositionOrchestrator {
       okx: 'okx',
       mexc: 'mexc',
       gateio: 'gateio',
+      bingx: 'bingx',
     };
 
     const exchangeId = exchangeMap[exchange];
@@ -777,6 +778,7 @@ export class PositionOrchestrator {
       okx: 'okx',
       mexc: 'mexc',
       gateio: 'gateio',
+      bingx: 'bingx',
     };
 
     const exchangeId = exchangeMap[exchange];

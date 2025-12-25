@@ -5,7 +5,7 @@
  * Feature: 033-manual-open-position
  */
 
-export type SupportedExchange = 'binance' | 'okx' | 'mexc' | 'gateio';
+export type SupportedExchange = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
 
 /**
  * 基礎交易錯誤

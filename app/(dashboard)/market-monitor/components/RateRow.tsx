@@ -135,7 +135,7 @@ export const RateRow = React.memo(function RateRow({
   };
 
   // 交易所列表（固定順序）
-  const exchangeList: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio'];
+  const exchangeList: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
 
   // 渲染交易所費率單元格
   const renderExchangeCell = (exchangeName: ExchangeName) => {

@@ -174,6 +174,7 @@ async function getCurrentPrice(symbol: string, exchange: SupportedExchange): Pro
       okx: 'okx',
       mexc: 'mexc',
       gateio: 'gateio',
+      bingx: 'bingx',
     };
 
     const exchangeId = exchangeMap[exchange];

@@ -14,7 +14,7 @@ import {
   Clock,
 } from 'lucide-react';
 
-type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
+type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
 type ConnectionStatus = 'success' | 'no_api_key' | 'api_error' | 'rate_limited';
 
 interface AssetSummaryCardProps {
@@ -48,6 +48,11 @@ const exchangeColors: Record<
     bg: 'bg-blue-900/20',
     border: 'border-blue-700/30',
   },
+  bingx: {
+    primary: 'text-orange-400',
+    bg: 'bg-orange-900/20',
+    border: 'border-orange-700/30',
+  },
 };
 
 // 交易所顯示名稱
@@ -56,6 +61,7 @@ const exchangeDisplayNames: Record<ExchangeName, string> = {
   okx: 'OKX',
   mexc: 'MEXC',
   gateio: 'Gate.io',
+  bingx: 'BingX',
 };
 
 export function AssetSummaryCard({

@@ -6,6 +6,84 @@
 
 ## [Unreleased]
 
+### 新增
+
+#### Feature 043: BingX 交易所整合（✅ 已完成 - 2025-12-25）
+
+**已完成核心功能**：
+
+**1. User Story 1 (P1 - MVP) - API Key 管理**（完成 ✅）
+- ✅ 支援 BingX API Key 的新增、驗證、加密儲存
+- ✅ 整合到現有 ApiKey 模型（使用 'bingx' 作為 exchange 值）
+- ✅ 前端 API Key 設定頁面已支援 BingX
+- ✅ AES-256-GCM 加密儲存與其他交易所一致
+
+**2. User Story 2 (P1) - 市場資料查詢**（完成 ✅）
+- ✅ BingxConnector 實作 IExchangeConnector 介面
+- ✅ 使用 CCXT 4.x 作為 BingX API 封裝
+- ✅ 符號格式轉換：BTCUSDT → BTC/USDT:USDT (CCXT swap 格式)
+- ✅ getFundingRates() - 獲取資金費率
+- ✅ getPrices() - 獲取即時價格
+- ✅ 資金費率間隔支援（1h/4h/8h）
+
+**3. User Story 3 (P1) - 資金費率監控前端**（完成 ✅）
+- ✅ RatesTable.tsx 新增 BingX 欄位標題
+- ✅ RateRow.tsx 新增 BingX 費率顯示
+- ✅ ExchangeName 型別擴展支援 'bingx'
+- ✅ formatArbitrageMessage.ts 支援 BingX 顯示名稱
+
+**4. User Story 4 (P2) - 資產查詢**（完成 ✅）
+- ✅ BingxUserConnector 實作 IUserExchangeConnector 介面
+- ✅ getBalance() - 查詢 USDT 永續合約餘額
+- ✅ getPositions() - 查詢持倉資訊
+- ✅ AssetSnapshotRepository 支援 bingxBalanceUSD 和 bingxStatus 欄位
+- ✅ AssetSnapshotService 整合 BingX 餘額快照
+
+**5. User Story 5 (P2) - 開倉功能**（完成 ✅）
+- ✅ PositionOrchestrator exchangeMap 已包含 'bingx'
+- ✅ BalanceValidator 透過 UserConnectorFactory 支援 BingX
+- ✅ SUPPORTED_EXCHANGES 常數已包含 'bingx'
+- ✅ 支援 Hedge Mode（雙向持倉）
+
+**6. User Story 6 (P2) - 平倉功能**（完成 ✅）
+- ✅ PositionCloser exchangeMap 已包含 'bingx'
+- ✅ 支援市價平倉
+- ✅ PnL 計算無需交易所特定修改（已是通用實作）
+
+**7. User Story 7 (P2) - 停損停利**（完成 ✅）
+- ✅ BingxConditionalOrderAdapter 實作 ConditionalOrderAdapter 介面
+- ✅ setStopLossOrder() - 設定 STOP_MARKET 停損單
+- ✅ setTakeProfitOrder() - 設定 TAKE_PROFIT_MARKET 停利單
+- ✅ cancelConditionalOrder() - 取消條件單
+- ✅ ConditionalOrderAdapterFactory 整合 BingX 適配器
+- ✅ convertSymbolForExchange() 支援 BingX 符號格式
+
+**8. User Story 8 (P3) - 收益計算**（完成 ✅）
+- ✅ pnl-calculator.ts 已是交易所無關的通用實作
+- ✅ 交易績效查詢 API 無需交易所特定修改
+- ✅ fundingRatePnL 欄位支援 BingX 資金費率收益
+
+**技術實作**:
+- **Connector**: `src/connectors/bingx.ts` - BingX 交易所連接器
+- **User Connector**: `src/services/assets/UserConnectorFactory.ts` - BingxUserConnector 類別
+- **條件單適配器**: `src/services/trading/adapters/BingxConditionalOrderAdapter.ts` (新增)
+- **工廠更新**: `src/services/trading/ConditionalOrderAdapterFactory.ts` - 新增 BingX 支援
+- **符號轉換**: `src/services/trading/adapters/ConditionalOrderAdapter.ts` - 新增 bingx 格式
+- **前端型別**: `app/(dashboard)/market-monitor/types.ts` - ExchangeName 擴展
+- **前端元件**: `RatesTable.tsx`, `RateRow.tsx`, `formatArbitrageMessage.ts`
+- **資料層**: `AssetSnapshotRepository.ts`, `AssetSnapshotService.ts`
+
+**BingX 符號格式**:
+- 內部格式：`BTCUSDT`
+- CCXT swap 格式：`BTC/USDT:USDT`
+- API 請求格式：`BTC-USDT`（部分 endpoint）
+
+**統計**：
+- 新增程式碼：約 600 行 TypeScript
+- 修改檔案：12 個核心檔案
+- 新增檔案：1 個（BingxConditionalOrderAdapter.ts）
+- 完成任務：70/70（100%）
+
 ### 修復
 
 #### Feature 024: 修正 OKX 資金費率標準化（✅ 已完成 - 2025-11-28）

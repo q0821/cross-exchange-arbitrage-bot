@@ -3,6 +3,7 @@ import { BinanceConnector } from './binance.js';
 import { OKXConnector } from './okx.js';
 import { MexcConnector } from './mexc.js';
 import { GateioConnector } from './gateio.js';
+import { BingxConnector } from './bingx.js';
 import { logger } from '../lib/logger.js';
 
 export class ExchangeFactory implements IExchangeFactory {
@@ -31,6 +32,9 @@ export class ExchangeFactory implements IExchangeFactory {
         break;
       case 'gateio':
         connector = new GateioConnector(isTestnet);
+        break;
+      case 'bingx':
+        connector = new BingxConnector(isTestnet);
         break;
       default:
         throw new Error(`Unsupported exchange: ${exchange}`);

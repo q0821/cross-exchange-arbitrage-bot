@@ -117,7 +117,7 @@ function parseSymbol(symbol: string): { base: string; quote: string } {
  */
 export function convertSymbolForExchange(
   symbol: string,
-  exchange: 'binance' | 'okx' | 'gateio' | 'mexc',
+  exchange: 'binance' | 'okx' | 'gateio' | 'mexc' | 'bingx',
 ): string {
   const { base, quote } = parseSymbol(symbol);
 
@@ -132,6 +132,9 @@ export function convertSymbolForExchange(
     case 'gateio':
       // Gate.io: BTC_USDT
       return `${base}_${quote}`;
+    case 'bingx':
+      // BingX: BTC-USDT (CCXT swap format)
+      return `${base}/${quote}:${quote}`;
     default:
       return `${base}${quote}`;
   }

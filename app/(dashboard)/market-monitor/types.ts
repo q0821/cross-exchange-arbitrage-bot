@@ -4,7 +4,7 @@
  * Feature 012: 支援多版本標準化費率
  */
 
-export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio';
+export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
 export type TimeBasis = 1 | 4 | 8 | 24;
 
 export interface ExchangeRateData {

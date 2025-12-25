@@ -539,12 +539,114 @@ export class ApiKeyValidator {
   }
 
   /**
+   * Validate BingX API Key (Feature 043: BingX 整合)
+   *
+   * Checks:
+   * 1. API connectivity
+   * 2. Read permission (futures balance)
+   * 3. Contract trading permission
+   *
+   * Note: BingX 使用 CCXT 進行驗證
+   */
+  async validateBingxKey(
+    apiKey: string,
+    apiSecret: string,
+    environment: 'MAINNET' | 'TESTNET' = 'MAINNET',
+  ): Promise<ValidationResult> {
+    const startTime = Date.now();
+
+    try {
+      const config: any = {
+        apiKey,
+        secret: apiSecret,
+        enableRateLimit: true,
+        options: {
+          defaultType: 'swap', // 永續合約
+        },
+      };
+
+      // BingX 目前沒有公開測試網
+      if (environment === 'TESTNET') {
+        logger.warn('BingX does not have a public testnet, using mainnet');
+      }
+
+      const exchange = new (ccxt as any).bingx(config);
+
+      // Test: Fetch account balance (read permission)
+      const balance = await exchange.fetchBalance();
+
+      if (!balance) {
+        return {
+          isValid: false,
+          hasReadPermission: false,
+          hasTradePermission: false,
+          error: 'Failed to fetch account balance',
+          errorCode: 'EXCHANGE_ERROR',
+        };
+      }
+
+      // Check if we have contract trading permission by trying to fetch positions
+      let hasTradePermission = false;
+      try {
+        await exchange.fetchPositions();
+        hasTradePermission = true;
+      } catch {
+        // If fetchPositions fails, we might still have read-only access
+        hasTradePermission = false;
+      }
+
+      const responseTime = Date.now() - startTime;
+
+      logger.info(
+        {
+          exchange: 'bingx',
+          environment,
+          hasTradePermission,
+          responseTime,
+        },
+        'BingX API key validated',
+      );
+
+      return {
+        isValid: true,
+        hasReadPermission: true,
+        hasTradePermission,
+        details: {
+          exchange: 'bingx',
+          environment,
+          balance: {
+            total: Number(balance.total?.USDT) || 0,
+            available: Number(balance.free?.USDT) || 0,
+            currency: 'USDT',
+          },
+          responseTime,
+        },
+      };
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+
+      logger.error(
+        { error: error.message, exchange: 'bingx', environment, responseTime },
+        'BingX API key validation failed',
+      );
+
+      return {
+        isValid: false,
+        hasReadPermission: false,
+        hasTradePermission: false,
+        error: this.parseExchangeError(error),
+        errorCode: this.parseErrorCode(error),
+      };
+    }
+  }
+
+  /**
    * Unified API Key validation entry point (T014)
    *
    * Routes to exchange-specific validation methods
    */
   async validateApiKey(params: {
-    exchange: 'binance' | 'okx' | 'gateio' | 'mexc';
+    exchange: 'binance' | 'okx' | 'gateio' | 'mexc' | 'bingx';
     apiKey: string;
     apiSecret: string;
     passphrase?: string;
@@ -573,6 +675,9 @@ export class ApiKeyValidator {
 
       case 'mexc':
         return this.validateMexcKey(apiKey, apiSecret, environment);
+
+      case 'bingx':
+        return this.validateBingxKey(apiKey, apiSecret, environment);
 
       default:
         return {

@@ -13,11 +13,13 @@ export interface AssetSnapshotData {
   okxBalanceUSD: number | null;
   mexcBalanceUSD: number | null;
   gateioBalanceUSD: number | null;
+  bingxBalanceUSD: number | null;
   totalBalanceUSD: number;
   binanceStatus: string | null;
   okxStatus: string | null;
   mexcStatus: string | null;
   gateioStatus: string | null;
+  bingxStatus: string | null;
   recordedAt: Date;
   createdAt: Date;
 }
@@ -31,11 +33,13 @@ export interface CreateSnapshotInput {
   okxBalanceUSD?: number | null;
   mexcBalanceUSD?: number | null;
   gateioBalanceUSD?: number | null;
+  bingxBalanceUSD?: number | null;
   totalBalanceUSD: number;
   binanceStatus?: string | null;
   okxStatus?: string | null;
   mexcStatus?: string | null;
   gateioStatus?: string | null;
+  bingxStatus?: string | null;
   recordedAt: Date;
 }
 
@@ -48,6 +52,7 @@ export interface HistoryDataPoint {
   okx: number | null;
   mexc: number | null;
   gate: number | null;
+  bingx: number | null;
   total: number;
 }
 
@@ -70,11 +75,13 @@ export class AssetSnapshotRepository {
       okxBalanceUSD: snapshot.okxBalanceUSD ? Number(snapshot.okxBalanceUSD) : null,
       mexcBalanceUSD: snapshot.mexcBalanceUSD ? Number(snapshot.mexcBalanceUSD) : null,
       gateioBalanceUSD: snapshot.gateioBalanceUSD ? Number(snapshot.gateioBalanceUSD) : null,
+      bingxBalanceUSD: snapshot.bingxBalanceUSD ? Number(snapshot.bingxBalanceUSD) : null,
       totalBalanceUSD: Number(snapshot.totalBalanceUSD),
       binanceStatus: snapshot.binanceStatus,
       okxStatus: snapshot.okxStatus,
       mexcStatus: snapshot.mexcStatus,
       gateioStatus: snapshot.gateioStatus,
+      bingxStatus: snapshot.bingxStatus,
       recordedAt: snapshot.recordedAt,
       createdAt: snapshot.createdAt,
     };
@@ -92,11 +99,13 @@ export class AssetSnapshotRepository {
           okxBalanceUSD: input.okxBalanceUSD ?? null,
           mexcBalanceUSD: input.mexcBalanceUSD ?? null,
           gateioBalanceUSD: input.gateioBalanceUSD ?? null,
+          bingxBalanceUSD: input.bingxBalanceUSD ?? null,
           totalBalanceUSD: input.totalBalanceUSD,
           binanceStatus: input.binanceStatus ?? null,
           okxStatus: input.okxStatus ?? null,
           mexcStatus: input.mexcStatus ?? null,
           gateioStatus: input.gateioStatus ?? null,
+          bingxStatus: input.bingxStatus ?? null,
           recordedAt: input.recordedAt,
         },
       });
@@ -160,6 +169,7 @@ export class AssetSnapshotRepository {
       okx: s.okxBalanceUSD,
       mexc: s.mexcBalanceUSD,
       gate: s.gateioBalanceUSD,
+      bingx: s.bingxBalanceUSD,
       total: s.totalBalanceUSD,
     }));
   }

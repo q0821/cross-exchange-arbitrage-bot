@@ -53,6 +53,15 @@ export const EXCHANGE_CONFIGS: ExchangeConfigMap = {
       return symbol.replace('/', '_');
     },
   },
+  bingx: {
+    exchange: 'bingx',
+    displayName: 'BingX',
+    urlTemplate: 'https://bingx.com/en-us/futures/{symbol}',
+    formatSymbol: (symbol: string): string => {
+      // BTC/USDT → BTC-USDT
+      return symbol.replace('/', '-');
+    },
+  },
 };
 
 /**

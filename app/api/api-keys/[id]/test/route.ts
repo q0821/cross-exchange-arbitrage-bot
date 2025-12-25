@@ -54,8 +54,8 @@ export async function POST(
     const decrypted = await apiKeyService.decryptApiKey(apiKeyId, user.userId);
 
     // 4. Validate exchange type
-    const exchange = apiKey.exchange as 'binance' | 'okx' | 'gateio' | 'mexc';
-    const supportedExchanges = ['binance', 'okx', 'gateio', 'mexc'];
+    const exchange = apiKey.exchange as 'binance' | 'okx' | 'gateio' | 'mexc' | 'bingx';
+    const supportedExchanges = ['binance', 'okx', 'gateio', 'mexc', 'bingx'];
 
     if (!supportedExchanges.includes(exchange)) {
       return NextResponse.json(
