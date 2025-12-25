@@ -9,7 +9,7 @@ async function testMexcContractApi() {
   console.log('MEXC Contract API 連通性測試');
   console.log('='.repeat(60));
 
-  const mexc = new ccxt.mexc({
+  const mexc = new (ccxt as any).mexc({
     enableRateLimit: true,
     timeout: 30000,
     options: {

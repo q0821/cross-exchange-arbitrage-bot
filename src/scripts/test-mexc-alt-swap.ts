@@ -31,7 +31,7 @@ async function testMexcAltSwap() {
   const apiKey = decrypt(apiKeyRecord.encryptedKey);
   const apiSecret = decrypt(apiKeyRecord.encryptedSecret);
 
-  const mexc = new ccxt.mexc({
+  const mexc = new (ccxt as any).mexc({
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,

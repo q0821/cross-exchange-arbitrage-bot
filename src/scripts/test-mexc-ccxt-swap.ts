@@ -33,7 +33,7 @@ async function testMexcCcxtSwap() {
   const apiSecret = decrypt(apiKeyRecord.encryptedSecret);
 
   // 根據 CCXT 文件設定 MEXC 交易所
-  const mexc = new ccxt.mexc({
+  const mexc = new (ccxt as any).mexc({
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,
