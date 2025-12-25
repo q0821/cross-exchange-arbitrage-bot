@@ -11,6 +11,7 @@
  */
 
 import ccxt from 'ccxt';
+import axios from 'axios';
 import { BaseExchangeConnector } from './base.js';
 import {
   FundingRateData,
@@ -168,13 +169,13 @@ export class BingxConnector extends BaseExchangeConnector {
    * 獲取單一交易對的資金費率間隔(小時)
    *
    * BingX 支援 1h、4h、8h 三種週期
-   * 優先從 CCXT response 的 info 欄位讀取間隔值
+   * 從資金費率歷史 API 計算間隔
    *
    * @param symbol 交易對符號 (如 'BTCUSDT')
-   * @param fundingRate 可選的 CCXT funding rate response (用於計算)
+   * @param _fundingRate 可選的 CCXT funding rate response (未使用，保留相容性)
    * @returns 間隔值(小時)
    */
-  async getFundingInterval(symbol: string, fundingRate?: ccxt.FundingRate): Promise<number> {
+  async getFundingInterval(symbol: string, _fundingRate?: ccxt.FundingRate): Promise<number> {
     try {
       // 1. 檢查快取
       const cached = this.intervalCache.get('bingx', symbol);
@@ -182,66 +183,76 @@ export class BingxConnector extends BaseExchangeConnector {
         return cached;
       }
 
-      // 2. 如果有 fundingRate，嘗試從 info 欄位讀取間隔
-      if (fundingRate) {
-        const interval = this.extractIntervalFromResponse(fundingRate);
-        if (interval) {
-          this.intervalCache.set('bingx', symbol, interval, 'native-api');
-          logger.info({ symbol, interval, source: 'native-api' }, 'Funding interval extracted from BingX API response');
-          return interval;
-        }
+      // 2. 呼叫 BingX 原生 API 取得資金費率歷史並計算間隔
+      const interval = await this.fetchIntervalFromHistory(symbol);
+      if (interval) {
+        this.intervalCache.set('bingx', symbol, interval, 'native-api');
+        logger.info({ symbol, interval, source: 'native-api' }, 'Funding interval calculated from BingX history');
+        return interval;
       }
 
-      // 3. 無法從現有資料取得間隔，使用預設值 (不再額外呼叫 API)
+      // 3. 無法取得，使用預設值
       this.intervalCache.set('bingx', symbol, 8, 'default');
       return 8;
     } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.warn({ symbol, error: err.message }, 'Failed to fetch funding interval, using default 8h');
       return 8;
     }
   }
 
   /**
-   * 從 CCXT funding rate response 提取間隔值
+   * 從 BingX 資金費率歷史 API 計算間隔
    *
-   * BingX API 回傳的 info 欄位可能包含:
-   * - fundingIntervalHours: 直接的小時數 (1, 4, 8)
-   * - fundingInterval: 毫秒數
+   * @param symbol 交易對符號 (如 'BTCUSDT')
+   * @returns 間隔值(小時)，失敗返回 null
    */
-  private extractIntervalFromResponse(fundingRate: ccxt.FundingRate): number | null {
-    const info = (fundingRate as any).info;
+  private async fetchIntervalFromHistory(symbol: string): Promise<number | null> {
+    try {
+      // 轉換符號格式: BTCUSDT -> BTC-USDT
+      const bingxSymbol = this.toBingxSymbol(symbol);
 
-    if (!info) {
+      const response = await axios.get('https://open-api.bingx.com/openApi/swap/v2/quote/fundingRate', {
+        params: { symbol: bingxSymbol, limit: 2 },
+        timeout: 5000,
+      });
+
+      if (response.data.code === 0 && response.data.data?.length >= 2) {
+        const history = response.data.data;
+        const current = history[0];
+        const previous = history[1];
+
+        const diffMs = current.fundingTime - previous.fundingTime;
+        const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+
+        // BingX 支援 1h、4h、8h
+        if ([1, 4, 8].includes(diffHours)) {
+          return diffHours;
+        }
+
+        logger.warn({ symbol, diffHours }, 'Unexpected funding interval from BingX');
+      }
+
+      return null;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.debug({ symbol, error: err.message }, 'Failed to fetch funding history from BingX');
       return null;
     }
+  }
 
-    // 方法 1: 檢查 info 中的 fundingIntervalHours (直接小時數)
-    if (info.fundingIntervalHours !== undefined) {
-      const hours = parseInt(String(info.fundingIntervalHours), 10);
-      if (!isNaN(hours) && [1, 4, 8].includes(hours)) {
-        return hours;
-      }
+  /**
+   * 轉換符號格式為 BingX API 格式
+   * BTCUSDT -> BTC-USDT
+   */
+  private toBingxSymbol(symbol: string): string {
+    // 處理已經是 BTC-USDT 格式的情況
+    if (symbol.includes('-')) {
+      return symbol;
     }
-
-    // 方法 2: 檢查 info 中的 fundingInterval (可能是毫秒或秒)
-    if (info.fundingInterval !== undefined) {
-      const intervalValue = parseInt(String(info.fundingInterval), 10);
-      if (!isNaN(intervalValue) && intervalValue > 0) {
-        // 判斷是毫秒還是秒
-        let hours: number;
-        if (intervalValue > 10000) {
-          // 可能是毫秒
-          hours = Math.round(intervalValue / (1000 * 60 * 60));
-        } else {
-          // 可能是秒
-          hours = Math.round(intervalValue / 3600);
-        }
-        if ([1, 4, 8].includes(hours)) {
-          return hours;
-        }
-      }
-    }
-
-    return null;
+    // BTCUSDT -> BTC-USDT
+    const base = symbol.replace('USDT', '');
+    return `${base}-USDT`;
   }
 
   async getPrice(symbol: string): Promise<PriceData> {
