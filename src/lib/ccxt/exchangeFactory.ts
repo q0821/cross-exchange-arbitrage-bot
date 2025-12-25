@@ -5,7 +5,7 @@
  * 解決 CCXT 類型定義不完整的問題
  */
 
-import ccxt, { Exchange, ExchangeId } from 'ccxt';
+import ccxt, { Exchange } from 'ccxt';
 
 /**
  * 支援的交易所 ID
@@ -28,6 +28,9 @@ export interface ExchangeOptions {
   };
 }
 
+// 支援的交易所列表
+const SUPPORTED_EXCHANGES: SupportedExchangeId[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
+
 /**
  * 創建 CCXT 交易所實例
  *
@@ -49,12 +52,13 @@ export function createCcxtExchange(
   options: ExchangeOptions = {}
 ): Exchange {
   // 驗證交易所 ID
-  if (!ccxt.exchanges.includes(exchangeId as ExchangeId)) {
+  if (!SUPPORTED_EXCHANGES.includes(exchangeId)) {
     throw new Error(`Unsupported exchange: ${exchangeId}`);
   }
 
-  // 使用 CCXT 的動態創建方式
-  const ExchangeClass = (ccxt as Record<string, new (config: ExchangeOptions) => Exchange>)[exchangeId];
+  // 使用 CCXT 的動態創建方式（需要雙重斷言因為 CCXT 類型定義不完整）
+  const ccxtModule = ccxt as unknown as Record<string, new (config: ExchangeOptions) => Exchange>;
+  const ExchangeClass = ccxtModule[exchangeId];
 
   if (!ExchangeClass) {
     throw new Error(`Exchange class not found: ${exchangeId}`);
@@ -70,5 +74,5 @@ export function createCcxtExchange(
  * 檢查交易所是否支援
  */
 export function isSupportedExchange(exchangeId: string): exchangeId is SupportedExchangeId {
-  return ['binance', 'okx', 'mexc', 'gateio', 'bingx'].includes(exchangeId);
+  return SUPPORTED_EXCHANGES.includes(exchangeId as SupportedExchangeId);
 }
