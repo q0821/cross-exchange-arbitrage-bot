@@ -168,7 +168,7 @@ export class BingxConnector extends BaseExchangeConnector {
    * 獲取單一交易對的資金費率間隔(小時)
    *
    * BingX 支援 1h、4h、8h 三種週期
-   * 優先從 CCXT response 的 fundingTimestamp/nextFundingTimestamp 計算
+   * 優先從 CCXT response 的 info 欄位讀取間隔值
    *
    * @param symbol 交易對符號 (如 'BTCUSDT')
    * @param fundingRate 可選的 CCXT funding rate response (用於計算)
@@ -185,12 +185,12 @@ export class BingxConnector extends BaseExchangeConnector {
         return cached;
       }
 
-      // 2. 如果有 fundingRate，嘗試從 timestamp 計算間隔
+      // 2. 如果有 fundingRate，嘗試從 info 欄位讀取間隔
       if (fundingRate) {
-        const interval = this.calculateIntervalFromTimestamps(fundingRate);
+        const interval = this.extractIntervalFromResponse(fundingRate);
         if (interval) {
-          this.intervalCache.set('bingx', symbol, interval, 'calculated');
-          logger.info({ symbol, interval, source: 'calculated' }, 'Funding interval calculated from timestamps');
+          this.intervalCache.set('bingx', symbol, interval, 'native-api');
+          logger.info({ symbol, interval, source: 'native-api' }, 'Funding interval extracted from BingX API response');
           return interval;
         }
       }
@@ -198,16 +198,16 @@ export class BingxConnector extends BaseExchangeConnector {
       // 3. 沒有資料則 fetch 新的
       const ccxtSymbol = this.toCcxtSymbol(symbol);
       const newFundingRate = await this.client!.fetchFundingRate(ccxtSymbol);
-      const interval = this.calculateIntervalFromTimestamps(newFundingRate);
+      const interval = this.extractIntervalFromResponse(newFundingRate);
 
       if (interval) {
-        this.intervalCache.set('bingx', symbol, interval, 'calculated');
-        logger.info({ symbol, interval, source: 'api' }, 'Funding interval fetched from BingX API');
+        this.intervalCache.set('bingx', symbol, interval, 'native-api');
+        logger.info({ symbol, interval, source: 'native-api' }, 'Funding interval fetched from BingX API');
         return interval;
       }
 
-      // 4. 無法計算，使用預設值
-      logger.warn({ symbol }, 'Unable to calculate funding interval, using default 8h');
+      // 4. 無法取得，使用預設值
+      logger.warn({ symbol }, 'Unable to extract funding interval from BingX API, using default 8h');
       this.intervalCache.set('bingx', symbol, 8, 'default');
       return 8;
     } catch (error) {
@@ -218,20 +218,54 @@ export class BingxConnector extends BaseExchangeConnector {
   }
 
   /**
-   * 從 CCXT funding rate response 計算間隔
+   * 從 CCXT funding rate response 提取間隔值
+   *
+   * BingX API 回傳的 info 欄位可能包含:
+   * - fundingIntervalHours: 直接的小時數
+   * - fundingInterval: 毫秒數
+   * - 或從 nextFundingTime 與當前時間計算
    */
-  private calculateIntervalFromTimestamps(fundingRate: ccxt.FundingRate): number | null {
-    const currentTime = fundingRate.fundingTimestamp;
-    // CCXT FundingRate 類型可能沒有 nextFundingTimestamp，但實際回傳有此欄位
+  private extractIntervalFromResponse(fundingRate: ccxt.FundingRate): number | null {
+    const info = (fundingRate as any).info;
+
+    // 方法 1: 檢查 info 中的 fundingIntervalHours (直接小時數)
+    if (info?.fundingIntervalHours) {
+      const hours = parseInt(info.fundingIntervalHours, 10);
+      if (!isNaN(hours) && [1, 4, 8].includes(hours)) {
+        return hours;
+      }
+    }
+
+    // 方法 2: 檢查 info 中的 fundingInterval (可能是毫秒)
+    if (info?.fundingInterval) {
+      const intervalMs = parseInt(info.fundingInterval, 10);
+      if (!isNaN(intervalMs) && intervalMs > 0) {
+        const hours = Math.round(intervalMs / (1000 * 60 * 60));
+        if ([1, 4, 8].includes(hours)) {
+          return hours;
+        }
+      }
+    }
+
+    // 方法 3: 從 nextFundingTimestamp 推算
+    // BingX 資金費率在固定時間點結算，可根據 nextFundingTime 推算間隔
     const nextTime = (fundingRate as ccxt.FundingRate & { nextFundingTimestamp?: number }).nextFundingTimestamp;
+    if (nextTime) {
+      const now = Date.now();
+      const timeToNext = nextTime - now;
 
-    if (currentTime && nextTime && nextTime > currentTime) {
-      const diffMs = nextTime - currentTime;
-      const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+      // 如果距離下次結算時間合理，可推算間隔
+      // 1h 間隔: timeToNext 應在 0-1h 內
+      // 4h 間隔: timeToNext 應在 0-4h 內
+      // 8h 間隔: timeToNext 應在 0-8h 內
+      const hoursToNext = timeToNext / (1000 * 60 * 60);
 
-      // BingX 支援 1h、4h、8h
-      if ([1, 4, 8].includes(diffHours)) {
-        return diffHours;
+      if (hoursToNext > 0 && hoursToNext <= 1) {
+        return 1;
+      } else if (hoursToNext > 1 && hoursToNext <= 4) {
+        return 4;
+      } else if (hoursToNext > 4 && hoursToNext <= 8) {
+        return 8;
       }
     }
 
