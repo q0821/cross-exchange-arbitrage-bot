@@ -21,6 +21,7 @@ import { OpenPositionButton } from './OpenPositionButton';
 import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
 import { calculatePaybackPeriods } from '../utils/rateCalculations';
 import { getPriceRiskLevel, PRICE_DIFF_WARNING_THRESHOLD } from '@/lib/priceRisk';
+import { isArbitragePairRestricted } from '@/lib/trading-restrictions';
 import type {
   ExchangeName,
   MarketRate,
@@ -491,10 +492,15 @@ export const RateRow = React.memo(function RateRow({
           )}
 
           {/* Feature 033: 開倉按鈕 - 只在 opportunity 狀態顯示 (T031, T033) */}
+          {/* Feature 044: 涉及 MEXC 時顯示警告並禁用 */}
           {onQuickOpen && rate.status === 'opportunity' && rate.bestPair && (
             <OpenPositionButton
               disabled={false}
               onClick={() => onQuickOpen(rate)}
+              isMexcRestricted={isArbitragePairRestricted(
+                rate.bestPair.longExchange,
+                rate.bestPair.shortExchange
+              )}
             />
           )}
         </div>

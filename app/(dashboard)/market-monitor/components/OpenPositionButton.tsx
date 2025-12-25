@@ -3,6 +3,7 @@
  * 顯示在 RateRow 中，用於開啟開倉對話框
  *
  * Feature 033: Manual Open Position (T013)
+ * Feature 044: MEXC Trading Restriction - 禁用涉及 MEXC 的開倉
  */
 
 'use client';
@@ -15,24 +16,55 @@ interface OpenPositionButtonProps {
   disabled: boolean;
   isLoading?: boolean;
   onClick: () => void;
+  /** Feature 044: 是否因交易所限制而禁用（如 MEXC 不支援 API 開倉） */
+  isMexcRestricted?: boolean;
+  /** Feature 044: 限制說明訊息 */
+  restrictionMessage?: string;
 }
 
 export function OpenPositionButton({
   disabled,
   isLoading = false,
   onClick,
+  isMexcRestricted = false,
+  restrictionMessage = 'MEXC 不支援 API 開倉，請手動建倉',
 }: OpenPositionButtonProps) {
+  // Feature 044: 如果涉及 MEXC，則禁用按鈕
+  const isDisabled = disabled || isLoading || isMexcRestricted;
+
+  // Feature 044: 根據禁用原因決定樣式
+  const getButtonClassName = () => {
+    if (isLoading) {
+      return 'text-gray-300 cursor-not-allowed';
+    }
+    if (isMexcRestricted) {
+      // 警告色：琥珀色表示有原因的禁用
+      return 'text-amber-400 bg-amber-50 cursor-not-allowed';
+    }
+    if (disabled) {
+      return 'text-gray-300 cursor-not-allowed';
+    }
+    return 'text-gray-600 hover:bg-green-50 hover:text-green-600';
+  };
+
+  // Feature 044: 根據狀態決定 Tooltip 內容
+  const getTooltipContent = () => {
+    if (isMexcRestricted) {
+      return restrictionMessage;
+    }
+    if (disabled) {
+      return '無套利機會';
+    }
+    return '開倉此套利機會';
+  };
+
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
         <button
           onClick={onClick}
-          disabled={disabled || isLoading}
-          className={`p-2 rounded-md transition-colors ${
-            disabled || isLoading
-              ? 'text-gray-300 cursor-not-allowed'
-              : 'text-gray-600 hover:bg-green-50 hover:text-green-600'
-          }`}
+          disabled={isDisabled}
+          className={`p-2 rounded-md transition-colors ${getButtonClassName()}`}
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -43,11 +75,13 @@ export function OpenPositionButton({
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
-          className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+          className={`text-white text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs ${
+            isMexcRestricted ? 'bg-amber-700' : 'bg-gray-900'
+          }`}
           sideOffset={5}
         >
-          {disabled ? '無套利機會' : '開倉此套利機會'}
-          <Tooltip.Arrow className="fill-gray-900" />
+          {getTooltipContent()}
+          <Tooltip.Arrow className={isMexcRestricted ? 'fill-amber-700' : 'fill-gray-900'} />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>

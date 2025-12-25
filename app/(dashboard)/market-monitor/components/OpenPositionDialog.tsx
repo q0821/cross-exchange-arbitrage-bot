@@ -3,6 +3,7 @@
  * 讓用戶輸入倉位數量、選擇槓桿並確認開倉
  *
  * Feature 033: Manual Open Position (T014, T015)
+ * Feature 044: MEXC Trading Restriction - 顯示警告並禁用開倉
  */
 
 'use client';
@@ -13,6 +14,7 @@ import {
   X,
   TrendingUp,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   Layers,
   RefreshCw,
@@ -20,8 +22,13 @@ import {
   ArrowDownCircle,
   Shield,
   Target,
+  ExternalLink,
 } from 'lucide-react';
 import type { MarketRate, ExchangeName } from '../types';
+import {
+  isArbitragePairRestricted,
+  getArbitragePairRestriction,
+} from '@/lib/trading-restrictions';
 
 /** 停損停利設定 */
 interface StopLossTakeProfitConfig {
@@ -106,6 +113,14 @@ export function OpenPositionDialog({
   const bestPair = rate?.bestPair;
   const longExchange = bestPair?.longExchange as ExchangeName;
   const shortExchange = bestPair?.shortExchange as ExchangeName;
+
+  // Feature 044: 檢查是否涉及受限交易所（如 MEXC）
+  const isMexcRestricted = bestPair
+    ? isArbitragePairRestricted(bestPair.longExchange, bestPair.shortExchange)
+    : false;
+  const restrictionInfo = bestPair
+    ? getArbitragePairRestriction(bestPair.longExchange, bestPair.shortExchange)
+    : null;
 
   // 計算價格
   const longPrice = longExchange
@@ -315,6 +330,32 @@ export function OpenPositionDialog({
               </div>
             </div>
           </div>
+
+          {/* Feature 044: MEXC Restriction Warning Banner */}
+          {isMexcRestricted && restrictionInfo && (
+            <div className="border border-amber-300 bg-amber-50 rounded-lg p-4 mb-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-amber-800 mb-1">
+                    交易所限制
+                  </h4>
+                  <p className="text-sm text-amber-700 mb-3">
+                    {restrictionInfo.message}
+                  </p>
+                  <a
+                    href={restrictionInfo.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    前往 MEXC 手動操作
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Market Data with Refresh */}
           <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 mb-4">
@@ -578,13 +619,18 @@ export function OpenPositionDialog({
               </button>
               <button
                 type="submit"
-                disabled={isLoading || !avgPrice || !isBalanceSufficient}
+                disabled={isLoading || !avgPrice || !isBalanceSufficient || isMexcRestricted}
                 className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     開倉中...
+                  </>
+                ) : isMexcRestricted ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4" />
+                    無法透過 API 開倉
                   </>
                 ) : (
                   <>

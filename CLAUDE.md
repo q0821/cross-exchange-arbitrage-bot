@@ -72,9 +72,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 044-mexc-trading-restriction: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (現有依賴，無需新增)
 - 043-bingx-integration: Added TypeScript 5.6+ with Node.js 20.x LTS + CCXT 4.x（BingX connector）, Prisma 5.x（ORM）, Next.js 14（Web）, Socket.io 4.8.1（WebSocket）
 - 042-api-key-connection-test: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x（多交易所抽象）, Prisma 5.x (ORM), Pino（結構化日誌）
-- 041-funding-rate-pnl-display: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（多交易所抽象）, Prisma 5.x（ORM）, Pino（日誌）, Vitest（測試）
 
 <!-- MANUAL ADDITIONS START -->
 
