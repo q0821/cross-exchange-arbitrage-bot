@@ -127,11 +127,11 @@ export const RateRow = React.memo(function RateRow({
   const getRowBgColor = () => {
     switch (rate.status) {
       case 'opportunity':
-        return 'bg-green-50 hover:bg-green-100';
+        return 'bg-profit/10 hover:bg-profit/20';
       case 'approaching':
-        return 'bg-yellow-50 hover:bg-yellow-100';
+        return 'bg-warning/10 hover:bg-warning/20';
       default:
-        return 'hover:bg-gray-50';
+        return 'hover:bg-muted';
     }
   };
 
@@ -146,7 +146,7 @@ export const RateRow = React.memo(function RateRow({
     if (!exchangeData) {
       return (
         <td key={exchangeName} className="px-4 py-3 text-right">
-          <span className="text-gray-400">-</span>
+          <span className="text-muted-foreground">-</span>
         </td>
       );
     }
@@ -160,12 +160,12 @@ export const RateRow = React.memo(function RateRow({
         <div className="flex flex-col items-end gap-1">
           {/* 做多/做空標籤 */}
           {isLong && (
-            <span className="inline-block px-2 py-0.5 text-xs font-medium text-white bg-green-600 rounded">
+            <span className="inline-block px-2 py-0.5 text-xs font-medium text-background bg-profit rounded">
               做多
             </span>
           )}
           {isShort && (
-            <span className="inline-block px-2 py-0.5 text-xs font-medium text-white bg-red-600 rounded">
+            <span className="inline-block px-2 py-0.5 text-xs font-medium text-background bg-loss rounded">
               做空
             </span>
           )}
@@ -189,20 +189,20 @@ export const RateRow = React.memo(function RateRow({
                     </Tooltip.Trigger>
                     <Tooltip.Portal>
                       <Tooltip.Content
-                        className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+                        className="bg-foreground text-background text-xs rounded px-3 py-2 shadow-lg z-50"
                         sideOffset={5}
                       >
                         <div className="space-y-1">
                           <div className="font-semibold">原始資金費率：</div>
                           <div>{formatRate(exchangeData.rate)}</div>
-                          <div className="text-gray-300 text-[11px] mt-1">
+                          <div className="text-muted-foreground text-[11px] mt-1">
                             原始結算週期：{formatFundingInterval(originalInterval)}
                           </div>
-                          <div className="text-gray-300 text-[11px]">
+                          <div className="text-muted-foreground text-[11px]">
                             已標準化為：{formatFundingInterval(timeBasis)} 基準
                           </div>
                         </div>
-                        <Tooltip.Arrow className="fill-gray-900" />
+                        <Tooltip.Arrow className="fill-foreground" />
                       </Tooltip.Content>
                     </Tooltip.Portal>
                   </Tooltip.Root>
@@ -221,7 +221,7 @@ export const RateRow = React.memo(function RateRow({
 
           {/* 價格 */}
           {exchangeData.price && (
-            <span className="text-xs text-gray-500">${formatPrice(exchangeData.price)}</span>
+            <span className="text-xs text-muted-foreground">${formatPrice(exchangeData.price)}</span>
           )}
         </div>
       </td>
@@ -254,7 +254,7 @@ export const RateRow = React.memo(function RateRow({
         <div className="flex items-center gap-2">
           <button
             onClick={handleSymbolClick}
-            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+            className="font-medium text-primary hover:text-primary/80 hover:underline"
           >
             {rate.symbol}
           </button>
@@ -262,17 +262,17 @@ export const RateRow = React.memo(function RateRow({
           {isTopOpportunity && (
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
-                <span className="inline-flex items-center justify-center w-5 h-5 bg-yellow-400 text-yellow-900 rounded-full text-xs font-bold cursor-help">
+                <span className="inline-flex items-center justify-center w-5 h-5 bg-warning text-warning rounded-full text-xs font-bold cursor-help">
                   ⭐
                 </span>
               </Tooltip.Trigger>
               <Tooltip.Portal>
                 <Tooltip.Content
-                  className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+                  className="bg-foreground text-background text-xs rounded px-3 py-2 shadow-lg z-50"
                   sideOffset={5}
                 >
                   高收益機會！費率差異 &gt; 0.5%
-                  <Tooltip.Arrow className="fill-gray-900" />
+                  <Tooltip.Arrow className="fill-foreground" />
                 </Tooltip.Content>
               </Tooltip.Portal>
             </Tooltip.Root>
@@ -281,17 +281,17 @@ export const RateRow = React.memo(function RateRow({
           {isStale && (
             <Tooltip.Root>
               <Tooltip.Trigger asChild>
-                <span className="inline-flex items-center px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded cursor-help">
+                <span className="inline-flex items-center px-2 py-0.5 bg-warning/10 text-warning text-xs font-medium rounded cursor-help">
                   陳舊
                 </span>
               </Tooltip.Trigger>
               <Tooltip.Portal>
                 <Tooltip.Content
-                  className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+                  className="bg-foreground text-background text-xs rounded px-3 py-2 shadow-lg z-50"
                   sideOffset={5}
                 >
                   數據可能已過時（超過 30 秒未更新）
-                  <Tooltip.Arrow className="fill-gray-900" />
+                  <Tooltip.Arrow className="fill-foreground" />
                 </Tooltip.Content>
               </Tooltip.Portal>
             </Tooltip.Root>
@@ -307,10 +307,10 @@ export const RateRow = React.memo(function RateRow({
         <span
           className={`font-mono text-sm font-semibold ${
             rate.status === 'opportunity'
-              ? 'text-green-600'
+              ? 'text-profit'
               : rate.status === 'approaching'
-              ? 'text-yellow-600'
-              : 'text-gray-600'
+              ? 'text-warning'
+              : 'text-muted-foreground'
           }`}
         >
           {rate.bestPair
@@ -350,18 +350,18 @@ export const RateRow = React.memo(function RateRow({
               return (
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
-                    <span className="font-mono text-sm text-orange-500 font-medium cursor-help">
+                    <span className="font-mono text-sm text-warning font-medium cursor-help">
                       ⚠️ N/A
                     </span>
                   </Tooltip.Trigger>
                   <Tooltip.Portal>
                     <Tooltip.Content
-                      className="bg-orange-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs"
+                      className="bg-warning text-warning-foreground text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs"
                       sideOffset={5}
                     >
                       <div className="font-semibold mb-1">風險提示</div>
                       <div>無價差資訊，開倉前請自行確認兩交易所的價差，避免因價差過大導致虧損。</div>
-                      <Tooltip.Arrow className="fill-orange-900" />
+                      <Tooltip.Arrow className="fill-warning" />
                     </Tooltip.Content>
                   </Tooltip.Portal>
                 </Tooltip.Root>
@@ -373,13 +373,13 @@ export const RateRow = React.memo(function RateRow({
               return (
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
-                    <span className="font-mono text-sm text-orange-500 font-medium cursor-help">
+                    <span className="font-mono text-sm text-warning font-medium cursor-help">
                       ⚠️ {formatPriceDiff(priceDiff!)}
                     </span>
                   </Tooltip.Trigger>
                   <Tooltip.Portal>
                     <Tooltip.Content
-                      className="bg-orange-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs"
+                      className="bg-warning text-warning-foreground text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs"
                       sideOffset={5}
                     >
                       <div className="font-semibold mb-1">價差警告</div>
@@ -387,7 +387,7 @@ export const RateRow = React.memo(function RateRow({
                         價差 {Math.abs(typeof priceDiff === 'string' ? parseFloat(priceDiff) : priceDiff ?? 0).toFixed(2)}% 超過 {PRICE_DIFF_WARNING_THRESHOLD}%，
                         開倉成本較高，請評估是否值得進場。
                       </div>
-                      <Tooltip.Arrow className="fill-orange-900" />
+                      <Tooltip.Arrow className="fill-warning" />
                     </Tooltip.Content>
                   </Tooltip.Portal>
                 </Tooltip.Root>
@@ -419,10 +419,10 @@ export const RateRow = React.memo(function RateRow({
             const indicator = (
               <span
                 className={`text-xs ${
-                  payback.color === 'green' ? 'text-green-500' :
-                  payback.color === 'orange' ? 'text-orange-500' :
-                  payback.color === 'red' ? 'text-red-500' :
-                  'text-gray-400'
+                  payback.color === 'green' ? 'text-profit' :
+                  payback.color === 'orange' ? 'text-warning' :
+                  payback.color === 'red' ? 'text-loss' :
+                  'text-muted-foreground'
                 }`}
               >
                 {payback.displayText}
@@ -465,12 +465,12 @@ export const RateRow = React.memo(function RateRow({
             disabled={!rate.bestPair}
             className={`p-2 rounded-md transition-colors ${
               !rate.bestPair
-                ? 'text-gray-300 cursor-not-allowed'
+                ? 'text-muted-foreground cursor-not-allowed'
                 : copyStatus === 'success'
-                ? 'text-green-600 bg-green-50'
+                ? 'text-profit bg-profit/10'
                 : copyStatus === 'error'
-                ? 'text-red-600 bg-red-50'
-                : 'text-gray-600 hover:bg-gray-100'
+                ? 'text-loss bg-loss/10'
+                : 'text-muted-foreground hover:bg-muted'
             }`}
             title={!rate.bestPair ? '無套利機會' : '複製套利資訊'}
           >

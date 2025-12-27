@@ -111,20 +111,20 @@ export function OpportunityThresholdSettings() {
   if (!isReady) {
     return (
       <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-        <div className="h-12 bg-gray-200 rounded w-1/4 mb-4"></div>
+        <div className="h-8 bg-muted rounded w-1/3 mb-4"></div>
+        <div className="h-12 bg-muted rounded w-1/4 mb-4"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">年化收益門檻</h2>
+    <div className="glass-card p-6">
+      <h2 className="text-lg font-semibold text-foreground mb-4">年化收益門檻</h2>
 
       {/* localStorage 不可用警告 */}
       {!isStorageAvailable && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <p className="text-sm text-yellow-700">
+        <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-md">
+          <p className="text-sm text-warning">
             瀏覽器儲存空間不可用，設定將無法保留。請檢查瀏覽器設定或關閉隱私模式。
           </p>
         </div>
@@ -132,7 +132,7 @@ export function OpportunityThresholdSettings() {
 
       {/* 門檻輸入區 */}
       <div className="mb-4">
-        <label htmlFor="threshold-input" className="block text-sm font-medium text-gray-700 mb-2">
+        <label htmlFor="threshold-input" className="block text-sm font-medium text-foreground mb-2">
           機會門檻 (年化收益 %)
         </label>
         <div className="flex items-center gap-2">
@@ -146,32 +146,32 @@ export function OpportunityThresholdSettings() {
             max={MAX_THRESHOLD}
             className={`w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
               error
-                ? 'border-red-300 focus:ring-red-500'
-                : 'border-gray-300 focus:ring-blue-500'
+                ? 'border-loss/30 focus:ring-loss'
+                : 'border-border focus:ring-primary'
             }`}
             disabled={!isStorageAvailable}
           />
-          <span className="text-gray-500">%</span>
+          <span className="text-muted-foreground">%</span>
           {hasChanges && (
             <button
               onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm"
+              className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors text-sm"
             >
               儲存
             </button>
           )}
         </div>
         {error && (
-          <p className="mt-1 text-sm text-red-600">{error}</p>
+          <p className="mt-1 text-sm text-loss">{error}</p>
         )}
         {successMessage && (
-          <p className="mt-1 text-sm text-green-600">{successMessage}</p>
+          <p className="mt-1 text-sm text-profit">{successMessage}</p>
         )}
       </div>
 
       {/* 快速選擇按鈕 */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           快速選擇
         </label>
         <div className="flex flex-wrap gap-2">
@@ -182,8 +182,8 @@ export function OpportunityThresholdSettings() {
               disabled={!isStorageAvailable}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 threshold === value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-primary text-white'
+                  : 'bg-muted text-foreground hover:bg-muted/80'
               } ${!isStorageAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {value}%
@@ -193,11 +193,11 @@ export function OpportunityThresholdSettings() {
       </div>
 
       {/* 接近門檻顯示 */}
-      <div className="mb-4 p-3 bg-gray-50 rounded-md">
-        <p className="text-sm text-gray-600">
+      <div className="mb-4 p-3 bg-muted rounded-md">
+        <p className="text-sm text-muted-foreground">
           <span className="font-medium">接近門檻：</span>{' '}
-          <span className="text-blue-600 font-semibold">{approachingThreshold.toFixed(0)}%</span>{' '}
-          <span className="text-gray-500">(主門檻的 {APPROACHING_THRESHOLD_RATIO * 100}%)</span>
+          <span className="text-primary font-semibold">{approachingThreshold.toFixed(0)}%</span>{' '}
+          <span className="text-muted-foreground">(主門檻的 {APPROACHING_THRESHOLD_RATIO * 100}%)</span>
         </p>
       </div>
 
@@ -207,17 +207,17 @@ export function OpportunityThresholdSettings() {
         disabled={!isStorageAvailable || threshold === DEFAULT_OPPORTUNITY_THRESHOLD}
         className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
           threshold === DEFAULT_OPPORTUNITY_THRESHOLD || !isStorageAvailable
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            ? 'bg-muted text-muted-foreground cursor-not-allowed'
+            : 'bg-muted text-foreground hover:bg-muted/80'
         }`}
       >
         重設為預設值 ({DEFAULT_OPPORTUNITY_THRESHOLD}%)
       </button>
 
       {/* 說明 */}
-      <div className="mt-6 pt-4 border-t border-gray-200">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">說明</h3>
-        <ul className="text-sm text-gray-600 space-y-1">
+      <div className="mt-6 pt-4 border-t border-border">
+        <h3 className="text-sm font-medium text-foreground mb-2">說明</h3>
+        <ul className="text-sm text-muted-foreground space-y-1">
           <li>• 當交易對的年化收益 ≥ 門檻時，顯示為「機會」狀態並可開倉</li>
           <li>• 當年化收益 ≥ 接近門檻但 &lt; 主門檻時，顯示為「接近」狀態</li>
           <li>• 此設定僅影響前端顯示，不影響 Webhook 通知門檻</li>

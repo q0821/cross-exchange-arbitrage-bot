@@ -60,23 +60,23 @@ export function ActiveTrackingCard({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+    <div className="glass-card hover:shadow-md transition-shadow">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <Link
             href={`/simulated-tracking/${tracking.id}`}
-            className="text-lg font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+            className="text-lg font-semibold text-primary hover:text-primary/80 hover:underline"
           >
             {tracking.symbol}
           </Link>
           <span
             className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
               tracking.status === 'ACTIVE'
-                ? 'bg-green-100 text-green-700'
+                ? 'bg-profit/10 text-profit'
                 : tracking.status === 'STOPPED'
-                ? 'bg-gray-100 text-gray-700'
-                : 'bg-orange-100 text-orange-700'
+                ? 'bg-muted text-muted-foreground'
+                : 'bg-warning/10 text-warning'
             }`}
           >
             <Target className="w-3 h-3" />
@@ -89,20 +89,20 @@ export function ActiveTrackingCard({
         </div>
 
         {/* Exchange Pair */}
-        <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded">
+        <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-profit/10 text-profit rounded">
             <TrendingUp className="w-3 h-3" />
             <span className="capitalize">{tracking.longExchange}</span>
           </span>
-          <span className="text-gray-400">→</span>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-700 rounded">
+          <span className="text-muted-foreground">→</span>
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-loss/10 text-loss rounded">
             <TrendingDown className="w-3 h-3" />
             <span className="capitalize">{tracking.shortExchange}</span>
           </span>
         </div>
 
         {/* Opening Time */}
-        <div className="mt-2 flex items-center gap-1 text-xs text-gray-500">
+        <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
           <Calendar className="w-3 h-3" />
           開倉時間: {formatDateTime(tracking.startedAt)}
         </div>
@@ -112,22 +112,22 @@ export function ActiveTrackingCard({
       <div className="p-4 grid grid-cols-2 gap-4">
         {/* Position Quantity & Entry Prices */}
         {tracking.positionQuantity ? (
-          <div className="col-span-2 p-2 bg-cyan-50 rounded-md border border-cyan-200">
-            <div className="flex items-center gap-1 text-xs text-cyan-600 mb-1">
+          <div className="col-span-2 p-2 bg-primary/10 rounded-md border border-primary/30">
+            <div className="flex items-center gap-1 text-xs text-primary mb-1">
               <Layers className="w-3 h-3" />
               倉位資訊
             </div>
-            <div className="text-sm text-cyan-700 mb-1">
+            <div className="text-sm text-primary mb-1">
               <span className="font-medium">{tracking.positionQuantity.toFixed(4)}</span>{' '}
               <span className="text-xs">{coinSymbol}</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs text-cyan-600">
+            <div className="grid grid-cols-2 gap-2 text-xs text-primary">
               <div>
                 <span className="capitalize">{tracking.longExchange}</span>:{' '}
                 {tracking.initialLongPrice ? (
                   <span className="font-mono">${tracking.initialLongPrice.toFixed(4)}</span>
                 ) : (
-                  <span className="text-gray-400">N/A</span>
+                  <span className="text-muted-foreground">N/A</span>
                 )}
               </div>
               <div>
@@ -135,7 +135,7 @@ export function ActiveTrackingCard({
                 {tracking.initialShortPrice ? (
                   <span className="font-mono">${tracking.initialShortPrice.toFixed(4)}</span>
                 ) : (
-                  <span className="text-gray-400">N/A</span>
+                  <span className="text-muted-foreground">N/A</span>
                 )}
               </div>
             </div>
@@ -143,9 +143,9 @@ export function ActiveTrackingCard({
         ) : (
           /* Simulated Capital - 舊版資金模式 */
           <div className="col-span-2">
-            <div className="text-xs text-gray-500 mb-1">模擬資金</div>
+            <div className="text-xs text-muted-foreground mb-1">模擬資金</div>
             <div className="text-sm font-medium flex items-center gap-1">
-              <DollarSign className="w-4 h-4 text-gray-400" />
+              <DollarSign className="w-4 h-4 text-muted-foreground" />
               {tracking.simulatedCapital.toLocaleString()} USDT
             </div>
           </div>
@@ -153,10 +153,10 @@ export function ActiveTrackingCard({
 
         {/* Total Profit */}
         <div>
-          <div className="text-xs text-gray-500 mb-1">累計收益</div>
+          <div className="text-xs text-muted-foreground mb-1">累計收益</div>
           <div
             className={`text-sm font-medium ${
-              isPositive ? 'text-green-600' : 'text-red-600'
+              isPositive ? 'text-profit' : 'text-loss'
             }`}
           >
             {isPositive ? '+' : ''}
@@ -170,25 +170,25 @@ export function ActiveTrackingCard({
 
         {/* Initial APY */}
         <div>
-          <div className="text-xs text-gray-500 mb-1">初始年化</div>
-          <div className="text-sm font-medium text-gray-700">
+          <div className="text-xs text-muted-foreground mb-1">初始年化</div>
+          <div className="text-sm font-medium text-foreground">
             {tracking.initialAPY.toFixed(2)}%
           </div>
         </div>
 
         {/* Settlements */}
         <div>
-          <div className="text-xs text-gray-500 mb-1">結算次數</div>
-          <div className="text-sm font-medium text-gray-700">
+          <div className="text-xs text-muted-foreground mb-1">結算次數</div>
+          <div className="text-sm font-medium text-foreground">
             {tracking.totalSettlements} 次
           </div>
         </div>
 
         {/* Duration */}
         <div>
-          <div className="text-xs text-gray-500 mb-1">追蹤時長</div>
-          <div className="text-sm font-medium text-gray-700 flex items-center gap-1">
-            <Clock className="w-4 h-4 text-gray-400" />
+          <div className="text-xs text-muted-foreground mb-1">追蹤時長</div>
+          <div className="text-sm font-medium text-foreground flex items-center gap-1">
+            <Clock className="w-4 h-4 text-muted-foreground" />
             {tracking.durationFormatted || '計算中...'}
           </div>
         </div>
@@ -200,7 +200,7 @@ export function ActiveTrackingCard({
           <button
             onClick={() => onStop(tracking.id)}
             disabled={isStopLoading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-muted rounded-md hover:bg-accent disabled:opacity-50 transition-colors"
           >
             <Square className="w-4 h-4" />
             {isStopLoading ? '處理中...' : '停止追蹤'}

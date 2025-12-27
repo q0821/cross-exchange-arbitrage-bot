@@ -4,22 +4,36 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* 基礎色彩 - Light Mode */
+    --background: 210 20% 98%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
+
+    /* 主色調 */
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    --secondary: 38 92% 50%;
     --secondary-foreground: 222.2 47.4% 11.2%;
+
+    /* 靜音/次要 */
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
+
+    /* 狀態色彩 */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+
+    /* 語意色彩 - 交易專用 */
+    --profit: 142 76% 36%;
+    --loss: 0 84% 60%;
+    --warning: 38 92% 50%;
+
+    /* 邊框和輸入 */
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
@@ -27,22 +41,36 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    /* 基礎色彩 - Dark Mode (深紫色調) */
+    --background: 250 40% 6%;
     --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    --card: 250 30% 12%;
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 250 30% 12%;
     --popover-foreground: 210 40% 98%;
+
+    /* 主色調 */
     --primary: 217.2 91.2% 59.8%;
     --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 38 92% 50%;
     --secondary-foreground: 210 40% 98%;
+
+    /* 靜音/次要 */
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
+
+    /* 狀態色彩 */
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+
+    /* 語意色彩 - 交易專用 */
+    --profit: 142 71% 45%;
+    --loss: 0 72% 51%;
+    --warning: 38 92% 50%;
+
+    /* 邊框和輸入 */
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
@@ -55,5 +83,252 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* 背景漸層裝飾 - 大型發光色塊 */
+@layer base {
+  .bg-gradient-mesh {
+    background-color: hsl(var(--background));
+    background-image:
+      /* 左上角 - 藍紫色大型發光球 */
+      radial-gradient(ellipse 800px 600px at 10% 20%, hsl(250 80% 60% / 0.15) 0%, transparent 70%),
+      /* 右上角 - 粉紅色發光球 */
+      radial-gradient(ellipse 600px 500px at 90% 10%, hsl(330 80% 55% / 0.12) 0%, transparent 70%),
+      /* 左下角 - 紫色發光球 */
+      radial-gradient(ellipse 700px 500px at 20% 80%, hsl(280 70% 50% / 0.12) 0%, transparent 70%);
+    background-attachment: fixed;
+  }
+
+  .dark .bg-gradient-mesh {
+    background-color: hsl(var(--background));
+    background-image:
+      /* 左上角 - 藍紫色大型發光球 */
+      radial-gradient(ellipse 800px 600px at 5% 15%, hsl(250 90% 50% / 0.5) 0%, transparent 60%),
+      /* 右上角 - 粉紅色發光球 */
+      radial-gradient(ellipse 600px 500px at 95% 5%, hsl(330 90% 50% / 0.4) 0%, transparent 55%),
+      /* 中央 - 青色發光球 */
+      radial-gradient(ellipse 500px 400px at 60% 50%, hsl(180 80% 45% / 0.2) 0%, transparent 60%),
+      /* 左下角 - 紫色發光球 */
+      radial-gradient(ellipse 700px 500px at 10% 90%, hsl(280 80% 45% / 0.4) 0%, transparent 55%),
+      /* 右下角 - 橙色微光 */
+      radial-gradient(ellipse 400px 300px at 90% 85%, hsl(30 90% 50% / 0.2) 0%, transparent 60%);
+    background-attachment: fixed;
+  }
+}
+
+/* Glassmorphism 毛玻璃效果 */
+@layer components {
+  .glass-card {
+    @apply rounded-lg;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .glass-card {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* 不支援 backdrop-filter 時的降級方案 */
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-card {
+      @apply bg-white/90 dark:bg-slate-800/90 border-gray-200 dark:border-slate-700;
+    }
+  }
+
+  /* Glassmorphism 導航欄 */
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .glass-nav {
+    background: rgba(15, 23, 42, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-nav {
+      @apply bg-white/95 dark:bg-slate-900/95 border-gray-200 dark:border-slate-700;
+    }
+  }
+
+  /* Liquid Glass 導航選單 */
+  .liquid-glass-nav {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  .dark .liquid-glass-nav {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* Liquid Glass 滑動指示器 */
+  .liquid-glass-indicator {
+    position: absolute;
+    height: calc(100% - 0.5rem);
+    top: 0.25rem;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(8px) brightness(110%) url(#liquid_glass_filter);
+    -webkit-backdrop-filter: blur(8px) brightness(110%);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+
+  .dark .liquid-glass-indicator {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px) brightness(120%) url(#liquid_glass_filter);
+    -webkit-backdrop-filter: blur(8px) brightness(120%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  /* Liquid Glass Hover 指示器 */
+  .liquid-glass-hover {
+    position: absolute;
+    height: calc(100% - 0.5rem);
+    top: 0.25rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    opacity: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+
+  .dark .liquid-glass-hover {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .liquid-glass-nav:hover .liquid-glass-hover {
+    opacity: 1;
+  }
+
+  /* Liquid Glass 導航項目 */
+  .liquid-glass-item {
+    position: relative;
+    z-index: 1;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+    border-radius: 0.75rem;
+    transition: color 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .dark .liquid-glass-item {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .liquid-glass-item.active {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .dark .liquid-glass-item.active {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  .liquid-glass-item:hover {
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  .dark .liquid-glass-item:hover {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+
+/* Bento Grid 佈局系統 */
+@layer components {
+  .bento-grid {
+    @apply grid gap-4;
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* 響應式斷點 */
+  @media (max-width: 1023px) {
+    .bento-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 767px) {
+    .bento-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Bento Grid 項目大小 */
+  .bento-span-1 {
+    grid-column: span 1;
+  }
+
+  .bento-span-2 {
+    grid-column: span 2;
+  }
+
+  .bento-span-3 {
+    grid-column: span 3;
+  }
+
+  .bento-span-full {
+    grid-column: 1 / -1;
+  }
+
+  /* 響應式 span 調整 */
+  @media (max-width: 1023px) {
+    .bento-span-2,
+    .bento-span-3 {
+      grid-column: span 2;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .bento-span-1,
+    .bento-span-2,
+    .bento-span-3,
+    .bento-span-full {
+      grid-column: 1 / -1;
+    }
   }
 }

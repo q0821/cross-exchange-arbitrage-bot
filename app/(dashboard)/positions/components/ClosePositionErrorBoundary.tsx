@@ -43,19 +43,19 @@ export class ClosePositionErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="p-4 bg-loss/10 border border-loss/30 rounded-lg">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-loss mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="text-sm font-medium text-red-800">
+              <h3 className="text-sm font-medium text-loss">
                 {this.props.fallbackMessage || '平倉操作發生錯誤'}
               </h3>
-              <p className="mt-1 text-sm text-red-700">
+              <p className="mt-1 text-sm text-loss">
                 {this.state.error?.message || '發生未知錯誤，請重試或聯繫客服。'}
               </p>
               <button
                 onClick={this.handleReset}
-                className="mt-3 flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md hover:bg-red-50 transition-colors"
+                className="mt-3 flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-loss bg-card border border-loss/30 rounded-md hover:bg-loss/10 transition-colors"
               >
                 <RefreshCw className="w-4 h-4" />
                 重試

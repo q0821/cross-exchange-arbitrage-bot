@@ -115,16 +115,16 @@ export function StartTrackingDialog({
     <Dialog.Root open={isOpen} onOpenChange={handleClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-full max-w-md p-6">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-lg shadow-xl z-50 w-full max-w-md p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-lg font-semibold flex items-center gap-2">
-              <Target className="w-5 h-5 text-blue-600" />
+              <Target className="w-5 h-5 text-primary" />
               開始追蹤
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
-                className="p-1 hover:bg-gray-100 rounded-md"
+                className="p-1 hover:bg-muted rounded-md"
                 disabled={isLoading}
               >
                 <X className="w-5 h-5" />
@@ -133,24 +133,24 @@ export function StartTrackingDialog({
           </div>
 
           {/* Opportunity Info */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <div className="bg-muted rounded-lg p-4 mb-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-gray-500">交易對</span>
+                <span className="text-muted-foreground">交易對</span>
                 <p className="font-medium">{rate.symbol}</p>
               </div>
               <div>
-                <span className="text-gray-500">年化收益</span>
-                <p className="font-medium text-green-600">
+                <span className="text-muted-foreground">年化收益</span>
+                <p className="font-medium text-profit">
                   {Number(rate.bestPair.annualizedReturn).toFixed(2)}%
                 </p>
               </div>
               <div>
-                <span className="text-gray-500">做多</span>
+                <span className="text-muted-foreground">做多</span>
                 <p className="font-medium capitalize">{rate.bestPair.longExchange}</p>
               </div>
               <div>
-                <span className="text-gray-500">做空</span>
+                <span className="text-muted-foreground">做空</span>
                 <p className="font-medium capitalize">{rate.bestPair.shortExchange}</p>
               </div>
             </div>
@@ -162,7 +162,7 @@ export function StartTrackingDialog({
             <div className="mb-4">
               <label
                 htmlFor="positionQuantity"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-foreground mb-1"
               >
                 <Layers className="w-4 h-4 inline mr-1" />
                 倉位數量 ({coinSymbol})
@@ -177,31 +177,31 @@ export function StartTrackingDialog({
                 step="any"
                 disabled={isLoading}
                 placeholder={`輸入 ${coinSymbol} 數量`}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-muted"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 多空雙方將使用相同顆數進行套利
               </p>
 
               {/* 價格和資金顯示 */}
-              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="mt-2 p-2 bg-primary/10 border border-primary/30 rounded-md">
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-blue-600">做多價格：</span>
-                    <span className="font-mono text-blue-800">
+                    <span className="text-primary">做多價格：</span>
+                    <span className="font-mono text-primary">
                       ${longPrice?.toFixed(4) || '-'}
                     </span>
                   </div>
                   <div>
-                    <span className="text-blue-600">做空價格：</span>
-                    <span className="font-mono text-blue-800">
+                    <span className="text-primary">做空價格：</span>
+                    <span className="font-mono text-primary">
                       ${shortPrice?.toFixed(4) || '-'}
                     </span>
                   </div>
                 </div>
-                <div className="mt-1 pt-1 border-t border-blue-200">
-                  <span className="text-blue-600">預估總資金：</span>
-                  <span className="font-mono font-medium text-blue-800">
+                <div className="mt-1 pt-1 border-t border-primary/30">
+                  <span className="text-primary">預估總資金：</span>
+                  <span className="font-mono font-medium text-primary">
                     ${simulatedCapital.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -212,14 +212,14 @@ export function StartTrackingDialog({
             </div>
 
             {/* Estimated Profit Per Settlement */}
-            <div className="bg-green-50 rounded-lg p-3 mb-4">
-              <p className="text-sm text-green-800">
+            <div className="bg-profit/10 rounded-lg p-3 mb-4">
+              <p className="text-sm text-profit">
                 <span className="font-medium">預估每次結算收益：</span>
                 <span className="float-right font-mono">
                   {(simulatedCapital * (Number(rate.bestPair.spreadPercent) / 100)).toFixed(2)} USDT
                 </span>
               </p>
-              <p className="text-xs text-green-600 mt-1">
+              <p className="text-xs text-profit mt-1">
                 基於當前費率差 {Number(rate.bestPair.spreadPercent).toFixed(4)}%
               </p>
             </div>
@@ -232,22 +232,22 @@ export function StartTrackingDialog({
                   checked={autoStopOnExpire}
                   onChange={(e) => setAutoStopOnExpire(e.target.checked)}
                   disabled={isLoading}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-primary border-border rounded focus:ring-primary"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-foreground">
                   當年化收益低於 800% 時自動停止
                 </span>
               </label>
-              <p className="mt-1 ml-6 text-xs text-gray-500">
+              <p className="mt-1 ml-6 text-xs text-muted-foreground">
                 啟用後，當機會消失或收益過低時會自動標記為過期
               </p>
             </div>
 
             {/* Error Messages */}
             {(validationError || error) && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-red-700">
+              <div className="mb-4 p-3 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-loss mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-loss">
                   <p>{validationError || error}</p>
                   {error?.includes('登入') && (
                     <p className="mt-1 text-xs">
@@ -264,14 +264,14 @@ export function StartTrackingDialog({
                 type="button"
                 onClick={handleClose}
                 disabled={isLoading}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-muted rounded-md hover:bg-muted disabled:opacity-50"
               >
                 取消
               </button>
               <button
                 type="submit"
                 disabled={isLoading || !avgPrice}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
               >
                 {isLoading ? (
                   <>

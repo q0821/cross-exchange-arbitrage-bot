@@ -209,10 +209,10 @@ export default function AssetsPage() {
   // Loading 狀態
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className="space-y-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
           </div>
         </div>
       </div>
@@ -222,14 +222,14 @@ export default function AssetsPage() {
   // 錯誤狀態
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 p-6">
+      <div className="space-y-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col items-center justify-center h-64 text-center">
-            <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
-            <p className="text-red-400 text-lg">{error}</p>
+            <AlertCircle className="w-12 h-12 text-loss mb-4" />
+            <p className="text-loss text-lg">{error}</p>
             <button
               onClick={() => fetchAssets()}
-              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
             >
               重試
             </button>
@@ -240,18 +240,18 @@ export default function AssetsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
+    <div className="space-y-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* 頁面標題 */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Wallet className="w-8 h-8 text-blue-400" />
-            <h1 className="text-2xl font-bold text-white">資產總覽</h1>
+            <Wallet className="w-8 h-8 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">資產總覽</h1>
           </div>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-muted hover:bg-accent text-muted-foreground hover:text-accent-foreground rounded-lg transition-colors disabled:opacity-50"
           >
             <RefreshCw
               className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
@@ -262,16 +262,16 @@ export default function AssetsPage() {
 
         {/* 無 API Key 提示 */}
         {!hasAnyApiKey && (
-          <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4">
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
               <div>
-                <p className="text-yellow-400 font-medium">尚未設定 API Key</p>
-                <p className="text-yellow-400/70 text-sm mt-1">
+                <p className="text-warning font-medium">尚未設定 API Key</p>
+                <p className="text-warning/70 text-sm mt-1">
                   請先到{' '}
                   <a
                     href="/settings/api-keys"
-                    className="underline hover:text-yellow-300"
+                    className="underline hover:text-warning"
                   >
                     設定 &gt; API 金鑰
                   </a>{' '}
@@ -305,12 +305,12 @@ export default function AssetsPage() {
         )}
 
         {/* 歷史曲線區塊 */}
-        <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
+        <div className="glass-card p-6">
           {/* 標題和時間範圍選擇器 */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-gray-400" />
-              <h2 className="text-lg font-semibold text-white">資產歷史曲線</h2>
+              <TrendingUp className="w-5 h-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold text-foreground">資產歷史曲線</h2>
             </div>
             <TimeRangeSelector
               value={timeRange}
@@ -322,35 +322,35 @@ export default function AssetsPage() {
           {/* 期間統計摘要 */}
           {historyData?.summary && historyData.snapshots.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <p className="text-gray-500 text-xs mb-1">期初資產</p>
-                <p className="text-white font-medium">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-muted-foreground text-xs mb-1">期初資產</p>
+                <p className="text-foreground font-medium">
                   ${historyData.summary.startTotal?.toFixed(2) ?? '--'}
                 </p>
               </div>
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <p className="text-gray-500 text-xs mb-1">期末資產</p>
-                <p className="text-white font-medium">
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-muted-foreground text-xs mb-1">期末資產</p>
+                <p className="text-foreground font-medium">
                   ${historyData.summary.endTotal?.toFixed(2) ?? '--'}
                 </p>
               </div>
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <p className="text-gray-500 text-xs mb-1">變化金額</p>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-muted-foreground text-xs mb-1">變化金額</p>
                 <div className="flex items-center gap-1">
                   {historyData.summary.changeUSD !== null && (
                     <>
                       {historyData.summary.changeUSD > 0 ? (
-                        <ArrowUp className="w-3 h-3 text-green-400" />
+                        <ArrowUp className="w-3 h-3 text-profit" />
                       ) : historyData.summary.changeUSD < 0 ? (
-                        <ArrowDown className="w-3 h-3 text-red-400" />
+                        <ArrowDown className="w-3 h-3 text-loss" />
                       ) : null}
                       <p
                         className={`font-medium ${
                           historyData.summary.changeUSD > 0
-                            ? 'text-green-400'
+                            ? 'text-profit'
                             : historyData.summary.changeUSD < 0
-                              ? 'text-red-400'
-                              : 'text-white'
+                              ? 'text-loss'
+                              : 'text-foreground'
                         }`}
                       >
                         {historyData.summary.changeUSD > 0 ? '+' : ''}
@@ -360,15 +360,15 @@ export default function AssetsPage() {
                   )}
                 </div>
               </div>
-              <div className="bg-gray-700/30 rounded-lg p-3">
-                <p className="text-gray-500 text-xs mb-1">變化百分比</p>
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-muted-foreground text-xs mb-1">變化百分比</p>
                 <p
                   className={`font-medium ${
                     (historyData.summary.changePercent ?? 0) > 0
-                      ? 'text-green-400'
+                      ? 'text-profit'
                       : (historyData.summary.changePercent ?? 0) < 0
-                        ? 'text-red-400'
-                        : 'text-white'
+                        ? 'text-loss'
+                        : 'text-foreground'
                   }`}
                 >
                   {historyData.summary.changePercent !== null
@@ -387,17 +387,17 @@ export default function AssetsPage() {
         </div>
 
         {/* 持倉列表區塊（可收合） */}
-        <div className="bg-gray-800/50 rounded-lg border border-gray-700">
+        <div className="glass-card">
           {/* 標題 - 可點擊展開/收合 */}
           <button
             onClick={() => setIsPositionsExpanded(!isPositionsExpanded)}
-            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-800/70 transition-colors"
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/50 transition-colors rounded-t-lg"
           >
             <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-gray-400" />
-              <h2 className="text-lg font-semibold text-white">當前持倉</h2>
+              <Layers className="w-5 h-5 text-muted-foreground" />
+              <h2 className="text-lg font-semibold text-foreground">當前持倉</h2>
               {positionsData && (
-                <span className="text-gray-500 text-sm">
+                <span className="text-muted-foreground text-sm">
                   ({positionsData.exchanges.reduce((sum, ex) => sum + ex.positions.length, 0)} 個)
                 </span>
               )}
@@ -407,8 +407,8 @@ export default function AssetsPage() {
                 <span
                   className={`text-sm font-medium ${
                     positionsData.totalUnrealizedPnl > 0
-                      ? 'text-green-400'
-                      : 'text-red-400'
+                      ? 'text-profit'
+                      : 'text-loss'
                   }`}
                 >
                   {positionsData.totalUnrealizedPnl > 0 ? '+' : ''}
@@ -416,9 +416,9 @@ export default function AssetsPage() {
                 </span>
               )}
               {isPositionsExpanded ? (
-                <ChevronUp className="w-5 h-5 text-gray-400" />
+                <ChevronUp className="w-5 h-5 text-muted-foreground" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-gray-400" />
+                <ChevronDown className="w-5 h-5 text-muted-foreground" />
               )}
             </div>
           </button>

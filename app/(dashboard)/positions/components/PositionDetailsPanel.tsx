@@ -62,19 +62,19 @@ function PnLDisplay({ value, label }: { value: number | undefined; label: string
   if (value === undefined) {
     return (
       <div className="text-sm">
-        <span className="text-gray-500">{label}:</span>{' '}
-        <span className="text-gray-400">N/A</span>
+        <span className="text-muted-foreground">{label}:</span>{' '}
+        <span className="text-muted-foreground">N/A</span>
       </div>
     );
   }
 
   const isPositive = value >= 0;
-  const colorClass = isPositive ? 'text-green-600' : 'text-red-600';
+  const colorClass = isPositive ? 'text-profit' : 'text-loss';
   const prefix = isPositive ? '+' : '';
 
   return (
     <div className="text-sm">
-      <span className="text-gray-500">{label}:</span>{' '}
+      <span className="text-muted-foreground">{label}:</span>{' '}
       <span className={`font-medium ${colorClass}`}>
         {prefix}${formatNumber(value, 4)}
       </span>
@@ -91,8 +91,8 @@ export function PositionDetailsPanel({
   // 載入中狀態
   if (isLoading) {
     return (
-      <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div className="flex items-center justify-center gap-2 text-gray-500">
+      <div className="mt-4 p-4 bg-muted rounded-lg border border-border">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span>載入中...</span>
         </div>
@@ -103,14 +103,14 @@ export function PositionDetailsPanel({
   // 錯誤狀態
   if (error) {
     return (
-      <div className="mt-4 p-4 bg-red-50 rounded-lg border border-red-200">
-        <div className="flex items-center gap-2 text-red-700">
+      <div className="mt-4 p-4 bg-loss/10 rounded-lg border border-loss/30">
+        <div className="flex items-center gap-2 text-loss">
           <AlertCircle className="w-4 h-4" />
           <span className="text-sm">{error}</span>
         </div>
         <button
           onClick={onRetry}
-          className="mt-2 flex items-center gap-1 text-sm text-red-600 hover:text-red-800"
+          className="mt-2 flex items-center gap-1 text-sm text-loss hover:text-loss/80"
         >
           <RefreshCw className="w-3 h-3" />
           重試
@@ -125,31 +125,31 @@ export function PositionDetailsPanel({
   }
 
   return (
-    <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-4">
+    <div className="mt-4 p-4 bg-muted rounded-lg border border-border space-y-4">
       {/* 價格資訊區塊 */}
       <div className="grid grid-cols-2 gap-4">
         {/* 多頭資訊 */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1 text-green-600 font-medium text-sm">
+          <div className="flex items-center gap-1 text-profit font-medium text-sm">
             <TrendingUp className="w-4 h-4" />
             <span>多頭 ({details.longExchange})</span>
           </div>
           <div className="text-xs space-y-1">
             <div>
-              <span className="text-gray-500">開倉價格:</span>{' '}
+              <span className="text-muted-foreground">開倉價格:</span>{' '}
               <span className="font-medium">${formatPrice(details.longEntryPrice)}</span>
             </div>
             <div>
-              <span className="text-gray-500">現在價格:</span>{' '}
+              <span className="text-muted-foreground">現在價格:</span>{' '}
               <span className="font-medium">
                 {details.priceQuerySuccess
                   ? `$${formatPrice(details.longCurrentPrice)}`
-                  : <span className="text-red-500">查詢失敗</span>
+                  : <span className="text-loss">查詢失敗</span>
                 }
               </span>
             </div>
             <div>
-              <span className="text-gray-500">持倉數量:</span>{' '}
+              <span className="text-muted-foreground">持倉數量:</span>{' '}
               <span className="font-medium">{formatNumber(details.longPositionSize, 6)}</span>
             </div>
           </div>
@@ -157,26 +157,26 @@ export function PositionDetailsPanel({
 
         {/* 空頭資訊 */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1 text-red-600 font-medium text-sm">
+          <div className="flex items-center gap-1 text-loss font-medium text-sm">
             <TrendingDown className="w-4 h-4" />
             <span>空頭 ({details.shortExchange})</span>
           </div>
           <div className="text-xs space-y-1">
             <div>
-              <span className="text-gray-500">開倉價格:</span>{' '}
+              <span className="text-muted-foreground">開倉價格:</span>{' '}
               <span className="font-medium">${formatPrice(details.shortEntryPrice)}</span>
             </div>
             <div>
-              <span className="text-gray-500">現在價格:</span>{' '}
+              <span className="text-muted-foreground">現在價格:</span>{' '}
               <span className="font-medium">
                 {details.priceQuerySuccess
                   ? `$${formatPrice(details.shortCurrentPrice)}`
-                  : <span className="text-red-500">查詢失敗</span>
+                  : <span className="text-loss">查詢失敗</span>
                 }
               </span>
             </div>
             <div>
-              <span className="text-gray-500">持倉數量:</span>{' '}
+              <span className="text-muted-foreground">持倉數量:</span>{' '}
               <span className="font-medium">{formatNumber(details.shortPositionSize, 6)}</span>
             </div>
           </div>
@@ -185,14 +185,14 @@ export function PositionDetailsPanel({
 
       {/* 價格查詢錯誤提示 */}
       {!details.priceQuerySuccess && details.priceQueryError && (
-        <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+        <div className="p-2 bg-warning/10 border border-warning/30 rounded text-xs text-warning">
           ⚠️ {details.priceQueryError}
         </div>
       )}
 
       {/* 未實現損益 */}
-      <div className="pt-3 border-t border-gray-200">
-        <div className="flex items-center gap-1 text-gray-700 font-medium text-sm mb-2">
+      <div className="pt-3 border-t border-border">
+        <div className="flex items-center gap-1 text-foreground font-medium text-sm mb-2">
           <DollarSign className="w-4 h-4" />
           <span>未實現損益</span>
         </div>
@@ -214,34 +214,34 @@ export function PositionDetailsPanel({
 
       {/* 資金費率查詢失敗提示 */}
       {!details.fundingFeeQuerySuccess && details.fundingFeeQueryError && (
-        <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-700">
+        <div className="p-2 bg-warning/10 border border-warning/30 rounded text-xs text-warning">
           ⚠️ {details.fundingFeeQueryError}
         </div>
       )}
 
       {/* 手續費資訊 */}
       {details.fees && (
-        <div className="pt-3 border-t border-gray-200">
-          <div className="flex items-center gap-1 text-gray-700 font-medium text-sm mb-2">
+        <div className="pt-3 border-t border-border">
+          <div className="flex items-center gap-1 text-foreground font-medium text-sm mb-2">
             <DollarSign className="w-4 h-4" />
             <span>手續費</span>
           </div>
           <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
-              <span className="text-gray-500">多頭:</span>{' '}
+              <span className="text-muted-foreground">多頭:</span>{' '}
               <span className="font-medium">
                 {details.fees.longOpenFee ? `$${formatNumber(details.fees.longOpenFee, 4)}` : 'N/A'}
               </span>
             </div>
             <div>
-              <span className="text-gray-500">空頭:</span>{' '}
+              <span className="text-muted-foreground">空頭:</span>{' '}
               <span className="font-medium">
                 {details.fees.shortOpenFee ? `$${formatNumber(details.fees.shortOpenFee, 4)}` : 'N/A'}
               </span>
             </div>
             <div>
-              <span className="text-gray-500">總計:</span>{' '}
-              <span className="font-medium text-orange-600">
+              <span className="text-muted-foreground">總計:</span>{' '}
+              <span className="font-medium text-warning">
                 {details.fees.totalFees ? `-$${formatNumber(details.fees.totalFees, 4)}` : 'N/A'}
               </span>
             </div>
@@ -256,7 +256,7 @@ export function PositionDetailsPanel({
       />
 
       {/* 持倉時間資訊 */}
-      <div className="pt-3 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+      <div className="pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
           <span>開倉時間: {new Date(details.openedAt).toLocaleString()}</span>
@@ -267,7 +267,7 @@ export function PositionDetailsPanel({
       </div>
 
       {/* 查詢時間 */}
-      <div className="text-right text-xs text-gray-400">
+      <div className="text-right text-xs text-muted-foreground">
         查詢時間: {new Date(details.queriedAt).toLocaleTimeString()}
       </div>
     </div>

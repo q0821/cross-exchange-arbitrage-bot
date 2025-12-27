@@ -52,22 +52,22 @@ export function ConditionalOrderWarning({
     <div
       className={`rounded-lg p-4 border ${
         isPartial
-          ? 'bg-orange-50 border-orange-200'
-          : 'bg-red-50 border-red-200'
+          ? 'bg-warning/10 border-warning/30'
+          : 'bg-loss/10 border-loss/30'
       }`}
       role="alert"
     >
       <div className="flex items-start gap-3">
         <AlertTriangle
           className={`w-5 h-5 flex-shrink-0 ${
-            isPartial ? 'text-orange-500' : 'text-red-500'
+            isPartial ? 'text-warning' : 'text-loss'
           }`}
         />
 
         <div className="flex-1">
           <h4
             className={`font-medium ${
-              isPartial ? 'text-orange-800' : 'text-red-800'
+              isPartial ? 'text-warning' : 'text-loss'
             }`}
           >
             {isPartial ? '條件單部分設定成功' : '條件單設定失敗'}
@@ -75,7 +75,7 @@ export function ConditionalOrderWarning({
 
           <p
             className={`mt-1 text-sm ${
-              isPartial ? 'text-orange-700' : 'text-red-700'
+              isPartial ? 'text-warning' : 'text-loss'
             }`}
           >
             {isPartial
@@ -87,8 +87,8 @@ export function ConditionalOrderWarning({
             <div
               className={`mt-2 p-2 rounded text-xs ${
                 isPartial
-                  ? 'bg-orange-100 text-orange-800'
-                  : 'bg-red-100 text-red-800'
+                  ? 'bg-warning/10 text-warning'
+                  : 'bg-loss/10 text-loss'
               }`}
             >
               <span className="font-medium">錯誤詳情：</span>
@@ -97,7 +97,7 @@ export function ConditionalOrderWarning({
           )}
 
           {(positionId || symbol) && (
-            <div className="mt-2 text-xs text-gray-600">
+            <div className="mt-2 text-xs text-muted-foreground">
               {symbol && <span className="mr-2">交易對: {symbol}</span>}
               {positionId && <span>持倉 ID: {positionId.slice(0, 8)}...</span>}
             </div>
@@ -107,16 +107,16 @@ export function ConditionalOrderWarning({
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span
               className={`font-medium ${
-                isPartial ? 'text-orange-700' : 'text-red-700'
+                isPartial ? 'text-warning' : 'text-loss'
               }`}
             >
               建議操作：
             </span>
-            <span className="flex items-center gap-1 text-gray-600">
+            <span className="flex items-center gap-1 text-muted-foreground">
               <Shield className="w-3 h-3" />
               前往交易所手動設定停損
             </span>
-            <span className="flex items-center gap-1 text-gray-600">
+            <span className="flex items-center gap-1 text-muted-foreground">
               <Target className="w-3 h-3" />
               或密切關注倉位風險
             </span>
@@ -127,7 +127,7 @@ export function ConditionalOrderWarning({
           <button
             onClick={onDismiss}
             className={`p-1 rounded hover:bg-white/50 transition-colors ${
-              isPartial ? 'text-orange-500' : 'text-red-500'
+              isPartial ? 'text-warning' : 'text-loss'
             }`}
             aria-label="關閉警告"
           >

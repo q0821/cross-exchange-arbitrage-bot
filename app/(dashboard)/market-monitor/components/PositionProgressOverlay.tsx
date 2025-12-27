@@ -101,45 +101,45 @@ export function PositionProgressOverlay({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+      <div className="glass-card w-full max-w-md p-6">
         {/* Header */}
         <div className="text-center mb-6">
           {isSuccess ? (
             <>
-              <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-              <h2 className="text-lg font-semibold text-green-700">開倉成功</h2>
+              <CheckCircle className="w-12 h-12 text-profit mx-auto mb-2" />
+              <h2 className="text-lg font-semibold text-profit">開倉成功</h2>
             </>
           ) : isFailed ? (
             <>
               {requiresManualIntervention ? (
-                <AlertTriangle className="w-12 h-12 text-orange-500 mx-auto mb-2" />
+                <AlertTriangle className="w-12 h-12 text-warning mx-auto mb-2" />
               ) : (
-                <XCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
+                <XCircle className="w-12 h-12 text-loss mx-auto mb-2" />
               )}
-              <h2 className="text-lg font-semibold text-red-700">
+              <h2 className="text-lg font-semibold text-loss">
                 {requiresManualIntervention ? '需要手動處理' : '開倉失敗'}
               </h2>
             </>
           ) : (
             <>
-              <Loader2 className="w-12 h-12 text-blue-500 mx-auto mb-2 animate-spin" />
-              <h2 className="text-lg font-semibold text-gray-800">開倉中</h2>
+              <Loader2 className="w-12 h-12 text-primary mx-auto mb-2 animate-spin" />
+              <h2 className="text-lg font-semibold text-foreground">開倉中</h2>
             </>
           )}
-          <p className="text-sm text-gray-600 mt-1">{message}</p>
+          <p className="text-sm text-muted-foreground mt-1">{message}</p>
         </div>
 
         {/* Progress Bar */}
         {!isSuccess && !isFailed && (
           <div className="mb-6">
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-500 transition-all duration-300"
+                className="h-full bg-primary transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-xs text-gray-500 text-center mt-1">{progress}%</p>
+            <p className="text-xs text-muted-foreground text-center mt-1">{progress}%</p>
           </div>
         )}
 
@@ -162,23 +162,23 @@ export function PositionProgressOverlay({
                 key={step}
                 className={`flex items-center gap-3 p-2 rounded-md ${
                   status === 'current'
-                    ? 'bg-blue-50'
+                    ? 'bg-primary/10'
                     : status === 'completed'
-                    ? 'bg-green-50'
+                    ? 'bg-profit/10'
                     : status === 'failed'
-                    ? 'bg-red-50'
-                    : 'bg-gray-50'
+                    ? 'bg-loss/10'
+                    : 'bg-muted'
                 }`}
               >
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center ${
                     status === 'current'
-                      ? 'bg-blue-500'
+                      ? 'bg-primary'
                       : status === 'completed'
-                      ? 'bg-green-500'
+                      ? 'bg-profit'
                       : status === 'failed'
-                      ? 'bg-red-500'
-                      : 'bg-gray-300'
+                      ? 'bg-loss'
+                      : 'bg-muted-foreground'
                   }`}
                 >
                   {status === 'current' ? (
@@ -188,18 +188,18 @@ export function PositionProgressOverlay({
                   ) : status === 'failed' ? (
                     <XCircle className="w-4 h-4 text-white" />
                   ) : (
-                    <span className="w-2 h-2 bg-gray-400 rounded-full" />
+                    <span className="w-2 h-2 bg-muted-foreground rounded-full" />
                   )}
                 </div>
                 <span
                   className={`text-sm ${
                     status === 'current'
-                      ? 'text-blue-700 font-medium'
+                      ? 'text-primary font-medium'
                       : status === 'completed'
-                      ? 'text-green-700'
+                      ? 'text-profit'
                       : status === 'failed'
-                      ? 'text-red-700'
-                      : 'text-gray-500'
+                      ? 'text-loss'
+                      : 'text-muted-foreground'
                   }`}
                 >
                   {label}
@@ -211,30 +211,30 @@ export function PositionProgressOverlay({
 
         {/* Rolling Back Step (only shown when rolling back) */}
         {currentStep === 'rolling_back' && (
-          <div className="mt-3 p-2 rounded-md bg-orange-50">
+          <div className="mt-3 p-2 rounded-md bg-warning/10">
             <div className="flex items-center gap-3">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center bg-orange-500">
+              <div className="w-6 h-6 rounded-full flex items-center justify-center bg-warning">
                 <Loader2 className="w-4 h-4 text-white animate-spin" />
               </div>
-              <span className="text-sm text-orange-700 font-medium">執行回滾...</span>
+              <span className="text-sm text-warning font-medium">執行回滾...</span>
             </div>
           </div>
         )}
 
         {/* Error Message */}
         {isFailed && errorMessage && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-sm text-red-700">{errorMessage}</p>
+          <div className="mt-4 p-3 bg-loss/10 border border-loss/30 rounded-lg">
+            <p className="text-sm text-loss">{errorMessage}</p>
           </div>
         )}
 
         {/* Manual Intervention Warning */}
         {requiresManualIntervention && (
-          <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-            <p className="text-sm text-orange-700 font-medium">
+          <div className="mt-4 p-3 bg-warning/10 border border-warning/30 rounded-lg">
+            <p className="text-sm text-warning font-medium">
               ⚠️ 自動回滾失敗，請手動處理已開倉的部分。
             </p>
-            <p className="text-xs text-orange-600 mt-1">
+            <p className="text-xs text-warning mt-1">
               請前往交易所確認並手動平倉。
             </p>
           </div>
@@ -247,8 +247,8 @@ export function PositionProgressOverlay({
               onClick={onClose}
               className={`px-6 py-2 rounded-md text-sm font-medium ${
                 isSuccess
-                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                  : 'bg-gray-600 hover:bg-gray-700 text-white'
+                  ? 'bg-profit hover:bg-profit/90 text-white'
+                  : 'bg-muted-foreground hover:bg-muted-foreground/90 text-white'
               }`}
             >
               {isSuccess ? '完成' : '關閉'}

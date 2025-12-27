@@ -66,13 +66,13 @@ export default function TradesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="space-y-6 p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <History className="w-6 h-6 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">交易歷史</h1>
+              <History className="w-6 h-6 text-primary" />
+              <h1 className="text-2xl font-bold text-foreground">交易歷史</h1>
             </div>
           </div>
 
@@ -84,14 +84,14 @@ export default function TradesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="space-y-6 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <History className="w-6 h-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">交易歷史</h1>
-            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm font-medium">
+            <History className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">交易歷史</h1>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium">
               {total} 筆交易
             </span>
           </div>
@@ -99,7 +99,7 @@ export default function TradesPage() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             刷新
@@ -108,10 +108,10 @@ export default function TradesPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+          <div className="mb-6 p-4 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-loss mt-0.5" />
             <div>
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-loss">{error}</p>
             </div>
           </div>
         )}
@@ -120,11 +120,11 @@ export default function TradesPage() {
         {trades.length > 0 && (
           <div className="grid grid-cols-4 gap-4 mb-6">
             {/* Total PnL */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-sm text-gray-500 mb-1">總損益</p>
+            <div className="glass-card p-4">
+              <p className="text-sm text-muted-foreground mb-1">總損益</p>
               <p
                 className={`text-2xl font-bold ${
-                  totalPnL >= 0 ? 'text-green-600' : 'text-red-600'
+                  totalPnL >= 0 ? 'text-profit' : 'text-loss'
                 }`}
               >
                 {totalPnL >= 0 ? '+' : ''}
@@ -133,27 +133,27 @@ export default function TradesPage() {
             </div>
 
             {/* Win Rate */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <p className="text-sm text-gray-500 mb-1">勝率</p>
-              <p className="text-2xl font-bold text-gray-900">{winRate.toFixed(1)}%</p>
+            <div className="glass-card p-4">
+              <p className="text-sm text-muted-foreground mb-1">勝率</p>
+              <p className="text-2xl font-bold text-foreground">{winRate.toFixed(1)}%</p>
             </div>
 
             {/* Wins */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-1 text-sm text-gray-500 mb-1">
-                <TrendingUp className="w-4 h-4 text-green-500" />
+            <div className="glass-card p-4">
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
+                <TrendingUp className="w-4 h-4 text-profit" />
                 獲利交易
               </div>
-              <p className="text-2xl font-bold text-green-600">{totalWins}</p>
+              <p className="text-2xl font-bold text-profit">{totalWins}</p>
             </div>
 
             {/* Losses */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <div className="flex items-center gap-1 text-sm text-gray-500 mb-1">
-                <TrendingDown className="w-4 h-4 text-red-500" />
+            <div className="glass-card p-4">
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-1">
+                <TrendingDown className="w-4 h-4 text-loss" />
                 虧損交易
               </div>
-              <p className="text-2xl font-bold text-red-600">{totalLosses}</p>
+              <p className="text-2xl font-bold text-loss">{totalLosses}</p>
             </div>
           </div>
         )}
@@ -167,10 +167,10 @@ export default function TradesPage() {
           </div>
         ) : (
           !error && (
-            <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-              <History className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">尚無交易記錄</h3>
-              <p className="text-sm text-gray-500">平倉後的交易績效會顯示在這裡</p>
+            <div className="text-center py-12 glass-card">
+              <History className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-foreground mb-1">尚無交易記錄</h3>
+              <p className="text-sm text-muted-foreground">平倉後的交易績效會顯示在這裡</p>
             </div>
           )
         )}

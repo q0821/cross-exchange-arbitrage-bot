@@ -43,44 +43,44 @@ const STATUS_CONFIG: Record<PositionStatus, {
 }> = {
   PENDING: {
     label: '待處理',
-    color: 'text-yellow-700',
-    bgColor: 'bg-yellow-100',
+    color: 'text-warning',
+    bgColor: 'bg-warning/10',
     icon: Clock,
   },
   OPENING: {
     label: '開倉中',
-    color: 'text-blue-700',
-    bgColor: 'bg-blue-100',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     icon: Loader2,
   },
   OPEN: {
     label: '持倉中',
-    color: 'text-green-700',
-    bgColor: 'bg-green-100',
+    color: 'text-profit',
+    bgColor: 'bg-profit/10',
     icon: CheckCircle,
   },
   CLOSING: {
     label: '平倉中',
-    color: 'text-blue-700',
-    bgColor: 'bg-blue-100',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     icon: Loader2,
   },
   CLOSED: {
     label: '已平倉',
-    color: 'text-gray-700',
-    bgColor: 'bg-gray-100',
+    color: 'text-foreground',
+    bgColor: 'bg-muted',
     icon: CheckCircle,
   },
   FAILED: {
     label: '失敗',
-    color: 'text-red-700',
-    bgColor: 'bg-red-100',
+    color: 'text-loss',
+    bgColor: 'bg-loss/10',
     icon: XCircle,
   },
   PARTIAL: {
     label: '需手動處理',
-    color: 'text-orange-700',
-    bgColor: 'bg-orange-100',
+    color: 'text-warning',
+    bgColor: 'bg-warning/10',
     icon: AlertTriangle,
   },
 };
@@ -100,28 +100,28 @@ const CONDITIONAL_ORDER_STATUS_CONFIG: Record<ConditionalOrderStatus, {
 }> = {
   PENDING: {
     label: '待設定',
-    color: 'text-gray-600',
-    bgColor: 'bg-gray-100',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted',
   },
   SETTING: {
     label: '設定中',
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-100',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
   },
   SET: {
     label: '已設定',
-    color: 'text-green-600',
-    bgColor: 'bg-green-100',
+    color: 'text-profit',
+    bgColor: 'bg-profit/10',
   },
   PARTIAL: {
     label: '部分設定',
-    color: 'text-orange-600',
-    bgColor: 'bg-orange-100',
+    color: 'text-warning',
+    bgColor: 'bg-warning/10',
   },
   FAILED: {
     label: '設定失敗',
-    color: 'text-red-600',
-    bgColor: 'bg-red-100',
+    color: 'text-loss',
+    bgColor: 'bg-loss/10',
   },
 };
 
@@ -160,11 +160,11 @@ export function PositionCard({
   }, [position.id, fetchDetails]);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+    <div className="glass-card border border-border shadow-sm hover:shadow-md transition-shadow">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">{position.symbol}</h3>
+          <h3 className="text-lg font-semibold text-foreground">{position.symbol}</h3>
           <span
             className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${statusConfig.bgColor} ${statusConfig.color}`}
           >
@@ -172,7 +172,7 @@ export function PositionCard({
             {statusConfig.label}
           </span>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {timeAgo} · {createdDate.toLocaleString()}
         </p>
       </div>
@@ -182,43 +182,43 @@ export function PositionCard({
         <div className="grid grid-cols-2 gap-4">
           {/* Long Side */}
           <div className="space-y-1">
-            <div className="flex items-center gap-1 text-green-600">
+            <div className="flex items-center gap-1 text-profit">
               <ArrowUpCircle className="w-4 h-4" />
               <span className="text-sm font-medium">做多</span>
             </div>
-            <p className="text-sm text-gray-900 capitalize">{position.longExchange}</p>
+            <p className="text-sm text-foreground capitalize">{position.longExchange}</p>
           </div>
 
           {/* Short Side */}
           <div className="space-y-1">
-            <div className="flex items-center gap-1 text-red-600">
+            <div className="flex items-center gap-1 text-loss">
               <ArrowDownCircle className="w-4 h-4" />
               <span className="text-sm font-medium">做空</span>
             </div>
-            <p className="text-sm text-gray-900 capitalize">{position.shortExchange}</p>
+            <p className="text-sm text-foreground capitalize">{position.shortExchange}</p>
           </div>
         </div>
 
         {/* Leverage */}
-        <div className="mt-3 pt-3 border-t border-gray-100">
+        <div className="mt-3 pt-3 border-t border-border">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">槓桿倍數</span>
-            <span className="font-medium text-gray-900">{position.leverage}x</span>
+            <span className="text-muted-foreground">槓桿倍數</span>
+            <span className="font-medium text-foreground">{position.leverage}x</span>
           </div>
         </div>
 
         {/* Stop Loss / Take Profit Info (Feature 038) */}
         {(position.stopLossEnabled || position.takeProfitEnabled) && (
-          <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+          <div className="mt-3 pt-3 border-t border-border space-y-2">
             {/* Conditional Order Status Badge */}
             {position.conditionalOrderStatus && (
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">條件單狀態</span>
+                <span className="text-xs text-muted-foreground">條件單狀態</span>
                 <span
                   className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                    CONDITIONAL_ORDER_STATUS_CONFIG[position.conditionalOrderStatus]?.bgColor || 'bg-gray-100'
+                    CONDITIONAL_ORDER_STATUS_CONFIG[position.conditionalOrderStatus]?.bgColor || 'bg-muted'
                   } ${
-                    CONDITIONAL_ORDER_STATUS_CONFIG[position.conditionalOrderStatus]?.color || 'text-gray-600'
+                    CONDITIONAL_ORDER_STATUS_CONFIG[position.conditionalOrderStatus]?.color || 'text-muted-foreground'
                   }`}
                 >
                   {CONDITIONAL_ORDER_STATUS_CONFIG[position.conditionalOrderStatus]?.label || position.conditionalOrderStatus}
@@ -229,14 +229,14 @@ export function PositionCard({
             {/* Stop Loss Info */}
             {position.stopLossEnabled && (
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-1 text-orange-600">
+                <div className="flex items-center gap-1 text-warning">
                   <Shield className="w-3 h-3" />
                   <span className="text-xs">停損</span>
                 </div>
-                <span className="text-xs text-gray-600">
+                <span className="text-xs text-muted-foreground">
                   {position.stopLossPercent}%
                   {position.longStopLossPrice && (
-                    <span className="ml-1 text-gray-400">
+                    <span className="ml-1 text-muted-foreground">
                       (L: ${Number(position.longStopLossPrice).toFixed(2)})
                     </span>
                   )}
@@ -247,14 +247,14 @@ export function PositionCard({
             {/* Take Profit Info */}
             {position.takeProfitEnabled && (
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-1 text-green-600">
+                <div className="flex items-center gap-1 text-profit">
                   <Target className="w-3 h-3" />
                   <span className="text-xs">停利</span>
                 </div>
-                <span className="text-xs text-gray-600">
+                <span className="text-xs text-muted-foreground">
                   {position.takeProfitPercent}%
                   {position.longTakeProfitPrice && (
-                    <span className="ml-1 text-gray-400">
+                    <span className="ml-1 text-muted-foreground">
                       (L: ${Number(position.longTakeProfitPrice).toFixed(2)})
                     </span>
                   )}
@@ -264,7 +264,7 @@ export function PositionCard({
 
             {/* Conditional Order Error */}
             {position.conditionalOrderError && (
-              <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+              <div className="p-2 bg-loss/10 border border-loss/30 rounded text-xs text-loss">
                 {position.conditionalOrderError}
               </div>
             )}
@@ -273,8 +273,8 @@ export function PositionCard({
 
         {/* Partial Warning */}
         {position.status === 'PARTIAL' && (
-          <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-md">
-            <p className="text-xs text-orange-700">
+          <div className="mt-3 p-2 bg-warning/10 border border-warning/30 rounded-md">
+            <p className="text-xs text-warning">
               ⚠️ 此持倉只有一邊開倉成功，需要手動處理。
             </p>
           </div>
@@ -282,11 +282,11 @@ export function PositionCard({
 
         {/* View Details Button (Feature 045) */}
         {canViewDetails && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
+          <div className="mt-3 pt-3 border-t border-border">
             <button
               onClick={handleToggleDetails}
               disabled={isLoading}
-              className="w-full py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2 text-sm font-medium text-primary bg-primary/10 rounded-md hover:bg-primary/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -327,7 +327,7 @@ export function PositionCard({
             <button
               onClick={() => onClose(position.id)}
               disabled={isClosing || isMarkingAsClosed}
-              className="w-full py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2 text-sm font-medium text-loss bg-loss/10 rounded-md hover:bg-loss/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isClosing ? (
                 <>
@@ -345,7 +345,7 @@ export function PositionCard({
             <button
               onClick={() => onMarkAsClosed(position.id)}
               disabled={isClosing || isMarkingAsClosed}
-              className="w-full py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2 text-sm font-medium text-muted-foreground bg-muted rounded-md hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isMarkingAsClosed ? (
                 <>

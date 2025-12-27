@@ -11,17 +11,17 @@ import React from 'react';
 
 export function TradeCardSkeleton() {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm animate-pulse">
+    <div className="glass-card rounded-lg border border-border shadow-sm animate-pulse">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
-          <div className="h-6 w-24 bg-gray-200 rounded" />
+          <div className="h-6 w-24 bg-muted rounded" />
           <div className="text-right">
-            <div className="h-6 w-20 bg-gray-200 rounded mb-1" />
-            <div className="h-4 w-12 bg-gray-200 rounded" />
+            <div className="h-6 w-20 bg-muted rounded mb-1" />
+            <div className="h-4 w-12 bg-muted rounded" />
           </div>
         </div>
-        <div className="h-3 w-40 bg-gray-200 rounded mt-2" />
+        <div className="h-3 w-40 bg-muted rounded mt-2" />
       </div>
 
       {/* Summary */}
@@ -29,30 +29,30 @@ export function TradeCardSkeleton() {
         <div className="grid grid-cols-2 gap-4 mb-3">
           {/* Long Side */}
           <div className="space-y-2">
-            <div className="h-4 w-12 bg-gray-200 rounded" />
-            <div className="h-4 w-16 bg-gray-200 rounded" />
+            <div className="h-4 w-12 bg-muted rounded" />
+            <div className="h-4 w-16 bg-muted rounded" />
           </div>
 
           {/* Short Side */}
           <div className="space-y-2">
-            <div className="h-4 w-12 bg-gray-200 rounded" />
-            <div className="h-4 w-16 bg-gray-200 rounded" />
+            <div className="h-4 w-12 bg-muted rounded" />
+            <div className="h-4 w-16 bg-muted rounded" />
           </div>
         </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-3 gap-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="text-center p-2 bg-gray-50 rounded">
-              <div className="h-3 w-12 bg-gray-200 rounded mx-auto mb-2" />
-              <div className="h-4 w-10 bg-gray-200 rounded mx-auto" />
+            <div key={i} className="text-center p-2 bg-muted rounded">
+              <div className="h-3 w-12 bg-muted rounded mx-auto mb-2" />
+              <div className="h-4 w-10 bg-muted rounded mx-auto" />
             </div>
           ))}
         </div>
 
         {/* Expand Button */}
-        <div className="w-full mt-3 pt-3 border-t border-gray-100 flex items-center justify-center">
-          <div className="h-4 w-16 bg-gray-200 rounded" />
+        <div className="w-full mt-3 pt-3 border-t border-border flex items-center justify-center">
+          <div className="h-4 w-16 bg-muted rounded" />
         </div>
       </div>
     </div>

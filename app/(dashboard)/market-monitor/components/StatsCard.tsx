@@ -67,11 +67,11 @@ export function StatsCard({ stats, isLoading = false }: StatsCardProps) {
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm animate-pulse"
+            className="glass-card p-6 animate-pulse"
           >
-            <div className="h-4 bg-gray-200 rounded w-20 mb-4"></div>
-            <div className="h-8 bg-gray-200 rounded w-16 mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded w-24"></div>
+            <div className="h-4 bg-muted rounded w-20 mb-4"></div>
+            <div className="h-8 bg-muted rounded w-16 mb-2"></div>
+            <div className="h-3 bg-muted rounded w-24"></div>
           </div>
         ))}
       </div>
@@ -80,7 +80,7 @@ export function StatsCard({ stats, isLoading = false }: StatsCardProps) {
 
   if (!stats) {
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
+      <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 text-warning">
         <p>統計資料載入中...</p>
       </div>
     );
@@ -92,16 +92,16 @@ export function StatsCard({ stats, isLoading = false }: StatsCardProps) {
       value: stats.totalSymbols,
       suffix: '個',
       icon: '📊',
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
     {
       title: '套利機會',
       value: stats.opportunityCount,
       suffix: '個',
       icon: '🔔',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
+      color: 'text-profit',
+      bgColor: 'bg-profit/10',
       highlight: stats.opportunityCount > 0,
     },
     {
@@ -109,8 +109,8 @@ export function StatsCard({ stats, isLoading = false }: StatsCardProps) {
       value: stats.approachingCount,
       suffix: '個',
       icon: '⚠️',
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
     },
     {
       title: '最高差異',
@@ -122,8 +122,8 @@ export function StatsCard({ stats, isLoading = false }: StatsCardProps) {
       suffix: stats.maxSpread ? '%' : '',
       subtext: stats.maxSpread ? stats.maxSpread.symbol : '無資料',
       icon: '📈',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      color: 'text-primary',
+      bgColor: 'bg-primary/10',
     },
   ];
 
@@ -135,13 +135,13 @@ export function StatsCard({ stats, isLoading = false }: StatsCardProps) {
           <div
             key={index}
             className={`
-              bg-white rounded-lg border shadow-sm p-6 transition-all
-              ${card.highlight ? 'border-green-400 ring-2 ring-green-200' : 'border-gray-200'}
+              glass-card p-6 transition-all
+              ${card.highlight ? 'border-profit ring-2 ring-profit/30' : 'border-border'}
             `}
           >
             {/* 標題和圖標 */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-medium text-gray-600">{card.title}</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{card.title}</h3>
               <span className="text-2xl" role="img" aria-label={card.title}>
                 {card.icon}
               </span>
@@ -150,17 +150,17 @@ export function StatsCard({ stats, isLoading = false }: StatsCardProps) {
             {/* 數值 */}
             <div className="flex items-baseline gap-1">
               <span className={`text-3xl font-bold ${card.color}`}>{card.value}</span>
-              {card.suffix && <span className="text-lg text-gray-500">{card.suffix}</span>}
+              {card.suffix && <span className="text-lg text-muted-foreground">{card.suffix}</span>}
             </div>
 
             {/* 次要文字 */}
-            {card.subtext && <p className="text-xs text-gray-500 mt-2">{card.subtext}</p>}
+            {card.subtext && <p className="text-xs text-muted-foreground mt-2">{card.subtext}</p>}
           </div>
         ))}
       </div>
 
       {/* 底部資訊列 */}
-      <div className="flex items-center justify-between text-sm text-gray-600 px-1">
+      <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
         <div className="flex items-center gap-4">
           <span>
             <span className="font-medium">運行時長：</span>

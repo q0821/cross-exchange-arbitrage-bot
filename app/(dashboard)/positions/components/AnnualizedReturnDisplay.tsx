@@ -38,12 +38,12 @@ export function AnnualizedReturnDisplay({
   // 無法計算的情況
   if (error) {
     return (
-      <div className="pt-3 border-t border-gray-200">
-        <div className="flex items-center gap-1 text-gray-700 font-medium text-sm mb-2">
+      <div className="pt-3 border-t border-border">
+        <div className="flex items-center gap-1 text-foreground font-medium text-sm mb-2">
           <Percent className="w-4 h-4" />
           <span>預估年化報酬率</span>
         </div>
-        <div className="flex items-center gap-1 text-xs text-gray-500 italic">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground italic">
           <Info className="w-3 h-3" />
           <span>{error}</span>
         </div>
@@ -58,14 +58,14 @@ export function AnnualizedReturnDisplay({
 
   const { value, totalPnL, margin, holdingHours } = annualizedReturn;
   const isPositive = value >= 0;
-  const colorClass = isPositive ? 'text-green-600' : 'text-red-600';
-  const bgColorClass = isPositive ? 'bg-green-50' : 'bg-red-50';
-  const borderColorClass = isPositive ? 'border-green-200' : 'border-red-200';
+  const colorClass = isPositive ? 'text-profit' : 'text-loss';
+  const bgColorClass = isPositive ? 'bg-profit/10' : 'bg-loss/10';
+  const borderColorClass = isPositive ? 'border-profit/30' : 'border-loss/30';
   const TrendIcon = isPositive ? TrendingUp : TrendingDown;
 
   return (
-    <div className="pt-3 border-t border-gray-200">
-      <div className="flex items-center gap-1 text-gray-700 font-medium text-sm mb-2">
+    <div className="pt-3 border-t border-border">
+      <div className="flex items-center gap-1 text-foreground font-medium text-sm mb-2">
         <Percent className="w-4 h-4" />
         <span>預估年化報酬率</span>
       </div>
@@ -82,28 +82,28 @@ export function AnnualizedReturnDisplay({
 
       {/* 計算依據 */}
       <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-        <div className="text-center p-2 bg-gray-100 rounded">
-          <div className="text-gray-500">總損益</div>
-          <div className={`font-medium ${totalPnL >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+        <div className="text-center p-2 bg-muted rounded">
+          <div className="text-muted-foreground">總損益</div>
+          <div className={`font-medium ${totalPnL >= 0 ? 'text-profit' : 'text-loss'}`}>
             {totalPnL >= 0 ? '+' : ''}${totalPnL.toFixed(4)}
           </div>
         </div>
-        <div className="text-center p-2 bg-gray-100 rounded">
-          <div className="text-gray-500">保證金</div>
-          <div className="font-medium text-gray-700">
+        <div className="text-center p-2 bg-muted rounded">
+          <div className="text-muted-foreground">保證金</div>
+          <div className="font-medium text-foreground">
             ${margin.toFixed(2)}
           </div>
         </div>
-        <div className="text-center p-2 bg-gray-100 rounded">
-          <div className="text-gray-500">持倉時間</div>
-          <div className="font-medium text-gray-700">
+        <div className="text-center p-2 bg-muted rounded">
+          <div className="text-muted-foreground">持倉時間</div>
+          <div className="font-medium text-foreground">
             {formatHoldingTime(holdingHours)}
           </div>
         </div>
       </div>
 
       {/* 計算公式說明 */}
-      <div className="mt-2 text-xs text-gray-400 italic">
+      <div className="mt-2 text-xs text-muted-foreground italic">
         公式: (總損益 ÷ 保證金) × (365 × 24 ÷ 持倉小時數) × 100%
       </div>
     </div>

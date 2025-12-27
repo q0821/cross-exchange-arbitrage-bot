@@ -23,35 +23,35 @@ interface AssetSummaryCardProps {
   balanceUSD: number | null;
 }
 
-// 交易所配色
+// 交易所配色 - 支援深淺色主題
 const exchangeColors: Record<
   ExchangeName,
   { primary: string; bg: string; border: string }
 > = {
   binance: {
-    primary: 'text-yellow-400',
-    bg: 'bg-yellow-900/20',
-    border: 'border-yellow-700/30',
+    primary: 'text-yellow-600 dark:text-yellow-400',
+    bg: 'bg-yellow-100/50 dark:bg-yellow-900/20',
+    border: 'border-yellow-300/50 dark:border-yellow-700/30',
   },
   okx: {
-    primary: 'text-gray-300',
-    bg: 'bg-gray-800/50',
-    border: 'border-gray-600/30',
+    primary: 'text-slate-700 dark:text-slate-300',
+    bg: 'bg-slate-100/50 dark:bg-slate-800/50',
+    border: 'border-slate-300/50 dark:border-slate-600/30',
   },
   mexc: {
-    primary: 'text-teal-400',
-    bg: 'bg-teal-900/20',
-    border: 'border-teal-700/30',
+    primary: 'text-teal-600 dark:text-teal-400',
+    bg: 'bg-teal-100/50 dark:bg-teal-900/20',
+    border: 'border-teal-300/50 dark:border-teal-700/30',
   },
   gateio: {
-    primary: 'text-blue-400',
-    bg: 'bg-blue-900/20',
-    border: 'border-blue-700/30',
+    primary: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-100/50 dark:bg-blue-900/20',
+    border: 'border-blue-300/50 dark:border-blue-700/30',
   },
   bingx: {
-    primary: 'text-orange-400',
-    bg: 'bg-orange-900/20',
-    border: 'border-orange-700/30',
+    primary: 'text-orange-600 dark:text-orange-400',
+    bg: 'bg-orange-100/50 dark:bg-orange-900/20',
+    border: 'border-orange-300/50 dark:border-orange-700/30',
   },
 };
 
@@ -88,33 +88,33 @@ export function AssetSummaryCard({
     switch (status) {
       case 'success':
         return {
-          icon: <CheckCircle className="w-4 h-4 text-green-400" />,
+          icon: <CheckCircle className="w-4 h-4 text-profit" />,
           text: '已連線',
-          textColor: 'text-green-400',
+          textColor: 'text-profit',
         };
       case 'no_api_key':
         return {
-          icon: <Key className="w-4 h-4 text-gray-500" />,
+          icon: <Key className="w-4 h-4 text-muted-foreground" />,
           text: '未設定',
-          textColor: 'text-gray-500',
+          textColor: 'text-muted-foreground',
         };
       case 'api_error':
         return {
-          icon: <XCircle className="w-4 h-4 text-red-400" />,
+          icon: <XCircle className="w-4 h-4 text-loss" />,
           text: '連線錯誤',
-          textColor: 'text-red-400',
+          textColor: 'text-loss',
         };
       case 'rate_limited':
         return {
-          icon: <Clock className="w-4 h-4 text-yellow-400" />,
+          icon: <Clock className="w-4 h-4 text-warning" />,
           text: '請求受限',
-          textColor: 'text-yellow-400',
+          textColor: 'text-warning',
         };
       default:
         return {
-          icon: <AlertTriangle className="w-4 h-4 text-gray-400" />,
+          icon: <AlertTriangle className="w-4 h-4 text-muted-foreground" />,
           text: '未知',
-          textColor: 'text-gray-400',
+          textColor: 'text-muted-foreground',
         };
     }
   };
@@ -123,7 +123,7 @@ export function AssetSummaryCard({
 
   return (
     <div
-      className={`rounded-lg p-4 border ${colors.bg} ${colors.border} transition-all hover:scale-[1.02]`}
+      className={`glass-card rounded-lg p-4 ${colors.bg} ${colors.border} transition-all hover:scale-[1.02] cursor-pointer`}
     >
       {/* 交易所名稱 */}
       <div className="flex items-center justify-between mb-3">
@@ -137,17 +137,17 @@ export function AssetSummaryCard({
       </div>
 
       {/* 餘額 */}
-      <div className="text-xl font-bold text-white">
+      <div className="text-xl font-bold text-foreground">
         {status === 'success' ? formatUSD(balanceUSD) : '--'}
       </div>
 
       {/* 無 API Key 提示 */}
       {status === 'no_api_key' && (
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-muted-foreground mt-2">
           前往{' '}
           <a
             href="/settings/api-keys"
-            className="text-blue-400 hover:underline"
+            className="text-primary hover:underline"
           >
             設定
           </a>{' '}
@@ -157,14 +157,14 @@ export function AssetSummaryCard({
 
       {/* 錯誤提示 */}
       {status === 'api_error' && (
-        <p className="text-xs text-red-400/70 mt-2">
+        <p className="text-xs text-loss/70 mt-2">
           請檢查 API Key 是否有效
         </p>
       )}
 
       {/* Rate Limit 提示 */}
       {status === 'rate_limited' && (
-        <p className="text-xs text-yellow-400/70 mt-2">請稍後再試</p>
+        <p className="text-xs text-warning/70 mt-2">請稍後再試</p>
       )}
     </div>
   );

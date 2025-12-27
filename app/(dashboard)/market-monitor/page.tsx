@@ -157,8 +157,8 @@ export default function MarketMonitorPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-            <p className="mt-4 text-gray-600">載入市場數據中...</p>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+            <p className="mt-4 text-muted-foreground">載入市場數據中...</p>
           </div>
         </div>
       </div>
@@ -169,12 +169,12 @@ export default function MarketMonitorPage() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">載入失敗</h3>
-          <p className="text-red-600">{error.message}</p>
+        <div className="bg-loss/10 border border-loss/30 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-loss mb-2">載入失敗</h3>
+          <p className="text-loss">{error.message}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            className="mt-4 px-4 py-2 bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
           >
             重新載入
           </button>
@@ -188,18 +188,18 @@ export default function MarketMonitorPage() {
       {/* 頁面標題和連線狀態 */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">市場監控</h1>
-          <p className="text-gray-600 mt-1">即時監控多個交易對的資金費率差異</p>
+          <h1 className="text-3xl font-bold text-foreground">市場監控</h1>
+          <p className="text-muted-foreground mt-1">即時監控多個交易對的資金費率差異</p>
         </div>
 
         {/* 連線狀態指示器 */}
         <div className="flex items-center gap-2">
           <div
             className={`h-3 w-3 rounded-full ${
-              isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+              isConnected ? 'bg-profit animate-pulse' : 'bg-loss'
             }`}
           ></div>
-          <span className={`text-sm font-medium ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
+          <span className={`text-sm font-medium ${isConnected ? 'text-profit' : 'text-loss'}`}>
             {isConnected ? '即時連線中' : '連線已斷開'}
           </span>
         </div>
@@ -219,15 +219,15 @@ export default function MarketMonitorPage() {
         />
 
         {/* Feature 012: 時間基準選擇器 */}
-        <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="glass-card p-4">
           <TimeBasisSelector value={timeBasis} onChange={setTimeBasis} />
         </div>
       </div>
 
       {/* 費率表格 */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="glass-card p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">
+          <h2 className="text-xl font-semibold text-foreground">
             即時費率 {filteredRatesMap.size > 0 && `(${filteredRatesMap.size} 個交易對)`}
           </h2>
 
@@ -235,7 +235,7 @@ export default function MarketMonitorPage() {
           <div className="flex gap-2">
             <button
               onClick={() => window.location.reload()}
-              className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
               title="重新載入"
             >
               🔄 重新載入
@@ -312,8 +312,8 @@ export default function MarketMonitorPage() {
 
       {/* 底部提示 */}
       {!isConnected && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <p className="text-yellow-800 text-sm">
+        <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
+          <p className="text-warning text-sm">
             ⚠️ WebSocket 連線已斷開，數據可能不是最新的。頁面將自動嘗試重新連線。
           </p>
         </div>

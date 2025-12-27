@@ -28,18 +28,18 @@ export function TrackButton({
     return (
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-700 bg-green-100 rounded-md cursor-default">
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-profit bg-profit/10 rounded-md cursor-default">
             <Target className="w-3 h-3" />
             追蹤中
           </span>
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
-            className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+            className="bg-foreground text-background text-xs rounded px-3 py-2 shadow-lg z-50"
             sideOffset={5}
           >
             此機會正在被追蹤中
-            <Tooltip.Arrow className="fill-gray-900" />
+            <Tooltip.Arrow className="fill-foreground" />
           </Tooltip.Content>
         </Tooltip.Portal>
       </Tooltip.Root>
@@ -54,8 +54,8 @@ export function TrackButton({
           disabled={disabled || isLoading}
           className={`p-2 rounded-md transition-colors ${
             disabled || isLoading
-              ? 'text-gray-300 cursor-not-allowed'
-              : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'
+              ? 'text-muted-foreground cursor-not-allowed'
+              : 'text-muted-foreground hover:bg-muted hover:text-primary'
           }`}
         >
           {isLoading ? (
@@ -67,11 +67,11 @@ export function TrackButton({
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
-          className="bg-gray-900 text-white text-xs rounded px-3 py-2 shadow-lg z-50"
+          className="bg-foreground text-background text-xs rounded px-3 py-2 shadow-lg z-50"
           sideOffset={5}
         >
           {disabled ? '無套利機會' : '開始追蹤此機會'}
-          <Tooltip.Arrow className="fill-gray-900" />
+          <Tooltip.Arrow className="fill-foreground" />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>

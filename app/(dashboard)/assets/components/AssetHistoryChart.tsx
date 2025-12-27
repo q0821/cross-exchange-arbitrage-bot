@@ -89,12 +89,12 @@ const CustomTooltip = ({
   if (!active || !payload || !label) return null;
 
   return (
-    <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 shadow-lg">
-      <p className="text-gray-400 text-xs mb-2">{formatDateTime(label)}</p>
+    <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
+      <p className="text-muted-foreground text-xs mb-2">{formatDateTime(label)}</p>
       {payload.map((entry) => (
         <div key={entry.name} className="flex items-center justify-between gap-4 text-sm">
           <span style={{ color: entry.color }}>{getDisplayName(entry.name)}</span>
-          <span className="text-white font-medium">
+          <span className="text-foreground font-medium">
             ${entry.value?.toFixed(2) ?? '--'}
           </span>
         </div>
@@ -131,7 +131,7 @@ export function AssetHistoryChart({ data, isLoading }: AssetHistoryChartProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
       </div>
     );
   }
@@ -139,7 +139,7 @@ export function AssetHistoryChart({ data, isLoading }: AssetHistoryChartProps) {
   // 無資料狀態
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+      <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
         <p>尚無歷史資料</p>
         <p className="text-sm mt-1">系統每小時會自動記錄資產快照</p>
       </div>
@@ -177,22 +177,22 @@ export function AssetHistoryChart({ data, isLoading }: AssetHistoryChartProps) {
             </linearGradient>
           </defs>
 
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
           <XAxis
             dataKey="timestamp"
             tickFormatter={formatDate}
-            stroke="#6B7280"
+            stroke="hsl(var(--muted-foreground))"
             tick={{ fontSize: 12 }}
           />
           <YAxis
             tickFormatter={formatUSD}
-            stroke="#6B7280"
+            stroke="hsl(var(--muted-foreground))"
             tick={{ fontSize: 12 }}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend
             formatter={(value) => (
-              <span className="text-gray-300">{getDisplayName(value)}</span>
+              <span className="text-muted-foreground">{getDisplayName(value)}</span>
             )}
           />
 

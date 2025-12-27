@@ -35,16 +35,16 @@ export function OpenPositionButton({
   // Feature 044: 根據禁用原因決定樣式
   const getButtonClassName = () => {
     if (isLoading) {
-      return 'text-gray-300 cursor-not-allowed';
+      return 'text-muted-foreground cursor-not-allowed';
     }
     if (isMexcRestricted) {
       // 警告色：琥珀色表示有原因的禁用
-      return 'text-amber-400 bg-amber-50 cursor-not-allowed';
+      return 'text-warning bg-warning/10 cursor-not-allowed';
     }
     if (disabled) {
-      return 'text-gray-300 cursor-not-allowed';
+      return 'text-muted-foreground cursor-not-allowed';
     }
-    return 'text-gray-600 hover:bg-green-50 hover:text-green-600';
+    return 'text-muted-foreground hover:bg-profit/10 hover:text-profit';
   };
 
   // Feature 044: 根據狀態決定 Tooltip 內容
@@ -76,12 +76,12 @@ export function OpenPositionButton({
       <Tooltip.Portal>
         <Tooltip.Content
           className={`text-white text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs ${
-            isMexcRestricted ? 'bg-amber-700' : 'bg-gray-900'
+            isMexcRestricted ? 'bg-warning' : 'bg-foreground'
           }`}
           sideOffset={5}
         >
           {getTooltipContent()}
-          <Tooltip.Arrow className={isMexcRestricted ? 'fill-amber-700' : 'fill-gray-900'} />
+          <Tooltip.Arrow className={isMexcRestricted ? 'fill-warning' : 'fill-foreground'} />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>

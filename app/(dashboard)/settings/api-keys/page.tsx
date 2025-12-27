@@ -404,7 +404,7 @@ export default function ApiKeysPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-600">載入中...</div>
+        <div className="text-muted-foreground">載入中...</div>
       </div>
     );
   }
@@ -412,34 +412,34 @@ export default function ApiKeysPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">API Key 管理</h1>
+        <h1 className="text-3xl font-bold text-foreground">API Key 管理</h1>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
         >
           {showAddForm ? '取消' : '新增 API Key'}
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+        <div className="mb-4 bg-loss/10 border border-loss/30 text-loss px-4 py-3 rounded">
           {error}
         </div>
       )}
 
       {showAddForm && (
-        <div className="mb-6 p-6 bg-white rounded-lg shadow-md">
+        <div className="mb-6 p-6 glass-card">
           <h2 className="text-xl font-semibold mb-4">新增 API Key</h2>
           <form onSubmit={handleAddApiKey} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 交易所
               </label>
               <select
                 name="exchange"
                 value={exchange}
                 onChange={(e) => setExchange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-border rounded-md bg-card"
                 required
               >
                 <option value="binance">Binance</option>
@@ -452,7 +452,7 @@ export default function ApiKeysPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 環境
               </label>
               <div className="flex gap-4">
@@ -465,7 +465,7 @@ export default function ApiKeysPage() {
                     onChange={(e) => setEnvironment(e.target.value as 'MAINNET' | 'TESTNET')}
                     className="mr-2"
                   />
-                  <span className="text-sm text-gray-700">主網（真實交易）</span>
+                  <span className="text-sm text-foreground">主網（真實交易）</span>
                 </label>
                 <label className="flex items-center">
                   <input
@@ -476,16 +476,16 @@ export default function ApiKeysPage() {
                     onChange={(e) => setEnvironment(e.target.value as 'MAINNET' | 'TESTNET')}
                     className="mr-2"
                   />
-                  <span className="text-sm text-gray-700">測試網（Demo Trading）</span>
+                  <span className="text-sm text-foreground">測試網（Demo Trading）</span>
                 </label>
               </div>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-muted-foreground">
                 ⚠️ 重要：主網和測試網的 API Key 來自不同平台，創建後無法修改環境設定
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 標籤
               </label>
               <input
@@ -493,14 +493,14 @@ export default function ApiKeysPage() {
                 type="text"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-border rounded-md bg-card"
                 placeholder="例如：主帳戶、備用帳戶"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 API Key
               </label>
               <input
@@ -508,13 +508,13 @@ export default function ApiKeysPage() {
                 type="text"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-border rounded-md bg-card"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 API Secret
               </label>
               <input
@@ -522,14 +522,14 @@ export default function ApiKeysPage() {
                 type="password"
                 value={apiSecret}
                 onChange={(e) => setApiSecret(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className="w-full px-3 py-2 border border-border rounded-md bg-card"
                 required
               />
             </div>
 
             {exchange === 'okx' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Passphrase (OKX 專用)
                 </label>
                 <input
@@ -537,7 +537,7 @@ export default function ApiKeysPage() {
                   type="password"
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-card"
                 />
               </div>
             )}
@@ -548,7 +548,7 @@ export default function ApiKeysPage() {
                 type="button"
                 onClick={handleTestConnection}
                 disabled={isTestingConnection || !apiKey || !apiSecret}
-                className="w-full py-2 px-4 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="w-full py-2 px-4 bg-muted-foreground text-white rounded-md hover:bg-muted-foreground/90 disabled:bg-muted disabled:cursor-not-allowed"
               >
                 {isTestingConnection ? '測試中...' : '測試連線'}
               </button>
@@ -559,21 +559,21 @@ export default function ApiKeysPage() {
               <div
                 className={`p-4 rounded-md ${
                   connectionTestResult.isValid
-                    ? 'bg-green-50 border border-green-200'
-                    : 'bg-red-50 border border-red-200'
+                    ? 'bg-profit/10 border border-profit/30'
+                    : 'bg-loss/10 border border-loss/30'
                 }`}
               >
                 <div className="flex items-center mb-2">
                   <span
                     className={`text-lg font-medium ${
-                      connectionTestResult.isValid ? 'text-green-800' : 'text-red-800'
+                      connectionTestResult.isValid ? 'text-profit' : 'text-loss'
                     }`}
                   >
                     {connectionTestResult.isValid ? '✓ 連線成功' : '✗ 連線失敗'}
                   </span>
                 </div>
                 {connectionTestResult.isValid ? (
-                  <div className="text-sm text-green-700 space-y-1">
+                  <div className="text-sm text-profit space-y-1">
                     <div>讀取權限：{connectionTestResult.hasReadPermission ? '✓' : '✗'}</div>
                     <div>
                       交易權限：
@@ -584,18 +584,18 @@ export default function ApiKeysPage() {
                           : '✗'}
                     </div>
                     {(exchange === 'gateio' || exchange === 'mexc') && (
-                      <div className="text-gray-500 text-xs mt-1">
+                      <div className="text-muted-foreground text-xs mt-1">
                         注意：{exchange === 'gateio' ? 'Gate.io' : 'MEXC'} 無法驗證交易權限，請確認 API Key 已開啟交易權限
                       </div>
                     )}
                     {exchange === 'bingx' && (
-                      <div className="text-gray-500 text-xs mt-1">
+                      <div className="text-muted-foreground text-xs mt-1">
                         注意：BingX 目前沒有公開測試網，請使用主網 API Key
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="text-sm text-red-700">
+                  <div className="text-sm text-loss">
                     {connectionTestResult.error?.message || '未知錯誤'}
                   </div>
                 )}
@@ -604,25 +604,25 @@ export default function ApiKeysPage() {
 
             {/* 儲存警告確認 (T023) */}
             {showSaveWarning && (
-              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-                <div className="text-yellow-800 font-medium mb-2">
+              <div className="p-4 bg-warning/10 border border-warning/30 rounded-md">
+                <div className="text-warning font-medium mb-2">
                   ⚠️ 連線測試失敗
                 </div>
-                <p className="text-sm text-yellow-700 mb-3">
+                <p className="text-sm text-warning mb-3">
                   連線測試未通過，仍要儲存此 API Key 嗎？儲存後可能無法正常使用。
                 </p>
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setShowSaveWarning(false)}
-                    className="px-3 py-1 text-sm border border-yellow-300 text-yellow-800 rounded hover:bg-yellow-100"
+                    className="px-3 py-1 text-sm border border-warning/30 text-warning rounded hover:bg-warning/10"
                   >
                     取消
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:bg-yellow-300"
+                    className="px-3 py-1 text-sm bg-warning text-white rounded hover:bg-warning/90 disabled:bg-warning/30"
                   >
                     {isSubmitting ? '儲存中...' : '仍要儲存'}
                   </button>
@@ -635,7 +635,7 @@ export default function ApiKeysPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                className="w-full py-2 px-4 bg-primary text-white rounded-md hover:bg-primary/90 disabled:bg-primary/30 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? '新增中...' : '新增'}
               </button>
@@ -644,65 +644,65 @@ export default function ApiKeysPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="glass-card overflow-hidden">
         {apiKeys.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-muted-foreground">
             尚未新增任何 API Key
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-border">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   交易所
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   環境
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   標籤
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   API Key
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   狀態
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                   操作
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-card divide-y divide-border">
               {apiKeys.map((key) => (
                 <React.Fragment key={key.id}>
                 <tr>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {key.exchange.toUpperCase()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
                         key.environment === 'MAINNET'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-blue-100 text-blue-800'
+                          ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
+                          : 'bg-primary/10 text-primary'
                       }`}
                     >
                       {key.environment === 'MAINNET' ? '主網' : '測試網'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {key.label}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-muted-foreground">
                     {key.maskedKey}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${
                         key.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                          ? 'bg-profit/10 text-profit'
+                          : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {key.isActive ? '啟用' : '停用'}
@@ -713,25 +713,25 @@ export default function ApiKeysPage() {
                     <button
                       onClick={() => handleRevalidate(key.id)}
                       disabled={revalidatingKeyId === key.id}
-                      className="text-green-600 hover:text-green-800 disabled:text-green-300 disabled:cursor-not-allowed"
+                      className="text-profit hover:text-profit/80 disabled:text-profit/30 disabled:cursor-not-allowed"
                     >
                       {revalidatingKeyId === key.id ? '測試中...' : '測試'}
                     </button>
                     <button
                       onClick={() => handleOpenEdit(key)}
-                      className="text-indigo-600 hover:text-indigo-800"
+                      className="text-primary hover:text-primary/80"
                     >
                       編輯
                     </button>
                     <button
                       onClick={() => handleToggleActive(key.id, key.isActive)}
-                      className="text-blue-600 hover:text-blue-800"
+                      className="text-primary hover:text-primary/80"
                     >
                       {key.isActive ? '停用' : '啟用'}
                     </button>
                     <button
                       onClick={() => handleDeleteApiKey(key.id)}
-                      className="text-red-600 hover:text-red-800"
+                      className="text-loss hover:text-loss/80"
                     >
                       刪除
                     </button>
@@ -744,8 +744,8 @@ export default function ApiKeysPage() {
                       <div
                         className={`p-3 rounded-md text-sm ${
                           revalidateResult.result.isValid
-                            ? 'bg-green-50 border border-green-200 text-green-700'
-                            : 'bg-red-50 border border-red-200 text-red-700'
+                            ? 'bg-profit/10 border border-profit/30 text-profit'
+                            : 'bg-loss/10 border border-loss/30 text-loss'
                         }`}
                       >
                         {revalidateResult.result.isValid ? (
@@ -755,7 +755,7 @@ export default function ApiKeysPage() {
                         )}
                         <button
                           onClick={() => setRevalidateResult(null)}
-                          className="ml-2 text-gray-500 hover:text-gray-700"
+                          className="ml-2 text-muted-foreground hover:text-foreground"
                         >
                           ✕
                         </button>
@@ -772,53 +772,53 @@ export default function ApiKeysPage() {
 
       {/* 編輯對話框 */}
       {showEditModal && editingKey && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4">
             <h2 className="text-xl font-semibold mb-4">編輯 API Key</h2>
 
             {error && (
-              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              <div className="mb-4 bg-loss/10 border border-loss/30 text-loss px-4 py-3 rounded">
                 {error}
               </div>
             )}
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   交易所
                 </label>
                 <input
                   type="text"
                   value={editingKey.exchange.toUpperCase()}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-muted text-muted-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   環境
                 </label>
                 <input
                   type="text"
                   value={editingKey.environment === 'MAINNET' ? '主網（真實交易）' : '測試網（Demo Trading）'}
                   disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-600"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-muted text-muted-foreground"
                 />
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-muted-foreground">
                   環境設定在創建時已固定，無法修改
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   標籤
                 </label>
                 <input
                   type="text"
                   value={editLabel}
                   onChange={(e) => setEditLabel(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-card"
                   placeholder="例如：主帳戶、備用帳戶"
                   required
                 />
@@ -832,7 +832,7 @@ export default function ApiKeysPage() {
                     setEditingKey(null);
                     setError('');
                   }}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                  className="px-4 py-2 border border-border text-foreground rounded-md hover:bg-muted"
                   disabled={isEditSubmitting}
                 >
                   取消
@@ -840,7 +840,7 @@ export default function ApiKeysPage() {
                 <button
                   type="submit"
                   disabled={isEditSubmitting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:bg-primary/30 disabled:cursor-not-allowed"
                 >
                   {isEditSubmitting ? '儲存中...' : '儲存'}
                 </button>

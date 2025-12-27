@@ -34,17 +34,17 @@ const STEP_CONFIG: Record<
   validating: {
     icon: Loader2,
     label: '驗證中',
-    color: 'text-blue-500',
+    color: 'text-primary',
   },
   closing_long: {
     icon: TrendingUp,
     label: '平倉多頭',
-    color: 'text-green-500',
+    color: 'text-profit',
   },
   closing_short: {
     icon: TrendingDown,
     label: '平倉空頭',
-    color: 'text-red-500',
+    color: 'text-loss',
   },
   calculating_pnl: {
     icon: Calculator,
@@ -54,7 +54,7 @@ const STEP_CONFIG: Record<
   completing: {
     icon: BadgeCheck,
     label: '完成',
-    color: 'text-green-600',
+    color: 'text-profit',
   },
 };
 
@@ -84,34 +84,34 @@ export function CloseProgressOverlay({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black bg-opacity-50" />
+      <div className="absolute inset-0 bg-black/50" />
 
       {/* Progress Card */}
-      <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
+      <div className="relative bg-card rounded-lg shadow-xl w-full max-w-md mx-4 overflow-hidden">
         {/* Progress Bar */}
-        <div className="h-1 bg-gray-200">
+        <div className="h-1 bg-border">
           <div
-            className="h-full bg-blue-500 transition-all duration-300"
+            className="h-full bg-primary transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
 
         {/* Header */}
         <div className="px-6 pt-4 pb-2">
-          <h2 className="text-lg font-semibold text-gray-900">平倉進度</h2>
-          <p className="text-sm text-gray-500">{symbol}</p>
+          <h2 className="text-lg font-semibold text-foreground">平倉進度</h2>
+          <p className="text-sm text-muted-foreground">{symbol}</p>
         </div>
 
         {/* Current Step */}
         <div className="px-6 py-6 flex flex-col items-center">
-          <div className={`p-4 rounded-full bg-gray-100 ${config.color}`}>
+          <div className={`p-4 rounded-full bg-muted ${config.color}`}>
             <StepIcon className={`w-12 h-12 ${isAnimated ? 'animate-spin' : ''}`} />
           </div>
-          <p className="mt-4 text-lg font-medium text-gray-900">{message}</p>
+          <p className="mt-4 text-lg font-medium text-foreground">{message}</p>
           {exchange && (
-            <p className="text-sm text-gray-500 capitalize">交易所: {exchange}</p>
+            <p className="text-sm text-muted-foreground capitalize">交易所: {exchange}</p>
           )}
-          <p className="mt-2 text-sm text-gray-400">{progress}%</p>
+          <p className="mt-2 text-sm text-muted-foreground">{progress}%</p>
         </div>
 
         {/* Step Indicators */}
@@ -128,25 +128,25 @@ export function CloseProgressOverlay({
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center ${
                       isCompleted
-                        ? 'bg-green-100'
+                        ? 'bg-profit/10'
                         : isCurrent
-                          ? 'bg-blue-100'
-                          : 'bg-gray-100'
+                          ? 'bg-primary/10'
+                          : 'bg-muted'
                     }`}
                   >
                     {isCompleted ? (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <CheckCircle className="w-5 h-5 text-profit" />
                     ) : (
                       <Icon
                         className={`w-4 h-4 ${
-                          isCurrent ? stepConfig.color : 'text-gray-400'
+                          isCurrent ? stepConfig.color : 'text-muted-foreground'
                         } ${isCurrent && isAnimated ? 'animate-pulse' : ''}`}
                       />
                     )}
                   </div>
                   <span
                     className={`mt-1 text-xs ${
-                      isCurrent ? 'text-gray-900 font-medium' : 'text-gray-400'
+                      isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'
                     }`}
                   >
                     {stepConfig.label}

@@ -102,7 +102,7 @@ export function PositionTable({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500" />
+        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary" />
       </div>
     );
   }
@@ -110,7 +110,7 @@ export function PositionTable({
   // 無持倉狀態
   if (totalPositions === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-32 text-gray-500">
+      <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
         <p>目前無持倉</p>
         <p className="text-sm mt-1">開倉後會在此顯示持倉資訊</p>
       </div>
@@ -120,21 +120,21 @@ export function PositionTable({
   return (
     <div className="space-y-4">
       {/* 總未實現損益摘要 */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-700/30 rounded-lg">
-        <span className="text-gray-400">總未實現損益</span>
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/50 rounded-lg">
+        <span className="text-muted-foreground">總未實現損益</span>
         <div className="flex items-center gap-2">
           {totalUnrealizedPnl > 0 ? (
-            <TrendingUp className="w-4 h-4 text-green-400" />
+            <TrendingUp className="w-4 h-4 text-profit" />
           ) : totalUnrealizedPnl < 0 ? (
-            <TrendingDown className="w-4 h-4 text-red-400" />
+            <TrendingDown className="w-4 h-4 text-loss" />
           ) : null}
           <span
             className={`font-semibold ${
               totalUnrealizedPnl > 0
-                ? 'text-green-400'
+                ? 'text-profit'
                 : totalUnrealizedPnl < 0
-                  ? 'text-red-400'
-                  : 'text-white'
+                  ? 'text-loss'
+                  : 'text-foreground'
             }`}
           >
             {formatUSD(totalUnrealizedPnl)}
@@ -150,18 +150,18 @@ export function PositionTable({
         return (
           <div
             key={exchange.exchange}
-            className="border border-gray-700 rounded-lg overflow-hidden"
+            className="border border-border rounded-lg overflow-hidden"
           >
             {/* 交易所標題 */}
             <button
               onClick={() => toggleExchange(exchange.exchange)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-800/50 hover:bg-gray-800/70 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors"
             >
               <div className="flex items-center gap-3">
-                <span className="font-medium text-white">
+                <span className="font-medium text-foreground">
                   {exchangeDisplayNames[exchange.exchange]}
                 </span>
-                <span className="text-gray-500 text-sm">
+                <span className="text-muted-foreground text-sm">
                   ({exchange.positions.length} 個持倉)
                 </span>
               </div>
@@ -170,19 +170,19 @@ export function PositionTable({
                   <span
                     className={`text-sm ${
                       exchange.totalPnl > 0
-                        ? 'text-green-400'
+                        ? 'text-profit'
                         : exchange.totalPnl < 0
-                          ? 'text-red-400'
-                          : 'text-gray-400'
+                          ? 'text-loss'
+                          : 'text-muted-foreground'
                     }`}
                   >
                     {formatUSD(exchange.totalPnl)}
                   </span>
                 )}
                 {isExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-gray-400" />
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
                 )}
               </div>
             </button>
@@ -191,8 +191,8 @@ export function PositionTable({
             {isExpanded && hasPositions && (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-800/30">
-                    <tr className="text-gray-500">
+                  <thead className="bg-muted/30">
+                    <tr className="text-muted-foreground">
                       <th className="px-4 py-2 text-left">交易對</th>
                       <th className="px-4 py-2 text-left">方向</th>
                       <th className="px-4 py-2 text-right">數量</th>
@@ -202,42 +202,42 @@ export function PositionTable({
                       <th className="px-4 py-2 text-right">未實現損益</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-800">
+                  <tbody className="divide-y divide-border">
                     {exchange.positions.map((position, index) => (
-                      <tr key={`${position.symbol}-${index}`} className="hover:bg-gray-800/20">
-                        <td className="px-4 py-2 text-white font-medium">
+                      <tr key={`${position.symbol}-${index}`} className="hover:bg-muted/20">
+                        <td className="px-4 py-2 text-foreground font-medium">
                           {position.symbol}
                         </td>
                         <td className="px-4 py-2">
                           <span
                             className={`px-2 py-0.5 rounded text-xs font-medium ${
                               position.side === 'LONG'
-                                ? 'bg-green-900/30 text-green-400'
-                                : 'bg-red-900/30 text-red-400'
+                                ? 'bg-profit/20 text-profit'
+                                : 'bg-loss/20 text-loss'
                             }`}
                           >
                             {position.side === 'LONG' ? '做多' : '做空'}
                           </span>
                         </td>
-                        <td className="px-4 py-2 text-right text-gray-300">
+                        <td className="px-4 py-2 text-right text-muted-foreground">
                           {formatQuantity(position.quantity)}
                         </td>
-                        <td className="px-4 py-2 text-right text-gray-300">
+                        <td className="px-4 py-2 text-right text-muted-foreground">
                           {formatUSD(position.entryPrice)}
                         </td>
-                        <td className="px-4 py-2 text-right text-gray-300">
+                        <td className="px-4 py-2 text-right text-muted-foreground">
                           {formatUSD(position.markPrice)}
                         </td>
-                        <td className="px-4 py-2 text-right text-gray-300">
+                        <td className="px-4 py-2 text-right text-muted-foreground">
                           {position.leverage}x
                         </td>
                         <td
                           className={`px-4 py-2 text-right font-medium ${
                             position.unrealizedPnl > 0
-                              ? 'text-green-400'
+                              ? 'text-profit'
                               : position.unrealizedPnl < 0
-                                ? 'text-red-400'
-                                : 'text-gray-300'
+                                ? 'text-loss'
+                                : 'text-muted-foreground'
                           }`}
                         >
                           {formatUSD(position.unrealizedPnl)}
@@ -251,7 +251,7 @@ export function PositionTable({
 
             {/* 無持倉或狀態異常 */}
             {isExpanded && !hasPositions && (
-              <div className="px-4 py-3 text-gray-500 text-sm">
+              <div className="px-4 py-3 text-muted-foreground text-sm">
                 {exchange.status === 'no_api_key'
                   ? '未設定 API Key'
                   : exchange.status === 'api_error'

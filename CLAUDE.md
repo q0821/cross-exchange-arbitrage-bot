@@ -58,6 +58,10 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - PostgreSQL 15 + TimescaleDB（現有 ApiKey 模型已有 `lastValidatedAt` 欄位） (042-api-key-connection-test)
 - TypeScript 5.6+ with Node.js 20.x LTS + CCXT 4.x（BingX connector）, Prisma 5.x（ORM）, Next.js 14（Web）, Socket.io 4.8.1（WebSocket） (043-bingx-integration)
 - PostgreSQL 15 + TimescaleDB（現有 ApiKey、Position、Trade 模型） (043-bingx-integration)
+- TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, React 18, CCXT 4.x, Prisma 5.x, Tailwind CSS, Decimal.js (045-position-details-view)
+- PostgreSQL 15 + TimescaleDB (現有 Position 模型，不新增欄位) (045-position-details-view)
+- TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, React 18, Tailwind CSS 3.4, Radix UI, next-themes (新增) (046-unified-ui-theme)
+- localStorage (用戶主題偏好) (046-unified-ui-theme)
 
 ## Project Structure
 ```
@@ -72,9 +76,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 046-unified-ui-theme: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, React 18, Tailwind CSS 3.4, Radix UI, next-themes (新增)
+- 045-position-details-view: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, React 18, CCXT 4.x, Prisma 5.x, Tailwind CSS, Decimal.js
 - 044-mexc-trading-restriction: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (現有依賴，無需新增)
-- 043-bingx-integration: Added TypeScript 5.6+ with Node.js 20.x LTS + CCXT 4.x（BingX connector）, Prisma 5.x（ORM）, Next.js 14（Web）, Socket.io 4.8.1（WebSocket）
-- 042-api-key-connection-test: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, CCXT 4.x（多交易所抽象）, Prisma 5.x (ORM), Pino（結構化日誌）
 
 <!-- MANUAL ADDITIONS START -->
 

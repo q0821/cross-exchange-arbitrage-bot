@@ -235,16 +235,16 @@ export default function NotificationsSettingsPage() {
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">通知設定</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-foreground">通知設定</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           設定 Discord 或 Slack Webhook 以接收套利機會通知
         </p>
       </div>
 
       {/* 錯誤訊息 */}
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="mb-4 p-4 bg-loss/10 border border-loss/30 rounded-md">
+          <p className="text-sm text-loss">{error}</p>
         </div>
       )}
 
@@ -252,7 +252,7 @@ export default function NotificationsSettingsPage() {
       {!showForm && !editingWebhook && (
         <button
           onClick={() => setShowForm(true)}
-          className="mb-6 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          className="mb-6 px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors"
         >
           新增 Webhook
         </button>
@@ -260,11 +260,11 @@ export default function NotificationsSettingsPage() {
 
       {/* 新增表單 */}
       {showForm && (
-        <div className="mb-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="mb-6 p-6 glass-card">
           <h2 className="text-lg font-semibold mb-4">新增 Webhook</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 平台
               </label>
               <select
@@ -272,7 +272,7 @@ export default function NotificationsSettingsPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, platform: e.target.value as 'discord' | 'slack' })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 <option value="discord">Discord</option>
                 <option value="slack">Slack</option>
@@ -280,7 +280,7 @@ export default function NotificationsSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Webhook URL
               </label>
               <input
@@ -293,12 +293,12 @@ export default function NotificationsSettingsPage() {
                     : 'https://hooks.slack.com/services/...'
                 }
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 名稱
               </label>
               <input
@@ -308,12 +308,12 @@ export default function NotificationsSettingsPage() {
                 placeholder="例：我的套利通知"
                 required
                 maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 年化收益閾值 (%)
               </label>
               <input
@@ -323,9 +323,9 @@ export default function NotificationsSettingsPage() {
                 min={0}
                 max={10000}
                 step={1}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 當年化收益超過此閾值時發送通知（預設 800%）
               </p>
             </div>
@@ -333,10 +333,10 @@ export default function NotificationsSettingsPage() {
             {/* Feature 027: 接收結束通知開關 */}
             <div className="flex items-center justify-between py-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-foreground">
                   接收結束通知
                 </label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   當套利機會費差低於閾值時發送結束通知
                 </p>
               </div>
@@ -344,7 +344,7 @@ export default function NotificationsSettingsPage() {
                 type="button"
                 onClick={() => setFormData({ ...formData, notifyOnDisappear: !formData.notifyOnDisappear })}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  formData.notifyOnDisappear ? 'bg-blue-600' : 'bg-gray-200'
+                  formData.notifyOnDisappear ? 'bg-primary' : 'bg-muted'
                 }`}
               >
                 <span
@@ -357,10 +357,10 @@ export default function NotificationsSettingsPage() {
 
             {/* 通知時間選擇 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 通知時間
               </label>
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-xs text-muted-foreground mb-2">
                 每小時的第幾分鐘發送通知（可選 1-2 個時間點，結算通常在整點）
               </p>
               <div className="flex flex-wrap gap-2">
@@ -392,10 +392,10 @@ export default function NotificationsSettingsPage() {
                       }}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                         isSelected
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-primary text-white'
                           : canSelect
-                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                            ? 'bg-muted text-foreground hover:bg-muted'
+                            : 'bg-muted text-muted-foreground cursor-not-allowed'
                       }`}
                     >
                       :{minute.toString().padStart(2, '0')}
@@ -412,7 +412,7 @@ export default function NotificationsSettingsPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 {isSubmitting ? '建立中...' : '建立'}
               </button>
@@ -422,7 +422,7 @@ export default function NotificationsSettingsPage() {
                   setShowForm(false);
                   setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50] });
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-foreground bg-muted rounded-md hover:bg-muted transition-colors"
               >
                 取消
               </button>
@@ -433,11 +433,11 @@ export default function NotificationsSettingsPage() {
 
       {/* 編輯表單 */}
       {editingWebhook && (
-        <div className="mb-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="mb-6 p-6 glass-card">
           <h2 className="text-lg font-semibold mb-4">編輯 Webhook</h2>
           <form onSubmit={handleUpdate} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 名稱
               </label>
               <input
@@ -446,12 +446,12 @@ export default function NotificationsSettingsPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 maxLength={100}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 新 Webhook URL（留空保持不變）
               </label>
               <input
@@ -459,12 +459,12 @@ export default function NotificationsSettingsPage() {
                 value={formData.webhookUrl}
                 onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
                 placeholder="留空保持現有 URL"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 年化收益閾值 (%)
               </label>
               <input
@@ -474,17 +474,17 @@ export default function NotificationsSettingsPage() {
                 min={0}
                 max={10000}
                 step={1}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
             {/* Feature 027: 接收結束通知開關 */}
             <div className="flex items-center justify-between py-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-foreground">
                   接收結束通知
                 </label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   當套利機會費差低於閾值時發送結束通知
                 </p>
               </div>
@@ -492,7 +492,7 @@ export default function NotificationsSettingsPage() {
                 type="button"
                 onClick={() => setFormData({ ...formData, notifyOnDisappear: !formData.notifyOnDisappear })}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  formData.notifyOnDisappear ? 'bg-blue-600' : 'bg-gray-200'
+                  formData.notifyOnDisappear ? 'bg-primary' : 'bg-muted'
                 }`}
               >
                 <span
@@ -505,10 +505,10 @@ export default function NotificationsSettingsPage() {
 
             {/* 通知時間選擇 */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 通知時間
               </label>
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-xs text-muted-foreground mb-2">
                 每小時的第幾分鐘發送通知（可選 1-2 個時間點，結算通常在整點）
               </p>
               <div className="flex flex-wrap gap-2">
@@ -540,10 +540,10 @@ export default function NotificationsSettingsPage() {
                       }}
                       className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
                         isSelected
-                          ? 'bg-blue-600 text-white'
+                          ? 'bg-primary text-white'
                           : canSelect
-                            ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                            ? 'bg-muted text-foreground hover:bg-muted'
+                            : 'bg-muted text-muted-foreground cursor-not-allowed'
                       }`}
                     >
                       :{minute.toString().padStart(2, '0')}
@@ -560,7 +560,7 @@ export default function NotificationsSettingsPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
               >
                 {isSubmitting ? '儲存中...' : '儲存'}
               </button>
@@ -570,7 +570,7 @@ export default function NotificationsSettingsPage() {
                   setEditingWebhook(null);
                   setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50] });
                 }}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-foreground bg-muted rounded-md hover:bg-muted transition-colors"
               >
                 取消
               </button>
@@ -580,19 +580,19 @@ export default function NotificationsSettingsPage() {
       )}
 
       {/* Webhook 列表 */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
+      <div className="glass-card">
+        <div className="p-4 border-b border-border">
           <h2 className="text-lg font-semibold">已設定的 Webhooks</h2>
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-center text-gray-500">載入中...</div>
+          <div className="p-8 text-center text-muted-foreground">載入中...</div>
         ) : webhooks.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-muted-foreground">
             尚未設定任何 Webhook
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-border">
             {webhooks.map((webhook) => (
               <div key={webhook.id} className="p-4">
                 <div className="flex items-center justify-between">
@@ -601,22 +601,22 @@ export default function NotificationsSettingsPage() {
                     <span
                       className={`px-2 py-1 text-xs font-medium rounded ${
                         webhook.platform === 'discord'
-                          ? 'bg-indigo-100 text-indigo-700'
-                          : 'bg-purple-100 text-purple-700'
+                          ? 'bg-primary/20 text-primary'
+                          : 'bg-secondary/20 text-secondary'
                       }`}
                     >
                       {webhook.platform === 'discord' ? 'Discord' : 'Slack'}
                     </span>
 
                     <div>
-                      <p className="font-medium text-gray-900">{webhook.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-foreground">{webhook.name}</p>
+                      <p className="text-sm text-muted-foreground">
                         閾值：{webhook.threshold}% | 通知時間：
                         {(webhook.notificationMinutes || [50]).map(m => `:${m.toString().padStart(2, '0')}`).join(', ')}
                         {' | '}狀態：
                         <span
                           className={
-                            webhook.isEnabled ? 'text-green-600' : 'text-gray-400'
+                            webhook.isEnabled ? 'text-profit' : 'text-muted-foreground'
                           }
                         >
                           {webhook.isEnabled ? '啟用' : '停用'}
@@ -624,7 +624,7 @@ export default function NotificationsSettingsPage() {
                         {' | '}結束通知：
                         <span
                           className={
-                            webhook.notifyOnDisappear ? 'text-green-600' : 'text-gray-400'
+                            webhook.notifyOnDisappear ? 'text-profit' : 'text-muted-foreground'
                           }
                         >
                           {webhook.notifyOnDisappear ? '開' : '關'}
@@ -638,7 +638,7 @@ export default function NotificationsSettingsPage() {
                     {testResult?.id === webhook.id && (
                       <span
                         className={`text-sm ${
-                          testResult.success ? 'text-green-600' : 'text-red-600'
+                          testResult.success ? 'text-profit' : 'text-loss'
                         }`}
                       >
                         {testResult.message}
@@ -649,7 +649,7 @@ export default function NotificationsSettingsPage() {
                     <button
                       onClick={() => handleTest(webhook.id)}
                       disabled={testingId === webhook.id}
-                      className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded disabled:opacity-50"
+                      className="px-3 py-1 text-sm text-primary hover:bg-primary/10 rounded disabled:opacity-50"
                     >
                       {testingId === webhook.id ? '測試中...' : '測試'}
                     </button>
@@ -659,8 +659,8 @@ export default function NotificationsSettingsPage() {
                       onClick={() => handleToggle(webhook)}
                       className={`px-3 py-1 text-sm rounded ${
                         webhook.isEnabled
-                          ? 'text-yellow-600 hover:bg-yellow-50'
-                          : 'text-green-600 hover:bg-green-50'
+                          ? 'text-warning hover:bg-warning/10'
+                          : 'text-profit hover:bg-profit/10'
                       }`}
                     >
                       {webhook.isEnabled ? '停用' : '啟用'}
@@ -669,7 +669,7 @@ export default function NotificationsSettingsPage() {
                     {/* 編輯 */}
                     <button
                       onClick={() => startEditing(webhook)}
-                      className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded"
+                      className="px-3 py-1 text-sm text-muted-foreground hover:bg-muted rounded"
                     >
                       編輯
                     </button>
@@ -677,7 +677,7 @@ export default function NotificationsSettingsPage() {
                     {/* 刪除 */}
                     <button
                       onClick={() => handleDelete(webhook.id)}
-                      className="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+                      className="px-3 py-1 text-sm text-loss hover:bg-loss/10 rounded"
                     >
                       刪除
                     </button>
@@ -690,9 +690,9 @@ export default function NotificationsSettingsPage() {
       </div>
 
       {/* 說明 */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">如何取得 Webhook URL</h3>
-        <div className="text-sm text-gray-600 space-y-2">
+      <div className="mt-6 p-4 bg-muted rounded-lg">
+        <h3 className="text-sm font-medium text-foreground mb-2">如何取得 Webhook URL</h3>
+        <div className="text-sm text-muted-foreground space-y-2">
           <p>
             <strong>Discord：</strong>伺服器設定 → 整合 → Webhooks → 新 Webhook → 複製 Webhook URL
           </p>

@@ -35,17 +35,17 @@ export function SnapshotTimeline({ snapshots, isLoading }: SnapshotTimelineProps
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-pulse text-gray-400">載入中...</div>
+        <div className="animate-pulse text-muted-foreground">載入中...</div>
       </div>
     );
   }
 
   if (snapshots.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-        <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-        <p className="text-gray-500">尚無快照記錄</p>
-        <p className="text-sm text-gray-400 mt-1">
+      <div className="glass-card p-8 text-center">
+        <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+        <p className="text-muted-foreground">尚無快照記錄</p>
+        <p className="text-sm text-muted-foreground mt-1">
           快照將在下一次資金費率結算時自動記錄
         </p>
       </div>
@@ -87,32 +87,32 @@ export function SnapshotTimeline({ snapshots, isLoading }: SnapshotTimelineProps
         return (
           <div
             key={snapshot.id}
-            className="relative pl-8 pb-4 border-l-2 border-gray-200 last:border-l-0 last:pb-0"
+            className="relative pl-8 pb-4 border-l-2 border-border last:border-l-0 last:pb-0"
           >
             {/* Timeline dot */}
             <div
               className={`absolute left-[-9px] top-0 w-4 h-4 rounded-full border-2 ${
                 snapshot.snapshotType === 'SETTLEMENT'
-                  ? 'bg-blue-500 border-blue-500'
-                  : 'bg-gray-300 border-gray-300'
+                  ? 'bg-primary border-primary'
+                  : 'bg-muted border-muted'
               }`}
             />
 
             {/* Snapshot card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="glass-card p-4">
               {/* Header */}
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span
                     className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
                       snapshot.snapshotType === 'SETTLEMENT'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-700'
+                        ? 'bg-primary/10 text-primary'
+                        : 'bg-muted text-muted-foreground'
                     }`}
                   >
                     {getSettlementSideLabel(snapshot.settlementSide)}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {formatDate(snapshot.recordedAt)}
                   </span>
                 </div>
@@ -121,7 +121,7 @@ export function SnapshotTimeline({ snapshots, isLoading }: SnapshotTimelineProps
                 {snapshot.fundingProfit !== null && (
                   <div
                     className={`flex items-center gap-1 font-medium ${
-                      isPositive ? 'text-green-600' : 'text-red-600'
+                      isPositive ? 'text-profit' : 'text-loss'
                     }`}
                   >
                     <DollarSign className="w-4 h-4" />
@@ -137,8 +137,8 @@ export function SnapshotTimeline({ snapshots, isLoading }: SnapshotTimelineProps
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 {/* Long Rate */}
                 <div>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-                    <TrendingUp className="w-3 h-3 text-green-500" />
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                    <TrendingUp className="w-3 h-3 text-profit" />
                     做多費率
                   </div>
                   <div className="font-mono">{formatRate(snapshot.longRate)}</div>
@@ -146,8 +146,8 @@ export function SnapshotTimeline({ snapshots, isLoading }: SnapshotTimelineProps
 
                 {/* Short Rate */}
                 <div>
-                  <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
-                    <TrendingDown className="w-3 h-3 text-red-500" />
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                    <TrendingDown className="w-3 h-3 text-loss" />
                     做空費率
                   </div>
                   <div className="font-mono">{formatRate(snapshot.shortRate)}</div>
@@ -155,27 +155,27 @@ export function SnapshotTimeline({ snapshots, isLoading }: SnapshotTimelineProps
 
                 {/* Spread */}
                 <div>
-                  <div className="text-xs text-gray-500 mb-1">費率差</div>
+                  <div className="text-xs text-muted-foreground mb-1">費率差</div>
                   <div className="font-mono">{snapshot.spread.toFixed(4)}%</div>
                 </div>
 
                 {/* Annualized */}
                 <div>
-                  <div className="text-xs text-gray-500 mb-1">年化收益</div>
-                  <div className="font-mono text-blue-600">
+                  <div className="text-xs text-muted-foreground mb-1">年化收益</div>
+                  <div className="font-mono text-primary">
                     {Number(snapshot.annualizedReturn).toFixed(2)}%
                   </div>
                 </div>
               </div>
 
               {/* Cumulative Profit */}
-              <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
-                <span className="text-xs text-gray-500">累計收益</span>
+              <div className="mt-3 pt-3 border-t border-border flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">累計收益</span>
                 <span
                   className={`font-medium ${
                     snapshot.cumulativeProfit >= 0
-                      ? 'text-green-600'
-                      : 'text-red-600'
+                      ? 'text-profit'
+                      : 'text-loss'
                   }`}
                 >
                   {snapshot.cumulativeProfit >= 0 ? '+' : ''}

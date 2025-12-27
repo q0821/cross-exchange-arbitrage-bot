@@ -158,26 +158,24 @@ export default function PositionsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-            <span className="ml-2 text-gray-600">載入中...</span>
-          </div>
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <span className="ml-2 text-muted-foreground">載入中...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Briefcase className="w-6 h-6 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900">持倉管理</h1>
-            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm font-medium">
+            <Briefcase className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">持倉管理</h1>
+            <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium">
               {total} 個持倉
             </span>
           </div>
@@ -185,7 +183,7 @@ export default function PositionsPage() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             刷新
@@ -194,10 +192,10 @@ export default function PositionsPage() {
 
         {/* Error Alert */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+          <div className="mb-6 p-4 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 text-loss mt-0.5" />
             <div>
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-sm text-loss">{error}</p>
             </div>
           </div>
         )}
@@ -206,9 +204,9 @@ export default function PositionsPage() {
         {partialPositions.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <AlertCircle className="w-5 h-5 text-orange-500" />
-              <h2 className="text-lg font-semibold text-orange-700">需手動處理</h2>
-              <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full text-xs font-medium">
+              <AlertCircle className="w-5 h-5 text-warning" />
+              <h2 className="text-lg font-semibold text-warning">需手動處理</h2>
+              <span className="bg-warning/10 text-warning px-2 py-0.5 rounded-full text-xs font-medium">
                 {partialPositions.length}
               </span>
             </div>
@@ -227,10 +225,10 @@ export default function PositionsPage() {
 
         {/* Close Position Status Banner */}
         {closePosition.isLoading && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+          <div className="mb-6 p-4 bg-primary/10 border border-primary/30 rounded-lg flex items-center gap-3">
+            <Loader2 className="w-5 h-5 text-primary animate-spin" />
             <div>
-              <p className="text-sm font-medium text-blue-700">
+              <p className="text-sm font-medium text-primary">
                 {closePosition.progress?.message || '正在執行平倉...'}
               </p>
             </div>
@@ -238,43 +236,43 @@ export default function PositionsPage() {
         )}
 
         {closePosition.isSuccess && closePosition.successResult && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="mb-6 p-4 bg-profit/10 border border-profit/30 rounded-lg">
             <div className="flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-profit mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-green-700 mb-2">平倉成功</p>
+                <p className="text-sm font-medium text-profit mb-2">平倉成功</p>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-500">價差損益</p>
-                    <p className={`font-medium ${parseFloat(closePosition.successResult.trade.priceDiffPnL) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className="text-muted-foreground">價差損益</p>
+                    <p className={`font-medium ${parseFloat(closePosition.successResult.trade.priceDiffPnL) >= 0 ? 'text-profit' : 'text-loss'}`}>
                       {parseFloat(closePosition.successResult.trade.priceDiffPnL) >= 0 ? '+' : ''}
                       {parseFloat(closePosition.successResult.trade.priceDiffPnL).toFixed(2)} USDT
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">總損益</p>
-                    <p className={`font-medium ${parseFloat(closePosition.successResult.trade.totalPnL) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className="text-muted-foreground">總損益</p>
+                    <p className={`font-medium ${parseFloat(closePosition.successResult.trade.totalPnL) >= 0 ? 'text-profit' : 'text-loss'}`}>
                       {parseFloat(closePosition.successResult.trade.totalPnL) >= 0 ? '+' : ''}
                       {parseFloat(closePosition.successResult.trade.totalPnL).toFixed(2)} USDT
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">ROI</p>
-                    <p className={`font-medium ${parseFloat(closePosition.successResult.trade.roi) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className="text-muted-foreground">ROI</p>
+                    <p className={`font-medium ${parseFloat(closePosition.successResult.trade.roi) >= 0 ? 'text-profit' : 'text-loss'}`}>
                       {parseFloat(closePosition.successResult.trade.roi) >= 0 ? '+' : ''}
                       {parseFloat(closePosition.successResult.trade.roi).toFixed(2)}%
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500">持倉時間</p>
-                    <p className="font-medium text-gray-900">
+                    <p className="text-muted-foreground">持倉時間</p>
+                    <p className="font-medium text-foreground">
                       {formatDuration(closePosition.successResult.trade.holdingDuration)}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => closePosition.reset()}
-                  className="mt-3 text-xs text-green-600 hover:text-green-700"
+                  className="mt-3 text-xs text-profit hover:text-profit/80"
                 >
                   關閉
                 </button>
@@ -284,25 +282,25 @@ export default function PositionsPage() {
         )}
 
         {closePosition.isPartial && closePosition.partialResult && (
-          <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="mb-6 p-4 bg-warning/10 border border-warning/30 rounded-lg">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-warning mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-orange-700 mb-1">部分平倉成功</p>
-                <p className="text-sm text-orange-600 mb-2">{closePosition.partialResult.message}</p>
+                <p className="text-sm font-medium text-warning mb-1">部分平倉成功</p>
+                <p className="text-sm text-warning mb-2">{closePosition.partialResult.message}</p>
                 <div className="text-sm">
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     <span className="font-medium">已平倉：</span>
                     {closePosition.partialResult.closedSide.exchange} ({closePosition.partialResult.closedSide.side})
                   </p>
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     <span className="font-medium">失敗：</span>
                     {closePosition.partialResult.failedSide.exchange} ({closePosition.partialResult.failedSide.side}) - {closePosition.partialResult.failedSide.error}
                   </p>
                 </div>
                 <button
                   onClick={() => closePosition.reset()}
-                  className="mt-3 text-xs text-orange-600 hover:text-orange-700"
+                  className="mt-3 text-xs text-warning hover:text-warning/80"
                 >
                   關閉
                 </button>
@@ -312,14 +310,14 @@ export default function PositionsPage() {
         )}
 
         {closePosition.isError && closePosition.error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-            <XCircle className="w-5 h-5 text-red-600 mt-0.5" />
+          <div className="mb-6 p-4 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-3">
+            <XCircle className="w-5 h-5 text-loss mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-700">平倉失敗</p>
-              <p className="text-sm text-red-600">{closePosition.error}</p>
+              <p className="text-sm font-medium text-loss">平倉失敗</p>
+              <p className="text-sm text-loss">{closePosition.error}</p>
               <button
                 onClick={() => closePosition.reset()}
-                className="mt-2 text-xs text-red-600 hover:text-red-700"
+                className="mt-2 text-xs text-loss hover:text-loss/80"
               >
                 關閉
               </button>
@@ -331,8 +329,8 @@ export default function PositionsPage() {
         {openPositions.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-lg font-semibold text-gray-800">持倉中</h2>
-              <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-medium">
+              <h2 className="text-lg font-semibold text-foreground">持倉中</h2>
+              <span className="bg-profit/10 text-profit px-2 py-0.5 rounded-full text-xs font-medium">
                 {openPositions.length}
               </span>
             </div>
@@ -355,8 +353,8 @@ export default function PositionsPage() {
         {pendingPositions.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-lg font-semibold text-gray-800">處理中</h2>
-              <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full text-xs font-medium">
+              <h2 className="text-lg font-semibold text-foreground">處理中</h2>
+              <span className="bg-warning/10 text-warning px-2 py-0.5 rounded-full text-xs font-medium">
                 {pendingPositions.length}
               </span>
             </div>
@@ -372,8 +370,8 @@ export default function PositionsPage() {
         {failedPositions.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-lg font-semibold text-gray-800">失敗</h2>
-              <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-medium">
+              <h2 className="text-lg font-semibold text-foreground">失敗</h2>
+              <span className="bg-loss/10 text-loss px-2 py-0.5 rounded-full text-xs font-medium">
                 {failedPositions.length}
               </span>
             </div>
@@ -392,10 +390,10 @@ export default function PositionsPage() {
 
         {/* Empty State */}
         {positions.length === 0 && !error && (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <Briefcase className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">尚無持倉</h3>
-            <p className="text-sm text-gray-500">
+          <div className="text-center py-12 glass-card">
+            <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-foreground mb-1">尚無持倉</h3>
+            <p className="text-sm text-muted-foreground">
               前往市場監控頁面開始套利交易
             </p>
           </div>
@@ -425,6 +423,6 @@ export default function PositionsPage() {
           exchange={closePosition.progress.exchange}
         />
       )}
-    </div>
+    </>
   );
 }

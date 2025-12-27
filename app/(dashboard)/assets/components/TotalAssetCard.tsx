@@ -44,10 +44,10 @@ export function TotalAssetCard({
 
   // 變化顏色
   const getChangeColor = (value: number | null | undefined) => {
-    if (value === null || value === undefined) return 'text-gray-400';
-    if (value > 0) return 'text-green-400';
-    if (value < 0) return 'text-red-400';
-    return 'text-gray-400';
+    if (value === null || value === undefined) return 'text-muted-foreground';
+    if (value > 0) return 'text-profit';
+    if (value < 0) return 'text-loss';
+    return 'text-muted-foreground';
   };
 
   // 格式化變化百分比
@@ -58,14 +58,14 @@ export function TotalAssetCard({
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 rounded-xl p-6 border border-blue-700/30">
+    <div className="glass-card bg-gradient-to-br from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20 rounded-xl p-6">
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
             <DollarSign className="w-4 h-4" />
             <span>總資產</span>
           </div>
-          <div className="text-3xl font-bold text-white">
+          <div className="text-3xl font-bold text-foreground">
             {formatUSD(totalBalanceUSD)}
           </div>
           {(changePercent !== undefined || changeUSD !== undefined) && (
@@ -80,10 +80,10 @@ export function TotalAssetCard({
                 <span
                   className={`text-sm px-2 py-0.5 rounded ${
                     changePercent > 0
-                      ? 'bg-green-900/30 text-green-400'
+                      ? 'bg-profit/20 text-profit'
                       : changePercent < 0
-                        ? 'bg-red-900/30 text-red-400'
-                        : 'bg-gray-800 text-gray-400'
+                        ? 'bg-loss/20 text-loss'
+                        : 'bg-muted text-muted-foreground'
                   }`}
                 >
                   {formatChangePercent(changePercent)}
@@ -92,7 +92,7 @@ export function TotalAssetCard({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-1 text-gray-500 text-xs">
+        <div className="flex items-center gap-1 text-muted-foreground text-xs">
           <Clock className="w-3 h-3" />
           <span>{formatTime(lastUpdated)}</span>
         </div>

@@ -35,7 +35,7 @@ export function CalculationInfoTooltip({
   children,
 }: CalculationInfoTooltipProps) {
   const defaultTrigger = (
-    <span className="inline-flex items-center justify-center w-4 h-4 bg-gray-200 text-gray-600 rounded-full text-xs cursor-help hover:bg-gray-300 transition-colors">
+    <span className="inline-flex items-center justify-center w-4 h-4 bg-muted text-muted-foreground rounded-full text-xs cursor-help hover:bg-muted/80 transition-colors">
       ?
     </span>
   );
@@ -47,23 +47,23 @@ export function CalculationInfoTooltip({
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
-          className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+          className="bg-foreground text-background text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
           sideOffset={5}
         >
           <div className="space-y-1">
             <div className="font-semibold text-sm mb-2">{title}</div>
             {content.map((line, index) => (
-              <div key={index} className="text-gray-200">
+              <div key={index} className="text-background/90">
                 {line}
               </div>
             ))}
             {footer && (
-              <div className="text-gray-400 text-[11px] mt-2 pt-2 border-t border-gray-700">
+              <div className="text-background/70 text-[11px] mt-2 pt-2 border-t border-background/50">
                 {footer}
               </div>
             )}
           </div>
-          <Tooltip.Arrow className="fill-gray-900" />
+          <Tooltip.Arrow className="fill-foreground" />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>

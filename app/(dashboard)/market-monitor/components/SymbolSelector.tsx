@@ -52,22 +52,22 @@ export function SymbolSelector({
     <div className="flex items-center gap-4 flex-wrap">
       {/* 群組選擇器 */}
       <div className="relative">
-        <label className="block text-sm font-medium text-gray-700 mb-1">交易對群組</label>
+        <label className="block text-sm font-medium text-foreground mb-1">交易對群組</label>
         <button
           onClick={() => setIsGroupOpen(!isGroupOpen)}
-          className="w-64 px-4 py-2 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+          className="w-64 px-4 py-2 text-left bg-card border border-border rounded-lg shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
         >
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-medium text-gray-900">
+              <div className="font-medium text-foreground">
                 {currentGroup?.name || '選擇群組'}
               </div>
               {currentGroup && (
-                <div className="text-xs text-gray-500">{currentGroup.symbolCount} 個交易對</div>
+                <div className="text-xs text-muted-foreground">{currentGroup.symbolCount} 個交易對</div>
               )}
             </div>
             <svg
-              className={`w-5 h-5 text-gray-400 transition-transform ${
+              className={`w-5 h-5 text-muted-foreground transition-transform ${
                 isGroupOpen ? 'transform rotate-180' : ''
               }`}
               fill="none"
@@ -94,7 +94,7 @@ export function SymbolSelector({
             ></div>
 
             {/* 選單內容 */}
-            <div className="absolute z-20 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-auto">
+            <div className="absolute z-20 mt-1 w-64 bg-card border border-border rounded-lg shadow-lg max-h-80 overflow-auto">
               {groups.map((group) => (
                 <button
                   key={group.id}
@@ -103,12 +103,12 @@ export function SymbolSelector({
                     setIsGroupOpen(false);
                   }}
                   className={`
-                    w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors
-                    ${selectedGroup === group.id ? 'bg-blue-50' : ''}
+                    w-full px-4 py-3 text-left hover:bg-muted transition-colors
+                    ${selectedGroup === group.id ? 'bg-primary/10' : ''}
                   `}
                 >
-                  <div className="font-medium text-gray-900">{group.name}</div>
-                  <div className="text-xs text-gray-500">{group.symbolCount} 個交易對</div>
+                  <div className="font-medium text-foreground">{group.name}</div>
+                  <div className="text-xs text-muted-foreground">{group.symbolCount} 個交易對</div>
                 </button>
               ))}
             </div>
@@ -118,7 +118,7 @@ export function SymbolSelector({
 
       {/* 狀態篩選 */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">狀態篩選</label>
+        <label className="block text-sm font-medium text-foreground mb-1">狀態篩選</label>
         <div className="flex gap-2">
           {filterOptions.map((option) => (
             <button
@@ -128,8 +128,8 @@ export function SymbolSelector({
                 px-4 py-2 rounded-lg text-sm font-medium transition-colors
                 ${
                   filterStatus === option.value
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    ? 'bg-primary text-white'
+                    : 'bg-card text-foreground border border-border hover:bg-muted'
                 }
               `}
             >

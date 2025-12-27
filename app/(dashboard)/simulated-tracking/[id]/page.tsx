@@ -208,7 +208,7 @@ export default function TrackingDetailPage() {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
         <div className="flex items-center justify-center py-12">
-          <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+          <RefreshCw className="w-8 h-8 text-muted-foreground animate-spin" />
         </div>
       </div>
     );
@@ -217,12 +217,12 @@ export default function TrackingDetailPage() {
   if (error || !tracking) {
     return (
       <div className="container mx-auto p-6 max-w-4xl">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
-          <p className="text-red-700">{error || '追蹤記錄不存在'}</p>
+        <div className="bg-loss/10 border border-loss/30 rounded-lg p-8 text-center">
+          <AlertCircle className="w-12 h-12 text-loss mx-auto mb-3" />
+          <p className="text-loss">{error || '追蹤記錄不存在'}</p>
           <Link
             href="/simulated-tracking"
-            className="inline-flex items-center gap-2 mt-4 text-blue-600 hover:text-blue-800"
+            className="inline-flex items-center gap-2 mt-4 text-primary hover:text-primary/80"
           >
             <ArrowLeft className="w-4 h-4" />
             返回列表
@@ -239,23 +239,23 @@ export default function TrackingDetailPage() {
         <div className="flex items-center gap-4">
           <Link
             href="/simulated-tracking"
-            className="p-2 hover:bg-gray-100 rounded-md transition-colors"
+            className="p-2 hover:bg-muted rounded-md transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
 
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-foreground">
                 {tracking.symbol}
               </h1>
               <span
                 className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
                   tracking.status === 'ACTIVE'
-                    ? 'bg-green-100 text-green-700'
+                    ? 'bg-profit/10 text-profit'
                     : tracking.status === 'STOPPED'
-                    ? 'bg-gray-100 text-gray-700'
-                    : 'bg-orange-100 text-orange-700'
+                    ? 'bg-muted text-muted-foreground'
+                    : 'bg-warning/10 text-warning'
                 }`}
               >
                 <Target className="w-3 h-3" />
@@ -268,13 +268,13 @@ export default function TrackingDetailPage() {
             </div>
 
             {/* Exchange Pair */}
-            <div className="mt-1 flex items-center gap-2 text-sm text-gray-600">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 text-green-700 rounded">
+            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-profit/10 text-profit rounded">
                 <TrendingUp className="w-3 h-3" />
                 <span className="capitalize">{tracking.longExchange}</span>
               </span>
-              <span className="text-gray-400">→</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 text-red-700 rounded">
+              <span className="text-muted-foreground">→</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-loss/10 text-loss rounded">
                 <TrendingDown className="w-3 h-3" />
                 <span className="capitalize">{tracking.shortExchange}</span>
               </span>
@@ -285,7 +285,7 @@ export default function TrackingDetailPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+            className="p-2 text-muted-foreground hover:bg-muted rounded-md transition-colors"
             title="刷新"
           >
             <RefreshCw className="w-5 h-5" />
@@ -295,7 +295,7 @@ export default function TrackingDetailPage() {
             <button
               onClick={handleStop}
               disabled={isStopLoading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-muted rounded-md hover:bg-muted/80 disabled:opacity-50 transition-colors"
             >
               <Square className="w-4 h-4" />
               {isStopLoading ? '處理中...' : '停止追蹤'}
@@ -311,7 +311,7 @@ export default function TrackingDetailPage() {
 
       {/* Snapshot Timeline */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <h2 className="text-lg font-semibold text-foreground mb-4">
           結算歷史 ({snapshots.length})
         </h2>
         <SnapshotTimeline snapshots={snapshots} isLoading={isSnapshotsLoading} />

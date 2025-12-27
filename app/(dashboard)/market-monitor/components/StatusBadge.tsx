@@ -28,26 +28,26 @@ export function StatusBadge({ status, spreadPercent }: StatusBadgeProps) {
         return {
           icon: '🔔',
           label: '機會',
-          bgColor: 'bg-green-100',
-          textColor: 'text-green-800',
-          borderColor: 'border-green-300',
+          bgColor: 'bg-profit/10',
+          textColor: 'text-profit',
+          borderColor: 'border-profit/30',
         };
       case 'approaching':
         return {
           icon: '⚠️',
           label: '接近',
-          bgColor: 'bg-yellow-100',
-          textColor: 'text-yellow-800',
-          borderColor: 'border-yellow-300',
+          bgColor: 'bg-warning/10',
+          textColor: 'text-warning',
+          borderColor: 'border-warning/30',
         };
       case 'normal':
       default:
         return {
           icon: '➖',
           label: '正常',
-          bgColor: 'bg-gray-100',
-          textColor: 'text-gray-600',
-          borderColor: 'border-gray-300',
+          bgColor: 'bg-muted',
+          textColor: 'text-muted-foreground',
+          borderColor: 'border-border',
         };
     }
   };

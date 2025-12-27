@@ -25,16 +25,16 @@ export function FeeEstimateTooltip() {
     <Tooltip.Root delayDuration={200}>
       <Tooltip.Trigger asChild>
         <div className="inline-flex items-center gap-1 cursor-help">
-          <span className="text-gray-700 dark:text-gray-300 font-medium">
+          <span className="text-foreground font-medium">
             0.2%
           </span>
-          <Info className="inline w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <Info className="inline w-4 h-4 text-muted-foreground" />
         </div>
       </Tooltip.Trigger>
       <Tooltip.Portal>
         <Tooltip.Content
           side="bottom"
-          className="bg-gray-900 text-white text-xs rounded px-4 py-3 max-w-sm shadow-lg z-50"
+          className="bg-foreground text-background text-xs rounded px-4 py-3 max-w-sm shadow-lg z-50"
           sideOffset={5}
         >
           <div className="space-y-3">
@@ -43,7 +43,7 @@ export function FeeEstimateTooltip() {
             </h4>
             <table className="w-full text-xs">
               <tbody className="space-y-1">
-                <tr className="border-b border-gray-700">
+                <tr className="border-b border-background/30">
                   <td className="py-1.5 pr-4">
                     建倉做多 (Long Open)
                   </td>
@@ -51,7 +51,7 @@ export function FeeEstimateTooltip() {
                     Taker 0.05%
                   </td>
                 </tr>
-                <tr className="border-b border-gray-700">
+                <tr className="border-b border-background/30">
                   <td className="py-1.5 pr-4">
                     建倉做空 (Short Open)
                   </td>
@@ -59,7 +59,7 @@ export function FeeEstimateTooltip() {
                     Taker 0.05%
                   </td>
                 </tr>
-                <tr className="border-b border-gray-700">
+                <tr className="border-b border-background/30">
                   <td className="py-1.5 pr-4">
                     平倉做多 (Long Close)
                   </td>
@@ -67,7 +67,7 @@ export function FeeEstimateTooltip() {
                     Taker 0.05%
                   </td>
                 </tr>
-                <tr className="border-b border-gray-700">
+                <tr className="border-b border-background/30">
                   <td className="py-1.5 pr-4">
                     平倉做空 (Short Close)
                   </td>
@@ -75,7 +75,7 @@ export function FeeEstimateTooltip() {
                     Taker 0.05%
                   </td>
                 </tr>
-                <tr className="border-t-2 border-gray-600">
+                <tr className="border-t-2 border-background/50">
                   <td className="pt-2 pr-4 font-semibold">
                     總計
                   </td>
@@ -85,11 +85,11 @@ export function FeeEstimateTooltip() {
                 </tr>
               </tbody>
             </table>
-            <p className="text-[11px] text-gray-300 mt-2">
+            <p className="text-[11px] text-background/80 mt-2">
               所有交易統一使用 Taker fee 計算
             </p>
           </div>
-          <Tooltip.Arrow className="fill-gray-900" />
+          <Tooltip.Arrow className="fill-foreground" />
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>

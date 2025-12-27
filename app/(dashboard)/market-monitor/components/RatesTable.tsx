@@ -88,7 +88,7 @@ export function RatesTable({
   // 排序圖標
   const getSortIcon = (field: SortField) => {
     if (sortBy !== field) {
-      return <span className="text-gray-400">↕</span>;
+      return <span className="text-muted-foreground">↕</span>;
     }
     return sortDirection === 'asc' ? <span>↑</span> : <span>↓</span>;
   };
@@ -103,7 +103,7 @@ export function RatesTable({
   if (displayRates.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">
+        <p className="text-muted-foreground">
           {filterStatus === 'all' ? '暫無資料' : `暫無「${filterStatus}」狀態的交易對`}
         </p>
       </div>
@@ -113,9 +113,9 @@ export function RatesTable({
   return (
     <Tooltip.Provider>
       {/* 指標說明區塊 */}
-      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h3 className="text-sm font-semibold text-blue-900 mb-2">關鍵指標說明</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-blue-800">
+      <div className="mb-4 p-4 bg-primary/10 border border-primary/30 rounded-lg">
+        <h3 className="text-sm font-semibold text-primary mb-2">關鍵指標說明</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-primary">
           <div>
             <span className="font-semibold">年化收益：</span>
             <span className="ml-1">費率差異 × 365 × 3（每 8 小時結算，一年 1095 次）</span>
@@ -131,13 +131,13 @@ export function RatesTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+        <table className="min-w-full divide-y divide-border">
+          <thead className="bg-muted">
             <tr>
               {/* 交易對 */}
               <th
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors"
                 onClick={() => handleSort('symbol')}
               >
                 <div className="flex items-center gap-1">
@@ -147,33 +147,33 @@ export function RatesTable({
               </th>
 
               {/* Binance 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Binance 費率
               </th>
 
               {/* OKX 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 OKX 費率
               </th>
 
               {/* MEXC 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 MEXC 費率
               </th>
 
               {/* Gate.io 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Gate.io 費率
               </th>
 
               {/* BingX 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 BingX 費率
               </th>
 
               {/* 費率差異 */}
               <th
-                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors"
                 onClick={() => handleSort('spread')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -184,7 +184,7 @@ export function RatesTable({
 
               {/* 年化收益 */}
               <th
-                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors"
                 onClick={() => handleSort('annualizedReturn')}
               >
                 <Tooltip.Root>
@@ -196,17 +196,17 @@ export function RatesTable({
                   </Tooltip.Trigger>
                   <Tooltip.Portal>
                     <Tooltip.Content
-                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+                      className="bg-foreground text-background text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
                       sideOffset={5}
                     >
                       <div className="space-y-1">
                         <div className="font-semibold">計算公式：</div>
                         <div>年化收益 = 費率差異 × 365 × 3</div>
-                        <div className="text-gray-300 text-[11px] mt-1">
+                        <div className="text-muted-foreground text-[11px] mt-1">
                           （資金費率每 8 小時結算一次，一年 1095 次）
                         </div>
                       </div>
-                      <Tooltip.Arrow className="fill-gray-900" />
+                      <Tooltip.Arrow className="fill-foreground" />
                     </Tooltip.Content>
                   </Tooltip.Portal>
                 </Tooltip.Root>
@@ -214,7 +214,7 @@ export function RatesTable({
 
               {/* 價差 */}
               <th
-                className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted transition-colors"
                 onClick={() => handleSort('priceDiff')}
               >
                 <Tooltip.Root>
@@ -226,41 +226,41 @@ export function RatesTable({
                   </Tooltip.Trigger>
                   <Tooltip.Portal>
                     <Tooltip.Content
-                      className="bg-gray-900 text-white text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
+                      className="bg-foreground text-background text-xs rounded px-3 py-2 max-w-xs shadow-lg z-50"
                       sideOffset={5}
                     >
                       <div className="space-y-1">
                         <div className="font-semibold">計算公式：</div>
                         <div>價差 = (做空價格 - 做多價格) / 平均價格 × 100</div>
-                        <div className="text-gray-300 text-[11px] mt-1">
+                        <div className="text-muted-foreground text-[11px] mt-1">
                           正值表示有利（做空價格較高），負值表示不利
                         </div>
                       </div>
-                      <Tooltip.Arrow className="fill-gray-900" />
+                      <Tooltip.Arrow className="fill-foreground" />
                     </Tooltip.Content>
                   </Tooltip.Portal>
                 </Tooltip.Root>
               </th>
 
               {/* 預估手續費 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 <div className="flex items-center justify-end gap-1">
                   <span>預估手續費</span>
                 </div>
               </th>
 
               {/* 狀態 */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 狀態
               </th>
 
               {/* 操作 */}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 操作
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-card divide-y divide-border">
             {displayRates.map((rate) => {
               // Feature 029: 計算是否正在追蹤此機會
               const isTracking = isTrackingFn && rate.bestPair

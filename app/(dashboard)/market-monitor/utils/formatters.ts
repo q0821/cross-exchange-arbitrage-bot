@@ -35,9 +35,7 @@ export function formatNetProfit(netProfit: number): {
 
   return {
     value: isPositive ? `+${value}` : value,
-    colorClass: isPositive
-      ? 'text-green-600 dark:text-green-400'
-      : 'text-red-600 dark:text-red-400',
+    colorClass: isPositive ? 'text-profit' : 'text-loss',
   };
 }
 

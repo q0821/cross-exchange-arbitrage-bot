@@ -53,45 +53,45 @@ export function TrackingHistoryTable({
 }: TrackingHistoryTableProps) {
   if (trackings.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-        <p className="text-gray-500">尚無歷史追蹤記錄</p>
+      <div className="glass-card p-8 text-center">
+        <p className="text-muted-foreground">尚無歷史追蹤記錄</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="glass-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
+          <thead className="bg-muted/50">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 交易對
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 方向
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 倉位/均價
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 累計收益
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 結算次數
               </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 狀態
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 開/關倉時間
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 操作
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-border">
             {trackings.map((tracking) => {
               const profitPercentage =
                 (tracking.totalFundingProfit / tracking.simulatedCapital) * 100;
@@ -101,13 +101,13 @@ export function TrackingHistoryTable({
               return (
                 <tr
                   key={tracking.id}
-                  className="hover:bg-gray-50 transition-colors"
+                  className="hover:bg-muted/50 transition-colors"
                 >
                   {/* Symbol */}
                   <td className="px-4 py-3">
                     <Link
                       href={`/simulated-tracking/${tracking.id}`}
-                      className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                      className="font-medium text-primary hover:text-primary/80 hover:underline"
                     >
                       {tracking.symbol}
                     </Link>
@@ -116,12 +116,12 @@ export function TrackingHistoryTable({
                   {/* Direction */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 text-xs">
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-green-50 text-green-700 rounded">
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-profit/10 text-profit rounded">
                         <TrendingUp className="w-3 h-3" />
                         <span className="capitalize">{tracking.longExchange}</span>
                       </span>
-                      <span className="text-gray-400">→</span>
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-red-50 text-red-700 rounded">
+                      <span className="text-muted-foreground">→</span>
+                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-loss/10 text-loss rounded">
                         <TrendingDown className="w-3 h-3" />
                         <span className="capitalize">{tracking.shortExchange}</span>
                       </span>
@@ -134,9 +134,9 @@ export function TrackingHistoryTable({
                       <div>
                         <div className="font-mono text-sm">
                           {tracking.positionQuantity.toFixed(4)}{' '}
-                          <span className="text-xs text-gray-500">{coinSymbol}</span>
+                          <span className="text-xs text-muted-foreground">{coinSymbol}</span>
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-muted-foreground">
                           {tracking.initialLongPrice ? `$${tracking.initialLongPrice.toFixed(4)}` : 'N/A'}
                           {' / '}
                           {tracking.initialShortPrice ? `$${tracking.initialShortPrice.toFixed(4)}` : 'N/A'}
@@ -157,13 +157,13 @@ export function TrackingHistoryTable({
                           <span className="cursor-help inline-block">
                             <span
                               className={`font-mono text-sm ${
-                                isPositive ? 'text-green-600' : 'text-red-600'
+                                isPositive ? 'text-profit' : 'text-loss'
                               }`}
                             >
                               {isPositive ? '+' : ''}
                               {tracking.totalFundingProfit.toFixed(2)}
                             </span>
-                            <span className="text-xs text-gray-500 ml-1">
+                            <span className="text-xs text-muted-foreground ml-1">
                               ({isPositive ? '+' : ''}
                               {profitPercentage.toFixed(2)}%)
                             </span>
@@ -171,32 +171,32 @@ export function TrackingHistoryTable({
                         </Tooltip.Trigger>
                         <Tooltip.Portal>
                           <Tooltip.Content
-                            className="z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg"
+                            className="z-50 bg-popover text-popover-foreground text-xs rounded-lg px-3 py-2 shadow-lg border border-border"
                             sideOffset={5}
                           >
                             <div className="space-y-1.5 min-w-[180px]">
-                              <div className="font-medium text-gray-300 border-b border-gray-700 pb-1 mb-1">
+                              <div className="font-medium text-muted-foreground border-b border-border pb-1 mb-1">
                                 收益明細
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-400">開倉價格：</span>
+                                <span className="text-muted-foreground">開倉價格：</span>
                                 <span>
                                   ${tracking.initialLongPrice?.toFixed(4) ?? 'N/A'} / ${tracking.initialShortPrice?.toFixed(4) ?? 'N/A'}
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-400">關倉價格：</span>
+                                <span className="text-muted-foreground">關倉價格：</span>
                                 <span>
                                   ${tracking.exitLongPrice?.toFixed(4) ?? 'N/A'} / ${tracking.exitShortPrice?.toFixed(4) ?? 'N/A'}
                                 </span>
                               </div>
                               <div className="flex justify-between">
-                                <span className="text-gray-400">結算次數：</span>
+                                <span className="text-muted-foreground">結算次數：</span>
                                 <span>{tracking.totalSettlements} 次</span>
                               </div>
-                              <div className="flex justify-between border-t border-gray-700 pt-1 mt-1">
-                                <span className="text-gray-400">資費收益：</span>
-                                <span className={tracking.fundingPnl != null && tracking.fundingPnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                              <div className="flex justify-between border-t border-border pt-1 mt-1">
+                                <span className="text-muted-foreground">資費收益：</span>
+                                <span className={tracking.fundingPnl != null && tracking.fundingPnl >= 0 ? 'text-profit' : 'text-loss'}>
                                   {tracking.fundingPnl != null
                                     ? `${tracking.fundingPnl >= 0 ? '+' : ''}$${tracking.fundingPnl.toFixed(2)}`
                                     : 'N/A'}
@@ -204,22 +204,22 @@ export function TrackingHistoryTable({
                               </div>
                               {tracking.pricePnl != null && (
                                 <div className="flex justify-between">
-                                  <span className="text-gray-400">幣價損益：</span>
-                                  <span className={tracking.pricePnl >= 0 ? 'text-green-400' : 'text-red-400'}>
+                                  <span className="text-muted-foreground">幣價損益：</span>
+                                  <span className={tracking.pricePnl >= 0 ? 'text-profit' : 'text-loss'}>
                                     {tracking.pricePnl >= 0 ? '+' : ''}${tracking.pricePnl.toFixed(2)}
                                   </span>
                                 </div>
                               )}
                               {tracking.tradingCost != null && (
                                 <div className="flex justify-between">
-                                  <span className="text-gray-400">交易成本：</span>
-                                  <span className="text-yellow-400">
+                                  <span className="text-muted-foreground">交易成本：</span>
+                                  <span className="text-warning">
                                     -${tracking.tradingCost.toFixed(2)}
                                   </span>
                                 </div>
                               )}
                             </div>
-                            <Tooltip.Arrow className="fill-gray-900" />
+                            <Tooltip.Arrow className="fill-popover" />
                           </Tooltip.Content>
                         </Tooltip.Portal>
                       </Tooltip.Root>
@@ -236,8 +236,8 @@ export function TrackingHistoryTable({
                     <span
                       className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
                         tracking.status === 'STOPPED'
-                          ? 'bg-gray-100 text-gray-700'
-                          : 'bg-orange-100 text-orange-700'
+                          ? 'bg-muted text-muted-foreground'
+                          : 'bg-warning/10 text-warning'
                       }`}
                     >
                       {tracking.status === 'STOPPED' ? '已停止' : '已過期'}
@@ -245,10 +245,10 @@ export function TrackingHistoryTable({
                   </td>
 
                   {/* Open/Close Time */}
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
                     <div className="space-y-0.5">
                       <div className="text-xs">
-                        <span className="text-gray-400">開: </span>
+                        <span className="text-muted-foreground">開: </span>
                         {new Date(tracking.startedAt).toLocaleString('zh-TW', {
                           month: '2-digit',
                           day: '2-digit',
@@ -258,7 +258,7 @@ export function TrackingHistoryTable({
                         })}
                       </div>
                       <div className="text-xs">
-                        <span className="text-gray-400">關: </span>
+                        <span className="text-muted-foreground">關: </span>
                         {tracking.stoppedAt
                           ? new Date(tracking.stoppedAt).toLocaleString('zh-TW', {
                               month: '2-digit',
@@ -278,7 +278,7 @@ export function TrackingHistoryTable({
                       <button
                         onClick={() => onDelete(tracking.id)}
                         disabled={isDeleteLoading && deletingId === tracking.id}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                        className="p-1.5 text-muted-foreground hover:text-loss hover:bg-loss/10 rounded-md transition-colors disabled:opacity-50"
                         title="刪除"
                       >
                         <Trash2 className="w-4 h-4" />

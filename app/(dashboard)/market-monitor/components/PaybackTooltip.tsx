@@ -52,12 +52,12 @@ export function PaybackTooltip({ payback, children }: PaybackTooltipProps) {
         </Tooltip.Trigger>
         <Tooltip.Portal>
           <Tooltip.Content
-            className="z-50 overflow-hidden rounded-md border border-gray-200 bg-white px-3 py-2 text-sm shadow-md animate-in fade-in-0 zoom-in-95"
+            className="z-50 overflow-hidden rounded-md border border-border bg-card px-3 py-2 text-sm shadow-md animate-in fade-in-0 zoom-in-95"
             sideOffset={5}
           >
             <div className="flex flex-col gap-2 min-w-[200px] max-w-[320px]">
               {/* 標題 */}
-              <div className="font-semibold text-gray-900">
+              <div className="font-semibold text-foreground">
                 價差回本詳情
               </div>
 
@@ -65,8 +65,8 @@ export function PaybackTooltip({ payback, children }: PaybackTooltipProps) {
               <div className="flex flex-col gap-1 text-xs">
                 {/* 當前價差 */}
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">當前價差：</span>
-                  <span className="font-mono font-medium text-gray-900">
+                  <span className="text-muted-foreground">當前價差：</span>
+                  <span className="font-mono font-medium text-foreground">
                     {details.priceDiff !== null
                       ? `${Number(details.priceDiff) >= 0 ? '+' : ''}${Number(details.priceDiff).toFixed(2)}%`
                       : 'N/A'}
@@ -75,25 +75,25 @@ export function PaybackTooltip({ payback, children }: PaybackTooltipProps) {
 
                 {/* 費率差異 */}
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">費率差異：</span>
-                  <span className="font-mono font-medium text-gray-900">
+                  <span className="text-muted-foreground">費率差異：</span>
+                  <span className="font-mono font-medium text-foreground">
                     {Number(details.rateSpread).toFixed(2)}%
                   </span>
                 </div>
 
                 {/* 計算公式 */}
-                <div className="mt-1 pt-2 border-t border-gray-200">
-                  <div className="text-gray-600 mb-1">計算說明：</div>
-                  <div className="text-gray-800 leading-relaxed">
+                <div className="mt-1 pt-2 border-t border-border">
+                  <div className="text-muted-foreground mb-1">計算說明：</div>
+                  <div className="text-foreground leading-relaxed">
                     {details.formula}
                   </div>
                 </div>
 
                 {/* 預估回本時間 */}
                 {estimatedHours !== undefined && (
-                  <div className="flex justify-between items-center mt-1 pt-2 border-t border-gray-200">
-                    <span className="text-gray-600">預估時間：</span>
-                    <span className="font-medium text-gray-900">
+                  <div className="flex justify-between items-center mt-1 pt-2 border-t border-border">
+                    <span className="text-muted-foreground">預估時間：</span>
+                    <span className="font-medium text-foreground">
                       {formatEstimatedTime(estimatedHours)}
                     </span>
                   </div>
@@ -101,8 +101,8 @@ export function PaybackTooltip({ payback, children }: PaybackTooltipProps) {
 
                 {/* 警告訊息（如果有） */}
                 {details.warning && (
-                  <div className="mt-2 pt-2 border-t border-gray-200">
-                    <div className="text-orange-600 text-xs leading-relaxed">
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <div className="text-warning text-xs leading-relaxed">
                       {details.warning}
                     </div>
                   </div>
@@ -110,7 +110,7 @@ export function PaybackTooltip({ payback, children }: PaybackTooltipProps) {
               </div>
 
               {/* 免責聲明 */}
-              <div className="mt-2 pt-2 border-t border-gray-200 text-[10px] text-gray-500 leading-relaxed">
+              <div className="mt-2 pt-2 border-t border-border text-[10px] text-muted-foreground leading-relaxed">
                 ⚠️ 注意：回本次數基於當前費率差計算，實際費率可能波動。此指標僅供參考，不構成投資建議。
               </div>
             </div>

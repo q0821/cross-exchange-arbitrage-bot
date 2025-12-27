@@ -147,10 +147,10 @@ export default function SimulatedTrackingPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Target className="w-8 h-8 text-blue-600" />
+          <Target className="w-8 h-8 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">模擬追蹤</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-2xl font-bold text-foreground">模擬追蹤</h1>
+            <p className="text-sm text-muted-foreground">
               追蹤套利機會並模擬收益表現
             </p>
           </div>
@@ -159,7 +159,7 @@ export default function SimulatedTrackingPage() {
         <button
           onClick={fetchTrackings}
           disabled={isLoading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted disabled:opacity-50 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
           刷新
@@ -168,34 +168,34 @@ export default function SimulatedTrackingPage() {
 
       {/* Error Message */}
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="mb-6 p-4 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 text-loss mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-loss">{error}</p>
         </div>
       )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500 mb-1">活躍追蹤數</div>
-          <div className="text-2xl font-bold text-gray-900">
+        <div className="glass-card p-4">
+          <div className="text-sm text-muted-foreground mb-1">活躍追蹤數</div>
+          <div className="text-2xl font-bold text-foreground">
             {activeTrackings.length}
-            <span className="text-sm font-normal text-gray-500 ml-1">/ 5</span>
+            <span className="text-sm font-normal text-muted-foreground ml-1">/ 5</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500 mb-1">活躍模擬資金</div>
-          <div className="text-2xl font-bold text-gray-900">
+        <div className="glass-card p-4">
+          <div className="text-sm text-muted-foreground mb-1">活躍模擬資金</div>
+          <div className="text-2xl font-bold text-foreground">
             ${totalCapital.toLocaleString()}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <div className="text-sm text-gray-500 mb-1">累計總收益</div>
+        <div className="glass-card p-4">
+          <div className="text-sm text-muted-foreground mb-1">累計總收益</div>
           <div
             className={`text-2xl font-bold ${
-              totalProfit >= 0 ? 'text-green-600' : 'text-red-600'
+              totalProfit >= 0 ? 'text-profit' : 'text-loss'
             }`}
           >
             {totalProfit >= 0 ? '+' : ''}${totalProfit.toFixed(2)}
@@ -206,21 +206,21 @@ export default function SimulatedTrackingPage() {
       {/* Loading State */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <RefreshCw className="w-8 h-8 text-gray-400 animate-spin" />
+          <RefreshCw className="w-8 h-8 text-muted-foreground animate-spin" />
         </div>
       ) : (
         <>
           {/* Active Trackings */}
           <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               活躍追蹤 ({activeTrackings.length})
             </h2>
 
             {activeTrackings.length === 0 ? (
-              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-                <Target className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500 mb-2">尚無活躍追蹤</p>
-                <p className="text-sm text-gray-400">
+              <div className="glass-card p-8 text-center">
+                <Target className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground mb-2">尚無活躍追蹤</p>
+                <p className="text-sm text-muted-foreground">
                   前往市場監控頁面，點擊追蹤按鈕開始追蹤套利機會
                 </p>
               </div>
@@ -240,7 +240,7 @@ export default function SimulatedTrackingPage() {
 
           {/* History Trackings */}
           <section>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
               歷史記錄 ({historyTrackings.length})
             </h2>
 

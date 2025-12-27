@@ -119,7 +119,19 @@
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
       "Bash(wc:*)",
-      "Skill(speckit.specify)"
+      "Skill(speckit.specify)",
+      "Skill(speckit.tasks)",
+      "Bash(pnpm prisma db execute:*)",
+      "Bash(app/\\\\\\(dashboard\\\\\\)/positions/components/AnnualizedReturnDisplay.tsx )",
+      "Bash(app/\\\\\\(dashboard\\\\\\)/positions/components/FundingFeeBreakdown.tsx )",
+      "Bash(app/\\\\\\(dashboard\\\\\\)/positions/components/PositionDetailsPanel.tsx )",
+      "Bash(app/\\\\\\(dashboard\\\\\\)/positions/components/PositionCard.tsx )",
+      "Bash(app/\\\\\\(dashboard\\\\\\)/positions/hooks/usePositionDetails.ts )",
+      "Bash(app/api/positions/[id]/details/ )",
+      "Bash(src/services/trading/PositionDetailsService.ts )",
+      "Bash(src/types/trading.ts )",
+      "Bash(specs/045-position-details-view/)",
+      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/046-unified-ui-theme/checklists\" ])"
     ],
     "deny": [],
     "ask": []

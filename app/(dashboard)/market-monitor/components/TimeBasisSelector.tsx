@@ -62,10 +62,10 @@ export function TimeBasisSelector({
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label className="text-sm font-medium text-foreground">
         時間基準:
       </label>
-      <div className="flex gap-1 rounded-md border border-gray-300 dark:border-gray-600 p-1">
+      <div className="flex gap-1 rounded-md border border-border p-1">
         {TIME_BASIS_OPTIONS.map((option) => (
           <button
             key={option.value}
@@ -74,8 +74,8 @@ export function TimeBasisSelector({
               px-3 py-1 text-sm font-medium rounded transition-colors
               ${
                 selectedBasis === option.value
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-primary text-white'
+                  : 'bg-transparent text-foreground hover:bg-muted'
               }
             `}
           >

@@ -114,20 +114,20 @@ export function TradeCard({ trade }: TradeCardProps) {
   }, [isExpanded, fundingDetails, fundingLoading, fetchFundingDetails]);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+    <div className="glass-card rounded-lg border border-border shadow-sm hover:shadow-md transition-shadow">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100">
+      <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-semibold text-gray-900">{trade.symbol}</h3>
+            <h3 className="text-lg font-semibold text-foreground">{trade.symbol}</h3>
             {trade.status === 'PARTIAL' && (
-              <span className="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 rounded-full">
+              <span className="px-2 py-0.5 text-xs font-medium bg-warning/10 text-warning rounded-full">
                 部分成功
               </span>
             )}
           </div>
           <div
-            className={`text-right ${isProfitable ? 'text-green-600' : 'text-red-600'}`}
+            className={`text-right ${isProfitable ? 'text-profit' : 'text-loss'}`}
           >
             <p className="text-lg font-bold">
               {isProfitable ? '+' : ''}
@@ -139,7 +139,7 @@ export function TradeCard({ trade }: TradeCardProps) {
             </p>
           </div>
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           {closedDate.toLocaleDateString()} {closedDate.toLocaleTimeString()}
         </p>
       </div>
@@ -149,53 +149,53 @@ export function TradeCard({ trade }: TradeCardProps) {
         <div className="grid grid-cols-2 gap-4 mb-3">
           {/* Long Side */}
           <div className="space-y-1">
-            <div className="flex items-center gap-1 text-green-600">
+            <div className="flex items-center gap-1 text-profit">
               <ArrowUpCircle className="w-4 h-4" />
               <span className="text-sm font-medium">做多</span>
             </div>
-            <p className="text-sm text-gray-900 capitalize">{trade.longExchange}</p>
+            <p className="text-sm text-foreground capitalize">{trade.longExchange}</p>
           </div>
 
           {/* Short Side */}
           <div className="space-y-1">
-            <div className="flex items-center gap-1 text-red-600">
+            <div className="flex items-center gap-1 text-loss">
               <ArrowDownCircle className="w-4 h-4" />
               <span className="text-sm font-medium">做空</span>
             </div>
-            <p className="text-sm text-gray-900 capitalize">{trade.shortExchange}</p>
+            <p className="text-sm text-foreground capitalize">{trade.shortExchange}</p>
           </div>
         </div>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-3 gap-3 text-sm">
-          <div className="text-center p-2 bg-gray-50 rounded">
-            <p className="text-xs text-gray-500 mb-1">價差損益</p>
+          <div className="text-center p-2 bg-muted rounded">
+            <p className="text-xs text-muted-foreground mb-1">價差損益</p>
             <p
               className={`font-medium ${
-                parseFloat(trade.priceDiffPnL) >= 0 ? 'text-green-600' : 'text-red-600'
+                parseFloat(trade.priceDiffPnL) >= 0 ? 'text-profit' : 'text-loss'
               }`}
             >
               {parseFloat(trade.priceDiffPnL) >= 0 ? '+' : ''}
               {formatNumber(trade.priceDiffPnL)}
             </p>
           </div>
-          <div className="text-center p-2 bg-gray-50 rounded">
-            <p className="text-xs text-gray-500 mb-1">資金費率</p>
+          <div className="text-center p-2 bg-muted rounded">
+            <p className="text-xs text-muted-foreground mb-1">資金費率</p>
             <p
               className={`font-medium ${
-                parseFloat(trade.fundingRatePnL) >= 0 ? 'text-green-600' : 'text-red-600'
+                parseFloat(trade.fundingRatePnL) >= 0 ? 'text-profit' : 'text-loss'
               }`}
             >
               {parseFloat(trade.fundingRatePnL) >= 0 ? '+' : ''}
               {formatNumber(trade.fundingRatePnL)}
             </p>
           </div>
-          <div className="text-center p-2 bg-gray-50 rounded">
-            <div className="flex items-center justify-center gap-1 text-xs text-gray-500 mb-1">
+          <div className="text-center p-2 bg-muted rounded">
+            <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1">
               <Clock className="w-3 h-3" />
               持倉時間
             </div>
-            <p className="font-medium text-gray-900 text-xs">
+            <p className="font-medium text-foreground text-xs">
               {formatDuration(trade.holdingDuration)}
             </p>
           </div>
@@ -204,7 +204,7 @@ export function TradeCard({ trade }: TradeCardProps) {
         {/* Expand Button */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full mt-3 pt-3 border-t border-gray-100 flex items-center justify-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+          className="w-full mt-3 pt-3 border-t border-border flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           {isExpanded ? (
             <>
@@ -221,39 +221,39 @@ export function TradeCard({ trade }: TradeCardProps) {
 
         {/* Expanded Details */}
         {isExpanded && (
-          <div className="mt-3 pt-3 border-t border-gray-100 space-y-3">
+          <div className="mt-3 pt-3 border-t border-border space-y-3">
             {/* Long Side Details */}
             <div className="text-sm">
-              <h4 className="flex items-center gap-1 font-medium text-green-600 mb-2">
+              <h4 className="flex items-center gap-1 font-medium text-profit mb-2">
                 <TrendingUp className="w-4 h-4" />
                 多頭詳情 ({trade.longExchange})
               </h4>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span className="text-gray-500">開倉價:</span>
-                  <span className="ml-1 text-gray-900">
+                  <span className="text-muted-foreground">開倉價:</span>
+                  <span className="ml-1 text-foreground">
                     ${formatNumber(trade.longEntryPrice)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">平倉價:</span>
-                  <span className="ml-1 text-gray-900">
+                  <span className="text-muted-foreground">平倉價:</span>
+                  <span className="ml-1 text-foreground">
                     ${formatNumber(trade.longExitPrice)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">數量:</span>
-                  <span className="ml-1 text-gray-900">
+                  <span className="text-muted-foreground">數量:</span>
+                  <span className="ml-1 text-foreground">
                     {formatNumber(trade.longPositionSize, 4)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">損益:</span>
+                  <span className="text-muted-foreground">損益:</span>
                   <span
                     className={`ml-1 ${
                       parseFloat(trade.longExitPrice) >= parseFloat(trade.longEntryPrice)
-                        ? 'text-green-600'
-                        : 'text-red-600'
+                        ? 'text-profit'
+                        : 'text-loss'
                     }`}
                   >
                     {(
@@ -267,36 +267,36 @@ export function TradeCard({ trade }: TradeCardProps) {
 
             {/* Short Side Details */}
             <div className="text-sm">
-              <h4 className="flex items-center gap-1 font-medium text-red-600 mb-2">
+              <h4 className="flex items-center gap-1 font-medium text-loss mb-2">
                 <TrendingDown className="w-4 h-4" />
                 空頭詳情 ({trade.shortExchange})
               </h4>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span className="text-gray-500">開倉價:</span>
-                  <span className="ml-1 text-gray-900">
+                  <span className="text-muted-foreground">開倉價:</span>
+                  <span className="ml-1 text-foreground">
                     ${formatNumber(trade.shortEntryPrice)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">平倉價:</span>
-                  <span className="ml-1 text-gray-900">
+                  <span className="text-muted-foreground">平倉價:</span>
+                  <span className="ml-1 text-foreground">
                     ${formatNumber(trade.shortExitPrice)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">數量:</span>
-                  <span className="ml-1 text-gray-900">
+                  <span className="text-muted-foreground">數量:</span>
+                  <span className="ml-1 text-foreground">
                     {formatNumber(trade.shortPositionSize, 4)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">損益:</span>
+                  <span className="text-muted-foreground">損益:</span>
                   <span
                     className={`ml-1 ${
                       parseFloat(trade.shortEntryPrice) >= parseFloat(trade.shortExitPrice)
-                        ? 'text-green-600'
-                        : 'text-red-600'
+                        ? 'text-profit'
+                        : 'text-loss'
                     }`}
                   >
                     {(
@@ -310,41 +310,41 @@ export function TradeCard({ trade }: TradeCardProps) {
 
             {/* Funding Fee Details */}
             <div className="text-sm">
-              <h4 className="flex items-center gap-1 font-medium text-blue-600 mb-2">
+              <h4 className="flex items-center gap-1 font-medium text-primary mb-2">
                 <DollarSign className="w-4 h-4" />
                 資金費率明細
               </h4>
 
               {fundingLoading && (
-                <div className="flex items-center justify-center py-4 text-gray-500">
+                <div className="flex items-center justify-center py-4 text-muted-foreground">
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   載入中...
                 </div>
               )}
 
               {fundingError && (
-                <div className="text-xs text-red-500 py-2">{fundingError}</div>
+                <div className="text-xs text-loss py-2">{fundingError}</div>
               )}
 
               {fundingDetails && (
                 <div className="space-y-3">
                   {/* Summary */}
-                  <div className="grid grid-cols-3 gap-2 text-xs bg-blue-50 p-2 rounded">
+                  <div className="grid grid-cols-3 gap-2 text-xs bg-primary/10 p-2 rounded">
                     <div className="text-center">
-                      <p className="text-gray-500">多頭 ({fundingDetails.longExchange})</p>
-                      <p className={`font-medium ${parseFloat(fundingDetails.longTotal) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <p className="text-muted-foreground">多頭 ({fundingDetails.longExchange})</p>
+                      <p className={`font-medium ${parseFloat(fundingDetails.longTotal) >= 0 ? 'text-profit' : 'text-loss'}`}>
                         {parseFloat(fundingDetails.longTotal) >= 0 ? '+' : ''}{parseFloat(fundingDetails.longTotal).toFixed(4)}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-gray-500">空頭 ({fundingDetails.shortExchange})</p>
-                      <p className={`font-medium ${parseFloat(fundingDetails.shortTotal) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <p className="text-muted-foreground">空頭 ({fundingDetails.shortExchange})</p>
+                      <p className={`font-medium ${parseFloat(fundingDetails.shortTotal) >= 0 ? 'text-profit' : 'text-loss'}`}>
                         {parseFloat(fundingDetails.shortTotal) >= 0 ? '+' : ''}{parseFloat(fundingDetails.shortTotal).toFixed(4)}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-gray-500">總計</p>
-                      <p className={`font-medium ${parseFloat(fundingDetails.total) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      <p className="text-muted-foreground">總計</p>
+                      <p className={`font-medium ${parseFloat(fundingDetails.total) >= 0 ? 'text-profit' : 'text-loss'}`}>
                         {parseFloat(fundingDetails.total) >= 0 ? '+' : ''}{parseFloat(fundingDetails.total).toFixed(4)}
                       </p>
                     </div>
@@ -353,10 +353,10 @@ export function TradeCard({ trade }: TradeCardProps) {
                   {/* Long Entries */}
                   {fundingDetails.longEntries.length > 0 && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">多頭結算記錄 ({fundingDetails.longEntries.length} 筆)</p>
-                      <div className="max-h-32 overflow-y-auto border rounded">
+                      <p className="text-xs text-muted-foreground mb-1">多頭結算記錄 ({fundingDetails.longEntries.length} 筆)</p>
+                      <div className="max-h-32 overflow-y-auto border border-border rounded">
                         <table className="w-full text-xs">
-                          <thead className="bg-gray-50 sticky top-0">
+                          <thead className="bg-muted sticky top-0">
                             <tr>
                               <th className="px-2 py-1 text-left">時間</th>
                               <th className="px-2 py-1 text-right">金額</th>
@@ -364,9 +364,9 @@ export function TradeCard({ trade }: TradeCardProps) {
                           </thead>
                           <tbody>
                             {fundingDetails.longEntries.map((entry) => (
-                              <tr key={entry.id} className="border-t">
+                              <tr key={entry.id} className="border-t border-border">
                                 <td className="px-2 py-1">{new Date(entry.timestamp).toLocaleString()}</td>
-                                <td className={`px-2 py-1 text-right ${parseFloat(entry.amount) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <td className={`px-2 py-1 text-right ${parseFloat(entry.amount) >= 0 ? 'text-profit' : 'text-loss'}`}>
                                   {parseFloat(entry.amount) >= 0 ? '+' : ''}{parseFloat(entry.amount).toFixed(6)}
                                 </td>
                               </tr>
@@ -380,10 +380,10 @@ export function TradeCard({ trade }: TradeCardProps) {
                   {/* Short Entries */}
                   {fundingDetails.shortEntries.length > 0 && (
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">空頭結算記錄 ({fundingDetails.shortEntries.length} 筆)</p>
-                      <div className="max-h-32 overflow-y-auto border rounded">
+                      <p className="text-xs text-muted-foreground mb-1">空頭結算記錄 ({fundingDetails.shortEntries.length} 筆)</p>
+                      <div className="max-h-32 overflow-y-auto border border-border rounded">
                         <table className="w-full text-xs">
-                          <thead className="bg-gray-50 sticky top-0">
+                          <thead className="bg-muted sticky top-0">
                             <tr>
                               <th className="px-2 py-1 text-left">時間</th>
                               <th className="px-2 py-1 text-right">金額</th>
@@ -391,9 +391,9 @@ export function TradeCard({ trade }: TradeCardProps) {
                           </thead>
                           <tbody>
                             {fundingDetails.shortEntries.map((entry) => (
-                              <tr key={entry.id} className="border-t">
+                              <tr key={entry.id} className="border-t border-border">
                                 <td className="px-2 py-1">{new Date(entry.timestamp).toLocaleString()}</td>
-                                <td className={`px-2 py-1 text-right ${parseFloat(entry.amount) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                <td className={`px-2 py-1 text-right ${parseFloat(entry.amount) >= 0 ? 'text-profit' : 'text-loss'}`}>
                                   {parseFloat(entry.amount) >= 0 ? '+' : ''}{parseFloat(entry.amount).toFixed(6)}
                                 </td>
                               </tr>
@@ -406,14 +406,14 @@ export function TradeCard({ trade }: TradeCardProps) {
 
                   {/* No entries */}
                   {fundingDetails.longEntries.length === 0 && fundingDetails.shortEntries.length === 0 && (
-                    <p className="text-xs text-gray-400 text-center py-2">無資金費率結算記錄</p>
+                    <p className="text-xs text-muted-foreground text-center py-2">無資金費率結算記錄</p>
                   )}
                 </div>
               )}
             </div>
 
             {/* Timestamps */}
-            <div className="text-xs text-gray-400">
+            <div className="text-xs text-muted-foreground">
               <p>開倉時間: {new Date(trade.openedAt).toLocaleString()}</p>
               <p>平倉時間: {new Date(trade.closedAt).toLocaleString()}</p>
             </div>

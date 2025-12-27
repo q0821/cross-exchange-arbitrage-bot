@@ -287,16 +287,16 @@ export function OpenPositionDialog({
     <Dialog.Root open={isOpen} onOpenChange={handleClose}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/50 z-40" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg shadow-xl z-50 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card rounded-lg shadow-xl z-50 w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <Dialog.Title className="text-lg font-semibold flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-green-600" />
+              <TrendingUp className="w-5 h-5 text-profit" />
               開倉
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
-                className="p-1 hover:bg-gray-100 rounded-md"
+                className="p-1 hover:bg-muted rounded-md"
                 disabled={isLoading}
               >
                 <X className="w-5 h-5" />
@@ -305,26 +305,26 @@ export function OpenPositionDialog({
           </div>
 
           {/* Opportunity Info */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <div className="bg-muted rounded-lg p-4 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-gray-700">{rate.symbol}</h3>
-              <span className="text-lg font-bold text-green-600">
+              <h3 className="text-sm font-medium text-foreground">{rate.symbol}</h3>
+              <span className="text-lg font-bold text-profit">
                 {bestPair ? Number(bestPair.annualizedReturn).toFixed(2) : '-'}% APY
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="flex items-center gap-2">
-                <ArrowUpCircle className="w-4 h-4 text-green-500" />
+                <ArrowUpCircle className="w-4 h-4 text-profit" />
                 <div>
-                  <span className="text-gray-500">做多</span>
+                  <span className="text-muted-foreground">做多</span>
                   <p className="font-medium capitalize">{longExchange}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <ArrowDownCircle className="w-4 h-4 text-red-500" />
+                <ArrowDownCircle className="w-4 h-4 text-loss" />
                 <div>
-                  <span className="text-gray-500">做空</span>
+                  <span className="text-muted-foreground">做空</span>
                   <p className="font-medium capitalize">{shortExchange}</p>
                 </div>
               </div>
@@ -358,14 +358,14 @@ export function OpenPositionDialog({
           )}
 
           {/* Market Data with Refresh */}
-          <div className="border border-blue-200 bg-blue-50 rounded-lg p-3 mb-4">
+          <div className="border border-border bg-muted rounded-lg p-3 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-blue-700">即時市場數據</span>
+              <span className="text-sm font-medium text-foreground">即時市場數據</span>
               <button
                 type="button"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100 rounded-md disabled:opacity-50"
+                className="flex items-center gap-1 px-2 py-1 text-xs text-primary hover:bg-muted rounded-md disabled:opacity-50"
               >
                 <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
                 刷新
@@ -374,26 +374,26 @@ export function OpenPositionDialog({
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span className="text-blue-600">{longExchange} 價格：</span>
-                <span className="font-mono text-blue-800">
+                <span className="text-primary">{longExchange} 價格：</span>
+                <span className="font-mono text-foreground">
                   ${longPrice?.toFixed(4) || '-'}
                 </span>
               </div>
               <div>
-                <span className="text-blue-600">{shortExchange} 價格：</span>
-                <span className="font-mono text-blue-800">
+                <span className="text-primary">{shortExchange} 價格：</span>
+                <span className="font-mono text-foreground">
                   ${shortPrice?.toFixed(4) || '-'}
                 </span>
               </div>
               <div>
-                <span className="text-blue-600">費率差：</span>
-                <span className="font-mono text-blue-800">
+                <span className="text-primary">費率差：</span>
+                <span className="font-mono text-foreground">
                   {bestPair ? Number(bestPair.spreadPercent).toFixed(4) : '-'}%
                 </span>
               </div>
               <div>
-                <span className="text-blue-600">最後更新：</span>
-                <span className="font-mono text-blue-800">
+                <span className="text-primary">最後更新：</span>
+                <span className="font-mono text-foreground">
                   {lastUpdated ? lastUpdated.toLocaleTimeString() : '-'}
                 </span>
               </div>
@@ -406,7 +406,7 @@ export function OpenPositionDialog({
             <div className="mb-4">
               <label
                 htmlFor="positionQuantity"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-foreground mb-1"
               >
                 <Layers className="w-4 h-4 inline mr-1" />
                 倉位數量 ({coinSymbol})
@@ -421,16 +421,16 @@ export function OpenPositionDialog({
                 step="any"
                 disabled={isLoading}
                 placeholder={`輸入 ${coinSymbol} 數量`}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-profit disabled:bg-muted"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-muted-foreground">
                 多空雙邊將使用相同數量進行對沖
               </p>
             </div>
 
             {/* Leverage Selection */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 槓桿倍數
               </label>
               <div className="flex gap-2">
@@ -440,8 +440,8 @@ export function OpenPositionDialog({
                   disabled={isLoading}
                   className={`flex-1 py-2 px-4 rounded-md border-2 transition-colors ${
                     leverage === 1
-                      ? 'border-green-500 bg-green-50 text-green-700 font-medium'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-profit bg-profit/10 text-profit font-medium'
+                      : 'border-border hover:border-border'
                   } disabled:opacity-50`}
                 >
                   1x
@@ -452,8 +452,8 @@ export function OpenPositionDialog({
                   disabled={isLoading}
                   className={`flex-1 py-2 px-4 rounded-md border-2 transition-colors ${
                     leverage === 2
-                      ? 'border-green-500 bg-green-50 text-green-700 font-medium'
-                      : 'border-gray-300 hover:border-gray-400'
+                      ? 'border-profit bg-profit/10 text-profit font-medium'
+                      : 'border-border hover:border-border'
                   } disabled:opacity-50`}
                 >
                   2x
@@ -462,28 +462,28 @@ export function OpenPositionDialog({
             </div>
 
             {/* Stop Loss / Take Profit Settings (Feature 038) */}
-            <div className="border border-gray-200 rounded-lg p-3 mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                <Shield className="w-4 h-4 text-orange-500" />
+            <div className="border border-border rounded-lg p-3 mb-4">
+              <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-warning" />
                 風險管理
               </h4>
 
               {/* Stop Loss */}
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
                     <input
                       type="checkbox"
                       checked={stopLossEnabled}
                       onChange={(e) => setStopLossEnabled(e.target.checked)}
                       disabled={isLoading}
-                      className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                      className="w-4 h-4 text-warning border-border rounded focus:ring-warning"
                     />
-                    <Shield className="w-3 h-3 text-orange-500" />
+                    <Shield className="w-3 h-3 text-warning" />
                     啟用停損
                   </label>
                   {stopLossEnabled && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {STOP_LOSS_PERCENT_MIN}% - {STOP_LOSS_PERCENT_MAX}%
                     </span>
                   )}
@@ -498,11 +498,11 @@ export function OpenPositionDialog({
                       max={STOP_LOSS_PERCENT_MAX}
                       step="0.1"
                       disabled={isLoading}
-                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100"
+                      className="flex-1 px-2 py-1 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-warning disabled:bg-muted"
                     />
-                    <span className="text-sm text-gray-600">%</span>
+                    <span className="text-sm text-muted-foreground">%</span>
                     {avgPrice && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted-foreground">
                         (觸發價 ≈ ${(avgPrice * (1 - stopLossPercent / 100)).toFixed(2)})
                       </span>
                     )}
@@ -513,19 +513,19 @@ export function OpenPositionDialog({
               {/* Take Profit */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-600">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
                     <input
                       type="checkbox"
                       checked={takeProfitEnabled}
                       onChange={(e) => setTakeProfitEnabled(e.target.checked)}
                       disabled={isLoading}
-                      className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      className="w-4 h-4 text-profit border-border rounded focus:ring-profit"
                     />
-                    <Target className="w-3 h-3 text-green-500" />
+                    <Target className="w-3 h-3 text-profit" />
                     啟用停利
                   </label>
                   {takeProfitEnabled && (
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {TAKE_PROFIT_PERCENT_MIN}% - {TAKE_PROFIT_PERCENT_MAX}%
                     </span>
                   )}
@@ -540,11 +540,11 @@ export function OpenPositionDialog({
                       max={TAKE_PROFIT_PERCENT_MAX}
                       step="0.1"
                       disabled={isLoading}
-                      className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
+                      className="flex-1 px-2 py-1 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-profit disabled:bg-muted"
                     />
-                    <span className="text-sm text-gray-600">%</span>
+                    <span className="text-sm text-muted-foreground">%</span>
                     {avgPrice && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted-foreground">
                         (觸發價 ≈ ${(avgPrice * (1 + takeProfitPercent / 100)).toFixed(2)})
                       </span>
                     )}
@@ -553,7 +553,7 @@ export function OpenPositionDialog({
               </div>
 
               {!stopLossEnabled && !takeProfitEnabled && (
-                <p className="text-xs text-yellow-600 mt-2 flex items-center gap-1">
+                <p className="text-xs text-warning mt-2 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
                   建議啟用停損以降低風險
                 </p>
@@ -561,26 +561,26 @@ export function OpenPositionDialog({
             </div>
 
             {/* Margin Requirements */}
-            <div className="bg-gray-50 rounded-lg p-3 mb-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">保證金需求</h4>
+            <div className="bg-muted rounded-lg p-3 mb-4">
+              <h4 className="text-sm font-medium text-foreground mb-2">保證金需求</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{longExchange} 做多：</span>
-                  <span className={isLongBalanceSufficient ? 'text-green-600' : 'text-red-600'}>
+                  <span className="text-muted-foreground">{longExchange} 做多：</span>
+                  <span className={isLongBalanceSufficient ? 'text-profit' : 'text-loss'}>
                     {longMarginRequired.toFixed(2)} / {longBalance.toFixed(2)} USDT
                     {isLongBalanceSufficient ? ' ✓' : ' ✗'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">{shortExchange} 做空：</span>
-                  <span className={isShortBalanceSufficient ? 'text-green-600' : 'text-red-600'}>
+                  <span className="text-muted-foreground">{shortExchange} 做空：</span>
+                  <span className={isShortBalanceSufficient ? 'text-profit' : 'text-loss'}>
                     {shortMarginRequired.toFixed(2)} / {shortBalance.toFixed(2)} USDT
                     {isShortBalanceSufficient ? ' ✓' : ' ✗'}
                   </span>
                 </div>
               </div>
               {isLoadingBalances && (
-                <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   載入餘額中...
                 </p>
@@ -589,9 +589,9 @@ export function OpenPositionDialog({
 
             {/* Error Messages */}
             {(validationError || error) && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-red-700">
+              <div className="mb-4 p-3 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-loss mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-loss">
                   <p>{validationError || error}</p>
                 </div>
               </div>
@@ -599,9 +599,9 @@ export function OpenPositionDialog({
 
             {/* Insufficient Balance Warning */}
             {!isBalanceSufficient && !validationError && !error && quantity > 0 && (
-              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                <div className="text-sm text-yellow-700">
+              <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-warning">
                   <p>餘額不足，無法開倉。請調整數量或充值。</p>
                 </div>
               </div>
@@ -613,14 +613,14 @@ export function OpenPositionDialog({
                 type="button"
                 onClick={handleClose}
                 disabled={isLoading}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-muted rounded-md hover:bg-muted disabled:opacity-50"
               >
                 取消
               </button>
               <button
                 type="submit"
                 disabled={isLoading || !avgPrice || !isBalanceSufficient || isMexcRestricted}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-white bg-profit rounded-md hover:bg-profit/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isLoading ? (
                   <>

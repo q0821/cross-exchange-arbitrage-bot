@@ -51,6 +51,10 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // 語意色彩 - 交易專用
+        profit: 'hsl(var(--profit))',
+        loss: 'hsl(var(--loss))',
+        warning: 'hsl(var(--warning))',
       },
       borderRadius: {
         lg: 'var(--radius)',
