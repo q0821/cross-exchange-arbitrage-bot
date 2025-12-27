@@ -826,3 +826,106 @@ export interface BilateralFundingFeeResult {
   shortResult: FundingFeeQueryResult;
   totalFundingFee: Decimal;
 }
+
+// ============================================================================
+// Position Details Types (Feature: 045-position-details-view)
+// ============================================================================
+
+/**
+ * 資金費率明細（用於前端顯示）
+ */
+export interface FundingFeeDetailsInfo {
+  longEntries: Array<{
+    timestamp: number;
+    datetime: string;
+    amount: string;
+    symbol: string;
+    id: string;
+  }>;
+  shortEntries: Array<{
+    timestamp: number;
+    datetime: string;
+    amount: string;
+    symbol: string;
+    id: string;
+  }>;
+  longTotal: string;
+  shortTotal: string;
+  netTotal: string;
+}
+
+/**
+ * 手續費資訊
+ */
+export interface FeeDetailsInfo {
+  longOpenFee?: string;
+  shortOpenFee?: string;
+  totalFees?: string;
+}
+
+/**
+ * 年化報酬率資訊
+ */
+export interface AnnualizedReturnInfo {
+  value: number;          // 百分比
+  totalPnL: number;       // 總損益
+  margin: number;         // 保證金
+  holdingHours: number;   // 持倉小時數
+}
+
+/**
+ * 持倉詳情資訊（即時查詢結果）
+ * Feature: 045-position-details-view
+ */
+export interface PositionDetailsInfo {
+  positionId: string;
+  symbol: string;
+
+  // 開倉資訊 (from Position)
+  longExchange: string;
+  shortExchange: string;
+  longEntryPrice: string;
+  shortEntryPrice: string;
+  longPositionSize: string;
+  shortPositionSize: string;
+  leverage: number;
+  openedAt: string;
+
+  // 當前價格 (from Exchange API)
+  longCurrentPrice?: number;
+  shortCurrentPrice?: number;
+  priceQuerySuccess: boolean;
+  priceQueryError?: string;
+
+  // 未實現損益 (calculated)
+  longUnrealizedPnL?: number;
+  shortUnrealizedPnL?: number;
+  totalUnrealizedPnL?: number;
+
+  // 資金費率明細 (from Exchange API)
+  fundingFees?: FundingFeeDetailsInfo;
+  fundingFeeQuerySuccess: boolean;
+  fundingFeeQueryError?: string;
+
+  // 手續費資訊 (from Trade, SHOULD)
+  fees?: FeeDetailsInfo;
+
+  // 年化報酬率 (calculated)
+  annualizedReturn?: AnnualizedReturnInfo;
+  annualizedReturnError?: string;
+
+  // Metadata
+  queriedAt: string;
+}
+
+/**
+ * 持倉詳情 API 回應
+ */
+export interface PositionDetailsResponse {
+  success: boolean;
+  data?: PositionDetailsInfo;
+  error?: {
+    code: string;
+    message: string;
+  };
+}

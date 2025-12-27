@@ -1,0 +1,392 @@
+openapi: 3.0.3
+info:
+  title: Position Details API
+  description: API for fetching real-time position details including current prices, funding fees, and estimated returns
+  version: 1.0.0
+  contact:
+    name: Cross-Exchange Arbitrage Bot
+
+servers:
+  - url: /api
+    description: Next.js API Routes
+
+paths:
+  /positions/{id}/details:
+    get:
+      summary: Get position details
+      description: |
+        Fetches real-time position details including:
+        - Entry prices (from database)
+        - Current prices (from exchange API)
+        - Unrealized P&L (calculated)
+        - Funding fee history (from exchange API)
+        - Estimated annualized return (calculated)
+
+        This endpoint performs real-time queries to exchanges and should be called
+        only when the user expands the position details panel.
+      operationId: getPositionDetails
+      tags:
+        - Positions
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Position ID
+          schema:
+            type: string
+            example: "cm5abc123def456"
+      responses:
+        '200':
+          description: Position details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PositionDetailsResponse'
+              examples:
+                success:
+                  summary: Successful response with all data
+                  value:
+                    success: true
+                    data:
+                      positionId: "cm5abc123def456"
+                      symbol: "BTCUSDT"
+                      longExchange: "binance"
+                      shortExchange: "okx"
+                      longEntryPrice: "95000.00"
+                      shortEntryPrice: "95010.00"
+                      longPositionSize: "0.01"
+                      shortPositionSize: "0.01"
+                      leverage: 2
+                      openedAt: "2025-12-28T10:00:00Z"
+                      longCurrentPrice: 95100.50
+                      shortCurrentPrice: 95105.20
+                      priceQuerySuccess: true
+                      longUnrealizedPnL: 1.005
+                      shortUnrealizedPnL: -0.952
+                      totalUnrealizedPnL: 0.053
+                      fundingFees:
+                        longEntries:
+                          - timestamp: 1735380000000
+                            datetime: "2025-12-28T12:00:00Z"
+                            amount: "-0.12"
+                            symbol: "BTC/USDT:USDT"
+                            id: "123456789"
+                        shortEntries:
+                          - timestamp: 1735380000000
+                            datetime: "2025-12-28T12:00:00Z"
+                            amount: "0.18"
+                            symbol: "BTC/USDT:USDT"
+                            id: "987654321"
+                        longTotal: "-0.12"
+                        shortTotal: "0.18"
+                        netTotal: "0.06"
+                      fundingFeeQuerySuccess: true
+                      fees:
+                        longOpenFee: "0.019"
+                        shortOpenFee: "0.019"
+                        totalFees: "0.038"
+                      annualizedReturn:
+                        value: 52.36
+                        totalPnL: 0.113
+                        margin: 950.05
+                        holdingHours: 2.5
+                      queriedAt: "2025-12-28T12:30:00Z"
+                partialSuccess:
+                  summary: Partial success (price query failed)
+                  value:
+                    success: true
+                    data:
+                      positionId: "cm5abc123def456"
+                      symbol: "BTCUSDT"
+                      longExchange: "binance"
+                      shortExchange: "okx"
+                      longEntryPrice: "95000.00"
+                      shortEntryPrice: "95010.00"
+                      longPositionSize: "0.01"
+                      shortPositionSize: "0.01"
+                      leverage: 2
+                      openedAt: "2025-12-28T10:00:00Z"
+                      priceQuerySuccess: false
+                      priceQueryError: "Failed to fetch price from binance: Network timeout"
+                      fundingFees:
+                        longEntries: []
+                        shortEntries: []
+                        longTotal: "0"
+                        shortTotal: "0"
+                        netTotal: "0"
+                      fundingFeeQuerySuccess: true
+                      annualizedReturnError: "無法計算：當前價格查詢失敗"
+                      queriedAt: "2025-12-28T12:30:00Z"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "INVALID_STATUS"
+                  message: "Position is not open. Only OPEN positions can view details."
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "UNAUTHORIZED"
+                  message: "Authentication required"
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "FORBIDDEN"
+                  message: "You do not have permission to view this position"
+        '404':
+          description: Position not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: "NOT_FOUND"
+                  message: "Position not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+
+  schemas:
+    PositionDetailsResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/PositionDetailsInfo'
+        error:
+          $ref: '#/components/schemas/Error'
+
+    PositionDetailsInfo:
+      type: object
+      required:
+        - positionId
+        - symbol
+        - longExchange
+        - shortExchange
+        - longEntryPrice
+        - shortEntryPrice
+        - longPositionSize
+        - shortPositionSize
+        - leverage
+        - openedAt
+        - priceQuerySuccess
+        - fundingFeeQuerySuccess
+        - queriedAt
+      properties:
+        positionId:
+          type: string
+          description: Position ID
+        symbol:
+          type: string
+          description: Trading pair symbol (e.g., BTCUSDT)
+        longExchange:
+          type: string
+          description: Long exchange name
+        shortExchange:
+          type: string
+          description: Short exchange name
+        longEntryPrice:
+          type: string
+          description: Long entry price (decimal string)
+        shortEntryPrice:
+          type: string
+          description: Short entry price (decimal string)
+        longPositionSize:
+          type: string
+          description: Long position size (decimal string)
+        shortPositionSize:
+          type: string
+          description: Short position size (decimal string)
+        leverage:
+          type: integer
+          description: Leverage multiplier
+        openedAt:
+          type: string
+          format: date-time
+          description: Position open time
+        longCurrentPrice:
+          type: number
+          description: Current price on long exchange (null if query failed)
+          nullable: true
+        shortCurrentPrice:
+          type: number
+          description: Current price on short exchange (null if query failed)
+          nullable: true
+        priceQuerySuccess:
+          type: boolean
+          description: Whether price query succeeded
+        priceQueryError:
+          type: string
+          description: Error message if price query failed
+        longUnrealizedPnL:
+          type: number
+          description: Unrealized P&L on long side
+          nullable: true
+        shortUnrealizedPnL:
+          type: number
+          description: Unrealized P&L on short side
+          nullable: true
+        totalUnrealizedPnL:
+          type: number
+          description: Total unrealized P&L
+          nullable: true
+        fundingFees:
+          $ref: '#/components/schemas/FundingFeeDetails'
+        fundingFeeQuerySuccess:
+          type: boolean
+          description: Whether funding fee query succeeded
+        fundingFeeQueryError:
+          type: string
+          description: Error message if funding fee query failed
+        fees:
+          $ref: '#/components/schemas/FeeDetails'
+        annualizedReturn:
+          $ref: '#/components/schemas/AnnualizedReturn'
+        annualizedReturnError:
+          type: string
+          description: Error message if annualized return cannot be calculated
+        queriedAt:
+          type: string
+          format: date-time
+          description: Query timestamp
+
+    FundingFeeDetails:
+      type: object
+      properties:
+        longEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingFeeEntry'
+        shortEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/FundingFeeEntry'
+        longTotal:
+          type: string
+          description: Total funding fee on long side (decimal string)
+        shortTotal:
+          type: string
+          description: Total funding fee on short side (decimal string)
+        netTotal:
+          type: string
+          description: Net funding fee (long + short, decimal string)
+
+    FundingFeeEntry:
+      type: object
+      required:
+        - timestamp
+        - datetime
+        - amount
+        - symbol
+        - id
+      properties:
+        timestamp:
+          type: integer
+          format: int64
+          description: Settlement timestamp in milliseconds
+        datetime:
+          type: string
+          format: date-time
+          description: Settlement time in ISO 8601 format
+        amount:
+          type: string
+          description: Amount (positive = received, negative = paid)
+        symbol:
+          type: string
+          description: Unified market symbol
+        id:
+          type: string
+          description: Exchange record ID
+
+    FeeDetails:
+      type: object
+      properties:
+        longOpenFee:
+          type: string
+          description: Long open fee (decimal string)
+        shortOpenFee:
+          type: string
+          description: Short open fee (decimal string)
+        totalFees:
+          type: string
+          description: Total fees (decimal string)
+
+    AnnualizedReturn:
+      type: object
+      required:
+        - value
+        - totalPnL
+        - margin
+        - holdingHours
+      properties:
+        value:
+          type: number
+          description: Annualized return percentage
+        totalPnL:
+          type: number
+          description: Total P&L (unrealized + funding fees)
+        margin:
+          type: number
+          description: Total margin used
+        holdingHours:
+          type: number
+          description: Position holding time in hours
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          $ref: '#/components/schemas/Error'

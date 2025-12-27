@@ -4,11 +4,12 @@
  *
  * Feature 033: Manual Open Position (T019)
  * Feature 037: Mark Position Closed (T005)
+ * Feature 045: Position Details View
  */
 
 'use client';
 
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   ArrowUpCircle,
   ArrowDownCircle,
@@ -19,8 +20,12 @@ import {
   Loader2,
   Shield,
   Target,
+  ChevronUp,
+  Eye,
 } from 'lucide-react';
 import type { PositionInfo, PositionStatus, ConditionalOrderStatus } from '@/src/types/trading';
+import { usePositionDetails } from '../hooks/usePositionDetails';
+import { PositionDetailsPanel } from './PositionDetailsPanel';
 
 interface PositionCardProps {
   position: PositionInfo;
@@ -132,6 +137,27 @@ export function PositionCard({
 
   const createdDate = new Date(position.createdAt);
   const timeAgo = getTimeAgo(createdDate);
+
+  // Feature 045: Position Details View
+  const [isExpanded, setIsExpanded] = useState(false);
+  const { details, isLoading, error, fetchDetails, reset } = usePositionDetails();
+
+  // 只有 OPEN 狀態才能查看詳情
+  const canViewDetails = position.status === 'OPEN';
+
+  const handleToggleDetails = useCallback(() => {
+    if (isExpanded) {
+      setIsExpanded(false);
+      reset();
+    } else {
+      setIsExpanded(true);
+      fetchDetails(position.id);
+    }
+  }, [isExpanded, position.id, fetchDetails, reset]);
+
+  const handleRetry = useCallback(() => {
+    fetchDetails(position.id);
+  }, [position.id, fetchDetails]);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
@@ -252,6 +278,44 @@ export function PositionCard({
               ⚠️ 此持倉只有一邊開倉成功，需要手動處理。
             </p>
           </div>
+        )}
+
+        {/* View Details Button (Feature 045) */}
+        {canViewDetails && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <button
+              onClick={handleToggleDetails}
+              disabled={isLoading}
+              className="w-full py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  查詢中...
+                </>
+              ) : isExpanded ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  收起詳情
+                </>
+              ) : (
+                <>
+                  <Eye className="w-4 h-4" />
+                  查看詳情
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Position Details Panel (Feature 045) */}
+        {isExpanded && canViewDetails && (
+          <PositionDetailsPanel
+            details={details}
+            isLoading={isLoading}
+            error={error}
+            onRetry={handleRetry}
+          />
         )}
       </div>
 
