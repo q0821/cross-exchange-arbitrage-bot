@@ -13,8 +13,8 @@
  * - 參考：https://github.com/ccxt/ccxt/issues/13801
  */
 
+import { Decimal } from 'decimal.js';
 import { logger } from '../../../lib/logger';
-import { formatPriceForExchange } from '../../../lib/conditional-order-calculator';
 import type { SingleConditionalOrderResult } from '../../../types/trading';
 import type {
   ConditionalOrderAdapter,
@@ -117,6 +117,62 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
   }
 
   /**
+   * 根據交易對精度格式化價格
+   * Gate.io 要求價格必須是 tick size 的整數倍
+   */
+  private async formatPriceWithPrecision(symbol: string, price: Decimal): Promise<string> {
+    try {
+      // 確保市場資訊已載入
+      if (!this.ccxtExchange.markets) {
+        await this.ccxtExchange.loadMarkets();
+      }
+
+      // 嘗試找到對應的市場
+      const ccxtSymbol = this.convertToCcxtSymbol(symbol);
+      const market = this.ccxtExchange.markets[ccxtSymbol];
+
+      if (market && market.precision && market.precision.price !== undefined) {
+        // 使用 CCXT 的 priceToPrecision 方法
+        const formattedPrice = this.ccxtExchange.priceToPrecision(ccxtSymbol, price.toNumber());
+        logger.debug(
+          { symbol, ccxtSymbol, originalPrice: price.toString(), formattedPrice, precision: market.precision.price },
+          'Formatted price with market precision',
+        );
+        return formattedPrice;
+      }
+
+      // 如果找不到市場精度，使用保守的 8 位小數
+      logger.warn({ symbol }, 'Market precision not found, using default 8 decimals');
+      return price.toDecimalPlaces(8, Decimal.ROUND_HALF_UP).toString();
+    } catch (error) {
+      logger.warn({ symbol, error }, 'Failed to get market precision, using default');
+      return price.toDecimalPlaces(8, Decimal.ROUND_HALF_UP).toString();
+    }
+  }
+
+  /**
+   * 轉換 symbol 為 CCXT 格式
+   * e.g., BTCUSDT -> BTC/USDT:USDT
+   */
+  private convertToCcxtSymbol(symbol: string): string {
+    // 如果已經是 CCXT 格式，直接返回
+    if (symbol.includes('/')) {
+      return symbol;
+    }
+
+    // 處理純格式 BTCUSDT -> BTC/USDT:USDT
+    const quoteAssets = ['USDT', 'USDC', 'BUSD', 'USD'];
+    for (const quote of quoteAssets) {
+      if (symbol.endsWith(quote)) {
+        const base = symbol.slice(0, -quote.length);
+        return `${base}/${quote}:${quote}`;
+      }
+    }
+
+    return `${symbol}/USDT:USDT`;
+  }
+
+  /**
    * 設定條件單（內部方法）
    *
    * 使用 Gate.io 原生 Price Order API
@@ -128,7 +184,8 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
     const { symbol, side, quantity, triggerPrice, type } = params;
 
     const contract = this.convertToGateContract(symbol);
-    const formattedPrice = formatPriceForExchange(triggerPrice);
+    // 使用交易對精度格式化價格，確保是 tick size 的整數倍
+    const formattedPrice = await this.formatPriceWithPrecision(symbol, triggerPrice);
 
     // Gate.io 合約用整數張數，需要轉換
     const sizeAbs = quantity.abs().toNumber();
