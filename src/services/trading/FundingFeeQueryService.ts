@@ -194,10 +194,23 @@ export class FundingFeeQueryService {
       );
 
       // 解析並累加結算記錄
+      // 注意：部分交易所（如 Gate.io）可能忽略 until 參數，需要手動過濾
+      const startMs = startTime.getTime();
+      const endMs = endTime.getTime();
       const entries: FundingFeeEntry[] = [];
       let totalAmount = new Decimal(0);
 
       for (const entry of history) {
+        // 過濾：只保留在開倉和平倉時間範圍內的記錄
+        const entryTimestamp = entry.timestamp;
+        if (entryTimestamp < startMs || entryTimestamp > endMs) {
+          logger.debug(
+            { exchange, entryTimestamp, startMs, endMs },
+            'Skipping funding entry outside time range',
+          );
+          continue;
+        }
+
         const amount = new Decimal(entry.amount || 0);
         entries.push({
           timestamp: entry.timestamp,

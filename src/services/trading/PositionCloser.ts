@@ -983,8 +983,42 @@ export class PositionCloser {
             } catch (fetchError) {
               logger.error(
                 { exchange, orderId: order.id, error: fetchError },
-                'Failed to fetch order details, using 0 as price',
+                'Failed to fetch order details',
               );
+            }
+
+            // 如果 fetchOrder 仍無法取得價格，使用 fetchMyTrades 作為備援（特別是 OKX）
+            if (!fillPrice || fillPrice === 0) {
+              logger.info(
+                { exchange, orderId: order.id },
+                'Price still 0 after fetchOrder, trying fetchMyTrades',
+              );
+              try {
+                const trades = await ccxtExchange.fetchMyTrades(symbol, undefined, 10);
+                // 找到與此訂單相關的成交記錄
+                const orderTrades = trades.filter((t: { order?: string }) => t.order === order.id);
+                if (orderTrades.length > 0) {
+                  // 計算加權平均價格
+                  let totalCost = 0;
+                  let totalAmount = 0;
+                  for (const t of orderTrades) {
+                    totalCost += (t.price || 0) * (t.amount || 0);
+                    totalAmount += t.amount || 0;
+                  }
+                  if (totalAmount > 0) {
+                    fillPrice = totalCost / totalAmount;
+                    logger.info(
+                      { exchange, orderId: order.id, fillPrice, tradesCount: orderTrades.length },
+                      'Got price from fetchMyTrades',
+                    );
+                  }
+                }
+              } catch (tradesError) {
+                logger.warn(
+                  { exchange, orderId: order.id, error: tradesError },
+                  'Failed to fetch trades for price, using 0',
+                );
+              }
             }
           }
 
@@ -1042,6 +1076,27 @@ export class PositionCloser {
                   { exchange, orderId: order.id, error: fetchError },
                   'Failed to fetch retry order details',
                 );
+              }
+
+              // 如果 fetchOrder 仍無法取得價格，使用 fetchMyTrades 作為備援
+              if (!retryFillPrice || retryFillPrice === 0) {
+                try {
+                  const trades = await ccxtExchange.fetchMyTrades(symbol, undefined, 10);
+                  const orderTrades = trades.filter((t: { order?: string }) => t.order === order.id);
+                  if (orderTrades.length > 0) {
+                    let totalCost = 0;
+                    let totalAmount = 0;
+                    for (const t of orderTrades) {
+                      totalCost += (t.price || 0) * (t.amount || 0);
+                      totalAmount += t.amount || 0;
+                    }
+                    if (totalAmount > 0) {
+                      retryFillPrice = totalCost / totalAmount;
+                    }
+                  }
+                } catch {
+                  // 忽略
+                }
               }
             }
 
