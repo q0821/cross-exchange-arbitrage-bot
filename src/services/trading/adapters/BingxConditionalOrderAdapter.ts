@@ -101,9 +101,7 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
 
       // 構建訂單參數
       // BingX 使用 stopLossPrice/takeProfitPrice 而非 STOP_MARKET/TAKE_PROFIT_MARKET
-      const orderParams: Record<string, any> = {
-        reduceOnly: true,
-      };
+      const orderParams: Record<string, any> = {};
 
       // 設定停損或停利價格
       if (orderType === 'stopLoss') {
@@ -112,9 +110,13 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
         orderParams.takeProfitPrice = parseFloat(formattedPrice);
       }
 
-      // Hedge Mode 需要指定 positionSide
+      // Hedge Mode 需要指定 positionSide，且不能使用 reduceOnly
+      // 參考錯誤: "In the Hedge mode, the 'ReduceOnly' field can not be filled."
       if (this.isHedgeMode) {
         orderParams.positionSide = side; // LONG or SHORT
+      } else {
+        // 只有非 Hedge Mode 才能使用 reduceOnly
+        orderParams.reduceOnly = true;
       }
 
       // 使用 market 訂單類型
