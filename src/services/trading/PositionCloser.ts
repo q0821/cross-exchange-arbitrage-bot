@@ -867,8 +867,11 @@ export class PositionCloser {
     // OKX 預設使用 Hedge Mode
     const isOkxHedgeMode = exchange === 'okx';
 
+    // BingX 預設使用 Hedge Mode（雙向持倉）
+    const isBingxHedgeMode = exchange === 'bingx';
+
     logger.info(
-      { exchange, isBinancePortfolioMargin, isBinanceHedgeMode, isOkxHedgeMode },
+      { exchange, isBinancePortfolioMargin, isBinanceHedgeMode, isOkxHedgeMode, isBingxHedgeMode },
       'Position mode configuration (PositionCloser)',
     );
 
@@ -918,6 +921,10 @@ export class PositionCloser {
             // side='buy' 代表平空倉，posSide='short'
             const posSide = side === 'sell' ? 'long' : 'short';
             return { posSide, tdMode: 'cross' };
+          } else if (isBingxHedgeMode) {
+            // BingX Hedge Mode: side='sell' 代表平多倉，side='buy' 代表平空倉
+            const positionSide = side === 'sell' ? 'LONG' : 'SHORT';
+            return { positionSide };
           }
           return { reduceOnly: true };
         };
@@ -928,6 +935,8 @@ export class PositionCloser {
           logger.info({ exchange, symbol, side, orderParams, quantity, contractQuantity }, 'Closing position with Binance Hedge Mode params');
         } else if (isOkxHedgeMode) {
           logger.info({ exchange, symbol, side, orderParams, quantity, contractQuantity }, 'Closing position with OKX Hedge Mode params');
+        } else if (isBingxHedgeMode) {
+          logger.info({ exchange, symbol, side, orderParams, quantity, contractQuantity }, 'Closing position with BingX Hedge Mode params');
         } else {
           logger.info({ exchange, symbol, side, orderParams, quantity, contractQuantity }, 'Closing position with One-way Mode (reduceOnly)');
         }
