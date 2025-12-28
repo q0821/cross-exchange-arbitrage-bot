@@ -52,6 +52,11 @@ function FundingFeeList({
     );
   }
 
+  // 由新到舊排列
+  const sortedEntries = [...entries].sort((a, b) =>
+    new Date(b.datetime).getTime() - new Date(a.datetime).getTime()
+  );
+
   return (
     <div className="max-h-40 overflow-y-auto">
       <table className="w-full text-xs">
@@ -62,7 +67,7 @@ function FundingFeeList({
           </tr>
         </thead>
         <tbody>
-          {entries.map((entry, index) => {
+          {sortedEntries.map((entry, index) => {
             const { text, colorClass } = formatAmount(entry.amount);
             return (
               <tr key={entry.id || index} className="border-b border-border last:border-0">

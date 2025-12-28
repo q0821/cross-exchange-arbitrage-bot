@@ -363,7 +363,9 @@ export function TradeCard({ trade }: TradeCardProps) {
                             </tr>
                           </thead>
                           <tbody>
-                            {fundingDetails.longEntries.map((entry) => (
+                            {[...fundingDetails.longEntries]
+                              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                              .map((entry) => (
                               <tr key={entry.id} className="border-t border-border">
                                 <td className="px-2 py-1">{new Date(entry.timestamp).toLocaleString()}</td>
                                 <td className={`px-2 py-1 text-right ${parseFloat(entry.amount) >= 0 ? 'text-profit' : 'text-loss'}`}>
@@ -390,7 +392,9 @@ export function TradeCard({ trade }: TradeCardProps) {
                             </tr>
                           </thead>
                           <tbody>
-                            {fundingDetails.shortEntries.map((entry) => (
+                            {[...fundingDetails.shortEntries]
+                              .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                              .map((entry) => (
                               <tr key={entry.id} className="border-t border-border">
                                 <td className="px-2 py-1">{new Date(entry.timestamp).toLocaleString()}</td>
                                 <td className={`px-2 py-1 text-right ${parseFloat(entry.amount) >= 0 ? 'text-profit' : 'text-loss'}`}>
