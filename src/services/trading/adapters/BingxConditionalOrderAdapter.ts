@@ -1,10 +1,12 @@
 /**
  * BingX Conditional Order Adapter
  *
- * BingX 永續合約條件單適配器：使用 STOP_MARKET/TAKE_PROFIT_MARKET
+ * BingX 永續合約條件單適配器
  * Feature: 043-bingx-integration
  *
- * API Reference: https://bingx-api.github.io/docs/#/swapV2/trade-api.html
+ * 注意：BingX 不支援 STOP_MARKET/TAKE_PROFIT_MARKET 訂單類型
+ * 需要使用 market 訂單配合 stopLossPrice/takeProfitPrice 參數
+ * 參考：https://github.com/ccxt/ccxt/issues/19773
  */
 
 import { logger } from '../../../lib/logger';
@@ -39,7 +41,7 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
   async setStopLossOrder(params: SetStopLossOrderParams): Promise<SingleConditionalOrderResult> {
     return this.setConditionalOrder({
       ...params,
-      type: 'STOP_MARKET',
+      orderType: 'stopLoss',
     });
   }
 
@@ -49,7 +51,7 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
   async setTakeProfitOrder(params: SetTakeProfitOrderParams): Promise<SingleConditionalOrderResult> {
     return this.setConditionalOrder({
       ...params,
-      type: 'TAKE_PROFIT_MARKET',
+      orderType: 'takeProfit',
     });
   }
 
@@ -69,11 +71,14 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
 
   /**
    * 設定條件單（內部方法）
+   *
+   * BingX 不支援 STOP_MARKET/TAKE_PROFIT_MARKET 訂單類型
+   * 需要使用 market 訂單配合 stopLossPrice/takeProfitPrice 參數
    */
   private async setConditionalOrder(
-    params: SetStopLossOrderParams & { type: 'STOP_MARKET' | 'TAKE_PROFIT_MARKET' },
+    params: SetStopLossOrderParams & { orderType: 'stopLoss' | 'takeProfit' },
   ): Promise<SingleConditionalOrderResult> {
-    const { symbol, side, quantity, triggerPrice, type } = params;
+    const { symbol, side, quantity, triggerPrice, orderType } = params;
 
     try {
       const exchangeSymbol = convertSymbolForExchange(symbol, 'bingx');
@@ -84,7 +89,7 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
       logger.info(
         {
           exchangeSymbol,
-          type,
+          orderType,
           closingSide,
           positionSide: side,
           triggerPrice: formattedPrice,
@@ -95,19 +100,27 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
       );
 
       // 構建訂單參數
+      // BingX 使用 stopLossPrice/takeProfitPrice 而非 STOP_MARKET/TAKE_PROFIT_MARKET
       const orderParams: Record<string, any> = {
-        stopPrice: formattedPrice,
-        reduceOnly: !this.isHedgeMode,
+        reduceOnly: true,
       };
+
+      // 設定停損或停利價格
+      if (orderType === 'stopLoss') {
+        orderParams.stopLossPrice = parseFloat(formattedPrice);
+      } else {
+        orderParams.takeProfitPrice = parseFloat(formattedPrice);
+      }
 
       // Hedge Mode 需要指定 positionSide
       if (this.isHedgeMode) {
         orderParams.positionSide = side; // LONG or SHORT
       }
 
+      // 使用 market 訂單類型
       const order = await this.ccxtExchange.createOrder(
         exchangeSymbol,
-        type.toLowerCase(),
+        'market',
         closingSide.toLowerCase(),
         parseFloat(formattedQuantity),
         undefined,
@@ -115,7 +128,7 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
       );
 
       logger.info(
-        { orderId: order.id, exchangeSymbol, type },
+        { orderId: order.id, exchangeSymbol, orderType },
         'BingX conditional order created successfully',
       );
 
@@ -127,7 +140,7 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
     } catch (error) {
       const errorMessage = this.parseError(error);
       logger.error(
-        { error, symbol, side, type, triggerPrice: triggerPrice.toString() },
+        { error, symbol, side, orderType, triggerPrice: triggerPrice.toString() },
         'Failed to create BingX conditional order',
       );
 
@@ -154,6 +167,9 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
       }
       if (message.includes('Invalid symbol')) {
         return 'Invalid symbol.';
+      }
+      if (message.includes('Order type not supported')) {
+        return 'Order type not supported. BingX requires stopLossPrice/takeProfitPrice parameters.';
       }
 
       return message;

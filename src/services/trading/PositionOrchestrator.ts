@@ -869,8 +869,16 @@ export class PositionOrchestrator {
         // 設置槓桿（始終設定，確保使用正確的槓桿倍數）
         if (leverage) {
           try {
-            await ccxtExchange.setLeverage(leverage, symbol);
-            logger.info({ exchange, symbol, leverage }, 'Leverage set successfully');
+            // BingX Hedge Mode 需要指定 positionSide 來設置槓桿
+            // 參考：https://github.com/ccxt/ccxt/issues/22237
+            if (isBingxHedgeMode) {
+              const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
+              await ccxtExchange.setLeverage(leverage, symbol, { side: positionSide });
+              logger.info({ exchange, symbol, leverage, positionSide }, 'Leverage set successfully (BingX Hedge Mode)');
+            } else {
+              await ccxtExchange.setLeverage(leverage, symbol);
+              logger.info({ exchange, symbol, leverage }, 'Leverage set successfully');
+            }
           } catch (e) {
             logger.warn({ exchange, symbol, leverage, error: e }, 'Failed to set leverage, continuing...');
           }
