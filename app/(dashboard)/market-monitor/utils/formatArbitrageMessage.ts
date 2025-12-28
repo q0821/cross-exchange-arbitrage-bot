@@ -14,6 +14,37 @@ const EXCHANGE_DISPLAY_NAMES: Record<ExchangeName, string> = {
 };
 
 /**
+ * 生成交易所永續合約交易頁面的 URL
+ *
+ * @param exchange - 交易所名稱
+ * @param symbol - 交易對符號（如 "BTCUSDT"）
+ * @returns 交易頁面 URL
+ *
+ * @example
+ * getExchangeTradingUrl('binance', 'BTCUSDT')
+ * // => 'https://www.binance.com/en/futures/BTCUSDT'
+ */
+export function getExchangeTradingUrl(exchange: ExchangeName, symbol: string): string {
+  // 從 BTCUSDT 提取 base 和 quote
+  const base = symbol.replace(/USDT$/, '');
+
+  switch (exchange) {
+    case 'binance':
+      return `https://www.binance.com/en/futures/${symbol}`;
+    case 'okx':
+      return `https://www.okx.com/trade-swap/${base.toLowerCase()}-usdt-swap`;
+    case 'gateio':
+      return `https://www.gate.io/futures_trade/USDT/${base}_USDT`;
+    case 'mexc':
+      return `https://futures.mexc.com/exchange/${base}_USDT`;
+    case 'bingx':
+      return `https://bingx.com/en/perpetual/${symbol}/`;
+    default:
+      return '#';
+  }
+}
+
+/**
  * T006: 將交易對符號格式化為顯示格式
  *
  * @param symbol - 交易對符號（如 "BTCUSDT"）

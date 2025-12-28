@@ -22,8 +22,11 @@ import {
   Target,
   ChevronUp,
   Eye,
+  ExternalLink,
 } from 'lucide-react';
 import type { PositionInfo, PositionStatus, ConditionalOrderStatus } from '@/src/types/trading';
+import type { ExchangeName } from '@/app/(dashboard)/market-monitor/types';
+import { getExchangeTradingUrl } from '@/app/(dashboard)/market-monitor/utils/formatArbitrageMessage';
 import { usePositionDetails } from '../hooks/usePositionDetails';
 import { PositionDetailsPanel } from './PositionDetailsPanel';
 
@@ -186,7 +189,15 @@ export function PositionCard({
               <ArrowUpCircle className="w-4 h-4" />
               <span className="text-sm font-medium">做多</span>
             </div>
-            <p className="text-sm text-foreground capitalize">{position.longExchange}</p>
+            <a
+              href={getExchangeTradingUrl(position.longExchange as ExchangeName, position.symbol)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-foreground capitalize hover:text-primary transition-colors"
+            >
+              {position.longExchange}
+              <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
 
           {/* Short Side */}
@@ -195,7 +206,15 @@ export function PositionCard({
               <ArrowDownCircle className="w-4 h-4" />
               <span className="text-sm font-medium">做空</span>
             </div>
-            <p className="text-sm text-foreground capitalize">{position.shortExchange}</p>
+            <a
+              href={getExchangeTradingUrl(position.shortExchange as ExchangeName, position.symbol)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-foreground capitalize hover:text-primary transition-colors"
+            >
+              {position.shortExchange}
+              <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
         </div>
 
