@@ -24,6 +24,7 @@ export class MexcConditionalOrderAdapter implements ConditionalOrderAdapter {
   readonly exchangeName = 'mexc';
   private ccxtExchange: any; // CCXT MEXC instance
   private isHedgeMode: boolean;
+  private marketsLoaded = false;
 
   constructor(
     ccxtExchange: any,
@@ -31,6 +32,57 @@ export class MexcConditionalOrderAdapter implements ConditionalOrderAdapter {
   ) {
     this.ccxtExchange = ccxtExchange;
     this.isHedgeMode = options.isHedgeMode;
+  }
+
+  /**
+   * 確保市場資料已載入
+   */
+  private async ensureMarketsLoaded(): Promise<void> {
+    if (!this.marketsLoaded) {
+      await this.ccxtExchange.loadMarkets();
+      this.marketsLoaded = true;
+    }
+  }
+
+  /**
+   * 將數量轉換為合約張數
+   * MEXC 某些幣種的 contractSize 不是 1
+   */
+  private convertToContracts(ccxtSymbol: string, quantity: number): number {
+    const market = this.ccxtExchange.markets[ccxtSymbol];
+    const contractSize = market?.contractSize || 1;
+
+    if (contractSize !== 1) {
+      const contracts = quantity / contractSize;
+      logger.info(
+        { symbol: ccxtSymbol, originalQuantity: quantity, contractSize, contracts },
+        'MEXC: Converting quantity to contracts',
+      );
+      return contracts;
+    }
+    return quantity;
+  }
+
+  /**
+   * 轉換 symbol 為 CCXT 格式
+   * e.g., BTCUSDT -> BTC/USDT:USDT
+   */
+  private convertToCcxtSymbol(symbol: string): string {
+    // 如果已經是 CCXT 格式，直接返回
+    if (symbol.includes('/')) {
+      return symbol;
+    }
+
+    // 處理純格式 BTCUSDT -> BTC/USDT:USDT
+    const quoteAssets = ['USDT', 'USDC', 'BUSD', 'USD'];
+    for (const quote of quoteAssets) {
+      if (symbol.endsWith(quote)) {
+        const base = symbol.slice(0, -quote.length);
+        return `${base}/${quote}:${quote}`;
+      }
+    }
+
+    return `${symbol}/USDT:USDT`;
   }
 
   /**
@@ -76,10 +128,16 @@ export class MexcConditionalOrderAdapter implements ConditionalOrderAdapter {
     const { symbol, side, quantity, triggerPrice, type } = params;
 
     try {
+      // 確保市場資料已載入（用於合約大小轉換）
+      await this.ensureMarketsLoaded();
+
       const exchangeSymbol = convertSymbolForExchange(symbol, 'mexc');
+      const ccxtSymbol = this.convertToCcxtSymbol(symbol);
       const closingSide = getClosingSide(side);
       const formattedPrice = formatPriceForExchange(triggerPrice);
-      const formattedQuantity = quantity.toString();
+
+      // 將數量轉換為合約張數（處理 contractSize != 1 的情況）
+      const contractQuantity = this.convertToContracts(ccxtSymbol, quantity.toNumber());
 
       logger.info(
         {
@@ -88,7 +146,8 @@ export class MexcConditionalOrderAdapter implements ConditionalOrderAdapter {
           closingSide,
           positionSide: side,
           triggerPrice: formattedPrice,
-          quantity: formattedQuantity,
+          originalQuantity: quantity.toString(),
+          contractQuantity,
           isHedgeMode: this.isHedgeMode,
         },
         'Creating MEXC conditional order',
@@ -109,7 +168,7 @@ export class MexcConditionalOrderAdapter implements ConditionalOrderAdapter {
         exchangeSymbol,
         type.toLowerCase(),
         closingSide.toLowerCase(),
-        parseFloat(formattedQuantity),
+        contractQuantity, // 使用轉換後的合約張數
         undefined,
         orderParams,
       );
