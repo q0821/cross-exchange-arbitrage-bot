@@ -338,9 +338,8 @@ export class ExchangeQueryService {
         });
       });
 
-      const order = (response || []).find(
-        (o: any) => o.strategyId?.toString() === orderId,
-      );
+      // 回應可能是陣列或單一物件
+      const order = this.findOrderInResponse(response, orderId);
 
       if (!order) return null;
 
@@ -363,9 +362,8 @@ export class ExchangeQueryService {
         });
       });
 
-      const order = (response || []).find(
-        (o: any) => o.strategyId?.toString() === orderId,
-      );
+      // 回應可能是陣列或單一物件
+      const order = this.findOrderInResponse(response, orderId);
 
       if (!order) return null;
 
@@ -379,6 +377,30 @@ export class ExchangeQueryService {
         rawData: order,
       };
     }
+  }
+
+  /**
+   * 從回應中找到訂單（處理陣列或單一物件）
+   */
+  private findOrderInResponse(response: any, orderId: string): any {
+    if (!response) return null;
+
+    // 如果是陣列，用 find 搜尋
+    if (Array.isArray(response)) {
+      return response.find((o: any) => o.strategyId?.toString() === orderId);
+    }
+
+    // 如果是單一物件，直接比對
+    if (response.strategyId?.toString() === orderId) {
+      return response;
+    }
+
+    // 如果有 orders 屬性（某些 API 包裝格式）
+    if (response.orders && Array.isArray(response.orders)) {
+      return response.orders.find((o: any) => o.strategyId?.toString() === orderId);
+    }
+
+    return null;
   }
 
   private mapBinanceStatus(strategyStatus: string): OrderHistoryResult['status'] {
@@ -531,8 +553,12 @@ export class ExchangeQueryService {
         return await (this.exchange as any).fetchClosedOrders(ccxtSymbol, undefined, 100);
       });
 
+      // 搜尋訂單：可能是直接匹配 orderId，或透過 triggerOrderId 連結
       const order = (closedOrders || []).find(
-        (o: any) => o.id?.toString() === orderId || o.clientOrderId === orderId,
+        (o: any) =>
+          o.id?.toString() === orderId ||
+          o.clientOrderId === orderId ||
+          o.info?.triggerOrderId?.toString() === orderId,
       );
 
       if (!order) {
@@ -559,13 +585,14 @@ export class ExchangeQueryService {
   }
 
   private mapBingxStatus(status: string): OrderHistoryResult['status'] {
-    switch (status?.toUpperCase()) {
-      case 'FILLED':
+    switch (status?.toLowerCase()) {
+      case 'filled':
+      case 'closed': // CCXT 統一 API 回傳 closed
         return 'TRIGGERED';
-      case 'CANCELED':
-      case 'CANCELLED':
+      case 'canceled':
+      case 'cancelled':
         return 'CANCELED';
-      case 'EXPIRED':
+      case 'expired':
         return 'EXPIRED';
       default:
         return 'UNKNOWN';

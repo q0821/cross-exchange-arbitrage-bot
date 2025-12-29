@@ -146,13 +146,13 @@ export class ConditionalOrderMonitor {
       });
 
       if (positions.length === 0) {
-        logger.debug({}, 'No positions to check');
+        logger.info({}, '[條件單監控] 沒有需要檢查的持倉');
         return;
       }
 
-      logger.debug(
+      logger.info(
         { count: positions.length },
-        'Checking positions for conditional order triggers',
+        '[條件單監控] 開始檢查持倉的條件單狀態',
       );
 
       // 逐一檢查每個持倉
@@ -169,7 +169,7 @@ export class ConditionalOrderMonitor {
                 triggeredExchange: triggerResult.triggeredExchange,
                 confirmedByHistory: triggerResult.confirmedByHistory,
               },
-              'Conditional order trigger detected',
+              '[條件單監控] 偵測到觸發事件',
             );
 
             // Phase 4 (US2): 處理自動平倉
@@ -203,8 +203,22 @@ export class ConditionalOrderMonitor {
   async checkPositionConditionalOrders(
     position: Position,
   ): Promise<TriggerResult | null> {
+    logger.info(
+      { positionId: position.id, symbol: position.symbol },
+      '[條件單監控] 檢查持倉',
+    );
+
     // 檢查各個條件單是否存在
     const orderStatus = await this.checkAllOrdersExist(position);
+
+    logger.info(
+      {
+        positionId: position.id,
+        symbol: position.symbol,
+        orderStatus,
+      },
+      '[條件單監控] 訂單狀態檢查結果',
+    );
 
     // 檢查是否雙邊同時觸發
     if (this.detectBothSidesTriggered(orderStatus)) {
@@ -235,6 +249,10 @@ export class ConditionalOrderMonitor {
     const triggerType = await this.detectTrigger(position, orderStatus);
 
     if (!triggerType) {
+      logger.info(
+        { positionId: position.id, symbol: position.symbol },
+        '[條件單監控] 未偵測到觸發',
+      );
       return null;
     }
 
@@ -251,9 +269,9 @@ export class ConditionalOrderMonitor {
     );
 
     if (!confirmed) {
-      logger.debug(
+      logger.info(
         { positionId: position.id, triggerType, orderId },
-        'Trigger not confirmed by order history',
+        '[條件單監控] 觸發未經訂單歷史確認',
       );
       return null;
     }
@@ -303,13 +321,13 @@ export class ConditionalOrderMonitor {
 
         await longService.disconnect();
       } catch (error) {
-        logger.warn(
+        logger.error(
           {
             positionId: position.id,
             exchange: position.longExchange,
             error: error instanceof Error ? error.message : String(error),
           },
-          'Failed to check long side orders',
+          '[條件單監控] 檢查多方條件單失敗',
         );
       }
     }
@@ -338,13 +356,13 @@ export class ConditionalOrderMonitor {
 
         await shortService.disconnect();
       } catch (error) {
-        logger.warn(
+        logger.error(
           {
             positionId: position.id,
             exchange: position.shortExchange,
             error: error instanceof Error ? error.message : String(error),
           },
-          'Failed to check short side orders',
+          '[條件單監控] 檢查空方條件單失敗',
         );
       }
     }
@@ -396,19 +414,24 @@ export class ConditionalOrderMonitor {
       const history = await service.fetchOrderHistory(symbol, orderId);
       await service.disconnect();
 
+      logger.info(
+        { exchange, symbol, orderId, history },
+        '[條件單監控] 訂單歷史查詢結果',
+      );
+
       if (!history) {
         return false;
       }
 
       return history.status === 'TRIGGERED';
     } catch (error) {
-      logger.warn(
+      logger.error(
         {
           exchange,
           orderId,
           error: error instanceof Error ? error.message : String(error),
         },
-        'Failed to confirm trigger with order history',
+        '[條件單監控] 查詢訂單歷史確認觸發失敗',
       );
       return false;
     }
