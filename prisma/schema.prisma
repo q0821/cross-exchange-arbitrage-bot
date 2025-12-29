@@ -493,6 +493,9 @@ model Position {
   conditionalOrderStatus  ConditionalOrderStatus @default(PENDING)
   conditionalOrderError   String?                @db.Text
 
+  // ===== 平倉原因 (Feature 050) =====
+  closeReason             CloseReason?
+
   // Relations
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   trade Trade?
@@ -524,6 +527,18 @@ enum ConditionalOrderStatus {
   FAILED   // 設定失敗
 
   @@map("conditional_order_status")
+}
+
+// ===== 平倉原因 (Feature 050) =====
+enum CloseReason {
+  MANUAL              // 手動平倉
+  LONG_SL_TRIGGERED   // 多方停損觸發
+  LONG_TP_TRIGGERED   // 多方停利觸發
+  SHORT_SL_TRIGGERED  // 空方停損觸發
+  SHORT_TP_TRIGGERED  // 空方停利觸發
+  BOTH_TRIGGERED      // 雙邊同時觸發
+
+  @@map("close_reason")
 }
 
 // ===== 交易記錄 =====

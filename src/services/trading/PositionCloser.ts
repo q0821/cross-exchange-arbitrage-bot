@@ -5,7 +5,7 @@
  * Feature: 035-close-position
  */
 
-import { PrismaClient, PositionWebStatus, Position, Trade } from '@prisma/client';
+import { PrismaClient, PositionWebStatus, Position, Trade, CloseReason } from '@prisma/client';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
 import { decrypt } from '../../lib/encryption';
@@ -118,6 +118,51 @@ export interface ClosePositionPartialResult {
  * 平倉結果類型
  */
 export type ClosePositionResult = ClosePositionSuccessResult | ClosePositionPartialResult;
+
+/**
+ * 單邊平倉參數
+ * Feature: 050-sl-tp-trigger-monitor
+ */
+export interface CloseSingleSideParams {
+  /** 用戶 ID */
+  userId: string;
+  /** 持倉 ID */
+  positionId: string;
+  /** 要平倉的一邊 */
+  side: 'LONG' | 'SHORT';
+  /** 平倉原因 */
+  closeReason: CloseReason;
+}
+
+/**
+ * 單邊平倉成功結果
+ */
+export interface CloseSingleSideSuccessResult {
+  success: true;
+  position: Position;
+  closedSide: {
+    side: 'LONG' | 'SHORT';
+    exchange: SupportedExchange;
+    orderId: string;
+    price: Decimal;
+    quantity: Decimal;
+    fee: Decimal;
+  };
+}
+
+/**
+ * 單邊平倉失敗結果
+ */
+export interface CloseSingleSideFailedResult {
+  success: false;
+  error: string;
+  position: Position;
+}
+
+/**
+ * 單邊平倉結果類型
+ */
+export type CloseSingleSideResult = CloseSingleSideSuccessResult | CloseSingleSideFailedResult;
 
 /**
  * PositionCloser
@@ -544,11 +589,13 @@ export class PositionCloser {
     );
 
     // 更新 Position 狀態
+    // T039: closePosition() 設定 closeReason = MANUAL（手動平倉）
     const updatedPosition = await this.prisma.position.update({
       where: { id: position.id },
       data: {
         status: 'CLOSED',
         closedAt,
+        closeReason: 'MANUAL',
         longExitPrice: longExitPrice.toNumber(),
         longCloseOrderId: longResult.orderId,
         shortExitPrice: shortExitPrice.toNumber(),
@@ -1267,6 +1314,255 @@ export class PositionCloser {
         failed: conditionalOrders.length - successCount,
       },
       'Conditional orders cancellation completed',
+    );
+  }
+
+  /**
+   * 單邊平倉
+   *
+   * 當條件單觸發後，用於平倉另一邊的倉位
+   * Feature: 050-sl-tp-trigger-monitor
+   *
+   * @param params 單邊平倉參數
+   * @returns 單邊平倉結果
+   */
+  async closeSingleSide(params: CloseSingleSideParams): Promise<CloseSingleSideResult> {
+    const { userId, positionId, side, closeReason } = params;
+
+    logger.info(
+      { userId, positionId, side, closeReason },
+      'Starting single side position close',
+    );
+
+    // 使用分散式鎖執行平倉
+    return this.withCloseLock(positionId, async () => {
+      return this.executeCloseSingleSideWithLock(userId, positionId, side, closeReason);
+    });
+  }
+
+  /**
+   * 在持有鎖的情況下執行單邊平倉
+   */
+  private async executeCloseSingleSideWithLock(
+    userId: string,
+    positionId: string,
+    side: 'LONG' | 'SHORT',
+    closeReason: CloseReason,
+  ): Promise<CloseSingleSideResult> {
+    // 1. 獲取並驗證持倉
+    const position = await this.getAndValidatePosition(userId, positionId);
+
+    // 2. 更新狀態為 CLOSING
+    await this.updatePositionStatus(position.id, 'CLOSING');
+
+    try {
+      // 3. 根據 side 決定要平倉的交易所和倉位資訊
+      const exchange = (side === 'LONG' ? position.longExchange : position.shortExchange) as SupportedExchange;
+      const quantity = side === 'LONG'
+        ? new Decimal(position.longPositionSize)
+        : new Decimal(position.shortPositionSize);
+
+      // 平倉方向：Long 用 sell，Short 用 buy
+      const orderSide = side === 'LONG' ? 'sell' : 'buy';
+
+      // 4. 創建用戶特定的交易所連接器
+      const trader = await this.createUserTrader(userId, exchange);
+
+      // 5. 執行平倉
+      const ccxtSymbol = this.formatSymbolForCcxt(position.symbol);
+      const closeResult = await this.executeCloseOrder(
+        trader,
+        ccxtSymbol,
+        orderSide,
+        quantity.toNumber(),
+        exchange,
+      );
+
+      if (!closeResult.success) {
+        // 平倉失敗，回復狀態
+        await this.updatePositionStatus(
+          position.id,
+          'OPEN',
+          closeResult.error?.message || 'Single side close failed',
+        );
+
+        return {
+          success: false,
+          error: closeResult.error?.message || 'Single side close failed',
+          position,
+        };
+      }
+
+      // 6. 更新 Position 狀態為 CLOSED 並記錄 closeReason
+      const closedAt = new Date();
+      const updatedPosition = await this.prisma.position.update({
+        where: { id: position.id },
+        data: {
+          status: 'CLOSED',
+          closedAt,
+          closeReason,
+          ...(side === 'LONG'
+            ? {
+                longExitPrice: closeResult.price!.toNumber(),
+                longCloseOrderId: closeResult.orderId,
+              }
+            : {
+                shortExitPrice: closeResult.price!.toNumber(),
+                shortCloseOrderId: closeResult.orderId,
+              }),
+        },
+      });
+
+      logger.info(
+        {
+          positionId: position.id,
+          side,
+          exchange,
+          orderId: closeResult.orderId,
+          price: closeResult.price?.toString(),
+          closeReason,
+        },
+        'Single side position closed successfully',
+      );
+
+      return {
+        success: true,
+        position: updatedPosition,
+        closedSide: {
+          side,
+          exchange,
+          orderId: closeResult.orderId!,
+          price: closeResult.price!,
+          quantity: closeResult.quantity!,
+          fee: closeResult.fee!,
+        },
+      };
+    } catch (error) {
+      // 回復狀態為 OPEN
+      await this.updatePositionStatus(
+        position.id,
+        'OPEN',
+        error instanceof Error ? error.message : 'Unknown error',
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * 取消單邊的條件單
+   *
+   * 當一邊觸發後，用於取消另一邊的條件單（停損/停利）
+   * Feature: 050-sl-tp-trigger-monitor
+   *
+   * @param position 持倉資料
+   * @param side 要取消的一邊 (LONG 或 SHORT)
+   */
+  async cancelSingleSideConditionalOrders(
+    position: Position,
+    side: 'LONG' | 'SHORT',
+  ): Promise<void> {
+    // 根據 side 選擇對應的交易所和訂單 ID
+    const exchange = (side === 'LONG' ? position.longExchange : position.shortExchange) as SupportedExchange;
+    const stopLossOrderId = side === 'LONG' ? position.longStopLossOrderId : position.shortStopLossOrderId;
+    const takeProfitOrderId = side === 'LONG' ? position.longTakeProfitOrderId : position.shortTakeProfitOrderId;
+
+    const conditionalOrders = [
+      {
+        exchange,
+        orderId: stopLossOrderId,
+        type: `${side.toLowerCase()}StopLoss`,
+      },
+      {
+        exchange,
+        orderId: takeProfitOrderId,
+        type: `${side.toLowerCase()}TakeProfit`,
+      },
+    ].filter(order => order.orderId); // 只處理有 orderId 的
+
+    if (conditionalOrders.length === 0) {
+      logger.debug(
+        { positionId: position.id, side },
+        'No conditional orders to cancel on this side',
+      );
+      return;
+    }
+
+    logger.info(
+      {
+        positionId: position.id,
+        side,
+        orderCount: conditionalOrders.length,
+        orders: conditionalOrders.map(o => ({ type: o.type, exchange: o.exchange })),
+      },
+      'Canceling single side conditional orders',
+    );
+
+    // 並行取消指定邊的條件單
+    const cancelResults = await Promise.allSettled(
+      conditionalOrders.map(async order => {
+        try {
+          const adapter = await this.conditionalOrderAdapterFactory.getAdapter(
+            order.exchange,
+            position.userId,
+          );
+          const success = await adapter.cancelConditionalOrder(
+            position.symbol,
+            order.orderId!,
+          );
+
+          if (success) {
+            logger.info(
+              {
+                positionId: position.id,
+                type: order.type,
+                exchange: order.exchange,
+                orderId: order.orderId,
+              },
+              'Single side conditional order cancelled successfully',
+            );
+          } else {
+            logger.warn(
+              {
+                positionId: position.id,
+                type: order.type,
+                exchange: order.exchange,
+                orderId: order.orderId,
+              },
+              'Failed to cancel single side conditional order (adapter returned false)',
+            );
+          }
+
+          return { type: order.type, success };
+        } catch (error) {
+          logger.warn(
+            {
+              positionId: position.id,
+              type: order.type,
+              exchange: order.exchange,
+              orderId: order.orderId,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            'Error canceling single side conditional order',
+          );
+          return { type: order.type, success: false };
+        }
+      }),
+    );
+
+    // 統計結果
+    const successCount = cancelResults.filter(
+      r => r.status === 'fulfilled' && r.value.success,
+    ).length;
+
+    logger.info(
+      {
+        positionId: position.id,
+        side,
+        total: conditionalOrders.length,
+        success: successCount,
+        failed: conditionalOrders.length - successCount,
+      },
+      'Single side conditional orders cancellation completed',
     );
   }
 }

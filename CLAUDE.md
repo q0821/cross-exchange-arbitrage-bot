@@ -62,6 +62,10 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - PostgreSQL 15 + TimescaleDB (現有 Position 模型，不新增欄位) (045-position-details-view)
 - TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, React 18, Tailwind CSS 3.4, Radix UI, next-themes (新增) (046-unified-ui-theme)
 - localStorage (用戶主題偏好) (046-unified-ui-theme)
+- TypeScript 5.6 + Node.js 20.x LTS + Vitest 2.1.2, Decimal.js, Prisma 5.x (mocked) (047-balance-validator-tests)
+- N/A（純測試，不涉及資料庫變更） (047-balance-validator-tests)
+- TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（查詢交易所）、axios（呼叫 Web API）、commander（CLI 參數解析）、Prisma 5.x（讀取用戶/持倉資料） (049-trading-validation-script)
+- PostgreSQL 15 + TimescaleDB（現有 Position、ApiKey 模型） (049-trading-validation-script)
 
 ## Project Structure
 ```
@@ -76,9 +80,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
-- 046-unified-ui-theme: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, React 18, Tailwind CSS 3.4, Radix UI, next-themes (新增)
-- 045-position-details-view: Added TypeScript 5.6 + Node.js 20.x LTS + Next.js 14 App Router, React 18, CCXT 4.x, Prisma 5.x, Tailwind CSS, Decimal.js
-- 044-mexc-trading-restriction: Added TypeScript 5.6 + Node.js 20.x LTS + React 18, Next.js 14 App Router, Radix UI Tooltip (現有依賴，無需新增)
+- 050-sl-tp-trigger-monitor: Added TypeScript 5.6 + Node.js 20.x LTS + Prisma 5.x (ORM), Socket.io 4.8.1 (WebSocket), CCXT 4.x (多交易所抽象)
+- 049-trading-validation-script: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（查詢交易所）、axios（呼叫 Web API）、commander（CLI 參數解析）、Prisma 5.x（讀取用戶/持倉資料）
+- 047-balance-validator-tests: Added TypeScript 5.6 + Node.js 20.x LTS + Vitest 2.1.2, Decimal.js, Prisma 5.x (mocked)
 
 <!-- MANUAL ADDITIONS START -->
 
@@ -212,5 +216,37 @@ TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 - `ApiKey` - exchange 欄位支援 'bingx'
 - `AssetSnapshot` - bingxBalanceUSD, bingxStatus 欄位
 - 其餘模型（Position、Trade）無需修改，已是通用設計
+
+## Feature 050: 停損停利觸發偵測與自動平倉
+
+### Key Paths
+- **條件單監控服務**: `src/services/monitor/ConditionalOrderMonitor.ts` - 每 30 秒輪詢檢查條件單狀態
+- **交易所查詢服務**: `src/lib/exchange-query-service.ts` - 查詢條件單和訂單歷史
+- **監控初始化**: `src/lib/monitor-init.ts` - Singleton 模式初始化和優雅關閉
+- **WebSocket 事件推送**: `src/services/websocket/TriggerProgressEmitter.ts` - 觸發事件即時推送
+- **通知工具**: `src/services/notification/utils.ts` - 觸發通知訊息構建
+
+### API Endpoints
+- `GET /api/monitor/status` - 獲取條件單監控服務狀態
+
+### Environment Variables
+- `ENABLE_CONDITIONAL_ORDER_MONITOR=true` - 啟用條件單觸發監控服務
+
+### Data Model (Prisma)
+- `CloseReason` enum - 新增平倉原因（MANUAL, LONG_SL_TRIGGERED, LONG_TP_TRIGGERED, SHORT_SL_TRIGGERED, SHORT_TP_TRIGGERED, BOTH_TRIGGERED）
+- `Position.closeReason` - 記錄持倉平倉原因
+
+### WebSocket Events
+- `position:trigger:detected` - 觸發偵測到
+- `position:trigger:close:progress` - 觸發平倉進度
+- `position:trigger:close:success` - 觸發平倉成功
+- `position:trigger:close:failed` - 觸發平倉失敗
+
+### Trigger Types
+- `LONG_SL` - 多方停損觸發
+- `LONG_TP` - 多方停利觸發
+- `SHORT_SL` - 空方停損觸發
+- `SHORT_TP` - 空方停利觸發
+- `BOTH` - 雙邊同時觸發
 
 <!-- MANUAL ADDITIONS END -->

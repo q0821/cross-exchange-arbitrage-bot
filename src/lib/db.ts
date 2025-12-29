@@ -66,6 +66,18 @@ logger.info('NotificationService initialized via db.ts');
 ratesCache.initializeTrackingService(prisma);
 logger.info('SimulatedTrackingService initialized via db.ts');
 
+// Feature 050: 初始化條件單觸發監控服務
+// 使用環境變數控制是否啟動，預設關閉
+if (process.env.ENABLE_CONDITIONAL_ORDER_MONITOR === 'true') {
+  import('./monitor-init').then(({ initializeConditionalOrderMonitor, setupSignalHandlers }) => {
+    initializeConditionalOrderMonitor({ autoStart: true });
+    setupSignalHandlers();
+    logger.info('ConditionalOrderMonitor initialized and started via db.ts');
+  }).catch((error) => {
+    logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Failed to initialize ConditionalOrderMonitor');
+  });
+}
+
 // 優雅關閉資料庫連線
 process.on('beforeExit', async () => {
   await prisma.$disconnect();

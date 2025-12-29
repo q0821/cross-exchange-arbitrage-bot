@@ -109,6 +109,66 @@ export interface OpportunityDisappearedMessage {
   timestamp: Date;
 }
 
+// ===== Feature 050: 停損停利觸發通知 =====
+
+/**
+ * 觸發類型（用於通知）
+ */
+export type TriggerNotificationType = 'LONG_SL' | 'LONG_TP' | 'SHORT_SL' | 'SHORT_TP' | 'BOTH';
+
+/**
+ * 觸發通知訊息
+ * Feature 050: 停損停利觸發偵測與自動平倉
+ */
+export interface TriggerNotificationMessage {
+  // 基本資訊
+  positionId: string;
+  symbol: string;
+  triggerType: TriggerNotificationType;
+
+  // 觸發資訊
+  triggeredExchange: string;
+  triggeredSide: 'LONG' | 'SHORT';
+  triggerPrice?: number;
+
+  // 平倉資訊
+  closedExchange: string;
+  closedSide: 'LONG' | 'SHORT';
+  closePrice?: number;
+
+  // 損益資訊
+  pnl: {
+    priceDiffPnL: number;
+    fundingRatePnL: number;
+    totalFees: number;
+    totalPnL: number;
+    roi: number; // percentage
+  };
+
+  // 持倉資訊
+  positionSize: number;
+  leverage: number;
+  holdingDuration: string; // e.g., "2 小時 30 分鐘"
+
+  // 時間戳
+  triggeredAt: Date;
+  closedAt: Date;
+}
+
+/**
+ * 緊急通知訊息（平倉失敗）
+ * Feature 050: 停損停利觸發偵測與自動平倉
+ */
+export interface EmergencyNotificationMessage {
+  positionId: string;
+  symbol: string;
+  triggerType: TriggerNotificationType;
+  triggeredExchange: string;
+  error: string;
+  requiresManualIntervention: boolean;
+  timestamp: Date;
+}
+
 // ===== Feature 026: 原有類型定義 =====
 
 /**
@@ -201,6 +261,22 @@ export interface INotifier {
   sendDisappearedNotification(
     webhookUrl: string,
     message: OpportunityDisappearedMessage
+  ): Promise<NotificationResult>;
+
+  /**
+   * Feature 050: 發送觸發通知
+   */
+  sendTriggerNotification(
+    webhookUrl: string,
+    message: TriggerNotificationMessage
+  ): Promise<NotificationResult>;
+
+  /**
+   * Feature 050: 發送緊急通知（平倉失敗）
+   */
+  sendEmergencyNotification(
+    webhookUrl: string,
+    message: EmergencyNotificationMessage
   ): Promise<NotificationResult>;
 }
 

@@ -6,6 +6,8 @@ import type {
   NotificationResult,
   ArbitrageNotificationMessage,
   OpportunityDisappearedMessage,
+  TriggerNotificationMessage,
+  EmergencyNotificationMessage,
 } from './types';
 import {
   generateExchangeUrl,
@@ -350,5 +352,210 @@ export class DiscordNotifier implements INotifier {
     }
 
     return null;
+  }
+
+  // ===== Feature 050: 停損停利觸發通知 =====
+
+  /**
+   * Feature 050: 發送觸發通知
+   */
+  async sendTriggerNotification(
+    webhookUrl: string,
+    message: TriggerNotificationMessage
+  ): Promise<NotificationResult> {
+    const timestamp = new Date();
+
+    try {
+      const { title, color, emoji } = this.getTriggerInfo(message.triggerType);
+      const pnlEmoji = message.pnl.totalPnL >= 0 ? '📈' : '📉';
+      const pnlColor = message.pnl.totalPnL >= 0 ? '🟢' : '🔴';
+
+      const embed = {
+        title: `${emoji} ${title}：${message.symbol}`,
+        color,
+        fields: [
+          {
+            name: '🎯 觸發資訊',
+            value: [
+              `交易所：**${message.triggeredExchange.toUpperCase()}**`,
+              `方向：${message.triggeredSide === 'LONG' ? '做多' : '做空'}`,
+              message.triggerPrice ? `觸發價：${formatPriceSmart(message.triggerPrice)}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+            inline: true,
+          },
+          {
+            name: '✅ 自動平倉',
+            value: [
+              `交易所：**${message.closedExchange.toUpperCase()}**`,
+              `方向：${message.closedSide === 'LONG' ? '做多' : '做空'}`,
+              message.closePrice ? `平倉價：${formatPriceSmart(message.closePrice)}` : '',
+            ]
+              .filter(Boolean)
+              .join('\n'),
+            inline: true,
+          },
+          {
+            name: `${pnlEmoji} 損益結算`,
+            value: [
+              `價差損益：${message.pnl.priceDiffPnL >= 0 ? '+' : ''}${message.pnl.priceDiffPnL.toFixed(2)} USDT`,
+              `資金費率：${message.pnl.fundingRatePnL >= 0 ? '+' : ''}${message.pnl.fundingRatePnL.toFixed(2)} USDT`,
+              `手續費：-${message.pnl.totalFees.toFixed(2)} USDT`,
+              `───────────`,
+              `${pnlColor} 總損益：**${message.pnl.totalPnL >= 0 ? '+' : ''}${message.pnl.totalPnL.toFixed(2)} USDT** (${message.pnl.roi >= 0 ? '+' : ''}${message.pnl.roi.toFixed(2)}%)`,
+            ].join('\n'),
+            inline: false,
+          },
+          {
+            name: '📊 持倉資訊',
+            value: [
+              `數量：${message.positionSize}`,
+              `槓桿：${message.leverage}x`,
+              `持倉時間：${message.holdingDuration}`,
+            ].join('\n'),
+            inline: false,
+          },
+        ],
+        footer: {
+          text: `持倉 ID: ${message.positionId}`,
+        },
+        timestamp: message.closedAt.toISOString(),
+      };
+
+      await axios.post(
+        webhookUrl,
+        { embeds: [embed] },
+        { timeout: this.timeout }
+      );
+
+      logger.info(
+        {
+          symbol: message.symbol,
+          triggerType: message.triggerType,
+          pnl: message.pnl.totalPnL,
+        },
+        'Discord trigger notification sent successfully'
+      );
+
+      return {
+        webhookId: '',
+        success: true,
+        timestamp,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage }, 'Failed to send Discord trigger notification');
+
+      return {
+        webhookId: '',
+        success: false,
+        error: errorMessage,
+        timestamp,
+      };
+    }
+  }
+
+  /**
+   * Feature 050: 發送緊急通知（平倉失敗）
+   */
+  async sendEmergencyNotification(
+    webhookUrl: string,
+    message: EmergencyNotificationMessage
+  ): Promise<NotificationResult> {
+    const timestamp = new Date();
+
+    try {
+      const { title } = this.getTriggerInfo(message.triggerType);
+
+      const embed = {
+        title: `🚨 緊急：平倉失敗 - ${message.symbol}`,
+        color: 0xff0000, // 紅色
+        description: '**需要手動處理！**\n\n停損/停利已觸發，但自動平倉另一邊時發生錯誤。',
+        fields: [
+          {
+            name: '📍 觸發資訊',
+            value: [
+              `類型：${title}`,
+              `觸發交易所：**${message.triggeredExchange.toUpperCase()}**`,
+            ].join('\n'),
+            inline: true,
+          },
+          {
+            name: '❌ 錯誤訊息',
+            value: `\`\`\`${message.error}\`\`\``,
+            inline: false,
+          },
+          {
+            name: '⚠️ 建議操作',
+            value: [
+              '1. 立即檢查兩個交易所的持倉狀態',
+              '2. 手動平倉未平倉的一邊',
+              '3. 確認條件單狀態並手動取消（如需要）',
+            ].join('\n'),
+            inline: false,
+          },
+        ],
+        footer: {
+          text: `持倉 ID: ${message.positionId}`,
+        },
+        timestamp: message.timestamp.toISOString(),
+      };
+
+      await axios.post(
+        webhookUrl,
+        { embeds: [embed] },
+        { timeout: this.timeout }
+      );
+
+      logger.info(
+        {
+          symbol: message.symbol,
+          triggerType: message.triggerType,
+          error: message.error,
+        },
+        'Discord emergency notification sent successfully'
+      );
+
+      return {
+        webhookId: '',
+        success: true,
+        timestamp,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error({ error: errorMessage }, 'Failed to send Discord emergency notification');
+
+      return {
+        webhookId: '',
+        success: false,
+        error: errorMessage,
+        timestamp,
+      };
+    }
+  }
+
+  /**
+   * 取得觸發類型相關資訊
+   */
+  private getTriggerInfo(triggerType: string): {
+    title: string;
+    color: number;
+    emoji: string;
+  } {
+    switch (triggerType) {
+      case 'LONG_SL':
+        return { title: '多方停損觸發', color: 0xff6b6b, emoji: '🔻' };
+      case 'LONG_TP':
+        return { title: '多方停利觸發', color: 0x51cf66, emoji: '🔺' };
+      case 'SHORT_SL':
+        return { title: '空方停損觸發', color: 0xff6b6b, emoji: '🔻' };
+      case 'SHORT_TP':
+        return { title: '空方停利觸發', color: 0x51cf66, emoji: '🔺' };
+      case 'BOTH':
+        return { title: '雙邊觸發', color: 0xffd43b, emoji: '⚡' };
+      default:
+        return { title: '觸發', color: 0x868e96, emoji: '📢' };
+    }
   }
 }

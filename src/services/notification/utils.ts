@@ -2,7 +2,14 @@
  * 通知服務工具函式
  * Feature 026: Discord/Slack 套利機會即時推送通知
  * Feature 027: 套利機會結束監測和通知
+ * Feature 050: 停損停利觸發通知
  */
+
+import type {
+  TriggerNotificationMessage,
+  TriggerNotificationType,
+  EmergencyNotificationMessage,
+} from './types';
 
 /**
  * 交易所永續合約交易 URL 對應表
@@ -249,4 +256,96 @@ export function formatProfitInfoDiscord(params: {
     `淨收益：**${netSign}${(netProfit * 100).toFixed(2)}%**`,
     `實際 APY：**${realizedAPY.toFixed(0)}%**`,
   ].join('\n');
+}
+
+// ===== Feature 050: 停損停利觸發通知工具函式 =====
+
+/**
+ * 建立觸發通知訊息的輸入參數
+ */
+export interface BuildTriggerNotificationInput {
+  positionId: string;
+  symbol: string;
+  triggerType: TriggerNotificationType;
+  triggeredExchange: string;
+  triggeredSide: 'LONG' | 'SHORT';
+  triggerPrice?: number;
+  closedExchange: string;
+  closedSide: 'LONG' | 'SHORT';
+  closePrice?: number;
+  positionSize: number;
+  leverage: number;
+  openedAt: Date;
+  closedAt: Date;
+  pnl: {
+    priceDiffPnL: number;
+    fundingRatePnL: number;
+    totalFees: number;
+    totalPnL: number;
+    roi: number;
+  };
+}
+
+/**
+ * 建立觸發通知訊息
+ * Feature 050: 停損停利觸發偵測與自動平倉
+ *
+ * @param input 輸入參數
+ * @returns TriggerNotificationMessage
+ */
+export function buildTriggerNotificationMessage(
+  input: BuildTriggerNotificationInput
+): TriggerNotificationMessage {
+  const holdingDurationMs = input.closedAt.getTime() - input.openedAt.getTime();
+
+  return {
+    positionId: input.positionId,
+    symbol: input.symbol,
+    triggerType: input.triggerType,
+    triggeredExchange: input.triggeredExchange,
+    triggeredSide: input.triggeredSide,
+    triggerPrice: input.triggerPrice,
+    closedExchange: input.closedExchange,
+    closedSide: input.closedSide,
+    closePrice: input.closePrice,
+    pnl: input.pnl,
+    positionSize: input.positionSize,
+    leverage: input.leverage,
+    holdingDuration: formatDuration(holdingDurationMs),
+    triggeredAt: input.closedAt, // 觸發時間通常與平倉時間相近
+    closedAt: input.closedAt,
+  };
+}
+
+/**
+ * 建立緊急通知訊息的輸入參數
+ */
+export interface BuildEmergencyNotificationInput {
+  positionId: string;
+  symbol: string;
+  triggerType: TriggerNotificationType;
+  triggeredExchange: string;
+  error: string;
+  requiresManualIntervention: boolean;
+}
+
+/**
+ * 建立緊急通知訊息（平倉失敗時）
+ * Feature 050: 停損停利觸發偵測與自動平倉
+ *
+ * @param input 輸入參數
+ * @returns EmergencyNotificationMessage
+ */
+export function buildEmergencyNotificationMessage(
+  input: BuildEmergencyNotificationInput
+): EmergencyNotificationMessage {
+  return {
+    positionId: input.positionId,
+    symbol: input.symbol,
+    triggerType: input.triggerType,
+    triggeredExchange: input.triggeredExchange,
+    error: input.error,
+    requiresManualIntervention: input.requiresManualIntervention,
+    timestamp: new Date(),
+  };
 }
