@@ -25,6 +25,7 @@ export class BinanceConditionalOrderAdapter implements ConditionalOrderAdapter {
   private ccxtExchange: any; // CCXT Binance instance
   private isHedgeMode: boolean;
   private isPortfolioMargin: boolean;
+  private marketsLoaded = false;
 
   constructor(
     ccxtExchange: any,
@@ -36,6 +37,57 @@ export class BinanceConditionalOrderAdapter implements ConditionalOrderAdapter {
     this.ccxtExchange = ccxtExchange;
     this.isHedgeMode = options.isHedgeMode;
     this.isPortfolioMargin = options.isPortfolioMargin;
+  }
+
+  /**
+   * 確保市場資料已載入
+   */
+  private async ensureMarketsLoaded(): Promise<void> {
+    if (!this.marketsLoaded) {
+      await this.ccxtExchange.loadMarkets();
+      this.marketsLoaded = true;
+    }
+  }
+
+  /**
+   * 將數量轉換為合約張數
+   * Binance 某些幣種的 contractSize 不是 1
+   */
+  private convertToContracts(ccxtSymbol: string, quantity: number): number {
+    const market = this.ccxtExchange.markets[ccxtSymbol];
+    const contractSize = market?.contractSize || 1;
+
+    if (contractSize !== 1) {
+      const contracts = quantity / contractSize;
+      logger.info(
+        { symbol: ccxtSymbol, originalQuantity: quantity, contractSize, contracts },
+        'Binance: Converting quantity to contracts',
+      );
+      return contracts;
+    }
+    return quantity;
+  }
+
+  /**
+   * 轉換 symbol 為 CCXT 格式
+   * e.g., BTCUSDT -> BTC/USDT:USDT
+   */
+  private convertToCcxtSymbol(symbol: string): string {
+    // 如果已經是 CCXT 格式，直接返回
+    if (symbol.includes('/')) {
+      return symbol;
+    }
+
+    // 處理純格式 BTCUSDT -> BTC/USDT:USDT
+    const quoteAssets = ['USDT', 'USDC', 'BUSD', 'USD'];
+    for (const quote of quoteAssets) {
+      if (symbol.endsWith(quote)) {
+        const base = symbol.slice(0, -quote.length);
+        return `${base}/${quote}:${quote}`;
+      }
+    }
+
+    return `${symbol}/USDT:USDT`;
   }
 
   /**
@@ -164,10 +216,16 @@ export class BinanceConditionalOrderAdapter implements ConditionalOrderAdapter {
     const { symbol, side, quantity, triggerPrice, type } = params;
 
     try {
+      // 確保市場資料已載入（用於合約大小轉換）
+      await this.ensureMarketsLoaded();
+
       const exchangeSymbol = convertSymbolForExchange(symbol, 'binance');
+      const ccxtSymbol = this.convertToCcxtSymbol(symbol);
       const closingSide = getClosingSide(side);
       const formattedPrice = formatPriceForExchange(triggerPrice);
-      const formattedQuantity = quantity.toString();
+
+      // 將數量轉換為合約張數（處理 contractSize != 1 的情況）
+      const contractQuantity = this.convertToContracts(ccxtSymbol, quantity.toNumber());
 
       logger.info(
         {
@@ -176,7 +234,8 @@ export class BinanceConditionalOrderAdapter implements ConditionalOrderAdapter {
           closingSide,
           positionSide: side,
           triggerPrice: formattedPrice,
-          quantity: formattedQuantity,
+          originalQuantity: quantity.toString(),
+          contractQuantity,
           isHedgeMode: this.isHedgeMode,
           isPortfolioMargin: this.isPortfolioMargin,
         },
@@ -204,7 +263,7 @@ export class BinanceConditionalOrderAdapter implements ConditionalOrderAdapter {
         exchangeSymbol,
         type.toLowerCase(), // 'stop_market' or 'take_profit_market'
         closingSide.toLowerCase(), // 'buy' or 'sell'
-        parseFloat(formattedQuantity),
+        contractQuantity, // 使用轉換後的合約張數
         undefined, // price (市價單不需要)
         orderParams,
       );
