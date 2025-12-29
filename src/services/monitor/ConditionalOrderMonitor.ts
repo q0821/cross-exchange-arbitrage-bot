@@ -589,21 +589,55 @@ export class ConditionalOrderMonitor {
     });
 
     if (!closeResult.success) {
+      const errorMessage = closeResult.error || 'Unknown error';
+
+      // 檢查是否為「無持倉可平」的錯誤（表示另一邊也已被觸發）
+      const noPositionError = this.isNoPositionError(errorMessage);
+
+      if (noPositionError) {
+        logger.info(
+          {
+            positionId: position.id,
+            triggerType: triggerResult.triggerType,
+            sideToClose,
+          },
+          'No position to close - treating as both sides triggered',
+        );
+
+        // 判斷為雙邊觸發，直接更新狀態
+        await this.prisma.position.update({
+          where: { id: position.id },
+          data: {
+            status: 'CLOSED',
+            closeReason: 'BOTH_TRIGGERED',
+            closedAt: new Date(),
+          },
+        });
+
+        logger.info(
+          { positionId: position.id },
+          'Position closed due to both sides triggered (detected via close failure)',
+        );
+
+        return { success: true };
+      }
+
+      // 其他錯誤：記錄並發送緊急通知
       logger.error(
         {
           positionId: position.id,
           triggerType: triggerResult.triggerType,
-          error: closeResult.error,
+          error: errorMessage,
         },
         'Failed to close opposite side after trigger',
       );
 
       // T031: 發送緊急通知
-      await this.sendEmergencyNotifications(position, triggerResult, closeResult.error || 'Unknown error');
+      await this.sendEmergencyNotifications(position, triggerResult, errorMessage);
 
       return {
         success: false,
-        error: closeResult.error,
+        error: errorMessage,
       };
     }
 
@@ -712,6 +746,34 @@ export class ConditionalOrderMonitor {
       default:
         return 'MANUAL';
     }
+  }
+
+  /**
+   * 檢查錯誤訊息是否表示「無持倉可平」
+   * 各交易所的錯誤訊息不同，需要匹配多種格式
+   */
+  private isNoPositionError(errorMessage: string): boolean {
+    const noPositionPatterns = [
+      // BingX
+      'No position to close',
+      'no position',
+      '101205',
+      // Binance
+      'ReduceOnly Order is rejected',
+      'Position side does not match',
+      '-2022',
+      // OKX
+      'Position does not exist',
+      '51000',
+      // Gate.io
+      'position not found',
+      'POSITION_NOT_FOUND',
+    ];
+
+    const lowerError = errorMessage.toLowerCase();
+    return noPositionPatterns.some(
+      (pattern) => lowerError.includes(pattern.toLowerCase()),
+    );
   }
 
   // ==================== Phase 5: US3 通知功能 ====================
