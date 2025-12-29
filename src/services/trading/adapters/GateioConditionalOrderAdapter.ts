@@ -28,9 +28,39 @@ import type {
 export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
   readonly exchangeName = 'gateio';
   private ccxtExchange: any; // CCXT Gate.io instance
+  private marketsLoaded = false;
 
   constructor(ccxtExchange: any) {
     this.ccxtExchange = ccxtExchange;
+  }
+
+  /**
+   * 確保市場資料已載入
+   */
+  private async ensureMarketsLoaded(): Promise<void> {
+    if (!this.marketsLoaded) {
+      await this.ccxtExchange.loadMarkets();
+      this.marketsLoaded = true;
+    }
+  }
+
+  /**
+   * 將數量轉換為合約張數
+   * Gate.io 某些幣種的 contractSize 不是 1
+   */
+  private convertToContracts(ccxtSymbol: string, quantity: number): number {
+    const market = this.ccxtExchange.markets[ccxtSymbol];
+    const contractSize = market?.contractSize || 1;
+
+    if (contractSize !== 1) {
+      const contracts = quantity / contractSize;
+      logger.info(
+        { symbol: ccxtSymbol, originalQuantity: quantity, contractSize, contracts },
+        'Gate.io: Converting quantity to contracts',
+      );
+      return contracts;
+    }
+    return quantity;
   }
 
   /**
@@ -183,13 +213,18 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
   ): Promise<SingleConditionalOrderResult> {
     const { symbol, side, quantity, triggerPrice, type } = params;
 
+    // 確保市場資料已載入（用於合約大小轉換）
+    await this.ensureMarketsLoaded();
+
     const contract = this.convertToGateContract(symbol);
+    const ccxtSymbol = this.convertToCcxtSymbol(symbol);
     // 使用交易對精度格式化價格，確保是 tick size 的整數倍
     const formattedPrice = await this.formatPriceWithPrecision(symbol, triggerPrice);
 
-    // Gate.io 合約用整數張數，需要轉換
-    const sizeAbs = quantity.abs().toNumber();
-    const sizeInt = Math.max(1, Math.round(sizeAbs));
+    // Gate.io 合約用整數張數，需要先轉換為合約張數（處理 contractSize != 1）
+    const originalQuantity = quantity.abs().toNumber();
+    const contractQuantity = this.convertToContracts(ccxtSymbol, originalQuantity);
+    const sizeInt = Math.max(1, Math.round(contractQuantity));
     // Long 平倉用負數 (賣出), Short 平倉用正數 (買入)
     const finalSize = side === 'LONG' ? -sizeInt : sizeInt;
 
@@ -200,7 +235,7 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
       logger.info(
         {
           originalQuantity: quantity.toString(),
-          sizeAbs,
+          contractQuantity,
           sizeInt,
           finalSize,
           side,
