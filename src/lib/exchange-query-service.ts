@@ -493,35 +493,69 @@ export class ExchangeQueryService {
 
   /**
    * BingX 訂單歷史查詢
+   * 使用 CCXT 統一 API fetchClosedOrders
    */
   private async fetchBingxOrderHistory(
     symbol: string,
     orderId: string,
   ): Promise<OrderHistoryResult | null> {
-    const exchangeSymbol = symbol.replace('/', '-').replace('USDT', '-USDT');
+    const ccxtSymbol = convertToCcxtSymbol(symbol);
 
-    const response = await retry(async () => {
-      return await (this.exchange as any).swapV2PrivateGetTradeOrderHistory({
-        symbol: exchangeSymbol,
-        orderId: orderId,
+    try {
+      // 方法 1: 嘗試使用 fetchOrder 直接查詢
+      try {
+        const order = await retry(async () => {
+          return await (this.exchange as any).fetchOrder(orderId, ccxtSymbol);
+        });
+
+        if (order) {
+          const status = this.mapBingxStatus(order.status);
+          return {
+            orderId: order.id?.toString(),
+            status,
+            triggerPrice: parseFloat(order.stopPrice || order.triggerPrice || '0'),
+            executedAt: order.timestamp ? new Date(order.timestamp) : undefined,
+            rawData: order,
+          };
+        }
+      } catch (fetchOrderError) {
+        // fetchOrder 失敗，嘗試 fetchClosedOrders
+        logger.debug(
+          { orderId, error: (fetchOrderError as Error).message },
+          'BingX fetchOrder failed, trying fetchClosedOrders',
+        );
+      }
+
+      // 方法 2: 使用 fetchClosedOrders 查詢最近的已關閉訂單
+      const closedOrders = await retry(async () => {
+        return await (this.exchange as any).fetchClosedOrders(ccxtSymbol, undefined, 100);
       });
-    });
 
-    const orders = response?.data?.orders || [];
-    const order = orders.find((o: any) => o.orderId?.toString() === orderId);
+      const order = (closedOrders || []).find(
+        (o: any) => o.id?.toString() === orderId || o.clientOrderId === orderId,
+      );
 
-    if (!order) return null;
+      if (!order) {
+        logger.debug({ orderId, symbol }, 'Order not found in BingX closed orders');
+        return null;
+      }
 
-    // status: FILLED, CANCELED
-    const status = this.mapBingxStatus(order.status);
+      const status = this.mapBingxStatus(order.status);
 
-    return {
-      orderId: order.orderId?.toString(),
-      status,
-      triggerPrice: parseFloat(order.stopPrice || order.triggerPrice || '0'),
-      executedAt: order.updateTime ? new Date(order.updateTime) : undefined,
-      rawData: order,
-    };
+      return {
+        orderId: order.id?.toString(),
+        status,
+        triggerPrice: parseFloat(order.stopPrice || order.triggerPrice || '0'),
+        executedAt: order.timestamp ? new Date(order.timestamp) : undefined,
+        rawData: order,
+      };
+    } catch (error) {
+      logger.warn(
+        { error: (error as Error).message, orderId, symbol },
+        'BingX order history query failed',
+      );
+      return null;
+    }
   }
 
   private mapBingxStatus(status: string): OrderHistoryResult['status'] {
