@@ -26,6 +26,7 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
   readonly exchangeName = 'bingx';
   private ccxtExchange: any; // CCXT BingX instance
   private isHedgeMode: boolean;
+  private marketsLoaded = false;
 
   constructor(
     ccxtExchange: any,
@@ -33,6 +34,35 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
   ) {
     this.ccxtExchange = ccxtExchange;
     this.isHedgeMode = options.isHedgeMode;
+  }
+
+  /**
+   * 確保市場資料已載入
+   */
+  private async ensureMarketsLoaded(): Promise<void> {
+    if (!this.marketsLoaded) {
+      await this.ccxtExchange.loadMarkets();
+      this.marketsLoaded = true;
+    }
+  }
+
+  /**
+   * 將數量轉換為合約張數
+   * BingX 某些幣種的 contractSize 不是 1
+   */
+  private convertToContracts(ccxtSymbol: string, quantity: number): number {
+    const market = this.ccxtExchange.markets[ccxtSymbol];
+    const contractSize = market?.contractSize || 1;
+
+    if (contractSize !== 1) {
+      const contracts = quantity / contractSize;
+      logger.info(
+        { symbol: ccxtSymbol, originalQuantity: quantity, contractSize, contracts },
+        'BingX: Converting quantity to contracts',
+      );
+      return contracts;
+    }
+    return quantity;
   }
 
   /**
@@ -81,10 +111,15 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
     const { symbol, side, quantity, triggerPrice, orderType } = params;
 
     try {
+      // 確保市場資料已載入（用於合約大小轉換）
+      await this.ensureMarketsLoaded();
+
       const exchangeSymbol = convertSymbolForExchange(symbol, 'bingx');
       const closingSide = getClosingSide(side);
       const formattedPrice = formatPriceForExchange(triggerPrice);
-      const formattedQuantity = quantity.toString();
+
+      // 將數量轉換為合約張數（處理 contractSize != 1 的情況）
+      const contractQuantity = this.convertToContracts(exchangeSymbol, quantity.toNumber());
 
       logger.info(
         {
@@ -93,7 +128,8 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
           closingSide,
           positionSide: side,
           triggerPrice: formattedPrice,
-          quantity: formattedQuantity,
+          originalQuantity: quantity.toString(),
+          contractQuantity,
           isHedgeMode: this.isHedgeMode,
         },
         'Creating BingX conditional order',
@@ -119,12 +155,12 @@ export class BingxConditionalOrderAdapter implements ConditionalOrderAdapter {
         orderParams.reduceOnly = true;
       }
 
-      // 使用 market 訂單類型
+      // 使用 market 訂單類型，數量使用轉換後的合約張數
       const order = await this.ccxtExchange.createOrder(
         exchangeSymbol,
         'market',
         closingSide.toLowerCase(),
-        parseFloat(formattedQuantity),
+        contractQuantity,
         undefined,
         orderParams,
       );
