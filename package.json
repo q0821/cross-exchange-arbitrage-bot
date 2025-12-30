@@ -29,6 +29,7 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "update-oi-symbols": "tsx src/scripts/update-oi-symbols.ts",
+    "validate-trading": "tsx src/scripts/trading-validation/validate-trading.ts",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f"
@@ -55,6 +56,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@types/bcrypt": "^6.0.0",
+    "@types/inquirer": "^9.0.9",
     "@types/jsonwebtoken": "^9.0.10",
     "autoprefixer": "^10.4.21",
     "axios": "^1.7.7",
@@ -68,6 +70,7 @@
     "date-fns": "^4.1.0",
     "decimal.js": "^10.6.0",
     "dotenv": "^16.4.5",
+    "inquirer": "^13.1.0",
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.2",
     "log-update": "^7.0.1",
