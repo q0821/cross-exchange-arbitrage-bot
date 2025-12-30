@@ -246,30 +246,4 @@ export class ApiKeyService {
 
     return this.apiKeyRepository.markAsValidated(apiKeyId);
   }
-
-  /**
-   * 驗證 API Key 是否有效（連線測試）
-   * TODO: 實作與交易所的實際連線測試
-   */
-  async validateApiKey(apiKeyId: string, userId: string): Promise<boolean> {
-    const apiKey = await this.getApiKeyById(apiKeyId, userId);
-    // const decrypted = await this.decryptApiKey(apiKeyId, userId);
-
-    // TODO: 根據 exchange 類型，呼叫對應的 CCXT 客戶端進行連線測試
-    // TODO: 使用 decrypted 來進行實際的連線測試
-    // 暫時返回 true，待後續實作交易所連線測試
-    logger.info(
-      {
-        apiKeyId,
-        userId,
-        exchange: apiKey.exchange,
-      },
-      'API key validation test (placeholder)',
-    );
-
-    // 標記為已驗證
-    await this.markAsValidated(apiKeyId, userId);
-
-    return true;
-  }
 }
