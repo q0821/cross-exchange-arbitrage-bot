@@ -184,6 +184,17 @@ export class FundingFeeQueryService {
         'Querying funding fee history',
       );
 
+      // BingX 需要使用原生 API，因為 CCXT 不支援 fetchFundingHistory
+      if (exchange === 'bingx') {
+        return await this.queryBingxFundingFees(
+          ccxtExchange,
+          symbol,
+          startTime,
+          endTime,
+          result,
+        );
+      }
+
       // 調用 CCXT fetchFundingHistory
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const history = await (ccxtExchange as any).fetchFundingHistory(
@@ -242,6 +253,90 @@ export class FundingFeeQueryService {
       logger.warn(
         { error: errorMessage, exchange, symbol },
         'Failed to fetch funding history, defaulting to 0',
+      );
+      result.error = errorMessage;
+      return result;
+    }
+  }
+
+  /**
+   * BingX 資金費率歷史查詢
+   *
+   * 使用 BingX 原生 API /openApi/swap/v2/user/income
+   * 因為 CCXT 不支援 BingX 的 fetchFundingHistory
+   */
+  private async queryBingxFundingFees(
+    ccxtExchange: ccxt.Exchange,
+    symbol: string,
+    startTime: Date,
+    endTime: Date,
+    result: FundingFeeQueryResult,
+  ): Promise<FundingFeeQueryResult> {
+    try {
+      // 轉換 symbol 格式：BTCUSDT -> BTC-USDT
+      const bingxSymbol = symbol.replace(/([A-Z]+)(USDT|USDC|USD)$/, '$1-$2');
+
+      logger.info(
+        { symbol, bingxSymbol, startTime: startTime.toISOString(), endTime: endTime.toISOString() },
+        '[BingX] Querying funding fee history via native API',
+      );
+
+      // 調用 BingX 原生 API: /openApi/swap/v2/user/income
+      // incomeType: FUNDING_FEE 表示資金費率
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await (ccxtExchange as any).swapV2PrivateGetUserIncome({
+        symbol: bingxSymbol,
+        incomeType: 'FUNDING_FEE',
+        startTime: startTime.getTime(),
+        endTime: endTime.getTime(),
+        limit: 1000,
+      });
+
+      logger.debug(
+        { response: JSON.stringify(response).slice(0, 500) },
+        '[BingX] Funding fee API response',
+      );
+
+      // 解析響應
+      // BingX 返回格式: { code: 0, data: [{ income, symbol, time, ... }] }
+      const data = response?.data || [];
+      const entries: FundingFeeEntry[] = [];
+      let totalAmount = new Decimal(0);
+
+      for (const entry of data) {
+        const amount = new Decimal(entry.income || entry.amount || 0);
+        const timestamp = entry.time || entry.timestamp;
+
+        entries.push({
+          timestamp,
+          datetime: new Date(timestamp).toISOString(),
+          amount,
+          symbol: entry.symbol || symbol,
+          id: entry.tranId || entry.id || String(timestamp),
+        });
+        totalAmount = totalAmount.plus(amount);
+      }
+
+      result.entries = entries;
+      result.totalAmount = totalAmount;
+      result.success = true;
+
+      logger.info(
+        {
+          exchange: 'bingx',
+          symbol,
+          entriesCount: entries.length,
+          totalAmount: totalAmount.toFixed(8),
+        },
+        '[BingX] Funding fee query completed',
+      );
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(
+        { error: errorMessage, symbol },
+        '[BingX] Failed to fetch funding history',
       );
       result.error = errorMessage;
       return result;
