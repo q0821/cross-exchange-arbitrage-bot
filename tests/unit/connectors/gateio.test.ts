@@ -4,10 +4,10 @@ import { GateioConnector } from '../../../src/connectors/gateio';
 // Mock ccxt
 vi.mock('ccxt', () => ({
   default: {
-    gateio: vi.fn().mockImplementation(() => ({
+    gateio: vi.fn(function() { return {
       fetchTime: vi.fn().mockResolvedValue(Date.now()),
       fetchFundingRate: vi.fn(),
-    })),
+    }; }),
   },
 }));
 

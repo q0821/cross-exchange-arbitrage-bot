@@ -6,7 +6,7 @@
  * pnpm tsx scripts/test-mexc-api.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../src/lib/encryption';
 
 const prisma = new PrismaClient();

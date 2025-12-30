@@ -5,7 +5,6 @@
  * Feature 031: Asset Tracking History (T015)
  */
 
-import React from 'react';
 import { DollarSign, Clock } from 'lucide-react';
 
 interface TotalAssetCardProps {
@@ -58,7 +57,7 @@ export function TotalAssetCard({
   };
 
   return (
-    <div className="glass-card bg-gradient-to-br from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20 rounded-xl p-6">
+    <div className="glass-card bg-linear-to-br from-primary/10 to-secondary/10 dark:from-primary/20 dark:to-secondary/20 rounded-xl p-6">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">

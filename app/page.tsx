@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default function Home() {
-  const cookieStore = cookies();
+export default async function Home() {
+  const cookieStore = await cookies();
   const token = cookieStore.get('token');
 
   // 如果已登入，跳轉到市場監控頁面

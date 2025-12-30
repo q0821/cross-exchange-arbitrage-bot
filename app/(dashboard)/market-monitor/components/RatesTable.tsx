@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { RateRow } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
@@ -131,7 +131,7 @@ export function RatesTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+      <div className="overflow-x-auto rounded-lg border border-border shadow-xs">
         <table className="min-w-full divide-y divide-border">
           <thead className="bg-muted">
             <tr>

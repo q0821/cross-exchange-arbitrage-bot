@@ -12,7 +12,7 @@
  *   pnpm tsx scripts/seed-asset-snapshots.ts cm123abc 30        # 指定用戶和天數
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { subHours } from 'date-fns';
 
 const prisma = new PrismaClient();

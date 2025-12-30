@@ -11,7 +11,7 @@
  *   pnpm tsx src/scripts/test-open-close-position.ts --close-only=<positionId>
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import Decimal from 'decimal.js';
 import { PositionOrchestrator } from '../services/trading/PositionOrchestrator';
 import { PositionCloser } from '../services/trading/PositionCloser';

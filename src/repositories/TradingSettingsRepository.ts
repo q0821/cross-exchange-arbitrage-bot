@@ -5,7 +5,7 @@
  * Feature: 038-specify-scripts-bash
  */
 
-import { TradingSettings } from '@prisma/client';
+import { TradingSettings } from '@/generated/prisma/client';
 import { prisma } from '../lib/db';
 import type { TradingSettings as TradingSettingsType } from '../types/trading';
 

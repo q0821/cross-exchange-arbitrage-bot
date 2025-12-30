@@ -21,9 +21,9 @@ vi.mock('../../../src/lib/logger', () => ({
 
 // Mock ConditionalOrderAdapterFactory to avoid CCXT import issues
 vi.mock('../../../src/services/trading/ConditionalOrderAdapterFactory', () => ({
-  ConditionalOrderAdapterFactory: vi.fn().mockImplementation(() => ({
+  ConditionalOrderAdapterFactory: vi.fn(function() { return {
     getAdapter: vi.fn(),
-  })),
+  }; }),
 }));
 
 // Import after mocks are set up

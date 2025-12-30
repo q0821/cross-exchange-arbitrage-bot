@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 
 export interface MarketStats {
   /** 正在監控的交易對總數 */

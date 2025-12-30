@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import { AlertTriangle, ExternalLink } from 'lucide-react';
 import type { SupportedExchange, TradeSide } from '@/src/types/trading';
 
@@ -54,7 +53,7 @@ export function PartialCloseAlert({
   return (
     <div className="bg-warning/10 border border-warning/30 rounded-lg p-4">
       <div className="flex items-start gap-3">
-        <AlertTriangle className="w-6 h-6 text-warning flex-shrink-0 mt-0.5" />
+        <AlertTriangle className="w-6 h-6 text-warning shrink-0 mt-0.5" />
         <div className="flex-1">
           <h3 className="text-base font-semibold text-warning mb-2">
             需要手動處理

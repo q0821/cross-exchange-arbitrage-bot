@@ -3,7 +3,7 @@
  * 清理測試資料
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@/generated/prisma/client'
 
 async function main() {
   const prisma = new PrismaClient()

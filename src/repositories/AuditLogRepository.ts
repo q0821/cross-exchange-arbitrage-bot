@@ -7,7 +7,7 @@
  * Based on FR-053: Record all key operations (login, API key changes, trades)
  */
 
-import { AuditLog, Prisma, PrismaClient } from '@prisma/client';
+import { AuditLog, Prisma, PrismaClient } from '@/generated/prisma/client';
 import { prisma } from '../lib/db';
 import { logger } from '../lib/logger.js';
 

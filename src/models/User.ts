@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { User as PrismaUser } from '@prisma/client';
+import { User as PrismaUser } from '@/generated/prisma/client';
 
 /**
  * User 領域模型

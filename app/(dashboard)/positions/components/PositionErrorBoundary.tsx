@@ -6,7 +6,7 @@
 
 'use client';
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
@@ -46,7 +46,7 @@ export class PositionErrorBoundary extends Component<Props, State> {
       return (
         <div className="bg-loss/10 border border-loss/30 rounded-lg p-6">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-6 h-6 text-loss flex-shrink-0" />
+            <AlertTriangle className="w-6 h-6 text-loss shrink-0" />
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-loss mb-2">
                 發生錯誤

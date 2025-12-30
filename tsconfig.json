@@ -74,7 +74,8 @@
     ".next/types/**/*.ts",
     "src/**/*",
     "app/**/*",
-    "components/**/*"
+    "components/**/*",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

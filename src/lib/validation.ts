@@ -18,11 +18,11 @@ export const passwordSchema = z
   .max(100, 'Password must not exceed 100 characters');
 
 export const exchangeSchema = z.enum(['binance', 'okx', 'mexc', 'gateio', 'bingx'], {
-  errorMap: () => ({ message: 'Exchange must be one of: binance, okx, mexc, gateio, bingx' }),
+  message: 'Exchange must be one of: binance, okx, mexc, gateio, bingx',
 });
 
 export const apiEnvironmentSchema = z.enum(['MAINNET', 'TESTNET'], {
-  errorMap: () => ({ message: 'Environment must be either MAINNET or TESTNET' }),
+  message: 'Environment must be either MAINNET or TESTNET',
 });
 
 export const symbolSchema = z
@@ -89,12 +89,12 @@ export const paginationSchema = z.object({
     .string()
     .optional()
     .transform((val) => (val ? parseInt(val, 10) : 1))
-    .pipe(z.number().int().positive().default(1)),
+    .pipe(z.number().int().positive()),
   limit: z
     .string()
     .optional()
     .transform((val) => (val ? parseInt(val, 10) : 20))
-    .pipe(z.number().int().positive().max(100).default(20)),
+    .pipe(z.number().int().positive().max(100)),
 });
 
 export const opportunityQuerySchema = paginationSchema.extend({

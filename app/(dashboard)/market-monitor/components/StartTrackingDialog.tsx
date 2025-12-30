@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Target, AlertCircle, Loader2, Layers } from 'lucide-react';
 import type { MarketRate } from '../types';
@@ -177,7 +177,7 @@ export function StartTrackingDialog({
                 step="any"
                 disabled={isLoading}
                 placeholder={`輸入 ${coinSymbol} 數量`}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-muted"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary disabled:bg-muted"
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 多空雙方將使用相同顆數進行套利
@@ -246,7 +246,7 @@ export function StartTrackingDialog({
             {/* Error Messages */}
             {(validationError || error) && (
               <div className="mb-4 p-3 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-loss mt-0.5 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 text-loss mt-0.5 shrink-0" />
                 <div className="text-sm text-loss">
                   <p>{validationError || error}</p>
                   {error?.includes('登入') && (

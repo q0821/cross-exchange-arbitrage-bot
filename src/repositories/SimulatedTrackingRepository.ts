@@ -2,7 +2,7 @@ import {
   PrismaClient,
   SimulatedTracking as PrismaTracking,
   TrackingStatus,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 import { logger } from '@lib/logger';
 import { DatabaseError, NotFoundError } from '@lib/errors';
 import type {

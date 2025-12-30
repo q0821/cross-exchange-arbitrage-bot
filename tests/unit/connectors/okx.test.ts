@@ -4,10 +4,10 @@ import { OKXConnector } from '../../../src/connectors/okx';
 // Mock ccxt
 vi.mock('ccxt', () => ({
   default: {
-    okx: vi.fn().mockImplementation(() => ({
+    okx: vi.fn(function() { return {
       fetchTime: vi.fn().mockResolvedValue(Date.now()),
       fetchFundingRate: vi.fn(),
-    })),
+    }; }),
     NetworkError: class NetworkError extends Error {},
     ExchangeError: class ExchangeError extends Error {},
   },

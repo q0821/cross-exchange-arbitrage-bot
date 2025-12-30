@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronUp, Coins } from 'lucide-react';
 import type { FundingFeeDetailsInfo } from '@/src/types/trading';
 

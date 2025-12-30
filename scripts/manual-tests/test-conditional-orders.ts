@@ -12,7 +12,7 @@
  *   pnpm tsx src/scripts/test-conditional-orders.ts --dry-run
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import Decimal from 'decimal.js';
 import { ConditionalOrderAdapterFactory } from '../services/trading/ConditionalOrderAdapterFactory';
 import { logger } from '../lib/logger';

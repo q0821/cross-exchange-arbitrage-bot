@@ -1,7 +1,6 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { PrismaClient } from '@prisma/client';
 import { initializeSocketServer } from './src/websocket/SocketServer';
 import { logger } from './src/lib/logger';
 import { startMonitorService, stopMonitorService } from './src/services/MonitorService';
@@ -10,8 +9,9 @@ import {
   startAssetSnapshotScheduler,
   stopAssetSnapshotScheduler,
 } from './src/services/assets/AssetSnapshotScheduler';
+import { createPrismaClient } from './src/lib/prisma-factory';
 
-const prisma = new PrismaClient();
+const prisma = createPrismaClient();
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || 'localhost';

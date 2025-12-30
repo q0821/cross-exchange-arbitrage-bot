@@ -63,69 +63,36 @@ describe('BinanceWsClient Unit Tests', () => {
   });
 
   describe('構造函數', () => {
-    it('應該正確初始化客戶端', async () => {
-      // This test will fail until we implement BinanceWsClient
-      expect(true).toBe(false); // Force fail for TDD
-    });
+    it.todo('應該正確初始化客戶端');
   });
 
   describe('connect()', () => {
-    it('應該成功連接到 Binance WebSocket', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該成功連接到 Binance WebSocket');
 
-    it('應該在連接失敗後自動重連', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該在連接失敗後自動重連');
   });
 
   describe('subscribe()', () => {
-    it('應該訂閱交易對的 ticker stream', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該訂閱交易對的 ticker stream');
 
-    it('應該支援批量訂閱多個交易對', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該支援批量訂閱多個交易對');
   });
 
   describe('訊息處理', () => {
-    it('應該正確解析 Binance ticker 訊息', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該正確解析 Binance ticker 訊息');
 
-    it('應該發出 ticker 事件', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該發出 ticker 事件');
 
-    it('應該忽略無效的訊息', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該忽略無效的訊息');
   });
 
   describe('健康檢查', () => {
-    it('應該在收到訊息時更新 HealthChecker', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該在收到訊息時更新 HealthChecker');
 
-    it('應該在連接不健康時觸發重連', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該在連接不健康時觸發重連');
   });
 
   describe('disconnect()', () => {
-    it('應該正確斷開連接並清理資源', async () => {
-      // TODO: 實作後啟用
-      expect(true).toBe(false);
-    });
+    it.todo('應該正確斷開連接並清理資源');
   });
 });

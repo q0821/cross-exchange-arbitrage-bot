@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/db';
-import { PositionWebStatus } from '@prisma/client';
+import { PositionWebStatus } from '@/generated/prisma/client';
 import { z } from 'zod';
 import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
@@ -71,7 +71,7 @@ export async function PATCH(
           correlationId,
           userId: user.userId,
           positionId,
-          errors: parseResult.error.errors,
+          errors: parseResult.error.issues,
         },
         'Invalid request body for mark as closed',
       );

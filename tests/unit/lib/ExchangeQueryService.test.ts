@@ -22,7 +22,7 @@ describe('ExchangeQueryService', () => {
       // Mock ccxt
       vi.doMock('ccxt', () => ({
         default: {},
-        binance: vi.fn().mockImplementation(() => ({
+        binance: vi.fn(function() { return {
           loadMarkets: vi.fn().mockResolvedValue({}),
           markets: { 'BTC/USDT:USDT': { contractSize: 1 } },
           fapiPrivateGetPositionRisk: vi.fn().mockRejectedValue(new Error('-2015')),
@@ -37,10 +37,10 @@ describe('ExchangeQueryService', () => {
               updateTime: Date.now(),
             },
           ]),
-        })),
-        okx: vi.fn().mockImplementation(() => ({})),
-        gate: vi.fn().mockImplementation(() => ({})),
-        bingx: vi.fn().mockImplementation(() => ({})),
+        }; }),
+        okx: vi.fn(function() { return {}; }),
+        gate: vi.fn(function() { return {}; }),
+        bingx: vi.fn(function() { return {}; }),
       }));
 
       const { ExchangeQueryService } = await import('@/lib/exchange-query-service');
@@ -62,8 +62,8 @@ describe('ExchangeQueryService', () => {
     it('should fetch OKX algo order history', async () => {
       vi.doMock('ccxt', () => ({
         default: {},
-        binance: vi.fn().mockImplementation(() => ({})),
-        okx: vi.fn().mockImplementation(() => ({
+        binance: vi.fn(function() { return {}; }),
+        okx: vi.fn(function() { return {
           loadMarkets: vi.fn().mockResolvedValue({}),
           markets: { 'BTC/USDT:USDT': { contractSize: 1 } },
           privateGetTradeOrdersAlgoPending: vi.fn().mockResolvedValue({ data: [] }),
@@ -77,9 +77,9 @@ describe('ExchangeQueryService', () => {
               },
             ],
           }),
-        })),
-        gate: vi.fn().mockImplementation(() => ({})),
-        bingx: vi.fn().mockImplementation(() => ({})),
+        }; }),
+        gate: vi.fn(function() { return {}; }),
+        bingx: vi.fn(function() { return {}; }),
       }));
 
       const { ExchangeQueryService } = await import('@/lib/exchange-query-service');
@@ -101,8 +101,8 @@ describe('ExchangeQueryService', () => {
     it('should return CANCELED status for canceled orders', async () => {
       vi.doMock('ccxt', () => ({
         default: {},
-        binance: vi.fn().mockImplementation(() => ({})),
-        okx: vi.fn().mockImplementation(() => ({
+        binance: vi.fn(function() { return {}; }),
+        okx: vi.fn(function() { return {
           loadMarkets: vi.fn().mockResolvedValue({}),
           markets: { 'BTC/USDT:USDT': { contractSize: 1 } },
           privateGetTradeOrdersAlgoPending: vi.fn().mockResolvedValue({ data: [] }),
@@ -116,9 +116,9 @@ describe('ExchangeQueryService', () => {
               },
             ],
           }),
-        })),
-        gate: vi.fn().mockImplementation(() => ({})),
-        bingx: vi.fn().mockImplementation(() => ({})),
+        }; }),
+        gate: vi.fn(function() { return {}; }),
+        bingx: vi.fn(function() { return {}; }),
       }));
 
       const { ExchangeQueryService } = await import('@/lib/exchange-query-service');
@@ -139,17 +139,17 @@ describe('ExchangeQueryService', () => {
     it('should return null when order not found in history', async () => {
       vi.doMock('ccxt', () => ({
         default: {},
-        binance: vi.fn().mockImplementation(() => ({
+        binance: vi.fn(function() { return {
           loadMarkets: vi.fn().mockResolvedValue({}),
           markets: { 'BTC/USDT:USDT': { contractSize: 1 } },
           fapiPrivateGetPositionRisk: vi.fn().mockRejectedValue(new Error('-2015')),
           papiGetUmAccount: vi.fn().mockResolvedValue({}),
           papiGetUmConditionalOpenOrders: vi.fn().mockResolvedValue([]),
           papiGetUmConditionalOrderHistory: vi.fn().mockResolvedValue([]),
-        })),
-        okx: vi.fn().mockImplementation(() => ({})),
-        gate: vi.fn().mockImplementation(() => ({})),
-        bingx: vi.fn().mockImplementation(() => ({})),
+        }; }),
+        okx: vi.fn(function() { return {}; }),
+        gate: vi.fn(function() { return {}; }),
+        bingx: vi.fn(function() { return {}; }),
       }));
 
       const { ExchangeQueryService } = await import('@/lib/exchange-query-service');
@@ -169,9 +169,9 @@ describe('ExchangeQueryService', () => {
     it('should fetch Gate.io price order by ID', async () => {
       vi.doMock('ccxt', () => ({
         default: {},
-        binance: vi.fn().mockImplementation(() => ({})),
-        okx: vi.fn().mockImplementation(() => ({})),
-        gate: vi.fn().mockImplementation(() => ({
+        binance: vi.fn(function() { return {}; }),
+        okx: vi.fn(function() { return {}; }),
+        gate: vi.fn(function() { return {
           loadMarkets: vi.fn().mockResolvedValue({}),
           markets: { 'BTC/USDT:USDT': { contractSize: 1 } },
           privateFuturesGetSettlePriceOrders: vi.fn().mockResolvedValue([]),
@@ -181,8 +181,8 @@ describe('ExchangeQueryService', () => {
             finish_as: 'filled',
             trigger: { price: '95000' },
           }),
-        })),
-        bingx: vi.fn().mockImplementation(() => ({})),
+        }; }),
+        bingx: vi.fn(function() { return {}; }),
       }));
 
       const { ExchangeQueryService } = await import('@/lib/exchange-query-service');
@@ -204,10 +204,10 @@ describe('ExchangeQueryService', () => {
     it('should fetch BingX order history', async () => {
       vi.doMock('ccxt', () => ({
         default: {},
-        binance: vi.fn().mockImplementation(() => ({})),
-        okx: vi.fn().mockImplementation(() => ({})),
-        gate: vi.fn().mockImplementation(() => ({})),
-        bingx: vi.fn().mockImplementation(() => ({
+        binance: vi.fn(function() { return {}; }),
+        okx: vi.fn(function() { return {}; }),
+        gate: vi.fn(function() { return {}; }),
+        bingx: vi.fn(function() { return {
           loadMarkets: vi.fn().mockResolvedValue({}),
           markets: { 'BTC/USDT:USDT': { contractSize: 1 } },
           swapV2PrivateGetTradeOpenOrders: vi.fn().mockResolvedValue({ data: { orders: [] } }),
@@ -220,7 +220,7 @@ describe('ExchangeQueryService', () => {
             timestamp: Date.now(),
           }),
           fetchClosedOrders: vi.fn().mockResolvedValue([]),
-        })),
+        }; }),
       }));
 
       const { ExchangeQueryService } = await import('@/lib/exchange-query-service');
@@ -246,7 +246,7 @@ describe('ExchangeQueryService', () => {
     it('should return true when order exists in pending list', async () => {
       vi.doMock('ccxt', () => ({
         default: {},
-        binance: vi.fn().mockImplementation(() => ({
+        binance: vi.fn(function() { return {
           loadMarkets: vi.fn().mockResolvedValue({}),
           markets: { 'BTC/USDT:USDT': { contractSize: 1 } },
           fapiPrivateGetPositionRisk: vi.fn().mockRejectedValue(new Error('-2015')),
@@ -261,10 +261,10 @@ describe('ExchangeQueryService', () => {
               stopPrice: '94000',
             },
           ]),
-        })),
-        okx: vi.fn().mockImplementation(() => ({})),
-        gate: vi.fn().mockImplementation(() => ({})),
-        bingx: vi.fn().mockImplementation(() => ({})),
+        }; }),
+        okx: vi.fn(function() { return {}; }),
+        gate: vi.fn(function() { return {}; }),
+        bingx: vi.fn(function() { return {}; }),
       }));
 
       const { ExchangeQueryService } = await import('@/lib/exchange-query-service');
@@ -284,16 +284,16 @@ describe('ExchangeQueryService', () => {
     it('should return false when order does not exist in pending list', async () => {
       vi.doMock('ccxt', () => ({
         default: {},
-        binance: vi.fn().mockImplementation(() => ({
+        binance: vi.fn(function() { return {
           loadMarkets: vi.fn().mockResolvedValue({}),
           markets: { 'BTC/USDT:USDT': { contractSize: 1 } },
           fapiPrivateGetPositionRisk: vi.fn().mockRejectedValue(new Error('-2015')),
           papiGetUmAccount: vi.fn().mockResolvedValue({}),
           papiGetUmConditionalOpenOrders: vi.fn().mockResolvedValue([]),
-        })),
-        okx: vi.fn().mockImplementation(() => ({})),
-        gate: vi.fn().mockImplementation(() => ({})),
-        bingx: vi.fn().mockImplementation(() => ({})),
+        }; }),
+        okx: vi.fn(function() { return {}; }),
+        gate: vi.fn(function() { return {}; }),
+        bingx: vi.fn(function() { return {}; }),
       }));
 
       const { ExchangeQueryService } = await import('@/lib/exchange-query-service');

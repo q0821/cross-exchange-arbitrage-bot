@@ -2,7 +2,7 @@
  * Test OKX position opening and closing
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../src/lib/encryption';
 import * as ccxt from 'ccxt';
 

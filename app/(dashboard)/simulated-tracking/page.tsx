@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Target, RefreshCw, AlertCircle } from 'lucide-react';
 import { ActiveTrackingCard } from './components/ActiveTrackingCard';
 import { TrackingHistoryTable } from './components/TrackingHistoryTable';
@@ -169,7 +169,7 @@ export default function SimulatedTrackingPage() {
       {/* Error Message */}
       {error && (
         <div className="mb-6 p-4 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 text-loss mt-0.5 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 text-loss mt-0.5 shrink-0" />
           <p className="text-sm text-loss">{error}</p>
         </div>
       )}

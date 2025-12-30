@@ -292,7 +292,7 @@ export function validateEnv(): EnvVariables {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ Environment variable validation failed:');
-      error.errors.forEach((err) => {
+      error.issues.forEach((err) => {
         console.error(`  - ${err.path.join('.')}: ${err.message}`);
       });
       throw new Error('Invalid environment configuration');
@@ -317,7 +317,7 @@ export function safeParse<T extends z.ZodTypeAny>(
   } else {
     return {
       success: false,
-      errors: result.error.errors.map(
+      errors: result.error.issues.map(
         (err) => `${err.path.join('.')}: ${err.message}`,
       ),
     };

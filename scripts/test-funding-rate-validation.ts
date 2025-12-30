@@ -8,7 +8,7 @@
  * npx tsx scripts/test-funding-rate-validation.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { OKXConnector } from '../src/connectors/okx';
 import { OkxConnectorAdapter } from '../src/adapters/OkxConnectorAdapter';
 import { OkxCCXT } from '../src/lib/ccxt/OkxCCXT';

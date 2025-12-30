@@ -2,7 +2,7 @@
  * Gate.io API 連線診斷腳本
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../src/lib/encryption';
 
 const prisma = new PrismaClient();

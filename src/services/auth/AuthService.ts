@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { User, CreateUserData } from '@models/User';
 import { UserRepository } from '../../repositories/UserRepository';
 import { logger } from '@lib/logger';

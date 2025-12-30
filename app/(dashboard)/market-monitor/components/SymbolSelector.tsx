@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { OpportunityStatus } from './StatusBadge';
 
 export interface SymbolGroup {
@@ -55,7 +55,7 @@ export function SymbolSelector({
         <label className="block text-sm font-medium text-foreground mb-1">交易對群組</label>
         <button
           onClick={() => setIsGroupOpen(!isGroupOpen)}
-          className="w-64 px-4 py-2 text-left bg-card border border-border rounded-lg shadow-sm hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+          className="w-64 px-4 py-2 text-left bg-card border border-border rounded-lg shadow-xs hover:bg-muted focus:outline-hidden focus:ring-2 focus:ring-primary transition-colors"
         >
           <div className="flex items-center justify-between">
             <div>

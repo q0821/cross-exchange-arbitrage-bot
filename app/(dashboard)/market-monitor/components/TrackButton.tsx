@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import { Target, Loader2 } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 

@@ -15,7 +15,7 @@ import {
   DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
   APPROACHING_THRESHOLD_RATIO,
 } from '../../lib/constants';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { NotificationService } from '../notification/NotificationService';
 import { SimulatedTrackingService } from '../tracking/SimulatedTrackingService';
 
@@ -183,7 +183,7 @@ export class RatesCache {
     }
 
     // 移除 cachedAt 欄位
-    const { cachedAt, ...rate } = cached;
+    const { cachedAt: _cachedAt, ...rate } = cached;
     return rate;
   }
 
@@ -195,7 +195,7 @@ export class RatesCache {
 
     for (const [symbol, cached] of this.cache.entries()) {
       if (!this.isStale(cached.cachedAt)) {
-        const { cachedAt, ...rate } = cached;
+        const { cachedAt: _cachedAt, ...rate } = cached;
         rates.push(rate);
       } else {
         logger.debug({ symbol }, 'Skipping stale rate');

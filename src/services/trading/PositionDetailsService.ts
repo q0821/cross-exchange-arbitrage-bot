@@ -5,7 +5,8 @@
  * Feature: 045-position-details-view
  */
 
-import { PrismaClient, Trade } from '@prisma/client';
+import { PrismaClient, Trade } from '@/generated/prisma/client';
+import { createPrismaClient } from '@/lib/prisma-factory';
 import * as ccxt from 'ccxt';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
@@ -37,7 +38,7 @@ export class PositionDetailsService {
   private fundingFeeQueryService: FundingFeeQueryService;
 
   constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || createPrismaClient();
     this.fundingFeeQueryService = new FundingFeeQueryService(this.prisma);
   }
 

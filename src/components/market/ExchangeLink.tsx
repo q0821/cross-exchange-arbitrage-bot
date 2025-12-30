@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { ExternalLink } from 'lucide-react';
 import { getExchangeContractUrl } from '@/lib/exchanges';
@@ -93,7 +92,7 @@ export function ExchangeLink({
           href={urlResult.url}
           target="_blank"
           rel="noopener noreferrer"
-          className={`inline-flex items-center text-gray-500 hover:text-blue-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded ${className}`}
+          className={`inline-flex items-center text-gray-500 hover:text-blue-600 transition-colors duration-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded ${className}`}
           aria-label={accessibilityLabel}
           onClick={handleClick}
         >

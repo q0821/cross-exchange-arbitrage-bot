@@ -1,4 +1,4 @@
-import { PrismaClient, ApiKey as PrismaApiKey } from '@prisma/client';
+import { PrismaClient, ApiKey as PrismaApiKey } from '@/generated/prisma/client';
 import { ApiKey, CreateApiKeyData } from '@models/ApiKey';
 import { logger } from '@lib/logger';
 import { DatabaseError, NotFoundError } from '@lib/errors';

@@ -1,4 +1,4 @@
-import { PrismaClient, User as PrismaUser } from '@prisma/client';
+import { PrismaClient, User as PrismaUser } from '@/generated/prisma/client';
 import { User, CreateUserData } from '@models/User';
 import { logger } from '@lib/logger';
 import { DatabaseError, NotFoundError } from '@lib/errors';

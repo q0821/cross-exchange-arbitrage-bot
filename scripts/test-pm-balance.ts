@@ -2,7 +2,7 @@
  * 測試 Portfolio Margin 餘額查詢
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../src/lib/encryption';
 import crypto from 'crypto';
 

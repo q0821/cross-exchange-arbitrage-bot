@@ -5,7 +5,6 @@
  * Feature 031: Asset Tracking History (T016)
  */
 
-import React from 'react';
 import {
   CheckCircle,
   XCircle,

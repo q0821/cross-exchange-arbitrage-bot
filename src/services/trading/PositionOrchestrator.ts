@@ -5,7 +5,7 @@
  * Feature: 033-manual-open-position
  */
 
-import { PrismaClient, PositionWebStatus, Position } from '@prisma/client';
+import { PrismaClient, PositionWebStatus, Position } from '@/generated/prisma/client';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
 import { decrypt } from '../../lib/encryption';

@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   ArrowUpCircle,
   ArrowDownCircle,
@@ -163,7 +163,7 @@ export function PositionCard({
   }, [position.id, fetchDetails]);
 
   return (
-    <div className="glass-card border border-border shadow-sm hover:shadow-md transition-shadow">
+    <div className="glass-card border border-border shadow-xs hover:shadow-md transition-shadow">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">

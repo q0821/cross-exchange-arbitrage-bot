@@ -8,7 +8,7 @@
  *   pnpm tsx scripts/test-open-position.ts BEATUSDT 40 binance okx
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { Decimal } from 'decimal.js';
 import { PositionOrchestrator } from '../src/services/trading/PositionOrchestrator';
 

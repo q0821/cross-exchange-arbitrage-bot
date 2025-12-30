@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { Copy, Check } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
@@ -44,7 +44,7 @@ interface RateRowProps {
  * 使用 React.memo 優化性能，避免不必要的重新渲染
  * Feature 012: 根據用戶選擇的 timeBasis 顯示對應的標準化費率
  */
-export const RateRow = React.memo(function RateRow({
+export const RateRow = memo(function RateRow({
   rate,
   timeBasis,
   onSymbolClick,

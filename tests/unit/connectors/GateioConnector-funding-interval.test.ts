@@ -8,10 +8,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock CCXT
 vi.mock('ccxt', () => {
-  const mockExchange = vi.fn().mockImplementation(() => ({
-    fetchFundingRate: vi.fn(),
-    fetchTime: vi.fn().mockResolvedValue(Date.now()),
-  }));
+  const mockExchange = vi.fn(function() {
+    return {
+      fetchFundingRate: vi.fn(),
+      fetchTime: vi.fn().mockResolvedValue(Date.now()),
+    };
+  });
 
   return {
     default: {

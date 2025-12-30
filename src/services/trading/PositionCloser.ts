@@ -5,7 +5,7 @@
  * Feature: 035-close-position
  */
 
-import { PrismaClient, PositionWebStatus, Position, Trade, CloseReason } from '@prisma/client';
+import { PrismaClient, PositionWebStatus, Position, Trade, CloseReason } from '@/generated/prisma/client';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
 import { decrypt } from '../../lib/encryption';

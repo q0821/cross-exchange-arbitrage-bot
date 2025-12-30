@@ -5,7 +5,8 @@
  * Feature: 038-specify-scripts-bash
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
+import { createPrismaClient } from '@/lib/prisma-factory';
 import * as ccxt from 'ccxt';
 import { logger } from '../../lib/logger';
 import { decrypt } from '../../lib/encryption';
@@ -25,7 +26,7 @@ export class ConditionalOrderAdapterFactory {
   private prisma: PrismaClient;
 
   constructor(prisma?: PrismaClient) {
-    this.prisma = prisma || new PrismaClient();
+    this.prisma = prisma || createPrismaClient();
   }
 
   /**

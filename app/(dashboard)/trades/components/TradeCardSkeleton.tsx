@@ -7,11 +7,10 @@
 
 'use client';
 
-import React from 'react';
 
 export function TradeCardSkeleton() {
   return (
-    <div className="glass-card rounded-lg border border-border shadow-sm animate-pulse">
+    <div className="glass-card rounded-lg border border-border shadow-xs animate-pulse">
       {/* Header */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center justify-between">

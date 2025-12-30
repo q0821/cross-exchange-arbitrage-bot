@@ -7,7 +7,7 @@
 
 'use client';
 
-import React from 'react';
+import { useState } from 'react';
 import {
   AlertTriangle,
   ExternalLink,
@@ -42,7 +42,7 @@ export function RollbackFailedAlert({
   symbol,
   onDismiss,
 }: RollbackFailedAlertProps) {
-  const [copied, setCopied] = React.useState(false);
+  const [copied, setCopied] = useState(false);
 
   const exchangeUrl = EXCHANGE_URLS[exchange.toLowerCase()] || '#';
   const sideText = side === 'LONG' ? '做多' : '做空';

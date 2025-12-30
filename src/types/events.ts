@@ -3,7 +3,7 @@
  * 用於事件驅動架構中的套利機會偵測與通知系統
  */
 
-import type { Decimal } from '@prisma/client/runtime/library'
+import type { Decimal } from 'decimal.js'
 
 /**
  * 套利機會偵測事件

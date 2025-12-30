@@ -209,7 +209,7 @@ export function ExchangeLink({
               'inline-flex items-center',
               'text-gray-500 hover:text-blue-600',
               'transition-colors duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded',
+              'focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded',
               className
             )}
             aria-label={ariaLabel || defaultAriaLabel}

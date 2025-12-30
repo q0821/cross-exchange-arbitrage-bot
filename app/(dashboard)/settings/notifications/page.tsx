@@ -272,7 +272,7 @@ export default function NotificationsSettingsPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, platform: e.target.value as 'discord' | 'slack' })
                 }
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary"
               >
                 <option value="discord">Discord</option>
                 <option value="slack">Slack</option>
@@ -293,7 +293,7 @@ export default function NotificationsSettingsPage() {
                     : 'https://hooks.slack.com/services/...'
                 }
                 required
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -308,7 +308,7 @@ export default function NotificationsSettingsPage() {
                 placeholder="例：我的套利通知"
                 required
                 maxLength={100}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -323,7 +323,7 @@ export default function NotificationsSettingsPage() {
                 min={0}
                 max={10000}
                 step={1}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 當年化收益超過此閾值時發送通知（預設 800%）
@@ -446,7 +446,7 @@ export default function NotificationsSettingsPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
                 maxLength={100}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -459,7 +459,7 @@ export default function NotificationsSettingsPage() {
                 value={formData.webhookUrl}
                 onChange={(e) => setFormData({ ...formData, webhookUrl: e.target.value })}
                 placeholder="留空保持現有 URL"
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
 
@@ -474,7 +474,7 @@ export default function NotificationsSettingsPage() {
                 min={0}
                 max={10000}
                 step={1}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-primary"
               />
             </div>
 

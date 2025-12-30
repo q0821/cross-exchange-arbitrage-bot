@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { PrismaClient } from '@prisma/client';
+import { createPrismaClient } from '@/lib/prisma-factory';
 import { FundingRateMonitor } from '../../../services/monitor/FundingRateMonitor.js';
 import { FundingRateValidator } from '../../../services/validation/FundingRateValidator.js';
 import { FundingRateValidationRepository } from '../../../repositories/FundingRateValidationRepository.js';
@@ -342,7 +342,7 @@ export function createMonitorStartCommand(): Command {
 
         // 初始化 Prisma Client（用於儲存驗證記錄）
         logger.info('初始化資料庫連線...');
-        const prisma = new PrismaClient();
+        const prisma = createPrismaClient();
         logger.info('資料庫連線已建立');
 
         // 建立驗證器（如果啟用）

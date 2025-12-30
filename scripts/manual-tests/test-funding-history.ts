@@ -12,7 +12,7 @@
  *   pnpm tsx src/scripts/test-funding-history.ts --environment=TESTNET
  */
 
-import { PrismaClient, ApiEnvironment } from '@prisma/client';
+import { PrismaClient, ApiEnvironment } from '@/generated/prisma/client';
 import * as ccxt from 'ccxt';
 import { decrypt } from '../lib/encryption.js';
 import { logger } from '../lib/logger.js';

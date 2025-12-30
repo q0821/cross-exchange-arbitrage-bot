@@ -6,7 +6,7 @@
  * 2. 設定環境變數 TEST_TOKEN 並執行此腳本
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decodeToken } from '../src/lib/jwt';
 
 const prisma = new PrismaClient();

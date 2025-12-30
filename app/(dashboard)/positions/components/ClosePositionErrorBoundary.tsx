@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface Props {
@@ -45,7 +45,7 @@ export class ClosePositionErrorBoundary extends Component<Props, State> {
       return (
         <div className="p-4 bg-loss/10 border border-loss/30 rounded-lg">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-loss mt-0.5 flex-shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-loss mt-0.5 shrink-0" />
             <div className="flex-1">
               <h3 className="text-sm font-medium text-loss">
                 {this.props.fallbackMessage || '平倉操作發生錯誤'}

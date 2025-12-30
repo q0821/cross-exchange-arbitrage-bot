@@ -4,10 +4,10 @@ import { MexcConnector } from '../../../src/connectors/mexc';
 // Mock ccxt
 vi.mock('ccxt', () => ({
   default: {
-    mexc: vi.fn().mockImplementation(() => ({
+    mexc: vi.fn(function() { return {
       fetchTime: vi.fn().mockResolvedValue(Date.now()),
       fetchFundingRate: vi.fn(),
-    })),
+    }; }),
   },
 }));
 

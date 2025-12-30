@@ -34,6 +34,12 @@ export default defineConfig({
     alias: {
       '@/app': path.resolve(__dirname, './app'),
       '@': path.resolve(__dirname, './src'),
+      '@lib': path.resolve(__dirname, './src/lib'),
+      '@models': path.resolve(__dirname, './src/models'),
+      '@services': path.resolve(__dirname, './src/services'),
+      '@connectors': path.resolve(__dirname, './src/connectors'),
+      '@cli': path.resolve(__dirname, './src/cli'),
+      '@components': path.resolve(__dirname, './components'),
     },
   },
 });

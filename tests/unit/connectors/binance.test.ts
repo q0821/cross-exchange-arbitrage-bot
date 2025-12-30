@@ -4,9 +4,9 @@ import axios from 'axios';
 
 // Mock @binance/connector
 vi.mock('@binance/connector', () => ({
-  Spot: vi.fn().mockImplementation(() => ({
+  Spot: vi.fn(function() { return {
     time: vi.fn().mockResolvedValue({ data: {} }),
-  })),
+  }; }),
 }));
 
 // Mock axios

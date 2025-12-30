@@ -46,34 +46,40 @@ vi.mock('ccxt', () => {
 
   return {
     default: {},
-    binance: vi.fn().mockImplementation(() => ({
-      ...mockExchange,
-      fapiPrivateGetPositionSideDual: vi.fn().mockResolvedValue({ dualSidePosition: true }),
-    })),
-    okx: vi.fn().mockImplementation(() => mockExchange),
-    gate: vi.fn().mockImplementation(() => mockExchange),
-    gateio: vi.fn().mockImplementation(() => mockExchange),
-    bingx: vi.fn().mockImplementation(() => mockExchange),
-    mexc: vi.fn().mockImplementation(() => mockExchange),
+    binance: vi.fn(function() {
+      return {
+        ...mockExchange,
+        fapiPrivateGetPositionSideDual: vi.fn().mockResolvedValue({ dualSidePosition: true }),
+      };
+    }),
+    okx: vi.fn(function() { return mockExchange; }),
+    gate: vi.fn(function() { return mockExchange; }),
+    gateio: vi.fn(function() { return mockExchange; }),
+    bingx: vi.fn(function() { return mockExchange; }),
+    mexc: vi.fn(function() { return mockExchange; }),
   };
 });
 
 vi.mock('@/services/trading/FundingFeeQueryService', () => ({
-  FundingFeeQueryService: vi.fn().mockImplementation(() => ({
-    queryBilateralFundingFees: vi.fn().mockResolvedValue({
-      longResult: { totalAmount: new Decimal(0), success: true, entries: [] },
-      shortResult: { totalAmount: new Decimal(0), success: true, entries: [] },
-      totalFundingFee: new Decimal(0),
-    }),
-  })),
+  FundingFeeQueryService: vi.fn(function() {
+    return {
+      queryBilateralFundingFees: vi.fn().mockResolvedValue({
+        longResult: { totalAmount: new Decimal(0), success: true, entries: [] },
+        shortResult: { totalAmount: new Decimal(0), success: true, entries: [] },
+        totalFundingFee: new Decimal(0),
+      }),
+    };
+  }),
 }));
 
 vi.mock('@/services/trading/ConditionalOrderAdapterFactory', () => ({
-  ConditionalOrderAdapterFactory: vi.fn().mockImplementation(() => ({
-    getAdapter: vi.fn().mockResolvedValue({
-      cancelConditionalOrder: vi.fn().mockResolvedValue(true),
-    }),
-  })),
+  ConditionalOrderAdapterFactory: vi.fn(function() {
+    return {
+      getAdapter: vi.fn().mockResolvedValue({
+        cancelConditionalOrder: vi.fn().mockResolvedValue(true),
+      }),
+    };
+  }),
 }));
 
 describe('PositionCloser Bilateral Close', () => {

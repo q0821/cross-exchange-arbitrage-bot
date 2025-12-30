@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { TrendingUp, TrendingDown, Clock, DollarSign, Target, Square, Layers, Calendar } from 'lucide-react';
 

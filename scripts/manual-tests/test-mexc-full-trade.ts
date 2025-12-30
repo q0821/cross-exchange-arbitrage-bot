@@ -6,7 +6,7 @@
  * 4. 計算損益（含資金費率）
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../lib/encryption';
 import ccxt from 'ccxt';
 

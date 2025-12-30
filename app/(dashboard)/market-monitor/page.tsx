@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { RatesTable } from './components/RatesTable';
 import { StatsCard } from './components/StatsCard';
 import { SymbolSelector } from './components/SymbolSelector';

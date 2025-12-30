@@ -6,7 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Decimal } from 'decimal.js';
-import type { Position } from '@prisma/client';
+import type { Position } from '@/generated/prisma/client';
 
 // Mock dependencies
 vi.mock('@/lib/logger', () => ({
@@ -37,7 +37,7 @@ const mockExchangeQueryService = {
 };
 
 vi.mock('@/lib/exchange-query-service', () => ({
-  ExchangeQueryService: vi.fn().mockImplementation(() => mockExchangeQueryService),
+  ExchangeQueryService: vi.fn(function() { return mockExchangeQueryService; }),
 }));
 
 // Mock PositionCloser
@@ -47,7 +47,7 @@ const mockPositionCloser = {
 };
 
 vi.mock('@/services/trading/PositionCloser', () => ({
-  PositionCloser: vi.fn().mockImplementation(() => mockPositionCloser),
+  PositionCloser: vi.fn(function() { return mockPositionCloser; }),
 }));
 
 // Mock DiscordNotifier
@@ -57,7 +57,7 @@ const mockDiscordNotifier = {
 };
 
 vi.mock('@/services/notification/DiscordNotifier', () => ({
-  DiscordNotifier: vi.fn().mockImplementation(() => mockDiscordNotifier),
+  DiscordNotifier: vi.fn(function() { return mockDiscordNotifier; }),
 }));
 
 // Mock SlackNotifier
@@ -67,7 +67,7 @@ const mockSlackNotifier = {
 };
 
 vi.mock('@/services/notification/SlackNotifier', () => ({
-  SlackNotifier: vi.fn().mockImplementation(() => mockSlackNotifier),
+  SlackNotifier: vi.fn(function() { return mockSlackNotifier; }),
 }));
 
 // Mock TriggerProgressEmitter
@@ -80,7 +80,7 @@ const mockTriggerProgressEmitter = {
 
 vi.mock('@/services/websocket/TriggerProgressEmitter', () => ({
   triggerProgressEmitter: mockTriggerProgressEmitter,
-  TriggerProgressEmitter: vi.fn().mockImplementation(() => mockTriggerProgressEmitter),
+  TriggerProgressEmitter: vi.fn(function() { return mockTriggerProgressEmitter; }),
 }));
 
 describe('ConditionalOrderMonitor', () => {

@@ -11,7 +11,7 @@
  * Feature 027: 套利機會結束監測和通知
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { NotificationWebhookRepository } from '../../repositories/NotificationWebhookRepository';
 import { OpportunityEndHistoryRepository } from '../../repositories/OpportunityEndHistoryRepository';
 import { DiscordNotifier } from './DiscordNotifier';

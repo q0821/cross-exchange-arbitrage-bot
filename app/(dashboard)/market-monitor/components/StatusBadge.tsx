@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 
 export type OpportunityStatus = 'opportunity' | 'approaching' | 'normal';
 

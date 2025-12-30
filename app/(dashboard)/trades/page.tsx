@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { History, RefreshCw, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { TradeCard } from './components/TradeCard';
 import { TradeCardSkeletonList } from './components/TradeCardSkeleton';

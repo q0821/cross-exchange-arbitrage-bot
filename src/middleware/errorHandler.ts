@@ -22,7 +22,7 @@ export interface ErrorResponse {
  * 處理 Zod 驗證錯誤
  */
 function handleZodError(error: ZodError, correlationId?: string): NextResponse<ErrorResponse> {
-  const details = error.errors.map((err) => ({
+  const details = error.issues.map((err) => ({
     path: err.path.join('.'),
     message: err.message,
   }));

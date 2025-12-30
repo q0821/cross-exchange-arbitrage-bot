@@ -1,4 +1,4 @@
-import { PrismaClient, OpportunityEndHistory as PrismaHistory } from '@prisma/client';
+import { PrismaClient, OpportunityEndHistory as PrismaHistory } from '@/generated/prisma/client';
 import { logger } from '@lib/logger';
 import { DatabaseError } from '@lib/errors';
 import type { CreateOpportunityHistoryInput } from '../models/OpportunityEndHistory';

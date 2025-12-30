@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { ApiKeyService } from '../apikey/ApiKeyService';
 import { logger } from '@lib/logger';
 import { decrypt } from '@lib/encryption';

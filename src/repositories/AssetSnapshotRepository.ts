@@ -1,4 +1,4 @@
-import { PrismaClient, AssetSnapshot as PrismaAssetSnapshot } from '@prisma/client';
+import { PrismaClient, AssetSnapshot as PrismaAssetSnapshot } from '@/generated/prisma/client';
 import { logger } from '@lib/logger';
 import { DatabaseError } from '@lib/errors';
 import { subDays } from 'date-fns';

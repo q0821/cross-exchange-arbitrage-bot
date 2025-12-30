@@ -5,7 +5,7 @@
  * Feature: 004-fix-okx-add-price-display
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '@/generated/prisma/client';
 import {
   IFundingRateValidationRepository,
   FundingRateValidationResult,

@@ -8,7 +8,6 @@
 
 'use client';
 
-import React from 'react';
 import { TrendingUp, Loader2 } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 

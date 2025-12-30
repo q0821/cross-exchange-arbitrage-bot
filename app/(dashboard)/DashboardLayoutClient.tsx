@@ -117,7 +117,7 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
       </svg>
 
       {/* Header 導航欄 */}
-      <header className="glass-nav shadow-sm">
+      <header className="glass-nav shadow-xs">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo 和標題 */}

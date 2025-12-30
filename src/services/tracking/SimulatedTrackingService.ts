@@ -10,7 +10,7 @@
  * Feature 029: Simulated APY Tracking
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { logger } from '../../lib/logger';
 import { SimulatedTrackingRepository } from '../../repositories/SimulatedTrackingRepository';
 import { TrackingSnapshotRepository } from '../../repositories/TrackingSnapshotRepository';

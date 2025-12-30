@@ -2,7 +2,7 @@ import {
   PrismaClient,
   TrackingSnapshot as PrismaSnapshot,
   SnapshotType as PrismaSnapshotType,
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 import { logger } from '@lib/logger';
 import { DatabaseError } from '@lib/errors';
 import type {

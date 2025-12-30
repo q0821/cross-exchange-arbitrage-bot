@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import { Loader2, CheckCircle, TrendingUp, TrendingDown, Calculator, BadgeCheck } from 'lucide-react';
 import type { ClosePositionStep } from '@/src/types/trading';
 

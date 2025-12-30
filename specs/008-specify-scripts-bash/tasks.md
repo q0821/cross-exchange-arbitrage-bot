@@ -105,7 +105,7 @@
 - [x] T023 [P] [US2] 實作 hover 視覺效果於 `src/components/market/ExchangeLink.tsx`（滑鼠游標變為手指、顏色變化）
   > ✅ 已在 US1 實作（commit: 05483e6）：使用 `hover:text-blue-600` 和 `transition-colors duration-200` 實現顏色變化，`<a>` 標籤自動提供 `cursor: pointer`
 - [x] T024 [P] [US2] 實作 focus indicator 於 `src/components/market/ExchangeLink.tsx`（鍵盤導航時的 focus ring）
-  > ✅ 已在 US1 實作（commit: 05483e6）：使用 `focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2` 實現符合 WCAG 標準的 focus ring
+  > ✅ 已在 US1 實作（commit: 05483e6）：使用 `focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:ring-offset-2` 實現符合 WCAG 標準的 focus ring
 - [x] T025 [US2] 實作 Tooltip 內容於 `src/components/market/ExchangeLink.tsx`（顯示「前往 [交易所] 查看 [交易對]」）
   > ✅ 已在 US1 實作（commit: 05483e6, dedece3）：使用 Radix UI Tooltip 完整實作，包含啟用和禁用狀態的不同提示訊息
 - [ ] T026 [US2] 測試 Tooltip 顯示和隱藏行為（hover 200ms 後顯示，移開後隱藏）

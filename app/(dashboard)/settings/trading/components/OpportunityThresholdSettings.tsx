@@ -144,7 +144,7 @@ export function OpportunityThresholdSettings() {
             onKeyDown={handleKeyDown}
             min={MIN_THRESHOLD}
             max={MAX_THRESHOLD}
-            className={`w-32 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+            className={`w-32 px-3 py-2 border rounded-md focus:outline-hidden focus:ring-2 ${
               error
                 ? 'border-loss/30 focus:ring-loss'
                 : 'border-border focus:ring-primary'

@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import { Percent, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import type { AnnualizedReturnInfo } from '@/src/types/trading';
 

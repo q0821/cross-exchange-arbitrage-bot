@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import { X, Loader2, AlertTriangle, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import type { PositionInfo } from '@/src/types/trading';
 import type { MarketData } from '../hooks/useClosePosition';
@@ -214,7 +213,7 @@ export function ClosePositionDialog({
 
               {/* Warning */}
               <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-lg">
-                <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
                 <p className="text-sm text-warning">
                   平倉將使用市價單執行，實際成交價格可能與預估有所差異。確認平倉後操作無法取消。
                 </p>

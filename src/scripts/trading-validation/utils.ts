@@ -3,7 +3,7 @@
  * Feature: 049-trading-validation-script
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../../lib/encryption';
 import type { DecryptedApiKey, ExchangeName } from './types';
 

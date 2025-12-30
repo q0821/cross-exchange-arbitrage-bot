@@ -3,7 +3,7 @@
  * 根據 GitHub Issue 報告，MEXC 不允許 BTC/ETH/LTC 透過 API 交易
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../lib/encryption';
 import { createCcxtExchange } from '../lib/ccxt/exchangeFactory';
 

@@ -11,7 +11,7 @@
  * - 完整錯誤處理和日誌記錄
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { logger } from '@lib/logger';
 import { AssetSnapshotService } from './AssetSnapshotService';
 import {

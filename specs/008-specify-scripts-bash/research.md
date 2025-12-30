@@ -250,7 +250,7 @@ pnpm add @radix-ui/react-tooltip
 
 - **Keyboard Navigation**: 圖示連結可通過 Tab 鍵訪問
 - **Screen Reader**: 使用 `aria-label="前往 {交易所} 查看 {交易對}"`
-- **Focus Indicator**: 使用 Tailwind 的 `focus:ring` 工具類別
+- **Focus Indicator**: 使用 Tailwind 的 `focus:ring-3` 工具類別
 - **Tooltip**: Radix UI Tooltip 元件符合 ARIA 標準
 
 ## Monitoring & Observability

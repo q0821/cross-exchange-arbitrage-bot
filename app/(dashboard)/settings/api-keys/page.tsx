@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ConnectionTestResponse, ValidationErrorCode } from '@/src/types/api-key-validation';
 
@@ -181,7 +181,7 @@ export default function ApiKeysPage() {
   };
 
   // 新增 API Key (含警告確認) (T023)
-  const handleAddApiKey = async (e: React.FormEvent) => {
+  const handleAddApiKey = async (e: FormEvent) => {
     e.preventDefault();
 
     // 如果測試失敗且尚未確認，顯示警告
@@ -366,7 +366,7 @@ export default function ApiKeysPage() {
   };
 
   // 提交編輯
-  const handleEditSubmit = async (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!editingKey) return;
 
@@ -675,7 +675,7 @@ export default function ApiKeysPage() {
             </thead>
             <tbody className="bg-card divide-y divide-border">
               {apiKeys.map((key) => (
-                <React.Fragment key={key.id}>
+                <Fragment key={key.id}>
                 <tr>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                     {key.exchange.toUpperCase()}
@@ -763,7 +763,7 @@ export default function ApiKeysPage() {
                     </td>
                   </tr>
                 )}
-                </React.Fragment>
+                </Fragment>
               ))}
             </tbody>
           </table>

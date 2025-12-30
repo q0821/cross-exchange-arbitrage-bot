@@ -3,7 +3,7 @@
  * 測試 ArbitrageOpportunityRepository.create()
  */
 
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@/generated/prisma/client'
 import { ArbitrageOpportunityRepository } from './repositories/ArbitrageOpportunityRepository.js'
 import { Decimal } from 'decimal.js'
 

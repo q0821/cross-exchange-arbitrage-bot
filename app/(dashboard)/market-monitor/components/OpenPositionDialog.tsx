@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import {
   X,
@@ -335,7 +335,7 @@ export function OpenPositionDialog({
           {isMexcRestricted && restrictionInfo && (
             <div className="border border-amber-300 bg-amber-50 rounded-lg p-4 mb-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
                 <div className="flex-1">
                   <h4 className="text-sm font-medium text-amber-800 mb-1">
                     交易所限制
@@ -421,7 +421,7 @@ export function OpenPositionDialog({
                 step="any"
                 disabled={isLoading}
                 placeholder={`輸入 ${coinSymbol} 數量`}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-profit disabled:bg-muted"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-profit disabled:bg-muted"
               />
               <p className="mt-1 text-xs text-muted-foreground">
                 多空雙邊將使用相同數量進行對沖
@@ -498,7 +498,7 @@ export function OpenPositionDialog({
                       max={STOP_LOSS_PERCENT_MAX}
                       step="0.1"
                       disabled={isLoading}
-                      className="flex-1 px-2 py-1 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-warning disabled:bg-muted"
+                      className="flex-1 px-2 py-1 text-sm border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-warning disabled:bg-muted"
                     />
                     <span className="text-sm text-muted-foreground">%</span>
                     {avgPrice && (
@@ -540,7 +540,7 @@ export function OpenPositionDialog({
                       max={TAKE_PROFIT_PERCENT_MAX}
                       step="0.1"
                       disabled={isLoading}
-                      className="flex-1 px-2 py-1 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-profit disabled:bg-muted"
+                      className="flex-1 px-2 py-1 text-sm border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-profit disabled:bg-muted"
                     />
                     <span className="text-sm text-muted-foreground">%</span>
                     {avgPrice && (
@@ -590,7 +590,7 @@ export function OpenPositionDialog({
             {/* Error Messages */}
             {(validationError || error) && (
               <div className="mb-4 p-3 bg-loss/10 border border-loss/30 rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-loss mt-0.5 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 text-loss mt-0.5 shrink-0" />
                 <div className="text-sm text-loss">
                   <p>{validationError || error}</p>
                 </div>
@@ -600,7 +600,7 @@ export function OpenPositionDialog({
             {/* Insufficient Balance Warning */}
             {!isBalanceSufficient && !validationError && !error && quantity > 0 && (
               <div className="mb-4 p-3 bg-warning/10 border border-warning/30 rounded-lg flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
+                <AlertCircle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
                 <div className="text-sm text-warning">
                   <p>餘額不足，無法開倉。請調整數量或充值。</p>
                 </div>

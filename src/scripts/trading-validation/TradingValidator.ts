@@ -3,7 +3,7 @@
  * Feature: 049-trading-validation-script
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
 import { ExchangeQueryService } from './ExchangeQueryService';

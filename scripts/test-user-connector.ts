@@ -6,7 +6,7 @@
  * pnpm tsx scripts/test-user-connector.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { UserConnectorFactory } from '../src/services/assets/UserConnectorFactory';
 
 const prisma = new PrismaClient();

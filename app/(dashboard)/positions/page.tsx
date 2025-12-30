@@ -9,7 +9,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Briefcase, RefreshCw, AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { PositionCard } from './components/PositionCard';
 import { ClosePositionDialog } from './components/ClosePositionDialog';

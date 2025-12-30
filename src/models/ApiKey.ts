@@ -1,4 +1,4 @@
-import { ApiKey as PrismaApiKey } from '@prisma/client';
+import { ApiKey as PrismaApiKey } from '@/generated/prisma/client';
 
 /**
  * ApiKey 領域模型

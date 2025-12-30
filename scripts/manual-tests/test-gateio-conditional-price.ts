@@ -5,7 +5,7 @@
  * 使用實際市場價格測試 Gate.io 停損停利價格精度
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import Decimal from 'decimal.js';
 import * as ccxt from 'ccxt';
 import { decrypt } from '../lib/encryption';

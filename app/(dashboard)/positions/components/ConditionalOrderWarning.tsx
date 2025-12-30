@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import { AlertTriangle, Shield, Target, X } from 'lucide-react';
 import type { ConditionalOrderStatus } from '@/src/types/trading';
 
@@ -59,7 +58,7 @@ export function ConditionalOrderWarning({
     >
       <div className="flex items-start gap-3">
         <AlertTriangle
-          className={`w-5 h-5 flex-shrink-0 ${
+          className={`w-5 h-5 shrink-0 ${
             isPartial ? 'text-warning' : 'text-loss'
           }`}
         />

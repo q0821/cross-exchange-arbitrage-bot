@@ -55,7 +55,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockResolvedValue(mockBalance),
       };
 
-      vi.mocked(ccxt.gateio).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.gateio).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateGateioKey(
@@ -80,7 +80,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockRejectedValue(new Error('Invalid API-key, IP, or permissions for action')),
       };
 
-      vi.mocked(ccxt.gateio).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.gateio).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateGateioKey(
@@ -103,7 +103,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockRejectedValue(new Error('IP address is not whitelisted')),
       };
 
-      vi.mocked(ccxt.gateio).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.gateio).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateGateioKey(
@@ -123,7 +123,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockRejectedValue(new Error('Request timeout')),
       };
 
-      vi.mocked(ccxt.gateio).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.gateio).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateGateioKey(
@@ -150,7 +150,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockResolvedValue(mockBalance),
       };
 
-      vi.mocked(ccxt.mexc).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.mexc).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateMexcKey(
@@ -175,7 +175,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockRejectedValue(new Error('Invalid API-key')),
       };
 
-      vi.mocked(ccxt.mexc).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.mexc).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateMexcKey(
@@ -198,7 +198,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockRejectedValue(new Error('Signature for this request is not valid')),
       };
 
-      vi.mocked(ccxt.mexc).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.mexc).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateMexcKey(
@@ -225,7 +225,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockResolvedValue(mockBalance),
       };
 
-      vi.mocked(ccxt.gateio).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.gateio).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateApiKey({
@@ -250,7 +250,7 @@ describe('ApiKeyValidator', () => {
         fetchBalance: vi.fn().mockResolvedValue(mockBalance),
       };
 
-      vi.mocked(ccxt.mexc).mockImplementation(() => mockExchange as any);
+      vi.mocked(ccxt.mexc).mockImplementation(function() { return mockExchange; });
 
       // Act
       const result = await validator.validateApiKey({

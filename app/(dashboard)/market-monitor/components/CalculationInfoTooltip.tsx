@@ -8,7 +8,6 @@
 
 'use client';
 
-import React from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 
 export interface CalculationInfoTooltipProps {

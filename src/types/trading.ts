@@ -48,8 +48,8 @@ export type LeverageOption = (typeof LEVERAGE_OPTIONS)[number];
  */
 export const OpenPositionRequestSchema = z.object({
   symbol: z.string().min(1, '交易對不能為空'),
-  longExchange: z.enum(SUPPORTED_EXCHANGES, { errorMap: () => ({ message: '不支援的做多交易所' }) }),
-  shortExchange: z.enum(SUPPORTED_EXCHANGES, { errorMap: () => ({ message: '不支援的做空交易所' }) }),
+  longExchange: z.enum(SUPPORTED_EXCHANGES, { message: '不支援的做多交易所' }),
+  shortExchange: z.enum(SUPPORTED_EXCHANGES, { message: '不支援的做空交易所' }),
   quantity: z.number().positive('數量必須大於 0'),
   leverage: z.union([z.literal(1), z.literal(2)]).default(1),
 }).refine(

@@ -5,7 +5,7 @@
  * Usage: pnpm tsx scripts/test-binance-api.ts
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../src/lib/encryption';
 import crypto from 'crypto';
 

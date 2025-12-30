@@ -7,7 +7,7 @@
 
 'use client';
 
-import React from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
 
 type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
@@ -77,7 +77,7 @@ export function PositionTable({
   totalUnrealizedPnl,
   isLoading,
 }: PositionTableProps) {
-  const [expandedExchanges, setExpandedExchanges] = React.useState<Set<string>>(
+  const [expandedExchanges, setExpandedExchanges] = useState<Set<string>>(
     new Set(['binance', 'okx', 'mexc', 'gateio', 'bingx'])
   );
 

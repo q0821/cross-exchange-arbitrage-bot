@@ -2,7 +2,7 @@
  * GateioUserConnector 直接測試
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../src/lib/encryption';
 import { AccountBalance } from '../src/connectors/types';
 import { logger } from '../src/lib/logger';

@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { BalanceValidator } from '../src/services/trading/BalanceValidator';
 
 const prisma = new PrismaClient();

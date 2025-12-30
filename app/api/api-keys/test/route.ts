@@ -49,7 +49,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         {
           correlationId,
           userId: user.userId,
-          errors: validationResult.error.errors,
+          errors: validationResult.error.issues,
         },
         'Invalid connection test request',
       );
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           success: false,
           error: {
             code: 'INVALID_REQUEST',
-            message: validationResult.error.errors[0]?.message || 'Invalid request body',
+            message: validationResult.error.issues[0]?.message || 'Invalid request body',
           },
         },
         { status: 400 },

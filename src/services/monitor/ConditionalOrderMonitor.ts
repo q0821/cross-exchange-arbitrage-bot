@@ -6,7 +6,7 @@
  * 每 30 秒檢查所有 OPEN 持倉的條件單狀態，偵測觸發事件
  */
 
-import { PrismaClient, Position, CloseReason } from '@prisma/client';
+import { PrismaClient, Position, CloseReason } from '@/generated/prisma/client';
 import { Decimal } from 'decimal.js';
 import { logger } from '@/lib/logger';
 import { ExchangeQueryService, DecryptedApiKey } from '@/lib/exchange-query-service';

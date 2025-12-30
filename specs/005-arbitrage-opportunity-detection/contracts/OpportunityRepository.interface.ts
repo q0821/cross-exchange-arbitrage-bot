@@ -10,7 +10,7 @@ import type {
   OpportunityHistory,
   OpportunityStatus,
   DisappearReason
-} from '@prisma/client';
+} from '@/generated/prisma/client';
 
 /**
  * 建立機會的輸入資料

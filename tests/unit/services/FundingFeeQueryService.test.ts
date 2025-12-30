@@ -77,10 +77,10 @@ describe('FundingFeeQueryService', () => {
 
     // Mock CCXT constructor to return our mock exchange
     const ccxt = await import('ccxt');
-    (ccxt.binance as Mock).mockImplementation(() => mockCcxtExchange);
-    (ccxt.okx as Mock).mockImplementation(() => mockCcxtExchange);
-    (ccxt.gateio as Mock).mockImplementation(() => mockCcxtExchange);
-    (ccxt.mexc as Mock).mockImplementation(() => mockCcxtExchange);
+    (ccxt.binance as Mock).mockImplementation(function() { return mockCcxtExchange; });
+    (ccxt.okx as Mock).mockImplementation(function() { return mockCcxtExchange; });
+    (ccxt.gateio as Mock).mockImplementation(function() { return mockCcxtExchange; });
+    (ccxt.mexc as Mock).mockImplementation(function() { return mockCcxtExchange; });
 
     // Setup Prisma mock
     mockPrismaApiKey.findFirst.mockResolvedValue(mockApiKey);

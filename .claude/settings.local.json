@@ -131,7 +131,22 @@
       "Bash(src/services/trading/PositionDetailsService.ts )",
       "Bash(src/types/trading.ts )",
       "Bash(specs/045-position-details-view/)",
-      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/046-unified-ui-theme/checklists\" ])"
+      "Bash(if [ -d \"/Users/hd/WORK/case/cross-exchange-arbitrage-bot/specs/046-unified-ui-theme/checklists\" ])",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "WebFetch(domain:docs.ccxt.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(xargs:*)",
+      "Bash(pnpm validate-trading:*)",
+      "WebFetch(domain:bingx-api.github.io)",
+      "Bash(pnpm test:coverage:*)",
+      "mcp__context7__query-docs",
+      "Bash(while read file)",
+      "Bash(do sed -i '' \"s|from ''@prisma/client''|from ''@/generated/prisma''|g\" \"$file\")",
+      "Bash(mv:*)",
+      "Bash(NODE_ENV=production pnpm build:*)",
+      "Bash(pnpm outdated:*)",
+      "Bash(cut:*)"
     ],
     "deny": [],
     "ask": []

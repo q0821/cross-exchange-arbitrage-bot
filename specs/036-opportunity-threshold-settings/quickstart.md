@@ -155,7 +155,7 @@ export default function TradingSettingsPage() {
     <div className="max-w-2xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">交易設定</h1>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-lg font-semibold mb-4">年化收益門檻</h2>
 
         <div className="mb-4">

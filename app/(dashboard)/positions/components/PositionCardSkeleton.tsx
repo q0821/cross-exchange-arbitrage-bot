@@ -6,7 +6,6 @@
 
 'use client';
 
-import React from 'react';
 
 export function PositionCardSkeleton() {
   return (

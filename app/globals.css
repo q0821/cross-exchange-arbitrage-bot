@@ -1,6 +1,368 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+@theme {
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-profit: hsl(var(--profit));
+  --color-loss: hsl(var(--loss));
+  --color-warning: hsl(var(--warning));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* Glassmorphism 毛玻璃效果 */
+@utility glass-card {
+  @apply rounded-lg;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  .dark & {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  @supports not (backdrop-filter: blur(1px)) {
+    @apply bg-white/90 dark:bg-slate-800/90 border-gray-200 dark:border-slate-700;
+  }
+}
+@utility dark {
+  & .glass-card {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  & .glass-nav {
+    background: rgba(15, 23, 42, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  & .liquid-glass-nav {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  & .liquid-glass-indicator {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px) brightness(120%) url(#liquid_glass_filter);
+    -webkit-backdrop-filter: blur(8px) brightness(120%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+
+  & .liquid-glass-hover {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  & .liquid-glass-item {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  & .liquid-glass-item.active {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  & .liquid-glass-item:hover {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+@utility glass-nav {
+  /* 不支援 backdrop-filter 時的降級方案 */
+
+  /* Glassmorphism 導航欄 */
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+
+  .dark & {
+    background: rgba(15, 23, 42, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    @apply bg-white/95 dark:bg-slate-900/95 border-gray-200 dark:border-slate-700;
+  }
+}
+@utility liquid-glass-nav {
+  /* Liquid Glass 導航選單 */
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  .dark & {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  &:hover .liquid-glass-hover {
+    opacity: 1;
+  }
+}
+@utility liquid-glass-indicator {
+  /* Liquid Glass 滑動指示器 */
+  position: absolute;
+  height: calc(100% - 0.5rem);
+  top: 0.25rem;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px) brightness(110%) url(#liquid_glass_filter);
+  -webkit-backdrop-filter: blur(8px) brightness(110%);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+
+  .dark & {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px) brightness(120%) url(#liquid_glass_filter);
+    -webkit-backdrop-filter: blur(8px) brightness(120%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  }
+}
+@utility liquid-glass-hover {
+  /* Liquid Glass Hover 指示器 */
+  position: absolute;
+  height: calc(100% - 0.5rem);
+  top: 0.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 0;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+
+  .dark & {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .liquid-glass-nav:hover & {
+    opacity: 1;
+  }
+}
+@utility liquid-glass-item {
+  /* Liquid Glass 導航項目 */
+  position: relative;
+  z-index: 1;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.6);
+  border-radius: 0.75rem;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+
+  .dark & {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  &.active {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .dark &.active {
+    color: rgba(255, 255, 255, 0.95);
+  }
+
+  &:hover {
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  .dark &:hover {
+    color: rgba(255, 255, 255, 0.85);
+  }
+}
+@utility active {
+  &.liquid-glass-item {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .dark &.liquid-glass-item {
+    color: rgba(255, 255, 255, 0.95);
+  }
+}
+
+/* Bento Grid 佈局系統 */
+@utility bento-grid {
+  @apply grid gap-4;
+  grid-template-columns: repeat(4, 1fr);
+  @media (max-width: 1023px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+
+  /* 響應式 span 調整 */
+}
+@utility bento-span-1 {
+  /* 響應式斷點 */
+
+  /* Bento Grid 項目大小 */
+  grid-column: span 1;
+
+  /* 響應式 span 調整 */
+
+  @media (max-width: 767px) {
+    grid-column: 1 / -1;
+  }
+}
+@utility bento-span-2 {
+  grid-column: span 2;
+
+  /* 響應式 span 調整 */
+  @media (max-width: 1023px) {
+    grid-column: span 2;
+  }
+
+  @media (max-width: 767px) {
+    grid-column: 1 / -1;
+  }
+}
+@utility bento-span-3 {
+  grid-column: span 3;
+
+  /* 響應式 span 調整 */
+  @media (max-width: 1023px) {
+    grid-column: span 2;
+  }
+
+  @media (max-width: 767px) {
+    grid-column: 1 / -1;
+  }
+}
+@utility bento-span-full {
+  grid-column: 1 / -1;
+
+  /* 響應式 span 調整 */
+
+  @media (max-width: 767px) {
+    grid-column: 1 / -1;
+  }
+}
 
 @layer base {
   :root {
@@ -114,221 +476,5 @@
       /* 右下角 - 橙色微光 */
       radial-gradient(ellipse 400px 300px at 90% 85%, hsl(30 90% 50% / 0.2) 0%, transparent 60%);
     background-attachment: fixed;
-  }
-}
-
-/* Glassmorphism 毛玻璃效果 */
-@layer components {
-  .glass-card {
-    @apply rounded-lg;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-
-  .dark .glass-card {
-    background: rgba(15, 23, 42, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-
-  /* 不支援 backdrop-filter 時的降級方案 */
-  @supports not (backdrop-filter: blur(1px)) {
-    .glass-card {
-      @apply bg-white/90 dark:bg-slate-800/90 border-gray-200 dark:border-slate-700;
-    }
-  }
-
-  /* Glassmorphism 導航欄 */
-  .glass-nav {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-  }
-
-  .dark .glass-nav {
-    background: rgba(15, 23, 42, 0.5);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  }
-
-  @supports not (backdrop-filter: blur(1px)) {
-    .glass-nav {
-      @apply bg-white/95 dark:bg-slate-900/95 border-gray-200 dark:border-slate-700;
-    }
-  }
-
-  /* Liquid Glass 導航選單 */
-  .liquid-glass-nav {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem;
-    background: rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(12px) saturate(180%);
-    -webkit-backdrop-filter: blur(12px) saturate(180%);
-    border-radius: 1rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow:
-      0 4px 24px rgba(0, 0, 0, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  }
-
-  .dark .liquid-glass-nav {
-    background: rgba(15, 23, 42, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 4px 24px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  }
-
-  /* Liquid Glass 滑動指示器 */
-  .liquid-glass-indicator {
-    position: absolute;
-    height: calc(100% - 0.5rem);
-    top: 0.25rem;
-    background: rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(8px) brightness(110%) url(#liquid_glass_filter);
-    -webkit-backdrop-filter: blur(8px) brightness(110%);
-    border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow:
-      0 2px 12px rgba(0, 0, 0, 0.08),
-      inset 0 1px 0 rgba(255, 255, 255, 0.5),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-  }
-
-  .dark .liquid-glass-indicator {
-    background: rgba(255, 255, 255, 0.12);
-    backdrop-filter: blur(8px) brightness(120%) url(#liquid_glass_filter);
-    -webkit-backdrop-filter: blur(8px) brightness(120%);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow:
-      0 2px 12px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 rgba(255, 255, 255, 0.15),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-  }
-
-  /* Liquid Glass Hover 指示器 */
-  .liquid-glass-hover {
-    position: absolute;
-    height: calc(100% - 0.5rem);
-    top: 0.25rem;
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    opacity: 0;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
-  }
-
-  .dark .liquid-glass-hover {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  .liquid-glass-nav:hover .liquid-glass-hover {
-    opacity: 1;
-  }
-
-  /* Liquid Glass 導航項目 */
-  .liquid-glass-item {
-    position: relative;
-    z-index: 1;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: rgba(0, 0, 0, 0.6);
-    border-radius: 0.75rem;
-    transition: color 0.2s ease;
-    white-space: nowrap;
-  }
-
-  .dark .liquid-glass-item {
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .liquid-glass-item.active {
-    color: rgba(0, 0, 0, 0.9);
-  }
-
-  .dark .liquid-glass-item.active {
-    color: rgba(255, 255, 255, 0.95);
-  }
-
-  .liquid-glass-item:hover {
-    color: rgba(0, 0, 0, 0.8);
-  }
-
-  .dark .liquid-glass-item:hover {
-    color: rgba(255, 255, 255, 0.85);
-  }
-}
-
-/* Bento Grid 佈局系統 */
-@layer components {
-  .bento-grid {
-    @apply grid gap-4;
-    grid-template-columns: repeat(4, 1fr);
-  }
-
-  /* 響應式斷點 */
-  @media (max-width: 1023px) {
-    .bento-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  @media (max-width: 767px) {
-    .bento-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* Bento Grid 項目大小 */
-  .bento-span-1 {
-    grid-column: span 1;
-  }
-
-  .bento-span-2 {
-    grid-column: span 2;
-  }
-
-  .bento-span-3 {
-    grid-column: span 3;
-  }
-
-  .bento-span-full {
-    grid-column: 1 / -1;
-  }
-
-  /* 響應式 span 調整 */
-  @media (max-width: 1023px) {
-    .bento-span-2,
-    .bento-span-3 {
-      grid-column: span 2;
-    }
-  }
-
-  @media (max-width: 767px) {
-    .bento-span-1,
-    .bento-span-2,
-    .bento-span-3,
-    .bento-span-full {
-      grid-column: 1 / -1;
-    }
   }
 }

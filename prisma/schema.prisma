@@ -2,14 +2,14 @@
 // Learn more: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider        = "prisma-client-js"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
   previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
-  // Note: TimescaleDB extension removed for easier deployment
+  // Note: url is now configured in prisma.config.ts for Prisma 7+
   // See docs/deployment/upgrade-to-timescaledb.md for production upgrade guide
 }
 

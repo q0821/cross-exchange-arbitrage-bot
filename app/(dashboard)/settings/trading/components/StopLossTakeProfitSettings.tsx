@@ -230,7 +230,7 @@ export function StopLossTakeProfitSettings() {
               disabled={isSaving}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            <div className="w-11 h-6 bg-muted peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
           </label>
         </div>
 
@@ -254,7 +254,7 @@ export function StopLossTakeProfitSettings() {
                 max={STOP_LOSS_PERCENT_MAX}
                 step="0.5"
                 disabled={isSaving}
-                className={`w-24 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                className={`w-24 px-3 py-2 border rounded-md focus:outline-hidden focus:ring-2 ${
                   stopLossError
                     ? 'border-loss/30 focus:ring-loss'
                     : 'border-border focus:ring-primary'
@@ -288,7 +288,7 @@ export function StopLossTakeProfitSettings() {
               disabled={isSaving}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            <div className="w-11 h-6 bg-muted peer-focus:outline-hidden peer-focus:ring-4 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:rtl:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
           </label>
         </div>
 
@@ -312,7 +312,7 @@ export function StopLossTakeProfitSettings() {
                 max={TAKE_PROFIT_PERCENT_MAX}
                 step="0.5"
                 disabled={isSaving}
-                className={`w-24 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                className={`w-24 px-3 py-2 border rounded-md focus:outline-hidden focus:ring-2 ${
                   takeProfitError
                     ? 'border-loss/30 focus:ring-loss'
                     : 'border-border focus:ring-primary'

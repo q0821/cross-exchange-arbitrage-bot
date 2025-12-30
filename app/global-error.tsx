@@ -1,11 +1,19 @@
 'use client';
 
+import { useEffect } from 'react';
+
 export default function GlobalError({
+  error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    // Log the error to an error reporting service
+    console.error('Global error:', error);
+  }, [error]);
+
   return (
     <html lang="zh-TW">
       <body>
@@ -20,6 +28,9 @@ export default function GlobalError({
             <h1 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#111827' }}>
               發生錯誤
             </h1>
+            <p style={{ color: '#6b7280', marginTop: '0.5rem' }}>
+              應用程式發生未預期的錯誤
+            </p>
             <button
               onClick={() => reset()}
               style={{

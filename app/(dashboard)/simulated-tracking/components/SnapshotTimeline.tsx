@@ -7,7 +7,6 @@
 
 'use client';
 
-import React from 'react';
 import { Clock, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
 interface SnapshotData {

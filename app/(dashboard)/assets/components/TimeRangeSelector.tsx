@@ -5,7 +5,6 @@
  * Feature 031: Asset Tracking History (T022)
  */
 
-import React from 'react';
 
 type TimeRange = 7 | 14 | 30;
 

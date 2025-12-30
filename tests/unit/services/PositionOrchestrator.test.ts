@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Decimal } from 'decimal.js';
-import type { PrismaClient, Position } from '@prisma/client';
+import type { PrismaClient, Position } from '@/generated/prisma/client';
 import type { OpenPositionParams } from '../../../src/types/trading';
 
 // =============================================================================

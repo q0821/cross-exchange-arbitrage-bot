@@ -1,4 +1,4 @@
-import { PrismaClient, NotificationWebhook as PrismaWebhook } from '@prisma/client';
+import { PrismaClient, NotificationWebhook as PrismaWebhook } from '@/generated/prisma/client';
 import { logger } from '@lib/logger';
 import { DatabaseError, NotFoundError } from '@lib/errors';
 import { encrypt, decrypt } from '@lib/encryption';

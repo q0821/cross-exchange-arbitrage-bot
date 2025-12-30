@@ -7,7 +7,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Wallet, RefreshCw, AlertCircle, TrendingUp, ArrowUp, ArrowDown, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 import { TotalAssetCard } from './components/TotalAssetCard';
 import { AssetSummaryCard } from './components/AssetSummaryCard';

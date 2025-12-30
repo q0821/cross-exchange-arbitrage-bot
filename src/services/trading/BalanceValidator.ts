@@ -5,7 +5,7 @@
  * Feature: 033-manual-open-position
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@/generated/prisma/client';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
 import { UserConnectorFactory } from '../assets/UserConnectorFactory';
