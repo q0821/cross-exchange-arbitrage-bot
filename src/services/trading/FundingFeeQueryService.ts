@@ -264,6 +264,9 @@ export class FundingFeeQueryService {
    *
    * 使用 BingX 原生 API /openApi/swap/v2/user/income
    * 因為 CCXT 不支援 BingX 的 fetchFundingHistory
+   *
+   * 注意：BingX API 帶 symbol 參數時可能返回 null，
+   * 因此改為不帶 symbol 查詢所有記錄，再在結果中過濾
    */
   private async queryBingxFundingFees(
     ccxtExchange: ccxt.Exchange,
@@ -273,7 +276,7 @@ export class FundingFeeQueryService {
     result: FundingFeeQueryResult,
   ): Promise<FundingFeeQueryResult> {
     try {
-      // 轉換 symbol 格式：BTCUSDT -> BTC-USDT
+      // 轉換 symbol 格式：BTCUSDT -> BTC-USDT（用於結果過濾）
       const bingxSymbol = symbol.replace(/([A-Z]+)(USDT|USDC|USD)$/, '$1-$2');
 
       logger.info(
@@ -282,10 +285,9 @@ export class FundingFeeQueryService {
       );
 
       // 調用 BingX 原生 API: /openApi/swap/v2/user/income
-      // incomeType: FUNDING_FEE 表示資金費率
+      // 不帶 symbol 參數，查詢所有記錄後再過濾
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const response = await (ccxtExchange as any).swapV2PrivateGetUserIncome({
-        symbol: bingxSymbol,
         incomeType: 'FUNDING_FEE',
         startTime: startTime.getTime(),
         endTime: endTime.getTime(),
@@ -304,14 +306,20 @@ export class FundingFeeQueryService {
       let totalAmount = new Decimal(0);
 
       for (const entry of data) {
+        // 過濾：只保留匹配的 symbol
+        const entrySymbol = entry.symbol || '';
+        if (entrySymbol !== bingxSymbol) {
+          continue;
+        }
+
         const amount = new Decimal(entry.income || entry.amount || 0);
-        const timestamp = entry.time || entry.timestamp;
+        const timestamp = parseInt(entry.time || entry.timestamp, 10);
 
         entries.push({
           timestamp,
           datetime: new Date(timestamp).toISOString(),
           amount,
-          symbol: entry.symbol || symbol,
+          symbol: entrySymbol,
           id: entry.tranId || entry.id || String(timestamp),
         });
         totalAmount = totalAmount.plus(amount);
@@ -325,7 +333,9 @@ export class FundingFeeQueryService {
         {
           exchange: 'bingx',
           symbol,
-          entriesCount: entries.length,
+          bingxSymbol,
+          totalRecords: data.length,
+          matchedRecords: entries.length,
           totalAmount: totalAmount.toFixed(8),
         },
         '[BingX] Funding fee query completed',
