@@ -20,10 +20,10 @@ async function main() {
       );
     }
 
-    // TODO: Initialize arbitrage service
-    // TODO: Start monitoring service
+    // 主要功能由 Web 平台 (Next.js) 提供
+    // CLI 入口點僅用於啟動驗證，實際服務透過 `pnpm dev` 或 `pnpm start` 啟動
 
-    logger.info('Bot started successfully');
+    logger.info('Startup validation completed - use Web platform for full functionality');
   } catch (error) {
     if (error instanceof Error) {
       ErrorHandler.handle(error);
