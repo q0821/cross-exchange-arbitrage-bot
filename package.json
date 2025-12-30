@@ -9,7 +9,7 @@
   },
   "scripts": {
     "postinstall": "prisma generate",
-    "build": "prisma migrate deploy && next build",
+    "build": "rm -rf .next && prisma migrate deploy && next build",
     "dev": "tsx watch server.ts",
     "dev:pretty": "tsx watch server.ts | pino-pretty",
     "start": "tsx server.ts",
