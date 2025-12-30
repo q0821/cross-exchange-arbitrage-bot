@@ -8,6 +8,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-30
 - Prisma 7.x (ORM), CCXT 4.x (多交易所抽象)
 - PostgreSQL 15+ with TimescaleDB extension
 - Vitest 4.x, Decimal.js
+- TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (WebSocket watch* methods), ws 8.x, @binance/connector 3.x (REST only) (052-specify-scripts-bash)
+- PostgreSQL 15 + TimescaleDB (現有 Position 模型) (052-specify-scripts-bash)
 
 ## Project Structure
 ```
