@@ -20,8 +20,18 @@ export type UserModel = runtime.Types.Result.DefaultSelection<Prisma.$UserPayloa
 
 export type AggregateUser = {
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
+}
+
+export type UserAvgAggregateOutputType = {
+  timeBasisPreference: number | null
+}
+
+export type UserSumAggregateOutputType = {
+  timeBasisPreference: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -30,6 +40,7 @@ export type UserMinAggregateOutputType = {
   password: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  timeBasisPreference: number | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -38,6 +49,7 @@ export type UserMaxAggregateOutputType = {
   password: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  timeBasisPreference: number | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -46,9 +58,18 @@ export type UserCountAggregateOutputType = {
   password: number
   createdAt: number
   updatedAt: number
+  timeBasisPreference: number
   _all: number
 }
 
+
+export type UserAvgAggregateInputType = {
+  timeBasisPreference?: true
+}
+
+export type UserSumAggregateInputType = {
+  timeBasisPreference?: true
+}
 
 export type UserMinAggregateInputType = {
   id?: true
@@ -56,6 +77,7 @@ export type UserMinAggregateInputType = {
   password?: true
   createdAt?: true
   updatedAt?: true
+  timeBasisPreference?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -64,6 +86,7 @@ export type UserMaxAggregateInputType = {
   password?: true
   createdAt?: true
   updatedAt?: true
+  timeBasisPreference?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -72,6 +95,7 @@ export type UserCountAggregateInputType = {
   password?: true
   createdAt?: true
   updatedAt?: true
+  timeBasisPreference?: true
   _all?: true
 }
 
@@ -113,6 +137,18 @@ export type UserAggregateArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: UserAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: UserSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: UserMinAggregateInputType
@@ -143,6 +179,8 @@ export type UserGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   _count?: UserCountAggregateInputType | true
+  _avg?: UserAvgAggregateInputType
+  _sum?: UserSumAggregateInputType
   _min?: UserMinAggregateInputType
   _max?: UserMaxAggregateInputType
 }
@@ -153,7 +191,10 @@ export type UserGroupByOutputType = {
   password: string
   createdAt: Date
   updatedAt: Date
+  timeBasisPreference: number
   _count: UserCountAggregateOutputType | null
+  _avg: UserAvgAggregateOutputType | null
+  _sum: UserSumAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
 }
@@ -182,6 +223,7 @@ export type UserWhereInput = {
   password?: Prisma.StringFilter<"User"> | string
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  timeBasisPreference?: Prisma.IntFilter<"User"> | number
   apiKeys?: Prisma.ApiKeyListRelationFilter
   positions?: Prisma.PositionListRelationFilter
   trades?: Prisma.TradeListRelationFilter
@@ -199,6 +241,7 @@ export type UserOrderByWithRelationInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  timeBasisPreference?: Prisma.SortOrder
   apiKeys?: Prisma.ApiKeyOrderByRelationAggregateInput
   positions?: Prisma.PositionOrderByRelationAggregateInput
   trades?: Prisma.TradeOrderByRelationAggregateInput
@@ -219,6 +262,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   password?: Prisma.StringFilter<"User"> | string
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  timeBasisPreference?: Prisma.IntFilter<"User"> | number
   apiKeys?: Prisma.ApiKeyListRelationFilter
   positions?: Prisma.PositionListRelationFilter
   trades?: Prisma.TradeListRelationFilter
@@ -236,9 +280,12 @@ export type UserOrderByWithAggregationInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  timeBasisPreference?: Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
+  _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
+  _sum?: Prisma.UserSumOrderByAggregateInput
 }
 
 export type UserScalarWhereWithAggregatesInput = {
@@ -250,6 +297,7 @@ export type UserScalarWhereWithAggregatesInput = {
   password?: Prisma.StringWithAggregatesFilter<"User"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  timeBasisPreference?: Prisma.IntWithAggregatesFilter<"User"> | number
 }
 
 export type UserCreateInput = {
@@ -258,6 +306,7 @@ export type UserCreateInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -275,6 +324,7 @@ export type UserUncheckedCreateInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -292,6 +342,7 @@ export type UserUpdateInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -309,6 +360,7 @@ export type UserUncheckedUpdateInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -326,6 +378,7 @@ export type UserCreateManyInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
 }
 
 export type UserUpdateManyMutationInput = {
@@ -334,6 +387,7 @@ export type UserUpdateManyMutationInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -342,6 +396,7 @@ export type UserUncheckedUpdateManyInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -350,6 +405,11 @@ export type UserCountOrderByAggregateInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  timeBasisPreference?: Prisma.SortOrder
+}
+
+export type UserAvgOrderByAggregateInput = {
+  timeBasisPreference?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -358,6 +418,7 @@ export type UserMaxOrderByAggregateInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  timeBasisPreference?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -366,6 +427,11 @@ export type UserMinOrderByAggregateInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  timeBasisPreference?: Prisma.SortOrder
+}
+
+export type UserSumOrderByAggregateInput = {
+  timeBasisPreference?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -512,6 +578,7 @@ export type UserCreateWithoutApiKeysInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
@@ -528,6 +595,7 @@ export type UserUncheckedCreateWithoutApiKeysInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
@@ -560,6 +628,7 @@ export type UserUpdateWithoutApiKeysInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
@@ -576,6 +645,7 @@ export type UserUncheckedUpdateWithoutApiKeysInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
@@ -592,6 +662,7 @@ export type UserCreateWithoutPositionsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
@@ -608,6 +679,7 @@ export type UserUncheckedCreateWithoutPositionsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
@@ -640,6 +712,7 @@ export type UserUpdateWithoutPositionsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
@@ -656,6 +729,7 @@ export type UserUncheckedUpdateWithoutPositionsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
@@ -672,6 +746,7 @@ export type UserCreateWithoutTradesInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
@@ -688,6 +763,7 @@ export type UserUncheckedCreateWithoutTradesInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
@@ -720,6 +796,7 @@ export type UserUpdateWithoutTradesInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
@@ -736,6 +813,7 @@ export type UserUncheckedUpdateWithoutTradesInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
@@ -752,6 +830,7 @@ export type UserCreateWithoutAuditLogsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -768,6 +847,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -800,6 +880,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -816,6 +897,7 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -832,6 +914,7 @@ export type UserCreateWithoutNotificationWebhooksInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -848,6 +931,7 @@ export type UserUncheckedCreateWithoutNotificationWebhooksInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -880,6 +964,7 @@ export type UserUpdateWithoutNotificationWebhooksInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -896,6 +981,7 @@ export type UserUncheckedUpdateWithoutNotificationWebhooksInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -912,6 +998,7 @@ export type UserCreateWithoutOpportunityEndHistoriesInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -928,6 +1015,7 @@ export type UserUncheckedCreateWithoutOpportunityEndHistoriesInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -960,6 +1048,7 @@ export type UserUpdateWithoutOpportunityEndHistoriesInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -976,6 +1065,7 @@ export type UserUncheckedUpdateWithoutOpportunityEndHistoriesInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -992,6 +1082,7 @@ export type UserCreateWithoutSimulatedTrackingsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -1008,6 +1099,7 @@ export type UserUncheckedCreateWithoutSimulatedTrackingsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -1040,6 +1132,7 @@ export type UserUpdateWithoutSimulatedTrackingsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -1056,6 +1149,7 @@ export type UserUncheckedUpdateWithoutSimulatedTrackingsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -1072,6 +1166,7 @@ export type UserCreateWithoutAssetSnapshotsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -1088,6 +1183,7 @@ export type UserUncheckedCreateWithoutAssetSnapshotsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -1120,6 +1216,7 @@ export type UserUpdateWithoutAssetSnapshotsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -1136,6 +1233,7 @@ export type UserUncheckedUpdateWithoutAssetSnapshotsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -1152,6 +1250,7 @@ export type UserCreateWithoutTradingSettingsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -1168,6 +1267,7 @@ export type UserUncheckedCreateWithoutTradingSettingsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  timeBasisPreference?: number
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -1200,6 +1300,7 @@ export type UserUpdateWithoutTradingSettingsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -1216,6 +1317,7 @@ export type UserUncheckedUpdateWithoutTradingSettingsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -1326,6 +1428,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   password?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  timeBasisPreference?: boolean
   apiKeys?: boolean | Prisma.User$apiKeysArgs<ExtArgs>
   positions?: boolean | Prisma.User$positionsArgs<ExtArgs>
   trades?: boolean | Prisma.User$tradesArgs<ExtArgs>
@@ -1344,6 +1447,7 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   password?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  timeBasisPreference?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1352,6 +1456,7 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   password?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  timeBasisPreference?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1360,9 +1465,10 @@ export type UserSelectScalar = {
   password?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  timeBasisPreference?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "createdAt" | "updatedAt" | "timeBasisPreference", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   apiKeys?: boolean | Prisma.User$apiKeysArgs<ExtArgs>
   positions?: boolean | Prisma.User$positionsArgs<ExtArgs>
@@ -1397,6 +1503,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     password: string
     createdAt: Date
     updatedAt: Date
+    timeBasisPreference: number
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1834,6 +1941,7 @@ export interface UserFieldRefs {
   readonly password: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly timeBasisPreference: Prisma.FieldRef<"User", 'Int'>
 }
     
 

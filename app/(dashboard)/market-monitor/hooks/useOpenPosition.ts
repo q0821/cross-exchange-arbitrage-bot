@@ -5,6 +5,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import type { MarketRate } from '../types';
 
 export interface OpenPositionData {
@@ -199,8 +200,16 @@ export function useOpenPosition(): UseOpenPositionReturn {
         // 開倉成功
         console.log('[useOpenPosition] Position opened successfully:', result.data);
         closeDialog();
-        // TODO: 顯示成功通知或導航到持倉頁面
-        window.location.href = '/positions';
+
+        // 顯示成功通知
+        toast.success('開倉成功', {
+          description: `${data.symbol} 已成功建立持倉`,
+        });
+
+        // 延遲跳轉讓用戶看到通知
+        setTimeout(() => {
+          window.location.href = '/positions';
+        }, 1500);
       } else {
         // 處理錯誤
         const errorCode = result.error?.code || 'UNKNOWN_ERROR';

@@ -71,8 +71,6 @@ export function useMarketRates(): UseMarketRatesReturn {
       console.log('[useMarketRates] WebSocket connected');
       // 訂閱市場費率更新
       emit('subscribe:market-rates');
-      // 發送時間基準偏好
-      emit('set-time-basis', { timeBasis });
     },
     onDisconnect: () => {
       console.log('[useMarketRates] WebSocket disconnected');
@@ -82,6 +80,18 @@ export function useMarketRates(): UseMarketRatesReturn {
       setError(err);
     },
   });
+
+  // 處理訂閱確認（包含伺服器端的 timeBasis 偏好）
+  const handleSubscribed = useCallback((data: { success: boolean; timeBasis?: number }) => {
+    console.log('[useMarketRates] Subscribed to market rates:', data);
+    if (data.success && data.timeBasis && [1, 4, 8, 24].includes(data.timeBasis)) {
+      // 使用伺服器端儲存的用戶偏好
+      const serverTimeBasis = data.timeBasis as TimeBasis;
+      setTimeBasisState(serverTimeBasis);
+      setTimeBasisPreference(serverTimeBasis); // 同步更新 localStorage
+      console.log('[useMarketRates] Using server-side timeBasis preference:', serverTimeBasis);
+    }
+  }, []);
 
   // 處理時間基準變更
   const handleSetTimeBasis = useCallback((basis: TimeBasis) => {
@@ -131,15 +141,17 @@ export function useMarketRates(): UseMarketRatesReturn {
     }
 
     // 訂閱事件
+    on('subscribed:market-rates', handleSubscribed);
     on('rates:update', handleRatesUpdate);
     on('rates:stats', handleStatsUpdate);
 
     // 清理函數
     return () => {
+      off('subscribed:market-rates', handleSubscribed);
       off('rates:update', handleRatesUpdate);
       off('rates:stats', handleStatsUpdate);
     };
-  }, [isConnected, on, off, handleRatesUpdate, handleStatsUpdate]);
+  }, [isConnected, on, off, handleSubscribed, handleRatesUpdate, handleStatsUpdate]);
 
   // Feature 019/036: 當 timeBasis 或 opportunityThreshold 變更時，重新計算所有已快取的費率
   useEffect(() => {

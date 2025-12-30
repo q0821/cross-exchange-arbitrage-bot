@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { Toaster } from 'sonner';
 
 /**
  * Dashboard Layout
@@ -213,6 +214,9 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
           </div>
         </div>
       </footer>
+
+      {/* Toast 通知 */}
+      <Toaster richColors position="top-right" />
     </div>
   );
 }

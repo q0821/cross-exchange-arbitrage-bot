@@ -9,6 +9,7 @@ import { Server as SocketIOServer, Socket } from 'socket.io';
 import { AuthenticatedSocket } from '../SocketServer';
 import { ratesCache } from '../../services/monitor/RatesCache';
 import { logger } from '@lib/logger';
+import { prisma } from '../../lib/db';
 import {
   DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
   APPROACHING_THRESHOLD_RATIO,
@@ -32,9 +33,31 @@ export class MarketRatesHandler {
     const { userId, email } = authenticatedSocket.data;
 
     // 訂閱市場監控更新
-    socket.on('subscribe:market-rates', () => {
+    socket.on('subscribe:market-rates', async () => {
       const room = 'market-rates';
       socket.join(room);
+
+      // 從資料庫載入用戶的 timeBasis 偏好
+      let userTimeBasis = 8; // 預設值
+      try {
+        const userData = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { timeBasisPreference: true },
+        });
+        if (userData?.timeBasisPreference) {
+          userTimeBasis = userData.timeBasisPreference;
+          authenticatedSocket.data.timeBasis = userTimeBasis;
+        }
+      } catch (dbError) {
+        logger.error(
+          {
+            socketId: socket.id,
+            userId,
+            error: dbError instanceof Error ? dbError.message : String(dbError),
+          },
+          'Failed to load user time basis preference from database',
+        );
+      }
 
       logger.info(
         {
@@ -42,14 +65,16 @@ export class MarketRatesHandler {
           userId,
           email,
           room,
+          timeBasis: userTimeBasis,
         },
         'Client subscribed to market rates',
       );
 
-      // 發送訂閱確認並立即發送當前數據
+      // 發送訂閱確認並附帶用戶偏好
       socket.emit('subscribed:market-rates', {
         success: true,
         message: 'Subscribed to market rates updates',
+        timeBasis: userTimeBasis,
       });
 
       // 立即發送一次當前數據
@@ -77,8 +102,8 @@ export class MarketRatesHandler {
       });
     });
 
-    // NEW: 設定時間基準偏好
-    socket.on('set-time-basis', (data: { timeBasis: 1 | 4 | 8 | 24 }) => {
+    // 設定時間基準偏好（異步持久化到資料庫）
+    socket.on('set-time-basis', async (data: { timeBasis: 1 | 4 | 8 | 24 }) => {
       try {
         const { timeBasis } = data;
 
@@ -92,8 +117,36 @@ export class MarketRatesHandler {
           return;
         }
 
-        // TODO: 儲存用戶偏好（目前暫存在 socket.data）
+        // 暫存在 socket.data（立即生效）
         authenticatedSocket.data.timeBasis = timeBasis;
+
+        // 異步持久化到資料庫（不阻塞回應）
+        prisma.user
+          .update({
+            where: { id: userId },
+            data: { timeBasisPreference: timeBasis },
+          })
+          .then(() => {
+            logger.info(
+              {
+                socketId: socket.id,
+                userId,
+                timeBasis,
+              },
+              'User time basis preference persisted to database',
+            );
+          })
+          .catch((dbError) => {
+            logger.error(
+              {
+                socketId: socket.id,
+                userId,
+                timeBasis,
+                error: dbError instanceof Error ? dbError.message : String(dbError),
+              },
+              'Failed to persist time basis preference to database',
+            );
+          });
 
         logger.info(
           {
@@ -104,7 +157,7 @@ export class MarketRatesHandler {
           'User updated time basis preference',
         );
 
-        // 發送確認（可選）
+        // 發送確認
         socket.emit('time-basis-updated', {
           success: true,
           timeBasis,

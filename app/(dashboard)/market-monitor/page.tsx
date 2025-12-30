@@ -17,6 +17,7 @@ import { TimeBasisSelector } from './components/TimeBasisSelector';
 import { StartTrackingDialog } from './components/StartTrackingDialog';
 import { OpenPositionDialog } from './components/OpenPositionDialog';
 import { RollbackFailedAlert } from './components/RollbackFailedAlert';
+import { SymbolDetailDialog } from './components/SymbolDetailDialog';
 import { useMarketRates } from './hooks/useMarketRates';
 import { useSymbolGroups } from './hooks/useSymbolGroups';
 import { useTableSort } from './hooks/useTableSort';
@@ -135,14 +136,24 @@ export default function MarketMonitorPage() {
     };
   }, [stats, filteredRatesMap, ratesMap.size]);
 
-  // 詳情對話框狀態（未來擴展）
-  const [_selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
+  // 詳情對話框狀態
+  const [detailDialogRate, setDetailDialogRate] = useState<MarketRate | null>(null);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
 
   // 處理交易對點擊
   const handleSymbolClick = (symbol: string) => {
     console.log('[MarketMonitor] Symbol clicked:', symbol);
-    setSelectedSymbol(symbol);
-    // TODO: 顯示詳情對話框或導航到詳情頁面
+    const rate = ratesMap.get(symbol);
+    if (rate) {
+      setDetailDialogRate(rate);
+      setIsDetailDialogOpen(true);
+    }
+  };
+
+  // 關閉詳情對話框
+  const closeDetailDialog = () => {
+    setIsDetailDialogOpen(false);
+    setDetailDialogRate(null);
   };
 
   // 處理快速開倉 (Feature 033)
@@ -295,6 +306,25 @@ export default function MarketMonitorPage() {
           takeProfitEnabled: tradingSettings.defaultTakeProfitEnabled,
           takeProfitPercent: tradingSettings.defaultTakeProfitPercent,
         } : undefined}
+      />
+
+      {/* 交易對詳情對話框 */}
+      <SymbolDetailDialog
+        isOpen={isDetailDialogOpen}
+        onClose={closeDetailDialog}
+        rate={detailDialogRate}
+        timeBasis={timeBasis}
+        onQuickOpen={handleQuickOpen}
+        onStartTracking={openTrackingDialog}
+        isTracking={
+          detailDialogRate?.bestPair
+            ? isTracking(
+                detailDialogRate.symbol,
+                detailDialogRate.bestPair.longExchange,
+                detailDialogRate.bestPair.shortExchange
+              )
+            : false
+        }
       />
 
       {/* Feature 033: 回滾失敗警告 */}

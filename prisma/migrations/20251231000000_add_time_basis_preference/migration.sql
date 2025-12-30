@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "timeBasisPreference" INTEGER NOT NULL DEFAULT 8;

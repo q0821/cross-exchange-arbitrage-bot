@@ -117,6 +117,9 @@ model User {
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
 
+  // 用戶偏好設定
+  timeBasisPreference Int @default(8) // 時間基準偏好: 1, 4, 8, 24 小時
+
   // Relations
   apiKeys              ApiKey[]
   positions            Position[]
