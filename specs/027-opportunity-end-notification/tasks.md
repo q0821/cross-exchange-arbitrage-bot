@@ -17,7 +17,7 @@
 **Purpose**: Database schema changes and type definitions
 
 - [x] T001 Add notifyOnDisappear field to NotificationWebhook model in prisma/schema.prisma
-- [x] T002 Add OpportunityHistory model to prisma/schema.prisma
+- [x] T002 Add OpportunityEndHistory model to prisma/schema.prisma
 - [x] T003 Create and run database migration: pnpm prisma migrate dev --name add_opportunity_end_notification
 - [x] T004 [P] Add TrackedOpportunity interface in src/services/notification/types.ts
 - [x] T005 [P] Add FundingSettlement interface in src/services/notification/types.ts
@@ -114,8 +114,8 @@
 
 ### Implementation for User Story 5
 
-- [x] T038 [P] [US5] Create OpportunityHistory domain model with Zod schema in src/models/OpportunityHistory.ts
-- [x] T039 [P] [US5] Create OpportunityHistoryRepository with create() and findByUserId() methods in src/repositories/OpportunityHistoryRepository.ts
+- [x] T038 [P] [US5] Create OpportunityEndHistory domain model with Zod schema in src/models/OpportunityEndHistory.ts
+- [x] T039 [P] [US5] Create OpportunityEndHistoryRepository with create() and findByUserId() methods in src/repositories/OpportunityEndHistoryRepository.ts
 - [x] T040 [US5] Call repository.create() to save history after sending end notification in src/services/notification/NotificationService.ts
 - [x] T041 [P] [US5] Create GET /api/opportunities/history route with pagination in app/api/opportunities/history/route.ts
 - [x] T042 [P] [US5] Create GET /api/opportunities/history/[id] route for single record in app/api/opportunities/history/[id]/route.ts

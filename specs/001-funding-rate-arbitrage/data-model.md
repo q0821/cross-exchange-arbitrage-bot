@@ -2,8 +2,20 @@
 
 **Feature**: [spec.md](./spec.md)
 **Created**: 2025-10-17
-**Status**: Phase 1 Design
+**Status**: Phase 1 Design (部分已廢棄)
 **Version**: 1.0
+
+> ⚠️ **廢棄通知 (2025-12-30)**
+>
+> 以下模型已從 Prisma schema 移除，由 Feature 006 的新模型取代：
+> - `ArbitrageOpportunity` → 由 Market Monitor 即時計算取代
+> - `OpportunityHistory` → 由 `OpportunityEndHistory` 取代
+> - `HedgePosition` → 由 `Position` 取代
+> - `TradeRecord` → 由 `Trade` 取代
+> - `ArbitrageCycle` → 已移除
+> - `NotificationLog` → 由 `NotificationWebhook` 取代
+>
+> 此文件保留作為歷史參考。
 
 ## 目錄
 

@@ -7,7 +7,7 @@
 
 本功能涉及以下資料模型變更：
 1. **NotificationWebhook** - 新增 `notifyOnDisappear` 欄位
-2. **OpportunityHistory** - 新增資料表（取代已棄用的舊模型）
+2. **OpportunityEndHistory** - 新增資料表（取代已棄用的舊模型）
 3. **TrackedOpportunity** - 記憶體資料結構（非持久化）
 
 ---
@@ -52,12 +52,12 @@ ADD COLUMN notify_on_disappear BOOLEAN NOT NULL DEFAULT true;
 
 ---
 
-## 2. OpportunityHistory 新增
+## 2. OpportunityEndHistory 新增
 
 ### Schema
 
 ```prisma
-model OpportunityHistory {
+model OpportunityEndHistory {
   id                    String   @id @default(cuid())
 
   // 基本資訊
@@ -320,7 +320,7 @@ export interface OpportunityDisappearedMessage {
           │ 1:N
           ▼
 ┌─────────────────────┐       ┌─────────────────────┐
-│ NotificationWebhook │       │  OpportunityHistory │
+│ NotificationWebhook │       │  OpportunityEndHistory │
 ├─────────────────────┤       ├─────────────────────┤
 │ id                  │       │ id                  │
 │ userId (FK)         │       │ userId (FK)         │
@@ -351,7 +351,7 @@ export interface OpportunityDisappearedMessage {
 |------|----------|
 | notifyOnDisappear | Boolean，預設 true |
 
-### OpportunityHistory
+### OpportunityEndHistory
 
 | 欄位 | 驗證規則 |
 |------|----------|
@@ -384,6 +384,6 @@ export interface OpportunityDisappearedMessage {
                                └──(費差 < 閾值 持續 1 分鐘)──> [結束]
                                                                  │
                                                                  ├──> 發送結束通知
-                                                                 ├──> 寫入 OpportunityHistory
+                                                                 ├──> 寫入 OpportunityEndHistory
                                                                  └──> 從 Map 移除
 ```

@@ -318,9 +318,9 @@ export const UpdateWebhookSchema = z.object({
 ### 機會歷史 Schema
 
 ```typescript
-// src/models/OpportunityHistory.ts
+// src/models/OpportunityEndHistory.ts
 
-export const OpportunityHistorySchema = z.object({
+export const OpportunityEndHistorySchema = z.object({
   id: z.string().cuid(),
   symbol: z.string().min(1).max(20),
   longExchange: z.string().min(1).max(20),

@@ -11,7 +11,7 @@
 
 **Language/Version**: TypeScript 5.6 + Node.js 20.x LTS
 **Primary Dependencies**: Next.js 14 App Router, Prisma 5.x, Socket.io 4.8.1, axios, pino
-**Storage**: PostgreSQL 15 + TimescaleDB（現有 NotificationWebhook 模型擴展 + OpportunityHistory 啟用）
+**Storage**: PostgreSQL 15 + TimescaleDB（現有 NotificationWebhook 模型擴展 + OpportunityEndHistory 啟用）
 **Testing**: Vitest + @testing-library/react
 **Target Platform**: Linux server (Docker) + Web browser
 **Project Type**: Web application (Next.js full-stack)
@@ -28,7 +28,7 @@
 | I. Trading Safety First | N/A | 本功能不涉及交易執行，僅為通知功能 |
 | II. Complete Observability | ✅ | 所有通知發送記錄到 log，機會歷史記錄到資料庫 |
 | III. Defensive Programming | ✅ | 使用防抖動機制避免重複通知，Webhook 發送有重試和超時處理 |
-| IV. Data Integrity | ✅ | OpportunityHistory 使用 Prisma migration，財務計算使用 Decimal |
+| IV. Data Integrity | ✅ | OpportunityEndHistory 使用 Prisma migration，財務計算使用 Decimal |
 | V. Incremental Delivery | ✅ | 按 P1→P2→P3 優先級分階段實現，每個 User Story 可獨立測試 |
 | VI. System Architecture | ✅ | CLI 監控寫入資料庫，Web 只讀取顯示，符合分離原則 |
 
@@ -63,12 +63,12 @@ src/
 │       └── utils.ts                  # 修改：新增時間格式化函式
 ├── repositories/
 │   ├── NotificationWebhookRepository.ts  # 修改：處理 notifyOnDisappear 欄位
-│   └── OpportunityHistoryRepository.ts   # 新增：機會歷史 CRUD
+│   └── OpportunityEndHistoryRepository.ts   # 新增：機會歷史 CRUD
 └── models/
-    └── OpportunityHistory.ts             # 新增：Domain Model
+    └── OpportunityEndHistory.ts             # 新增：Domain Model
 
 prisma/
-├── schema.prisma                         # 修改：NotificationWebhook + OpportunityHistory
+├── schema.prisma                         # 修改：NotificationWebhook + OpportunityEndHistory
 └── migrations/
     └── [timestamp]_add_opportunity_end_notification/
 
@@ -96,4 +96,4 @@ tests/
 |-----------|------|-------------|
 | TrackedOpportunity Map | 追蹤機會生命週期，計算統計資訊 | 無狀態方案無法提供持續時間和統計 |
 | 多結算週期支援 | 多空雙方可能有不同結算週期 | 假設固定 8h 會導致收益計算不準確 |
-| OpportunityHistory 表 | 持久化歷史記錄供未來分析 | 僅記憶體會在重啟後遺失所有歷史 |
+| OpportunityEndHistory 表 | 持久化歷史記錄供未來分析 | 僅記憶體會在重啟後遺失所有歷史 |

@@ -43,7 +43,7 @@ Goal: Implement cross-cutting concerns needed by all user stories
 
 Tasks:
 - [ ] T012 [P] Create Prisma schema for User, ApiKey, Position, Trade, AuditLog entities per data-model.md
-- [ ] T013 [P] Create Prisma schema for existing ArbitrageOpportunity, FundingRate entities (if not exist)
+- [x] T013 [P] ~~Create Prisma schema for ArbitrageOpportunity~~ (已廢棄), FundingRate 已存在
 - [ ] T014 Run Prisma migration: `prisma migrate dev --name initial_schema`
 - [ ] T015 [P] Create src/middleware/correlationIdMiddleware.ts for request tracing
 - [ ] T016 [P] Create src/middleware/errorHandler.ts for standardized error responses

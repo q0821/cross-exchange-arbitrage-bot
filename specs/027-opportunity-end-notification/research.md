@@ -200,7 +200,7 @@ if (currentSpread < threshold) {
 
 ### 5. 資料庫模型設計
 
-**問題**: OpportunityHistory 表應該儲存什麼資訊？
+**問題**: OpportunityEndHistory 表應該儲存什麼資訊？
 
 **Decision**: 儲存完整統計資訊和結算記錄（JSON）
 
@@ -211,7 +211,7 @@ if (currentSpread < threshold) {
 
 **Schema 設計**:
 ```prisma
-model OpportunityHistory {
+model OpportunityEndHistory {
   id                  String   @id @default(cuid())
 
   // 基本資訊

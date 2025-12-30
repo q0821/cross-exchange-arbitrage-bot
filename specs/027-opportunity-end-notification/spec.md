@@ -116,7 +116,7 @@
 ### Key Entities
 
 - **TrackedOpportunity**: 追蹤中的套利機會，包含交易對、交易所組合、開始時間、費差統計、費率結算記錄、已通知的 Webhook 列表
-- **OpportunityHistory**: 已結束機會的歷史記錄，包含完整統計資訊和模擬收益計算結果
+- **OpportunityEndHistory**: 已結束機會的歷史記錄，包含完整統計資訊和模擬收益計算結果
 - **FundingSettlement**: 費率結算記錄，包含結算時間、結算方（做多/做空）、該方的費率收益
 
 ## Success Criteria *(mandatory)*

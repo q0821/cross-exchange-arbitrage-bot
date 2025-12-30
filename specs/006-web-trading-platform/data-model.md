@@ -306,16 +306,13 @@ model AuditLog {
 
 ## Existing Entities (Reused from CLI System)
 
-### ArbitrageOpportunity
+> ⚠️ **已廢棄 (2025-12-30)**: `ArbitrageOpportunity` 模型已移除，由 Market Monitor 即時計算取代。
 
-Stores detected funding rate arbitrage opportunities (reused from feature 005).
+### ~~ArbitrageOpportunity~~ (已廢棄)
 
-**Prisma Schema**: See lines 35-65 in `prisma/schema.prisma`
+~~Stores detected funding rate arbitrage opportunities (reused from feature 005).~~
 
-**Usage in Web Platform**:
-- WebSocket broadcasts new opportunities to connected users
-- Users select opportunity to open position (US2, US3)
-- Status transitions: `ACTIVE → EXPIRED | CLOSED`
+**目前實作**: Market Monitor 透過 WebSocket 即時推送費率資料，前端即時計算套利機會，無需持久化。
 
 **Maps to User Stories**: US2 (monitor opportunities)
 
@@ -344,8 +341,8 @@ User (1) ──── (N) ApiKey
   │
   └── (N) AuditLog
 
-ArbitrageOpportunity (broadcast to all users via WebSocket)
 FundingRate (shared data, not user-specific)
+Market rates (real-time via WebSocket, not persisted)
 ```
 
 ## Index Strategy
@@ -437,5 +434,4 @@ const displayPnl = pnl.toNumber();
 - `AuditLog`: Retain for 1 year (compliance)
 - `Trade`: Retain indefinitely (user's historical performance)
 - `FundingRate`: Retain for 3 months (TimescaleDB automatic compression)
-- `ArbitrageOpportunity`: Retain for 7 days (historical analysis)
 

@@ -491,9 +491,7 @@
   - 基本資訊：交易所名稱（Binance/OKX）、加密後的 Key 和 Secret、啟用狀態、最後驗證時間
   - 關聯：屬於某個用戶
 
-- **ArbitrageOpportunity（套利機會）**: 偵測到的資金費率套利機會
-  - 基本資訊：交易對、兩個交易所名稱、即時價格、即時資金費率、費率差異、預期年化收益率、開多交易所、開空交易所、發現時間、狀態（ACTIVE/EXPIRED）
-  - 關聯：可被用戶選擇進行開倉
+- ~~**ArbitrageOpportunity（套利機會）**~~: ⚠️ 已廢棄，由 Market Monitor 即時計算取代
 
 - **Position（持倉）**: 用戶當前持有的未平倉套利倉位
   - 基本資訊：
@@ -514,9 +512,7 @@
     - 交易狀態（SUCCESS/PARTIAL/FAILED）
   - 關聯：屬於某個用戶
 
-- **NotificationLog（通知日誌）**: 系統發送的通知記錄（用於審計和防抖動）
-  - 基本資訊：通知類型、通知內容、接收者、發送時間、發送狀態
-  - 關聯：與用戶或系統事件相關
+- ~~**NotificationLog（通知日誌）**~~: ⚠️ 已廢棄，由 NotificationWebhook 取代
 
 - **AuditLog（審計日誌）**: 關鍵操作的審計記錄
   - 基本資訊：操作類型、操作者、操作時間、操作詳情、IP 位址
@@ -646,8 +642,7 @@
    - React 元件構建前端界面
 
 3. **擴展資料庫**:
-   - 新增 User、ApiKey 等用戶管理表
-   - 保留既有的 ArbitrageOpportunity、OpportunityHistory 等表
+   - 新增 User、ApiKey、Position、Trade 等用戶管理表
 
 4. **引入即時推送**:
    - 整合 Socket.io 來替代 CLI 的輪詢機制

@@ -79,7 +79,7 @@ pnpm prisma studio  # 確認欄位已新增
 
 ### Phase 7: 歷史記錄 (P3)
 
-- 新增 `OpportunityHistoryRepository.ts`
+- 新增 `OpportunityEndHistoryRepository.ts`
 - 實作 `/api/opportunities/history` API
 
 ---
@@ -121,14 +121,14 @@ pnpm test src/services/notification/profitCalculation.test.ts
 
 | 檔案 | 變更類型 | 說明 |
 |------|----------|------|
-| `prisma/schema.prisma` | 修改 | 新增 notifyOnDisappear、OpportunityHistory |
+| `prisma/schema.prisma` | 修改 | 新增 notifyOnDisappear、OpportunityEndHistory |
 | `src/services/notification/types.ts` | 修改 | 新增類型定義 |
 | `src/services/notification/NotificationService.ts` | 修改 | 機會追蹤和結束檢測 |
 | `src/services/notification/DiscordNotifier.ts` | 修改 | 結束通知格式 |
 | `src/services/notification/SlackNotifier.ts` | 修改 | 結束通知格式 |
 | `src/services/notification/utils.ts` | 修改 | 時間格式化函式 |
-| `src/repositories/OpportunityHistoryRepository.ts` | 新增 | 歷史記錄 CRUD |
-| `src/models/OpportunityHistory.ts` | 新增 | Domain Model |
+| `src/repositories/OpportunityEndHistoryRepository.ts` | 新增 | 歷史記錄 CRUD |
+| `src/models/OpportunityEndHistory.ts` | 新增 | Domain Model |
 | `app/api/notifications/webhooks/route.ts` | 修改 | 支援新欄位 |
 | `app/api/opportunities/history/route.ts` | 新增 | 歷史查詢 API |
 | `app/(dashboard)/settings/notifications/page.tsx` | 修改 | 新增開關 |
