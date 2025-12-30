@@ -16,17 +16,11 @@ import { SlackNotifier } from '@/services/notification/SlackNotifier';
 import {
   buildTriggerNotificationMessage,
   buildEmergencyNotificationMessage,
-  type BuildTriggerNotificationInput,
 } from '@/services/notification/utils';
-import type {
-  TriggerNotificationMessage,
-  EmergencyNotificationMessage,
-  TriggerNotificationType,
-} from '@/services/notification/types';
+import type { TriggerNotificationType } from '@/services/notification/types';
 import {
   triggerProgressEmitter,
   type TriggerDetectedEvent,
-  type TriggerCloseProgressEvent,
   type TriggerCloseSuccessEvent,
   type TriggerCloseFailedEvent,
   type TriggerCloseStep,
@@ -260,12 +254,14 @@ export class ConditionalOrderMonitor {
     const isLongSide = triggerType === 'LONG_SL' || triggerType === 'LONG_TP';
     const exchange = isLongSide ? position.longExchange : position.shortExchange;
     const orderId = this.getTriggeredOrderId(position, triggerType);
+    const positionSide: 'long' | 'short' = isLongSide ? 'long' : 'short';
 
     const confirmed = await this.confirmTriggerWithHistory(
       exchange,
       position.userId,
       position.symbol,
       orderId,
+      positionSide,
     );
 
     if (!confirmed) {
@@ -402,17 +398,24 @@ export class ConditionalOrderMonitor {
 
   /**
    * 確認觸發（查詢訂單歷史）
+   *
+   * 邏輯：
+   * 1. 查詢訂單歷史
+   * 2. 如果狀態是 TRIGGERED，確認觸發
+   * 3. 如果狀態是 CANCELLED，檢查交易所持倉是否還存在
+   *    - 如果持倉不存在，表示用戶可能修改了條件單價格導致觸發，視為觸發
+   *    - 如果持倉還存在，表示訂單只是被取消，不視為觸發
    */
   async confirmTriggerWithHistory(
     exchange: string,
     userId: string,
     symbol: string,
     orderId: string,
+    positionSide?: 'long' | 'short',
   ): Promise<boolean> {
     try {
       const service = await this.createExchangeService(exchange, userId);
       const history = await service.fetchOrderHistory(symbol, orderId);
-      await service.disconnect();
 
       logger.info(
         { exchange, symbol, orderId, history },
@@ -420,10 +423,53 @@ export class ConditionalOrderMonitor {
       );
 
       if (!history) {
+        await service.disconnect();
         return false;
       }
 
-      return history.status === 'TRIGGERED';
+      // 狀態是 TRIGGERED，確認觸發
+      if (history.status === 'TRIGGERED') {
+        await service.disconnect();
+        return true;
+      }
+
+      // 狀態是 CANCELLED，額外檢查持倉是否還存在
+      // 這處理用戶修改條件單價格導致舊單被取消、新單觸發的情況
+      if (history.status === 'CANCELED' && positionSide) {
+        logger.info(
+          { exchange, symbol, orderId, positionSide },
+          '[條件單監控] 訂單已取消，檢查交易所持倉是否存在',
+        );
+
+        try {
+          const positionExists = await service.checkPositionExists(symbol, positionSide);
+          await service.disconnect();
+
+          if (!positionExists) {
+            logger.info(
+              { exchange, symbol, orderId, positionSide },
+              '[條件單監控] 交易所持倉已不存在，視為觸發（可能是修改條件單價格後觸發）',
+            );
+            return true;
+          } else {
+            logger.info(
+              { exchange, symbol, orderId, positionSide },
+              '[條件單監控] 交易所持倉仍存在，訂單只是被取消',
+            );
+            return false;
+          }
+        } catch (posError) {
+          logger.warn(
+            { exchange, symbol, orderId, error: (posError as Error).message },
+            '[條件單監控] 查詢持倉失敗，無法確認觸發',
+          );
+          await service.disconnect();
+          return false;
+        }
+      }
+
+      await service.disconnect();
+      return false;
     } catch (error) {
       logger.error(
         {
@@ -462,6 +508,7 @@ export class ConditionalOrderMonitor {
         position.userId,
         position.symbol,
         position.longStopLossOrderId,
+        'long',
       );
     }
     if (!orderStatus.longTakeProfitExists && position.longTakeProfitOrderId) {
@@ -470,6 +517,7 @@ export class ConditionalOrderMonitor {
         position.userId,
         position.symbol,
         position.longTakeProfitOrderId,
+        'long',
       );
     }
     return false;
@@ -488,6 +536,7 @@ export class ConditionalOrderMonitor {
         position.userId,
         position.symbol,
         position.shortStopLossOrderId,
+        'short',
       );
     }
     if (!orderStatus.shortTakeProfitExists && position.shortTakeProfitOrderId) {
@@ -496,6 +545,7 @@ export class ConditionalOrderMonitor {
         position.userId,
         position.symbol,
         position.shortTakeProfitOrderId,
+        'short',
       );
     }
     return false;
@@ -597,10 +647,11 @@ export class ConditionalOrderMonitor {
       {
         positionId: position.id,
         triggerType: triggerResult.triggerType,
+        triggeredExchange: triggerResult.triggeredExchange,
         sideToClose,
         closeReason,
       },
-      'Handling trigger: closing opposite side',
+      '[條件單監控] 開始處理觸發事件：平倉對沖邊',
     );
 
     // 呼叫 PositionCloser.closeSingleSide()
@@ -664,12 +715,23 @@ export class ConditionalOrderMonitor {
       };
     }
 
-    // 取消另一邊的條件單
+    // 取消被平倉那一邊的條件單（sideToClose 的條件單）
+    logger.info(
+      {
+        positionId: position.id,
+        side: sideToClose,
+        exchange: sideToClose === 'LONG' ? position.longExchange : position.shortExchange,
+        stopLossOrderId: sideToClose === 'LONG' ? position.longStopLossOrderId : position.shortStopLossOrderId,
+        takeProfitOrderId: sideToClose === 'LONG' ? position.longTakeProfitOrderId : position.shortTakeProfitOrderId,
+      },
+      '[條件單監控] 開始取消被平倉一邊的條件單',
+    );
+
     try {
       await this.positionCloser.cancelSingleSideConditionalOrders(position, sideToClose);
       logger.info(
         { positionId: position.id, side: sideToClose },
-        'Canceled conditional orders on closed side',
+        '[條件單監控] 被平倉一邊的條件單已取消',
       );
     } catch (error) {
       logger.warn(
@@ -678,7 +740,7 @@ export class ConditionalOrderMonitor {
           side: sideToClose,
           error: error instanceof Error ? error.message : String(error),
         },
-        'Failed to cancel conditional orders (non-fatal)',
+        '[條件單監控] 取消條件單失敗（非致命錯誤）',
       );
     }
 
@@ -688,7 +750,7 @@ export class ConditionalOrderMonitor {
         triggerType: triggerResult.triggerType,
         closedSide: sideToClose,
       },
-      'Trigger handled successfully',
+      '[條件單監控] 觸發事件處理完成',
     );
 
     // T030: 發送觸發通知
@@ -710,7 +772,7 @@ export class ConditionalOrderMonitor {
    */
   async handleBothTriggered(
     position: Position,
-    triggerResult: TriggerResult,
+    _triggerResult: TriggerResult, // 雙邊觸發時不需要使用觸發結果
   ): Promise<HandleTriggerResult> {
     logger.info(
       {
@@ -842,7 +904,7 @@ export class ConditionalOrderMonitor {
         closePrice: closedSideInfo?.price,
         positionSize: Number(position.longPositionSize),
         leverage: position.longLeverage,
-        openedAt: position.openedAt,
+        openedAt: position.openedAt ?? new Date(),
         closedAt: new Date(),
         pnl: {
           priceDiffPnL: 0, // 目前由 closeResult 或 Trade 記錄提供

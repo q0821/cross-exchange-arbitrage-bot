@@ -329,6 +329,11 @@ export class ExchangeQueryService {
   ): Promise<OrderHistoryResult | null> {
     const exchangeSymbol = symbol.replace('USDT', '').replace('/', '') + 'USDT';
 
+    logger.info(
+      { symbol, exchangeSymbol, orderId, isPortfolioMargin: this.isPortfolioMargin },
+      '[Binance] 開始查詢訂單歷史',
+    );
+
     if (this.isPortfolioMargin) {
       // Portfolio Margin 使用 papiGetUmConditionalOrderHistory
       const response = await retry(async () => {
@@ -338,13 +343,26 @@ export class ExchangeQueryService {
         });
       });
 
+      logger.info(
+        { orderId, responseType: typeof response, isArray: Array.isArray(response) },
+        '[Binance PM] 訂單歷史 API 回應',
+      );
+
       // 回應可能是陣列或單一物件
       const order = this.findOrderInResponse(response, orderId);
 
-      if (!order) return null;
+      if (!order) {
+        logger.info({ orderId, response }, '[Binance PM] 訂單未找到');
+        return null;
+      }
 
       // strategyStatus: TRIGGERED, EXPIRED, NEW, etc.
       const status = this.mapBinanceStatus(order.strategyStatus);
+
+      logger.info(
+        { orderId, strategyStatus: order.strategyStatus, mappedStatus: status },
+        '[Binance PM] 訂單狀態映射結果',
+      );
 
       return {
         orderId: order.strategyId?.toString(),
@@ -362,12 +380,25 @@ export class ExchangeQueryService {
         });
       });
 
+      logger.info(
+        { orderId, responseType: typeof response, isArray: Array.isArray(response) },
+        '[Binance Futures] 訂單歷史 API 回應',
+      );
+
       // 回應可能是陣列或單一物件
       const order = this.findOrderInResponse(response, orderId);
 
-      if (!order) return null;
+      if (!order) {
+        logger.info({ orderId, response }, '[Binance Futures] 訂單未找到');
+        return null;
+      }
 
       const status = this.mapBinanceStatus(order.strategyStatus);
+
+      logger.info(
+        { orderId, strategyStatus: order.strategyStatus, mappedStatus: status },
+        '[Binance Futures] 訂單狀態映射結果',
+      );
 
       return {
         orderId: order.strategyId?.toString(),
@@ -515,7 +546,10 @@ export class ExchangeQueryService {
 
   /**
    * BingX 訂單歷史查詢
-   * 使用 CCXT 統一 API fetchClosedOrders
+   *
+   * 重要：BingX 條件單觸發時會產生新的市價單，原條件單的 orderId 會記錄在新訂單的 triggerOrderId 欄位中
+   * fetchOrder 會回傳條件單本身（狀態可能是 NEW/open），不是觸發後的市價單
+   * 因此必須直接搜尋 fetchClosedOrders 中 triggerOrderId 匹配的訂單
    */
   private async fetchBingxOrderHistory(
     symbol: string,
@@ -524,13 +558,84 @@ export class ExchangeQueryService {
     const ccxtSymbol = convertToCcxtSymbol(symbol);
 
     try {
-      // 方法 1: 嘗試使用 fetchOrder 直接查詢
+      // 優先搜尋 fetchClosedOrders，尋找 triggerOrderId 匹配的已成交市價單
+      // 這是因為 BingX 條件單觸發後會產生新的市價單，原條件單 ID 會記錄在 triggerOrderId
+      const closedOrders = await retry(async () => {
+        return await (this.exchange as any).fetchClosedOrders(ccxtSymbol, undefined, 100);
+      });
+
+      logger.debug(
+        { orderId, symbol, closedOrdersCount: closedOrders?.length || 0 },
+        '[BingX] 搜尋已關閉訂單中的 triggerOrderId',
+      );
+
+      // 搜尋訂單：優先透過 triggerOrderId 連結（觸發後的市價單）
+      const triggeredOrder = (closedOrders || []).find(
+        (o: any) => o.info?.triggerOrderId?.toString() === orderId,
+      );
+
+      if (triggeredOrder) {
+        logger.info(
+          {
+            orderId,
+            triggeredOrderId: triggeredOrder.id,
+            status: triggeredOrder.status,
+          },
+          '[BingX] 找到 triggerOrderId 匹配的已成交訂單',
+        );
+
+        const status = this.mapBingxStatus(triggeredOrder.status);
+
+        return {
+          orderId: triggeredOrder.id?.toString(),
+          status,
+          triggerPrice: parseFloat(triggeredOrder.stopPrice || triggeredOrder.triggerPrice || '0'),
+          executedAt: triggeredOrder.timestamp ? new Date(triggeredOrder.timestamp) : undefined,
+          rawData: triggeredOrder,
+        };
+      }
+
+      // 若 triggerOrderId 找不到，嘗試直接匹配 orderId（某些情況可能直接用原 ID）
+      const directMatch = (closedOrders || []).find(
+        (o: any) =>
+          o.id?.toString() === orderId ||
+          o.clientOrderId === orderId,
+      );
+
+      if (directMatch) {
+        logger.info(
+          { orderId, status: directMatch.status },
+          '[BingX] 找到 orderId 直接匹配的訂單',
+        );
+
+        const status = this.mapBingxStatus(directMatch.status);
+
+        return {
+          orderId: directMatch.id?.toString(),
+          status,
+          triggerPrice: parseFloat(directMatch.stopPrice || directMatch.triggerPrice || '0'),
+          executedAt: directMatch.timestamp ? new Date(directMatch.timestamp) : undefined,
+          rawData: directMatch,
+        };
+      }
+
+      // 最後嘗試 fetchOrder（可能訂單還在處理中，尚未進入 closedOrders）
       try {
         const order = await retry(async () => {
           return await (this.exchange as any).fetchOrder(orderId, ccxtSymbol);
         });
 
         if (order) {
+          // 如果狀態是 open/NEW，表示條件單尚未觸發（或剛觸發但市價單還沒成交）
+          // 這種情況應該回傳 null，讓監控服務稍後重試
+          if (order.status === 'open' || order.status === 'NEW') {
+            logger.debug(
+              { orderId, status: order.status },
+              '[BingX] fetchOrder 回傳 open/NEW 狀態，訂單可能仍在處理中',
+            );
+            return null;
+          }
+
           const status = this.mapBingxStatus(order.status);
           return {
             orderId: order.id?.toString(),
@@ -541,44 +646,18 @@ export class ExchangeQueryService {
           };
         }
       } catch (fetchOrderError) {
-        // fetchOrder 失敗，嘗試 fetchClosedOrders
         logger.debug(
           { orderId, error: (fetchOrderError as Error).message },
-          'BingX fetchOrder failed, trying fetchClosedOrders',
+          '[BingX] fetchOrder 失敗',
         );
       }
 
-      // 方法 2: 使用 fetchClosedOrders 查詢最近的已關閉訂單
-      const closedOrders = await retry(async () => {
-        return await (this.exchange as any).fetchClosedOrders(ccxtSymbol, undefined, 100);
-      });
-
-      // 搜尋訂單：可能是直接匹配 orderId，或透過 triggerOrderId 連結
-      const order = (closedOrders || []).find(
-        (o: any) =>
-          o.id?.toString() === orderId ||
-          o.clientOrderId === orderId ||
-          o.info?.triggerOrderId?.toString() === orderId,
-      );
-
-      if (!order) {
-        logger.debug({ orderId, symbol }, 'Order not found in BingX closed orders');
-        return null;
-      }
-
-      const status = this.mapBingxStatus(order.status);
-
-      return {
-        orderId: order.id?.toString(),
-        status,
-        triggerPrice: parseFloat(order.stopPrice || order.triggerPrice || '0'),
-        executedAt: order.timestamp ? new Date(order.timestamp) : undefined,
-        rawData: order,
-      };
+      logger.debug({ orderId, symbol }, '[BingX] 訂單未找到');
+      return null;
     } catch (error) {
       logger.warn(
         { error: (error as Error).message, orderId, symbol },
-        'BingX order history query failed',
+        '[BingX] 訂單歷史查詢失敗',
       );
       return null;
     }
@@ -885,6 +964,70 @@ export class ExchangeQueryService {
     }
 
     return conditionalOrders;
+  }
+
+  /**
+   * 檢查交易所持倉是否存在
+   * @param symbol 交易對
+   * @param side 持倉方向 'long' | 'short'
+   * @returns true 如果持倉存在且數量 > 0
+   */
+  async checkPositionExists(
+    symbol: string,
+    side: 'long' | 'short',
+  ): Promise<boolean> {
+    if (!this.exchange) {
+      throw new Error('交易所未連接');
+    }
+
+    await this.ensureMarketsLoaded();
+    const ccxtSymbol = convertToCcxtSymbol(symbol);
+
+    try {
+      const positions = await retry(async () => {
+        return await (this.exchange as any).fetchPositions([ccxtSymbol]);
+      });
+
+      logger.info(
+        { exchange: this.exchangeName, symbol, side, positionsCount: positions?.length },
+        '[ExchangeQueryService] 查詢持倉結果',
+      );
+
+      if (!positions || positions.length === 0) {
+        return false;
+      }
+
+      // 尋找對應方向的持倉
+      for (const pos of positions) {
+        const posSymbol = pos.symbol || '';
+        const posSide = pos.side?.toLowerCase() || '';
+        const contracts = Math.abs(parseFloat(pos.contracts || pos.contractSize || '0'));
+
+        // 檢查 symbol 匹配（可能是 BTC/USDT:USDT 或其他格式）
+        const symbolMatches = posSymbol === ccxtSymbol ||
+          posSymbol.replace(/[/:]/g, '') === symbol.replace(/[/:]/g, '');
+
+        if (symbolMatches && posSide === side && contracts > 0) {
+          logger.info(
+            { exchange: this.exchangeName, symbol, side, contracts },
+            '[ExchangeQueryService] 找到持倉',
+          );
+          return true;
+        }
+      }
+
+      logger.info(
+        { exchange: this.exchangeName, symbol, side },
+        '[ExchangeQueryService] 未找到持倉',
+      );
+      return false;
+    } catch (error) {
+      logger.error(
+        { error: (error as Error).message, exchange: this.exchangeName, symbol, side },
+        '[ExchangeQueryService] 查詢持倉失敗',
+      );
+      throw error;
+    }
   }
 
   /**
