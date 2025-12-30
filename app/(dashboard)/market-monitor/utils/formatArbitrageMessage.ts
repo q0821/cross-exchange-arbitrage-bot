@@ -22,7 +22,7 @@ const EXCHANGE_DISPLAY_NAMES: Record<ExchangeName, string> = {
  *
  * @example
  * getExchangeTradingUrl('binance', 'BTCUSDT')
- * // => 'https://www.binance.com/en/futures/BTCUSDT'
+ * // => 'https://www.binance.com/futures/BTCUSDT'
  */
 export function getExchangeTradingUrl(exchange: ExchangeName, symbol: string): string {
   // 從 BTCUSDT 提取 base 和 quote
@@ -30,7 +30,8 @@ export function getExchangeTradingUrl(exchange: ExchangeName, symbol: string): s
 
   switch (exchange) {
     case 'binance':
-      return `https://www.binance.com/en/futures/${symbol}`;
+      // 不帶語系參數，讓瀏覽器自動決定
+      return `https://www.binance.com/futures/${symbol}`;
     case 'okx':
       return `https://www.okx.com/trade-swap/${base.toLowerCase()}-usdt-swap`;
     case 'gateio':
@@ -38,7 +39,8 @@ export function getExchangeTradingUrl(exchange: ExchangeName, symbol: string): s
     case 'mexc':
       return `https://futures.mexc.com/exchange/${base}_USDT`;
     case 'bingx':
-      return `https://bingx.com/en/perpetual/${symbol}/`;
+      // BingX 需要 BTC-USDT 格式，不帶語系參數
+      return `https://bingx.com/perpetual/${base}-USDT/`;
     default:
       return '#';
   }
