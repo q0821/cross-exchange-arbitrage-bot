@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // 使用 standalone 輸出模式（適用於 Docker/容器化部署）
+  output: 'standalone',
+
   typescript: {
     // Ignore specs directory to prevent type conflicts
     tsconfigPath: './tsconfig.json',
