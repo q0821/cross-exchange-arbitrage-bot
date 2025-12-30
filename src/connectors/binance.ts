@@ -326,7 +326,7 @@ export class BinanceConnector extends BaseExchangeConnector {
           total: parseFloat((b as { free: string }).free) + parseFloat((b as { locked: string }).locked),
         }));
 
-        // TODO: 計算總權益 (需要根據價格轉換為 USD)
+        // CLI 監控用簡化實作，完整 USD 計算見 UserConnectorFactory.BinanceUserConnector
         const totalEquityUSD = 0;
 
         return {
@@ -344,7 +344,7 @@ export class BinanceConnector extends BaseExchangeConnector {
   async getPositions(): Promise<PositionInfo> {
     this.ensureConnected();
 
-    // TODO: 實作期貨持倉查詢
+    // CLI 監控用簡化實作，完整持倉查詢見 UserConnectorFactory.BinanceUserConnector
     return {
       exchange: 'binance',
       positions: [],
@@ -355,7 +355,7 @@ export class BinanceConnector extends BaseExchangeConnector {
   async getPosition(_symbol: string): Promise<Position | null> {
     this.ensureConnected();
 
-    // TODO: 實作單一持倉查詢
+    // CLI 監控用簡化實作，此方法目前未被使用
     return null;
   }
 
