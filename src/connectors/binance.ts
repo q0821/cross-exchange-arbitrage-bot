@@ -404,7 +404,7 @@ export class BinanceConnector extends BaseExchangeConnector {
           filledQuantity: parseFloat(data.executedQty),
           price: data.price ? parseFloat(data.price) : undefined,
           averagePrice: parseFloat(data.cummulativeQuoteQty) / parseFloat(data.executedQty) || 0,
-          fee: 0, // TODO: 從交易記錄中取得手續費
+          fee: 0, // 下單回應不含手續費，實際費用由 Trade 模型記錄
           feeCurrency: 'USDT',
           timestamp: new Date(data.transactTime),
         } as OrderResponse;

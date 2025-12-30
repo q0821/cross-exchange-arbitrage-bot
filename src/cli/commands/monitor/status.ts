@@ -9,16 +9,10 @@ export function createMonitorStatusCommand(): Command {
     .action(async () => {
       try {
         console.log('\n📊 監控服務狀態\n');
-        console.log('此功能需要實作服務狀態持久化或 IPC 通訊');
-        console.log('暫時請使用 monitor start 指令啟動監控服務查看即時狀態\n');
+        console.log('CLI 監控狀態功能已由 Web 平台取代');
+        console.log('請使用 Web 介面 (http://localhost:3000) 查看即時狀態\n');
 
-        // TODO: 實作方式可以是:
-        // 1. 使用共享檔案儲存狀態 (簡單但不即時)
-        // 2. 使用 IPC (進程間通訊)
-        // 3. 使用 HTTP API (需要額外的 API 服務)
-        // 4. 使用資料庫查詢最新狀態 (需要資料庫)
-
-        logger.info('Status command executed');
+        logger.info('Status command executed - redirecting to Web platform');
       } catch (error) {
         logger.error({
           error: error instanceof Error ? error.message : String(error),
