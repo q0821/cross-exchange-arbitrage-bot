@@ -66,6 +66,8 @@ Auto-generated from all feature plans. Last updated: 2025-10-17
 - N/A（純測試，不涉及資料庫變更） (047-balance-validator-tests)
 - TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（查詢交易所）、axios（呼叫 Web API）、commander（CLI 參數解析）、Prisma 5.x（讀取用戶/持倉資料） (049-trading-validation-script)
 - PostgreSQL 15 + TimescaleDB（現有 Position、ApiKey 模型） (049-trading-validation-script)
+- TypeScript 5.6 + Node.js 20.x LTS + Vitest 2.1.2, vitest-mock-extended, Decimal.js, Prisma 5.x (mocked) (051-core-trading-tests)
+- PostgreSQL 15 + TimescaleDB (mocked via Prisma) (051-core-trading-tests)
 
 ## Project Structure
 ```
@@ -80,9 +82,9 @@ npm test && npm run lint
 TypeScript 5.3+ + Node.js 20.x LTS: Follow standard conventions
 
 ## Recent Changes
+- 051-core-trading-tests: Added TypeScript 5.6 + Node.js 20.x LTS + Vitest 2.1.2, vitest-mock-extended, Decimal.js, Prisma 5.x (mocked)
 - 050-sl-tp-trigger-monitor: Added TypeScript 5.6 + Node.js 20.x LTS + Prisma 5.x (ORM), Socket.io 4.8.1 (WebSocket), CCXT 4.x (多交易所抽象)
 - 049-trading-validation-script: Added TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x（查詢交易所）、axios（呼叫 Web API）、commander（CLI 參數解析）、Prisma 5.x（讀取用戶/持倉資料）
-- 047-balance-validator-tests: Added TypeScript 5.6 + Node.js 20.x LTS + Vitest 2.1.2, Decimal.js, Prisma 5.x (mocked)
 
 <!-- MANUAL ADDITIONS START -->
 

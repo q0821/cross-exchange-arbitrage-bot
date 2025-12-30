@@ -128,12 +128,14 @@ describe('FundingFeeQueryService', () => {
     // T007: queryFundingFees should correctly accumulate multiple settlement records
     it('should correctly accumulate multiple settlement records', async () => {
       // Arrange: 5 settlement records with mixed positive/negative amounts
+      // 使用有效的 timestamp 範圍（在 mockStartTime 和 mockEndTime 之間）
+      const baseTimestamp = mockStartTime.getTime();
       mockCcxtExchange.fetchFundingHistory.mockResolvedValue([
-        { id: '1', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 1.0 },
-        { id: '2', timestamp: 2000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.5 },
-        { id: '3', timestamp: 3000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.3 },
-        { id: '4', timestamp: 4000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.1 },
-        { id: '5', timestamp: 5000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.2 },
+        { id: '1', timestamp: baseTimestamp, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 1.0 },
+        { id: '2', timestamp: baseTimestamp + 3600000, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.5 },
+        { id: '3', timestamp: baseTimestamp + 7200000, datetime: '2024-01-01T02:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.3 },
+        { id: '4', timestamp: baseTimestamp + 10800000, datetime: '2024-01-01T03:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.1 },
+        { id: '5', timestamp: baseTimestamp + 14400000, datetime: '2024-01-01T04:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.2 },
       ]);
 
       // Act
@@ -195,22 +197,31 @@ describe('FundingFeeQueryService', () => {
   describe('queryBilateralFundingFees', () => {
     // T008: queryBilateralFundingFees should return Long and Short amounts separately and total
     it('should return Long and Short funding fees separately and combined total', async () => {
-      // Arrange: Use same exchange for both sides to ensure deterministic order
+      // Arrange: Use same exchange for both sides
       const longExchange: SupportedExchange = 'binance';
       const shortExchange: SupportedExchange = 'binance';
 
-      // Mock different responses for each call
-      mockCcxtExchange.fetchFundingHistory
-        .mockResolvedValueOnce([
-          // First call: received 0.5 USDT
-          { id: 'long-1', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.3 },
-          { id: 'long-2', timestamp: 2000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.2 },
-        ])
-        .mockResolvedValueOnce([
-          // Second call: paid 0.3 USDT
-          { id: 'short-1', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.2 },
-          { id: 'short-2', timestamp: 2000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.1 },
-        ]);
+      // 由於 Promise.all 並行執行，使用 mockImplementation 配合計數器確保順序
+      // 使用有效的 timestamp 範圍（在 mockStartTime 和 mockEndTime 之間）
+      const baseTimestamp = mockStartTime.getTime();
+      let callCount = 0;
+      const responses = [
+        // First call: Long side - received 0.5 USDT
+        [
+          { id: 'long-1', timestamp: baseTimestamp, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.3 },
+          { id: 'long-2', timestamp: baseTimestamp + 3600000, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.2 },
+        ],
+        // Second call: Short side - paid 0.3 USDT
+        [
+          { id: 'short-1', timestamp: baseTimestamp, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.2 },
+          { id: 'short-2', timestamp: baseTimestamp + 3600000, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.1 },
+        ],
+      ];
+      mockCcxtExchange.fetchFundingHistory.mockImplementation(() => {
+        const response = responses[callCount];
+        callCount++;
+        return Promise.resolve(response || []);
+      });
 
       // Act
       const result = await service.queryBilateralFundingFees(
@@ -233,13 +244,19 @@ describe('FundingFeeQueryService', () => {
       // Arrange: Both sides on same exchange
       const exchange: SupportedExchange = 'binance';
 
-      mockCcxtExchange.fetchFundingHistory
-        .mockResolvedValueOnce([
-          { id: '1', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.4 },
-        ])
-        .mockResolvedValueOnce([
-          { id: '2', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.15 },
-        ]);
+      // 使用 mockImplementation 配合計數器
+      // 使用有效的 timestamp 範圍
+      const baseTimestamp = mockStartTime.getTime();
+      let callCount = 0;
+      const responses = [
+        [{ id: '1', timestamp: baseTimestamp, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.4 }],
+        [{ id: '2', timestamp: baseTimestamp, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.15 }],
+      ];
+      mockCcxtExchange.fetchFundingHistory.mockImplementation(() => {
+        const response = responses[callCount];
+        callCount++;
+        return Promise.resolve(response || []);
+      });
 
       // Act
       const result = await service.queryBilateralFundingFees(
@@ -331,17 +348,25 @@ describe('FundingFeeQueryService', () => {
     it('should handle Long 1h settlement + Short 8h settlement separately', async () => {
       // Arrange: Both sides on same exchange for deterministic order
       // Long side (1h) has 3 settlements, Short side (8h) has 1
-      mockCcxtExchange.fetchFundingHistory
-        .mockResolvedValueOnce([
-          // Long side: 1h settlement (3 records)
-          { id: '1', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.1 },
-          { id: '2', timestamp: 2000, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.1 },
-          { id: '3', timestamp: 3000, datetime: '2024-01-01T02:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.1 },
-        ])
-        .mockResolvedValueOnce([
-          // Short side: 8h settlement (1 record)
-          { id: '4', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.15 },
-        ]);
+      // 使用 mockImplementation 配合計數器
+      // 使用有效的 timestamp 範圍
+      const baseTimestamp = mockStartTime.getTime();
+      let callCount = 0;
+      const responses = [
+        // Long side: 1h settlement (3 records)
+        [
+          { id: '1', timestamp: baseTimestamp, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.1 },
+          { id: '2', timestamp: baseTimestamp + 3600000, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.1 },
+          { id: '3', timestamp: baseTimestamp + 7200000, datetime: '2024-01-01T02:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.1 },
+        ],
+        // Short side: 8h settlement (1 record)
+        [{ id: '4', timestamp: baseTimestamp, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: -0.15 }],
+      ];
+      mockCcxtExchange.fetchFundingHistory.mockImplementation(() => {
+        const response = responses[callCount];
+        callCount++;
+        return Promise.resolve(response || []);
+      });
 
       // Act: Use same exchange for deterministic mock ordering
       const result = await service.queryBilateralFundingFees(
@@ -362,8 +387,10 @@ describe('FundingFeeQueryService', () => {
     it('should use actual API response without calculating frequency', async () => {
       // This test verifies we use the exchange API response as-is
       // and don't try to calculate which settlements should exist
+      // 使用有效的 timestamp 範圍
+      const validTimestamp = mockStartTime.getTime() + 3600000; // 1 hour after start
       mockCcxtExchange.fetchFundingHistory.mockResolvedValue([
-        { id: '1', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.123 },
+        { id: '1', timestamp: validTimestamp, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.123 },
       ]);
 
       // Act
@@ -409,12 +436,22 @@ describe('FundingFeeQueryService', () => {
     // T034: Long success + Short failure
     it('should use Long result when Short fails', async () => {
       // Arrange: Use same exchange for deterministic order
-      mockCcxtExchange.fetchFundingHistory
-        .mockResolvedValueOnce([
+      // 使用 mockImplementation 配合計數器
+      // 使用有效的 timestamp 範圍（在 mockStartTime 和 mockEndTime 之間）
+      const baseTimestamp = mockStartTime.getTime();
+      let callCount = 0;
+      mockCcxtExchange.fetchFundingHistory.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
           // Long side success
-          { id: '1', timestamp: 1000, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.5 },
-        ])
-        .mockRejectedValueOnce(new Error('Short side API failure'));
+          return Promise.resolve([
+            { id: '1', timestamp: baseTimestamp, datetime: '2024-01-01T00:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.5 },
+          ]);
+        } else {
+          // Short side failure
+          return Promise.reject(new Error('Short side API failure'));
+        }
+      });
 
       // Act: Use same exchange for deterministic mock ordering
       const result = await service.queryBilateralFundingFees(
