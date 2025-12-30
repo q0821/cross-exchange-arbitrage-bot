@@ -23,38 +23,6 @@ export * from './enums';
  */
 export type FundingRate = Prisma.FundingRateModel
 /**
- * Model ArbitrageOpportunity
- * @deprecated This model is deprecated. Use Market Monitor for real-time opportunities.
- * Historical data preserved for analysis. Last active: 2025-01-21.
- */
-export type ArbitrageOpportunity = Prisma.ArbitrageOpportunityModel
-/**
- * Model OpportunityHistory
- * @deprecated This model is deprecated along with ArbitrageOpportunity.
- * Historical data preserved for analysis. Last active: 2025-01-21.
- */
-export type OpportunityHistory = Prisma.OpportunityHistoryModel
-/**
- * Model NotificationLog
- * 
- */
-export type NotificationLog = Prisma.NotificationLogModel
-/**
- * Model HedgePosition
- * 
- */
-export type HedgePosition = Prisma.HedgePositionModel
-/**
- * Model TradeRecord
- * 
- */
-export type TradeRecord = Prisma.TradeRecordModel
-/**
- * Model ArbitrageCycle
- * 
- */
-export type ArbitrageCycle = Prisma.ArbitrageCycleModel
-/**
  * Model RiskParameters
  * 
  */

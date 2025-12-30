@@ -9,12 +9,6 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/FundingRate'
-export type * from './models/ArbitrageOpportunity'
-export type * from './models/OpportunityHistory'
-export type * from './models/NotificationLog'
-export type * from './models/HedgePosition'
-export type * from './models/TradeRecord'
-export type * from './models/ArbitrageCycle'
 export type * from './models/RiskParameters'
 export type * from './models/FundingRateValidation'
 export type * from './models/SystemEvent'
