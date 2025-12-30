@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { logger } from './logger';
+import { env, isRedisConfigured as envIsRedisConfigured } from './env';
 
 /**
  * Redis Client Singleton
@@ -10,7 +11,7 @@ import { logger } from './logger';
  * - Session storage (optional, NextAuth default is JWT)
  * - Caching (opportunity data, user API keys)
  *
- * Configuration from environment:
+ * Configuration from environment (via env module):
  * - REDIS_URL: Full connection string (redis://host:port)
  * - REDIS_HOST: Host (default: localhost)
  * - REDIS_PORT: Port (default: 6379)
@@ -23,9 +24,10 @@ let redisAvailable: boolean | null = null;
 
 /**
  * Check if Redis is configured and available
+ * 使用統一環境變數驗證模組
  */
 export function isRedisConfigured(): boolean {
-  return !!(process.env.REDIS_URL || process.env.REDIS_HOST);
+  return envIsRedisConfigured();
 }
 
 /**
@@ -53,17 +55,18 @@ export function setRedisAvailable(available: boolean): void {
 
 /**
  * Get or create Redis client instance
+ * 使用統一環境變數驗證模組
  */
 export function getRedisClient(): Redis {
   if (redisClient) {
     return redisClient;
   }
 
-  const redisUrl = process.env.REDIS_URL;
-  const redisHost = process.env.REDIS_HOST || 'localhost';
-  const redisPort = parseInt(process.env.REDIS_PORT || '6379', 10);
-  const redisPassword = process.env.REDIS_PASSWORD;
-  const redisDb = parseInt(process.env.REDIS_DB || '0', 10);
+  const redisUrl = env.REDIS_URL;
+  const redisHost = env.REDIS_HOST;
+  const redisPort = env.REDIS_PORT;
+  const redisPassword = env.REDIS_PASSWORD;
+  const redisDb = env.REDIS_DB;
 
   if (redisUrl) {
     // Use full connection string

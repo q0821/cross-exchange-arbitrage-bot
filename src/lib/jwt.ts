@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { env } from './env';
 
 /**
  * JWT Token 工具
@@ -11,23 +12,17 @@ export interface JwtPayload {
 
 /**
  * 獲取 JWT 密鑰
+ * 使用統一環境變數驗證模組（已在載入時驗證）
  */
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET environment variable is not set');
-  }
-  if (secret.length < 32) {
-    throw new Error('JWT_SECRET must be at least 32 characters long');
-  }
-  return secret;
+  return env.JWT_SECRET;
 }
 
 /**
  * 獲取 JWT 過期時間
  */
 function getJwtExpiresIn(): string {
-  return process.env.JWT_EXPIRES_IN || '24h';
+  return env.JWT_EXPIRES_IN;
 }
 
 /**

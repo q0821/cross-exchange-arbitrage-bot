@@ -6,8 +6,8 @@ import dotenv from 'dotenv';
 import {
   DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
   APPROACHING_THRESHOLD_RATIO,
-  ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED,
 } from './constants';
+import { env, getApiKeys, validateTradingApiKeys } from './env';
 
 // 載入環境變數
 dotenv.config();
@@ -172,56 +172,11 @@ function loadConfig(): Config {
 // 匯出配置實例
 export const config = loadConfig();
 
-// API 金鑰配置 (從環境變數讀取，不放在配置檔案中)
-export const apiKeys = {
-  binance: {
-    apiKey: process.env.BINANCE_API_KEY || '',
-    apiSecret: process.env.BINANCE_API_SECRET || '',
-    testnet: process.env.BINANCE_TESTNET === 'true',
-  },
-  okx: {
-    apiKey: process.env.OKX_API_KEY || '',
-    apiSecret: process.env.OKX_API_SECRET || '',
-    passphrase: process.env.OKX_PASSPHRASE || '',
-    testnet: process.env.OKX_TESTNET === 'true',
-  },
-  mexc: {
-    apiKey: process.env.MEXC_API_KEY || '',
-    apiSecret: process.env.MEXC_API_SECRET || '',
-    testnet: process.env.MEXC_TESTNET === 'true',
-  },
-  gateio: {
-    apiKey: process.env.GATEIO_API_KEY || '',
-    apiSecret: process.env.GATEIO_API_SECRET || '',
-    testnet: process.env.GATEIO_TESTNET === 'true',
-  },
-  bingx: {
-    apiKey: process.env.BINGX_API_KEY || '',
-    apiSecret: process.env.BINGX_API_SECRET || '',
-    testnet: process.env.BINGX_TESTNET === 'true',
-  },
-  telegram: {
-    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-    chatId: process.env.TELEGRAM_CHAT_ID || '',
-  },
-};
+// API 金鑰配置 (使用統一環境變數驗證模組)
+export const apiKeys = getApiKeys();
 
-// 驗證必要的 API 金鑰是否存在
-export function validateApiKeys(): void {
-  const missingKeys: string[] = [];
-
-  if (!apiKeys.binance.apiKey) missingKeys.push('BINANCE_API_KEY');
-  if (!apiKeys.binance.apiSecret) missingKeys.push('BINANCE_API_SECRET');
-  if (!apiKeys.okx.apiKey) missingKeys.push('OKX_API_KEY');
-  if (!apiKeys.okx.apiSecret) missingKeys.push('OKX_API_SECRET');
-  if (!apiKeys.okx.passphrase) missingKeys.push('OKX_PASSPHRASE');
-
-  if (missingKeys.length > 0) {
-    throw new Error(
-      `Missing required API keys: ${missingKeys.join(', ')}. Please check your .env file.`
-    );
-  }
-}
+// 驗證必要的 API 金鑰是否存在 (向後相容，委託給 env 模組)
+export const validateApiKeys = validateTradingApiKeys;
 
 export default config;
 
@@ -231,36 +186,22 @@ export default config;
 
 /**
  * 讀取並驗證年化收益門檻環境變數
+ * 使用統一環境變數驗證模組
  *
  * @returns 有效的年化收益門檻（百分比）
  */
 export function getOpportunityThresholdAnnualized(): number {
-  const envValue = process.env[ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED];
-
-  // 未設定時使用預設值
-  if (!envValue) {
-    return DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
-  }
-
-  const parsed = parseFloat(envValue);
-
-  // 檢查是否為有效數字
-  if (isNaN(parsed)) {
-    console.warn(
-      `[config] Invalid ${ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED} value: "${envValue}" (not a number). Using default: ${DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED}`
-    );
-    return DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
-  }
+  const value = env.OPPORTUNITY_THRESHOLD_ANNUALIZED;
 
   // 檢查是否為負數
-  if (parsed < 0) {
+  if (value < 0) {
     console.warn(
-      `[config] Invalid ${ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED} value: ${parsed} (negative). Using default: ${DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED}`
+      `[config] Invalid OPPORTUNITY_THRESHOLD_ANNUALIZED value: ${value} (negative). Using default: ${DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED}`
     );
     return DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
   }
 
-  return parsed;
+  return value;
 }
 
 /**

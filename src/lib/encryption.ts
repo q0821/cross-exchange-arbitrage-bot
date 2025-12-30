@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { env } from './env';
 
 /**
  * API Key 加密工具
@@ -11,22 +12,12 @@ const ENCODING = 'hex';
 
 /**
  * 獲取加密密鑰
+ * 使用統一環境變數驗證模組（已在載入時驗證格式）
  * 必須是 32 bytes (256 bits)
  */
 function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY;
-  if (!key) {
-    throw new Error('ENCRYPTION_KEY environment variable is not set');
-  }
-
-  // 將 hex 字串轉換為 Buffer
-  const keyBuffer = Buffer.from(key, 'hex');
-
-  if (keyBuffer.length !== 32) {
-    throw new Error('ENCRYPTION_KEY must be 32 bytes (64 hex characters)');
-  }
-
-  return keyBuffer;
+  // env.ENCRYPTION_KEY 已在載入時驗證為 64 hex 字元
+  return Buffer.from(env.ENCRYPTION_KEY, 'hex');
 }
 
 /**
