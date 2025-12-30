@@ -12,6 +12,7 @@
 
 import ccxt from 'ccxt';
 import axios from 'axios';
+import Decimal from 'decimal.js';
 import { BaseExchangeConnector } from './base.js';
 import {
   FundingRateData,
@@ -35,10 +36,17 @@ import {
 } from '../lib/errors.js';
 import { retryApiCall } from '../lib/retry.js';
 import { FundingIntervalCache } from '../lib/FundingIntervalCache.js';
+import { parseCcxtFundingRate } from '../lib/schemas/websocket-messages.js';
+import type { FundingRateReceived } from '../types/websocket-events.js';
 
 export class BingxConnector extends BaseExchangeConnector {
   private client: ccxt.Exchange | null = null;
   private intervalCache: FundingIntervalCache;
+
+  // WebSocket 相關屬性 (Feature 052: T064)
+  private wsCallbacks: Map<string, (data: FundingRateReceived) => void> = new Map();
+  private wsWatchLoops: Map<string, { running: boolean; abortController: AbortController }> = new Map();
+  private isWsDestroyed = false;
 
   constructor(isTestnet: boolean = false) {
     super('bingx', isTestnet);
@@ -569,14 +577,224 @@ export class BingxConnector extends BaseExchangeConnector {
     }, 'bingx', 'setPositionMode');
   }
 
-  async subscribeWS(_subscription: WSSubscription): Promise<void> {
-    // TODO: 實作 WebSocket 訂閱
-    logger.warn('WebSocket subscription not yet implemented for BingX');
+  /**
+   * 訂閱 WebSocket 數據
+   * Feature: 052-specify-scripts-bash
+   * Task: T064 - BingX 資金費率訂閱 via CCXT watchFundingRate
+   */
+  async subscribeWS(subscription: WSSubscription): Promise<void> {
+    this.ensureConnected();
+
+    const { type, symbol, callback, onError } = subscription;
+
+    if (type !== 'fundingRate') {
+      logger.warn({ type }, 'BingX WebSocket subscription type not supported yet');
+      return;
+    }
+
+    if (!symbol) {
+      throw new Error('Symbol is required for fundingRate subscription');
+    }
+
+    const ccxtSymbol = this.toCcxtSymbol(symbol);
+    const subscriptionKey = `fundingRate:${symbol}`;
+
+    // 檢查是否已經訂閱
+    if (this.wsWatchLoops.has(subscriptionKey)) {
+      logger.warn({ symbol }, 'Already subscribed to BingX funding rate');
+      return;
+    }
+
+    // 保存回調函數
+    if (callback) {
+      this.wsCallbacks.set(subscriptionKey, callback as (data: FundingRateReceived) => void);
+    }
+
+    logger.info({ symbol, ccxtSymbol }, 'Subscribing to BingX funding rate via CCXT watchFundingRate');
+
+    // 創建 watch loop
+    const abortController = new AbortController();
+    const loopState = { running: true, abortController };
+    this.wsWatchLoops.set(subscriptionKey, loopState);
+
+    // 啟動 watch loop（非阻塞）
+    this.startFundingRateWatchLoop(subscriptionKey, ccxtSymbol, symbol, onError).catch((error) => {
+      logger.error({ error: error instanceof Error ? error.message : String(error), symbol }, 'BingX funding rate watch loop failed');
+    });
+
+    this.wsConnected = true;
+    this.emit('wsConnected');
   }
 
-  async unsubscribeWS(_type: WSSubscriptionType, _symbol?: string): Promise<void> {
-    // TODO: 實作 WebSocket 取消訂閱
-    logger.warn('WebSocket unsubscription not yet implemented for BingX');
+  /**
+   * 啟動資金費率 watch loop
+   * Feature: 052-specify-scripts-bash
+   * Task: T064
+   */
+  private async startFundingRateWatchLoop(
+    subscriptionKey: string,
+    ccxtSymbol: string,
+    symbol: string,
+    onError?: (error: Error) => void
+  ): Promise<void> {
+    const loopState = this.wsWatchLoops.get(subscriptionKey);
+    if (!loopState) return;
+
+    while (loopState.running && !this.isWsDestroyed) {
+      try {
+        // 使用 CCXT Pro 的 watchFundingRate
+        type CcxtProClient = ccxt.Exchange & {
+          watchFundingRate: (symbol: string) => Promise<ccxt.FundingRate>;
+        };
+        const proClient = this.client as CcxtProClient;
+
+        if (typeof proClient.watchFundingRate !== 'function') {
+          logger.warn({ ccxtSymbol }, 'BingX CCXT client does not support watchFundingRate, using fallback');
+          // Fallback: 使用 REST API 輪詢
+          await this.fallbackFundingRatePoll(subscriptionKey, symbol);
+          return;
+        }
+
+        const fundingRate = await proClient.watchFundingRate(ccxtSymbol);
+
+        // 解析 CCXT 格式
+        const parseResult = parseCcxtFundingRate(fundingRate);
+        if (!parseResult.success) {
+          logger.warn({ symbol }, 'Failed to parse BingX funding rate');
+          continue;
+        }
+
+        // 轉換為內部格式
+        const data: FundingRateReceived = {
+          exchange: 'bingx',
+          symbol,
+          fundingRate: new Decimal(parseResult.data.fundingRate),
+          nextFundingTime: parseResult.data.fundingTimestamp
+            ? new Date(parseResult.data.fundingTimestamp)
+            : new Date(),
+          markPrice: parseResult.data.markPrice ? new Decimal(parseResult.data.markPrice) : undefined,
+          indexPrice: parseResult.data.indexPrice ? new Decimal(parseResult.data.indexPrice) : undefined,
+          source: 'websocket',
+          receivedAt: new Date(),
+        };
+
+        // 調用回調
+        const callback = this.wsCallbacks.get(subscriptionKey);
+        if (callback) {
+          callback(data);
+        }
+
+        // 發送事件
+        this.emit('fundingRate', data);
+      } catch (error) {
+        if (!loopState.running || this.isWsDestroyed) break;
+
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error({ error: err.message, symbol }, 'BingX watchFundingRate error');
+
+        if (onError) {
+          onError(err);
+        }
+
+        // 等待後重試
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+
+    logger.info({ symbol }, 'BingX funding rate watch loop stopped');
+  }
+
+  /**
+   * Fallback: 使用 REST API 輪詢資金費率
+   * Feature: 052-specify-scripts-bash
+   * Task: T064
+   */
+  private async fallbackFundingRatePoll(
+    subscriptionKey: string,
+    symbol: string
+  ): Promise<void> {
+    const loopState = this.wsWatchLoops.get(subscriptionKey);
+    if (!loopState) return;
+
+    while (loopState.running && !this.isWsDestroyed) {
+      try {
+        const fundingRateData = await this.getFundingRate(symbol);
+
+        // 轉換為 FundingRateReceived 格式
+        const data: FundingRateReceived = {
+          exchange: 'bingx',
+          symbol,
+          fundingRate: new Decimal(fundingRateData.fundingRate),
+          nextFundingTime: fundingRateData.nextFundingTime,
+          markPrice: fundingRateData.markPrice ? new Decimal(fundingRateData.markPrice) : undefined,
+          indexPrice: fundingRateData.indexPrice ? new Decimal(fundingRateData.indexPrice) : undefined,
+          source: 'rest',
+          receivedAt: new Date(),
+        };
+
+        const callback = this.wsCallbacks.get(subscriptionKey);
+        if (callback) {
+          callback(data);
+        }
+
+        // 發送事件
+        this.emit('fundingRate', data);
+
+        // REST 輪詢間隔 5 秒
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      } catch (error) {
+        if (!loopState.running || this.isWsDestroyed) break;
+
+        logger.error({
+          error: error instanceof Error ? error.message : String(error),
+          symbol,
+        }, 'BingX fallback funding rate poll error');
+
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+  }
+
+  /**
+   * 取消訂閱 WebSocket 數據
+   * Feature: 052-specify-scripts-bash
+   * Task: T064 - BingX 資金費率取消訂閱
+   */
+  async unsubscribeWS(type: WSSubscriptionType, symbol?: string): Promise<void> {
+    if (type !== 'fundingRate') {
+      logger.warn({ type }, 'BingX WebSocket unsubscription type not supported yet');
+      return;
+    }
+
+    if (symbol) {
+      // 取消單一符號訂閱
+      const subscriptionKey = `fundingRate:${symbol}`;
+      const loopState = this.wsWatchLoops.get(subscriptionKey);
+      if (loopState) {
+        loopState.running = false;
+        loopState.abortController.abort();
+        this.wsWatchLoops.delete(subscriptionKey);
+      }
+      this.wsCallbacks.delete(subscriptionKey);
+      logger.info({ symbol }, 'Unsubscribed from BingX funding rate');
+    } else {
+      // 取消所有 fundingRate 訂閱
+      for (const [key, loopState] of this.wsWatchLoops) {
+        if (key.startsWith('fundingRate:')) {
+          loopState.running = false;
+          loopState.abortController.abort();
+          this.wsWatchLoops.delete(key);
+          this.wsCallbacks.delete(key);
+        }
+      }
+      logger.info('Unsubscribed from all BingX funding rates');
+    }
+
+    // 檢查是否還有活躍的 WebSocket 連線
+    if (this.wsWatchLoops.size === 0) {
+      this.wsConnected = false;
+      this.emit('wsDisconnected');
+    }
   }
 
   // ============================================================================

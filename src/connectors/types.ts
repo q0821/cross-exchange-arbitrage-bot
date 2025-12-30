@@ -106,15 +106,71 @@ export interface SymbolInfo {
 
 // WebSocket 訂閱類型
 export type WSSubscriptionType =
-  | 'ticker' // 價格更新
-  | 'fundingRate' // 資金費率
-  | 'orderUpdate' // 訂單更新
-  | 'positionUpdate'; // 持倉更新
+  | 'ticker'          // 價格更新
+  | 'fundingRate'     // 資金費率
+  | 'orderUpdate'     // 訂單更新
+  | 'positionUpdate'  // 持倉更新
+  | 'balanceUpdate';  // 餘額更新
 
+/** WebSocket 訂閱配置 */
 export interface WSSubscription {
+  /** 訂閱類型 */
   type: WSSubscriptionType;
+  /** 交易對符號 (可選，公開頻道可訂閱全部) */
   symbol?: string;
+  /** 多交易對符號 (可選，批量訂閱) */
+  symbols?: string[];
+  /** 數據回調函式 */
   callback: (data: unknown) => void;
+  /** 錯誤回調函式 */
+  onError?: (error: Error) => void;
+  /** 重連回調函式 */
+  onReconnect?: () => void;
+  /** 是否自動重新訂閱 (斷線重連後) */
+  autoResubscribe?: boolean;
+}
+
+/** WebSocket 訂閱狀態 */
+export type WSSubscriptionStatus = 'pending' | 'active' | 'paused' | 'error' | 'unsubscribed';
+
+/** WebSocket 訂閱資訊 (包含狀態追蹤) */
+export interface WSSubscriptionInfo {
+  /** 訂閱 ID */
+  id: string;
+  /** 訂閱配置 */
+  subscription: WSSubscription;
+  /** 訂閱狀態 */
+  status: WSSubscriptionStatus;
+  /** 訂閱時間 */
+  subscribedAt: Date;
+  /** 最後數據接收時間 */
+  lastDataReceivedAt?: Date;
+  /** 錯誤訊息 */
+  error?: string;
+}
+
+/** WebSocket 連線狀態 */
+export interface WSConnectionState {
+  /** 是否已連線 */
+  isConnected: boolean;
+  /** 連線狀態 */
+  status: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+  /** 最後心跳時間 */
+  lastHeartbeat?: Date;
+  /** 重連嘗試次數 */
+  reconnectAttempts: number;
+  /** 錯誤訊息 */
+  error?: string;
+}
+
+/** WebSocket 訂閱結果 */
+export interface WSSubscribeResult {
+  /** 是否成功 */
+  success: boolean;
+  /** 訂閱 ID (成功時) */
+  subscriptionId?: string;
+  /** 錯誤訊息 (失敗時) */
+  error?: string;
 }
 
 // 交易所介面

@@ -188,4 +188,50 @@ TypeScript 5.8+ with strict mode: Follow standard conventions
 - `SHORT_TP` - 空方停利觸發
 - `BOTH` - 雙邊同時觸發
 
+## Feature 052: WebSocket 即時數據訂閱
+
+### Key Paths
+- **WebSocket 管理器**: `src/lib/websocket.ts` - WebSocketManager 基類（自動重連、心跳）
+- **價格監控服務**: `src/services/monitor/PriceMonitor.ts` - DataSourceManager 整合
+- **數據源管理器**: `src/services/monitor/DataSourceManager.ts` - WebSocket/REST 混合策略
+- **資金費率快取**: `src/services/monitor/RatesCache.ts` - 接收 WebSocket 更新
+
+### Exchange Connectors (WebSocket 訂閱)
+- **Binance**: `src/connectors/binance.ts` - markPrice、fundingRate、ticker、balanceUpdate 訂閱
+- **OKX**: `src/connectors/okx.ts` - markPrice、fundingRate、ticker、balanceUpdate 訂閱
+- **Gate.io**: `src/connectors/gateio.ts` - markPrice、fundingRate、ticker、balanceUpdate 訂閱
+- **MEXC**: `src/connectors/mexc.ts` - markPrice、fundingRate、ticker 訂閱（REST fallback for balance）
+- **BingX**: `src/connectors/bingx.ts` - markPrice、fundingRate、ticker 訂閱
+
+### WebSocket Clients
+- **Binance WS**: `src/services/websocket/BinanceWsClient.ts` - markPrice/fundingRate 即時訂閱
+- **Binance UserData**: `src/services/websocket/BinanceUserDataWs.ts` - 用戶帳戶餘額即時更新
+- **Balance WS Handler**: `src/services/websocket/BalanceWsHandler.ts` - 餘額變更聚合處理
+- **Balance Update Emitter**: `src/services/websocket/BalanceUpdateEmitter.ts` - Socket.io 餘額推送
+
+### API Endpoints
+- `GET /api/monitor/ws-status` - 取得 WebSocket 連線狀態
+
+### Frontend Components
+- `app/(dashboard)/assets/page.tsx` - 資產總覽（含 WebSocket 即時更新）
+- `app/(dashboard)/assets/hooks/useBalanceSocket.ts` - 餘額 WebSocket Hook
+
+### WebSocket Events (Client → Server)
+- `balance:update` - 餘額即時更新
+- `balance:snapshot` - 餘額快照
+
+### Connector Subscription Types
+```typescript
+type: 'markPrice' | 'fundingRate' | 'ticker' | 'balanceUpdate'
+```
+
+### Data Flow
+1. Exchange WebSocket → Connector.subscribeWS() → EventEmitter
+2. DataSourceManager 監聽 Connector events → RatesCache.update()
+3. BalanceWsHandler 監聽 balanceUpdate → BalanceUpdateEmitter → Socket.io
+4. Frontend useBalanceSocket hook → UI 即時更新
+
+### Environment Variables
+- `NEXT_PUBLIC_WS_URL` - WebSocket 服務 URL（預設使用相對路徑）
+
 <!-- MANUAL ADDITIONS END -->

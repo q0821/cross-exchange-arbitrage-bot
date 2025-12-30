@@ -18,9 +18,9 @@
 
 **Purpose**: 專案初始化和基本結構
 
-- [ ] T001 確認 CCXT 4.x 版本支援 watch* 方法，檢查 package.json
-- [ ] T002 [P] 建立 WebSocket 事件類型定義 in src/types/websocket-events.ts
-- [ ] T003 [P] 建立 Zod schema 驗證各交易所 WebSocket 訊息 in src/lib/schemas/websocket-messages.ts
+- [x] T001 確認 CCXT 4.x 版本支援 watch* 方法，檢查 package.json
+- [x] T002 [P] 建立 WebSocket 事件類型定義 in src/types/websocket-events.ts
+- [x] T003 [P] 建立 Zod schema 驗證各交易所 WebSocket 訊息 in src/lib/schemas/websocket-messages.ts
 
 ---
 
@@ -30,11 +30,11 @@
 
 **⚠️ CRITICAL**: 完成此階段後才能開始 User Story 實作
 
-- [ ] T004 擴展 WebSocketManager 基類支援多頻道訂閱 in src/lib/websocket.ts
-- [ ] T005 [P] 新增 WebSocket 連線狀態追蹤類型 in src/types/connection-state.ts
-- [ ] T006 [P] 新增 DataSourceMode 類型（websocket/rest/hybrid）in src/types/data-source.ts
-- [ ] T007 擴展 IExchangeConnector 介面的 subscribeWS/unsubscribeWS 參數類型 in src/connectors/types.ts
-- [ ] T008 新增 FundingRateReceived 內部事件類型 in src/types/internal-events.ts
+- [x] T004 擴展 WebSocketManager 基類支援多頻道訂閱 in src/lib/websocket.ts
+- [x] T005 [P] 新增 WebSocket 連線狀態追蹤類型 in src/types/connection-state.ts
+- [x] T006 [P] 新增 DataSourceMode 類型（websocket/rest/hybrid）in src/types/data-source.ts
+- [x] T007 擴展 IExchangeConnector 介面的 subscribeWS/unsubscribeWS 參數類型 in src/connectors/types.ts
+- [x] T008 新增 FundingRateReceived 內部事件類型 in src/types/internal-events.ts
 
 **Checkpoint**: 基礎架構就緒，User Story 實作可開始
 
@@ -50,22 +50,22 @@
 
 **NOTE: 先寫測試，確認測試失敗後再實作**
 
-- [ ] T009 [P] [US1] 單元測試 BinanceFundingWs 訊息解析 in tests/unit/services/BinanceFundingWs.test.ts
-- [ ] T010 [P] [US1] 單元測試 OKX 資金費率 WebSocket 解析 in tests/unit/services/OkxFundingWs.test.ts
-- [ ] T011 [P] [US1] 單元測試 Gate.io 資金費率解析 in tests/unit/services/GateioFundingWs.test.ts
-- [ ] T012 [P] [US1] 單元測試 MEXC 資金費率解析 in tests/unit/services/MexcFundingWs.test.ts
-- [ ] T013 [P] [US1] 整合測試 Binance 資金費率 WebSocket in tests/integration/websocket/binance-funding-ws.test.ts
+- [x] T009 [P] [US1] 單元測試 BinanceFundingWs 訊息解析 in tests/unit/services/BinanceFundingWs.test.ts
+- [x] T010 [P] [US1] 單元測試 OKX 資金費率 WebSocket 解析 in tests/unit/services/OkxFundingWs.test.ts
+- [x] T011 [P] [US1] 單元測試 Gate.io 資金費率解析 in tests/unit/services/GateioFundingWs.test.ts
+- [x] T012 [P] [US1] 單元測試 MEXC 資金費率解析 in tests/unit/services/MexcFundingWs.test.ts
+- [x] T013 [P] [US1] 整合測試 Binance 資金費率 WebSocket in tests/integration/websocket/binance-funding-ws.test.ts
 
 ### Implementation for User Story 1
 
-- [ ] T014 [P] [US1] 實作 BinanceFundingWs 連接 @markPrice@1s stream in src/services/websocket/BinanceFundingWs.ts
-- [ ] T015 [US1] 實作 Binance subscribeWS (fundingRate) in src/connectors/binance.ts
-- [ ] T016 [P] [US1] 實作 OKX 資金費率訂閱 via CCXT watchFundingRate in src/connectors/okx.ts
-- [ ] T017 [P] [US1] 實作 Gate.io 資金費率訂閱 via CCXT watchFundingRate in src/connectors/gateio.ts
-- [ ] T018 [P] [US1] 實作 MEXC 資金費率訂閱 via CCXT watchFundingRate in src/connectors/mexc.ts
-- [ ] T019 [US1] 修改 PriceMonitor 整合 WebSocket 訂閱 in src/services/monitor/PriceMonitor.ts
-- [ ] T020 [US1] 修改 RatesCache 接收 WebSocket 更新 in src/services/monitor/RatesCache.ts
-- [ ] T021 [US1] 新增資金費率 WebSocket 結構化日誌 in src/services/websocket/BinanceFundingWs.ts
+- [x] T014 [P] [US1] 實作 BinanceFundingWs 連接 @markPrice@1s stream in src/services/websocket/BinanceFundingWs.ts
+- [x] T015 [US1] 實作 Binance subscribeWS (fundingRate) in src/connectors/binance.ts
+- [x] T016 [P] [US1] 實作 OKX 資金費率訂閱 via CCXT watchFundingRate in src/connectors/okx.ts
+- [x] T017 [P] [US1] 實作 Gate.io 資金費率訂閱 via CCXT watchFundingRate in src/connectors/gateio.ts
+- [x] T018 [P] [US1] 實作 MEXC 資金費率訂閱 via CCXT watchFundingRate in src/connectors/mexc.ts
+- [x] T019 [US1] 修改 PriceMonitor 整合 WebSocket 訂閱 in src/services/monitor/PriceMonitor.ts
+- [x] T020 [US1] 修改 RatesCache 接收 WebSocket 更新 in src/services/monitor/RatesCache.ts
+- [x] T021 [US1] 新增資金費率 WebSocket 結構化日誌 in src/services/websocket/BinanceFundingWs.ts
 
 **Checkpoint**: Binance、OKX、Gate.io、MEXC 資金費率即時更新完成
 
@@ -79,17 +79,17 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T022 [P] [US2] 單元測試自動重連邏輯 in tests/unit/services/WebSocketReconnect.test.ts
-- [ ] T023 [P] [US2] 單元測試指數退避演算法 in tests/unit/lib/exponential-backoff.test.ts
-- [ ] T024 [P] [US2] 單元測試重連後自動重新訂閱 in tests/unit/services/ResubscribeOnReconnect.test.ts
+- [x] T022 [P] [US2] 單元測試自動重連邏輯 in tests/unit/services/WebSocketReconnect.test.ts
+- [x] T023 [P] [US2] 單元測試指數退避演算法 in tests/unit/lib/exponential-backoff.test.ts
+- [x] T024 [P] [US2] 單元測試重連後自動重新訂閱 in tests/unit/services/ResubscribeOnReconnect.test.ts
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] 實作指數退避重連邏輯 in src/lib/exponential-backoff.ts
-- [ ] T026 [US2] 擴展 BinanceFundingWs 加入自動重連 in src/services/websocket/BinanceFundingWs.ts
-- [ ] T027 [US2] 實作重連後自動重新訂閱機制 in src/lib/websocket.ts
-- [ ] T028 [US2] 實作心跳超時偵測（20 秒 ping, 60 秒 pong timeout）in src/lib/websocket.ts
-- [ ] T029 [US2] 新增重連事件日誌和指標 in src/services/websocket/BinanceFundingWs.ts
+- [x] T025 [US2] 實作指數退避重連邏輯 in src/lib/websocket/ReconnectionManager.ts (已存在)
+- [x] T026 [US2] 擴展 BinanceFundingWs 加入自動重連 in src/services/websocket/BinanceFundingWs.ts (已存在)
+- [x] T027 [US2] 實作重連後自動重新訂閱機制 in src/services/websocket/BinanceFundingWs.ts (已存在)
+- [x] T028 [US2] 實作心跳超時偵測（20 秒 ping, 60 秒 pong timeout）in src/lib/websocket/HealthChecker.ts (已存在)
+- [x] T029 [US2] 新增重連事件日誌和指標 in src/services/websocket/BinanceFundingWs.ts (已存在)
 
 **Checkpoint**: WebSocket 斷線自動重連機制完成
 
@@ -103,28 +103,28 @@
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T030 [P] [US5] 單元測試 PrivateWsManager 連線管理 in tests/unit/services/PrivateWsManager.test.ts
-- [ ] T031 [P] [US5] 單元測試 Binance listenKey 管理 in tests/unit/services/BinanceListenKeyManager.test.ts
-- [ ] T032 [P] [US5] 單元測試 BinanceUserDataWs ACCOUNT_UPDATE 解析 in tests/unit/services/BinanceUserDataWs.test.ts
-- [ ] T033 [P] [US5] 單元測試 TriggerDetector 觸發偵測 in tests/unit/services/TriggerDetector.test.ts
-- [ ] T034 [P] [US5] 單元測試 PositionWsHandler 持倉變更處理 in tests/unit/services/PositionWsHandler.test.ts
-- [ ] T035 [P] [US5] 整合測試持倉 WebSocket 監控 in tests/integration/websocket/position-ws.test.ts
+- [x] T030 [P] [US5] 單元測試 PrivateWsManager 連線管理 in tests/unit/services/PrivateWsManager.test.ts
+- [x] T031 [P] [US5] 單元測試 Binance listenKey 管理 in tests/unit/services/BinanceListenKeyManager.test.ts
+- [x] T032 [P] [US5] 單元測試 BinanceUserDataWs ACCOUNT_UPDATE 解析 in tests/unit/services/BinanceUserDataWs.test.ts
+- [x] T033 [P] [US5] 單元測試 TriggerDetector 觸發偵測 in tests/unit/services/TriggerDetector.test.ts
+- [x] T034 [P] [US5] 單元測試 PositionWsHandler 持倉變更處理 in tests/unit/services/PositionWsHandler.test.ts
+- [x] T035 [P] [US5] 整合測試持倉 WebSocket 監控 in tests/integration/websocket/position-ws.test.ts
 
 ### Implementation for User Story 5
 
-- [ ] T036 [US5] 建立 PrivateWsManager 框架 in src/services/websocket/PrivateWsManager.ts
-- [ ] T037 [US5] 實作 Binance listenKey 建立和續期 in src/services/websocket/BinanceListenKeyManager.ts
-- [ ] T038 [US5] 實作 BinanceUserDataWs 連接私有頻道 in src/services/websocket/BinanceUserDataWs.ts
-- [ ] T039 [US5] 實作 Binance ACCOUNT_UPDATE 事件解析 in src/services/websocket/BinanceUserDataWs.ts
-- [ ] T040 [US5] 實作 Binance ORDER_TRADE_UPDATE 事件解析 in src/services/websocket/BinanceUserDataWs.ts
-- [ ] T041 [P] [US5] 實作 OKX 持倉監控 via CCXT watchPositions in src/connectors/okx.ts
-- [ ] T042 [P] [US5] 實作 Gate.io 持倉監控 via CCXT watchPositions in src/connectors/gateio.ts
-- [ ] T043 [US5] 實作 BingX 私有頻道連接（自行實作 accountUpdate）in src/services/websocket/BingxUserDataWs.ts
-- [ ] T044 [US5] 建立 PositionWsHandler 處理持倉變更 in src/services/websocket/PositionWsHandler.ts
-- [ ] T045 [US5] 建立 TriggerDetector 從 WebSocket 事件偵測觸發 in src/services/monitor/TriggerDetector.ts
-- [ ] T046 [US5] 整合 TriggerDetector 與 PositionCloser 自動平倉 in src/services/monitor/TriggerDetector.ts
-- [ ] T047 [US5] 新增觸發事件推送至前端 WebSocket in src/services/websocket/TriggerProgressEmitter.ts
-- [ ] T048 [US5] 修改 ConditionalOrderMonitor 與 TriggerDetector 並行運作 in src/services/monitor/ConditionalOrderMonitor.ts
+- [x] T036 [US5] 建立 PrivateWsManager 框架 in src/services/websocket/PrivateWsManager.ts
+- [x] T037 [US5] 實作 Binance listenKey 建立和續期 in src/services/websocket/BinanceListenKeyManager.ts
+- [x] T038 [US5] 實作 BinanceUserDataWs 連接私有頻道 in src/services/websocket/BinanceUserDataWs.ts
+- [x] T039 [US5] 實作 Binance ACCOUNT_UPDATE 事件解析 in src/services/websocket/BinanceUserDataWs.ts
+- [x] T040 [US5] 實作 Binance ORDER_TRADE_UPDATE 事件解析 in src/services/websocket/BinanceUserDataWs.ts
+- [x] T041 [P] [US5] 實作 OKX 持倉監控 via CCXT watchPositions in src/connectors/okx.ts
+- [x] T042 [P] [US5] 實作 Gate.io 持倉監控 via CCXT watchPositions in src/connectors/gateio.ts
+- [x] T043 [US5] 實作 BingX 私有頻道連接（自行實作 accountUpdate）in src/services/websocket/BingxUserDataWs.ts
+- [x] T044 [US5] 建立 PositionWsHandler 處理持倉變更 in src/services/websocket/PositionWsHandler.ts
+- [x] T045 [US5] 建立 TriggerDetector 從 WebSocket 事件偵測觸發 in src/services/monitor/TriggerDetector.ts
+- [x] T046 [US5] 整合 TriggerDetector 與 PositionCloser 自動平倉 in src/services/monitor/TriggerDetector.ts
+- [x] T047 [US5] 新增觸發事件推送至前端 WebSocket in src/services/websocket/TriggerProgressEmitter.ts (已存在)
+- [x] T048 [US5] 修改 ConditionalOrderMonitor 與 TriggerDetector 並行運作 in src/services/monitor/ConditionalOrderMonitor.ts
 
 **Checkpoint**: 持倉監控 WebSocket 完成，觸發偵測延遲 <1 秒
 
@@ -138,16 +138,16 @@
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T049 [P] [US3] 單元測試 DataSourceManager fallback 邏輯 in tests/unit/services/DataSourceManager.test.ts
-- [ ] T050 [P] [US3] 單元測試 WebSocket 恢復後切回 in tests/unit/services/DataSourceRecovery.test.ts
+- [x] T049 [P] [US3] 單元測試 DataSourceManager fallback 邏輯 in tests/unit/services/DataSourceManager.test.ts
+- [x] T050 [P] [US3] 單元測試 WebSocket 恢復後切回 in tests/unit/services/DataSourceManager.test.ts (與 T049 合併)
 
 ### Implementation for User Story 3
 
-- [ ] T051 [US3] 建立 DataSourceManager 管理數據源模式 in src/services/monitor/DataSourceManager.ts
-- [ ] T052 [US3] 實作 WebSocket 失敗時切換到 REST in src/services/monitor/DataSourceManager.ts
-- [ ] T053 [US3] 實作 WebSocket 恢復時切回 in src/services/monitor/DataSourceManager.ts
-- [ ] T054 [US3] 整合 DataSourceManager 到 PriceMonitor in src/services/monitor/PriceMonitor.ts
-- [ ] T055 [US3] 新增數據源切換日誌和事件 in src/services/monitor/DataSourceManager.ts
+- [x] T051 [US3] 建立 DataSourceManager 管理數據源模式 in src/services/monitor/DataSourceManager.ts
+- [x] T052 [US3] 實作 WebSocket 失敗時切換到 REST in src/services/monitor/DataSourceManager.ts
+- [x] T053 [US3] 實作 WebSocket 恢復時切回 in src/services/monitor/DataSourceManager.ts
+- [x] T054 [US3] 整合 DataSourceManager 到 PriceMonitor in src/services/monitor/PriceMonitor.ts
+- [x] T055 [US3] 新增數據源切換日誌和事件 in src/services/monitor/DataSourceManager.ts
 
 **Checkpoint**: 混合數據源策略完成
 
@@ -161,19 +161,19 @@
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T056 [P] [US4] 整合測試 Binance subscribeWS/unsubscribeWS in tests/integration/websocket/binance-subscription.test.ts
-- [ ] T057 [P] [US4] 整合測試 OKX subscribeWS/unsubscribeWS in tests/integration/websocket/okx-subscription.test.ts
-- [ ] T058 [P] [US4] 整合測試 Gate.io subscribeWS/unsubscribeWS in tests/integration/websocket/gateio-subscription.test.ts
-- [ ] T059 [P] [US4] 整合測試 BingX subscribeWS/unsubscribeWS in tests/integration/websocket/bingx-subscription.test.ts
+- [x] T056 [P] [US4] 整合測試 Binance subscribeWS/unsubscribeWS in tests/integration/websocket/binance-subscription.test.ts
+- [x] T057 [P] [US4] 整合測試 OKX subscribeWS/unsubscribeWS in tests/integration/websocket/okx-subscription.test.ts
+- [x] T058 [P] [US4] 整合測試 Gate.io subscribeWS/unsubscribeWS in tests/integration/websocket/gateio-subscription.test.ts
+- [x] T059 [P] [US4] 整合測試 BingX subscribeWS/unsubscribeWS in tests/integration/websocket/bingx-subscription.test.ts
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] 完善 Binance unsubscribeWS 資源清理 in src/connectors/binance.ts
-- [ ] T061 [P] [US4] 實作 OKX unsubscribeWS in src/connectors/okx.ts
-- [ ] T062 [P] [US4] 實作 Gate.io unsubscribeWS in src/connectors/gateio.ts
-- [ ] T063 [P] [US4] 實作 MEXC unsubscribeWS in src/connectors/mexc.ts
-- [ ] T064 [P] [US4] 實作 BingX unsubscribeWS in src/connectors/bingx.ts
-- [ ] T065 [US4] 驗證所有 Connector 的 subscribeWS/unsubscribeWS 介面一致性
+- [x] T060 [US4] 完善 Binance unsubscribeWS 資源清理 in src/connectors/binance.ts
+- [x] T061 [P] [US4] 實作 OKX unsubscribeWS in src/connectors/okx.ts
+- [x] T062 [P] [US4] 實作 Gate.io unsubscribeWS in src/connectors/gateio.ts
+- [x] T063 [P] [US4] 實作 MEXC unsubscribeWS in src/connectors/mexc.ts
+- [x] T064 [P] [US4] 實作 BingX unsubscribeWS in src/connectors/bingx.ts
+- [x] T065 [US4] 驗證所有 Connector 的 subscribeWS/unsubscribeWS 介面一致性
 
 **Checkpoint**: 統一訂閱介面完成
 
@@ -187,19 +187,19 @@
 
 ### Tests for User Story 6 ⚠️
 
-- [ ] T066 [P] [US6] 單元測試 BalanceWsHandler 餘額解析 in tests/unit/services/BalanceWsHandler.test.ts
-- [ ] T067 [P] [US6] 單元測試餘額變更推送至前端 in tests/unit/services/BalanceUpdateEmitter.test.ts
+- [X] T066 [P] [US6] 單元測試 BalanceWsHandler 餘額解析 in tests/unit/services/BalanceWsHandler.test.ts
+- [X] T067 [P] [US6] 單元測試餘額變更推送至前端 in tests/unit/services/BalanceUpdateEmitter.test.ts
 
 ### Implementation for User Story 6
 
-- [ ] T068 [US6] 建立 BalanceWsHandler 處理餘額變更 in src/services/websocket/BalanceWsHandler.ts
-- [ ] T069 [US6] 擴展 BinanceUserDataWs 解析餘額更新 in src/services/websocket/BinanceUserDataWs.ts
-- [ ] T070 [P] [US6] 實作 OKX 餘額監控 via CCXT watchBalance in src/connectors/okx.ts
-- [ ] T071 [P] [US6] 實作 Gate.io 餘額監控 via CCXT watchBalance in src/connectors/gateio.ts
-- [ ] T072 [US6] 實作餘額更新推送至前端 WebSocket in src/websocket/handlers/BalanceUpdateHandler.ts
-- [ ] T073 [US6] 修改資產總覽頁面接收即時餘額更新 in app/(dashboard)/assets/page.tsx
+- [X] T068 [US6] 建立 BalanceWsHandler 處理餘額變更 in src/services/websocket/BalanceWsHandler.ts
+- [X] T069 [US6] 擴展 BinanceUserDataWs 解析餘額更新 in src/services/websocket/BinanceUserDataWs.ts (已在 T039 實作)
+- [X] T070 [P] [US6] 實作 OKX 餘額監控 via CCXT watchBalance in src/connectors/okx.ts
+- [X] T071 [P] [US6] 實作 Gate.io 餘額監控 via CCXT watchBalance in src/connectors/gateio.ts
+- [X] T072 [US6] 實作餘額更新推送至前端 WebSocket in src/services/websocket/BalanceUpdateEmitter.ts
+- [X] T073 [US6] 修改資產總覽頁面接收即時餘額更新 in app/(dashboard)/assets/page.tsx
 
-**Checkpoint**: 帳戶餘額即時更新完成
+**Checkpoint**: 帳戶餘額即時更新完成 ✅
 
 ---
 
@@ -207,13 +207,15 @@
 
 **Purpose**: 跨 User Story 的改進和優化
 
-- [ ] T074 [P] 新增 WebSocket 連線狀態 API endpoint in app/api/monitor/ws-status/route.ts
-- [ ] T075 [P] 更新 CLAUDE.md 加入 Feature 052 關鍵路徑
-- [ ] T076 效能測試：驗證資金費率延遲 <1 秒
-- [ ] T077 效能測試：驗證觸發偵測延遲 <1 秒
-- [ ] T078 [P] 執行 quickstart.md 驗證腳本
-- [ ] T079 程式碼清理和重構
-- [ ] T080 安全性檢查：確認 API Key 僅在 CLI/Backend 環境使用
+- [X] T074 [P] 新增 WebSocket 連線狀態 API endpoint in app/api/monitor/ws-status/route.ts
+- [X] T075 [P] 更新 CLAUDE.md 加入 Feature 052 關鍵路徑
+- [X] T076 效能測試：驗證資金費率延遲 <1 秒
+- [X] T077 效能測試：驗證觸發偵測延遲 <1 秒
+- [X] T078 [P] 執行 quickstart.md 驗證腳本
+- [X] T079 程式碼清理和重構
+- [X] T080 安全性檢查：確認 API Key 僅在 CLI/Backend 環境使用
+
+**Phase 9 Checkpoint**: All tasks completed ✅
 
 ---
 

@@ -15,6 +15,8 @@ import {
   WSSubscriptionType,
   OrderSide,
 } from './types.js';
+import { BinanceFundingWs } from '../services/websocket/BinanceFundingWs.js';
+import type { FundingRateReceived } from '../types/websocket-events.js';
 import {
   OpenInterestRecord,
   OpenInterestUSD,
@@ -36,6 +38,10 @@ export class BinanceConnector extends BaseExchangeConnector {
   private futuresBaseURL: string = '';
   private wsClient: unknown = null;
   private intervalCache: FundingIntervalCache;
+  /** 資金費率 WebSocket 客戶端 */
+  private fundingWsClient: BinanceFundingWs | null = null;
+  /** WebSocket 訂閱回調映射 */
+  private wsCallbacks: Map<string, (data: FundingRateReceived) => void> = new Map();
 
   constructor(isTestnet: boolean = false) {
     super('binance', isTestnet);
@@ -458,14 +464,105 @@ export class BinanceConnector extends BaseExchangeConnector {
     }, 'binance', 'getOrder');
   }
 
-  async subscribeWS(_subscription: WSSubscription): Promise<void> {
-    // TODO: 實作 WebSocket 訂閱
-    logger.warn('WebSocket subscription not yet implemented for Binance');
+  async subscribeWS(subscription: WSSubscription): Promise<void> {
+    const { type, symbol, symbols, callback, onError, onReconnect } = subscription;
+
+    if (type === 'fundingRate') {
+      // 初始化資金費率 WebSocket 客戶端
+      if (!this.fundingWsClient) {
+        const wsUrl = this.isTestnet
+          ? 'wss://stream.binancefuture.com/stream'
+          : 'wss://fstream.binance.com/stream';
+
+        this.fundingWsClient = new BinanceFundingWs({ wsUrl });
+
+        // 設定事件處理
+        this.fundingWsClient.on('fundingRate', (data: FundingRateReceived) => {
+          // 觸發所有符合的回調
+          for (const [key, cb] of this.wsCallbacks) {
+            if (key.startsWith('fundingRate:')) {
+              const subSymbol = key.split(':')[1];
+              if (subSymbol === '*' || subSymbol === data.symbol) {
+                cb(data);
+              }
+            }
+          }
+        });
+
+        this.fundingWsClient.on('error', (error: Error) => {
+          logger.error({ error: error.message }, 'Binance Funding WebSocket error');
+          if (onError) onError(error);
+        });
+
+        this.fundingWsClient.on('reconnecting', () => {
+          logger.info('Binance Funding WebSocket reconnecting');
+          if (onReconnect) onReconnect();
+        });
+
+        await this.fundingWsClient.connect();
+        this.wsConnected = true;
+      }
+
+      // 註冊回調
+      const subscriptionKey = symbol
+        ? `fundingRate:${symbol}`
+        : symbols
+          ? `fundingRate:${symbols.join(',')}`
+          : 'fundingRate:*';
+
+      this.wsCallbacks.set(subscriptionKey, callback as (data: FundingRateReceived) => void);
+
+      // 訂閱交易對
+      if (symbol) {
+        await this.fundingWsClient.subscribe([symbol]);
+      } else if (symbols && symbols.length > 0) {
+        await this.fundingWsClient.subscribe(symbols);
+      } else {
+        // 訂閱所有交易對
+        await this.fundingWsClient.subscribeAll();
+      }
+
+      logger.info({
+        type,
+        symbol,
+        symbols,
+      }, 'Binance WebSocket subscribed');
+    } else {
+      logger.warn({ type }, 'WebSocket subscription type not yet implemented for Binance');
+    }
   }
 
-  async unsubscribeWS(_type: WSSubscriptionType, _symbol?: string): Promise<void> {
-    // TODO: 實作 WebSocket 取消訂閱
-    logger.warn('WebSocket unsubscription not yet implemented for Binance');
+  async unsubscribeWS(type: WSSubscriptionType, symbol?: string): Promise<void> {
+    if (type === 'fundingRate') {
+      // 移除回調
+      const subscriptionKey = symbol ? `fundingRate:${symbol}` : 'fundingRate:*';
+      this.wsCallbacks.delete(subscriptionKey);
+
+      // 取消訂閱
+      if (this.fundingWsClient) {
+        if (symbol) {
+          await this.fundingWsClient.unsubscribe([symbol]);
+        } else {
+          await this.fundingWsClient.unsubscribeAll();
+        }
+
+        // 如果沒有任何訂閱，斷開連線
+        const hasFundingRateCallbacks = Array.from(this.wsCallbacks.keys()).some((k) =>
+          k.startsWith('fundingRate:')
+        );
+
+        if (!hasFundingRateCallbacks) {
+          await this.fundingWsClient.disconnect();
+          this.fundingWsClient.destroy();
+          this.fundingWsClient = null;
+          this.wsConnected = false;
+        }
+      }
+
+      logger.info({ type, symbol }, 'Binance WebSocket unsubscribed');
+    } else {
+      logger.warn({ type }, 'WebSocket unsubscription type not yet implemented for Binance');
+    }
   }
 
   // ============================================================================

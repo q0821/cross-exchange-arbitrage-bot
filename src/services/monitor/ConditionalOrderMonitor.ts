@@ -1,9 +1,15 @@
 /**
  * ConditionalOrderMonitor
  * Feature: 050-sl-tp-trigger-monitor
+ * Updated: 052-specify-scripts-bash (T048)
  *
  * 條件單觸發偵測監控服務
  * 每 30 秒檢查所有 OPEN 持倉的條件單狀態，偵測觸發事件
+ *
+ * T048: 與 TriggerDetector 並行運作
+ * - TriggerDetector 透過 WebSocket 即時偵測觸發（延遲 <1 秒）
+ * - ConditionalOrderMonitor 作為備援，透過 REST 輪詢偵測（每 30 秒）
+ * - 當 TriggerDetector 已處理某持倉時，ConditionalOrderMonitor 跳過
  */
 
 import { PrismaClient, Position, CloseReason } from '@/generated/prisma/client';
@@ -33,6 +39,7 @@ import {
   OrderStatusMap,
   DEFAULT_MONITOR_CONFIG,
 } from './types';
+import { TriggerDetector, type MonitoredPosition } from './TriggerDetector';
 
 /**
  * handleTrigger 結果類型
@@ -59,6 +66,11 @@ export class ConditionalOrderMonitor {
   private _isRunning = false;
   private _intervalMs: number;
 
+  // T048: TriggerDetector 整合
+  private triggerDetector: TriggerDetector | null = null;
+  private _parallelModeEnabled = false;
+  private _processedByWs: Set<string> = new Set(); // 被 WebSocket 處理過的持倉 ID
+
   constructor(
     prisma: PrismaClient,
     intervalMs?: number,
@@ -69,6 +81,102 @@ export class ConditionalOrderMonitor {
     this.positionCloser = positionCloser ?? new PositionCloser(prisma);
     this.discordNotifier = new DiscordNotifier();
     this.slackNotifier = new SlackNotifier();
+  }
+
+  /**
+   * T048: 設定 TriggerDetector 並啟用並行模式
+   */
+  setTriggerDetector(detector: TriggerDetector): void {
+    this.triggerDetector = detector;
+    this._parallelModeEnabled = true;
+
+    // 監聽 TriggerDetector 的觸發事件，標記已處理的持倉
+    detector.on('triggerDetected', (event: { positionId: string }) => {
+      this._processedByWs.add(event.positionId);
+      logger.debug(
+        { positionId: event.positionId },
+        '[條件單監控] 持倉已由 WebSocket 偵測處理，標記跳過',
+      );
+    });
+
+    // 監聽平倉完成事件，清理標記
+    detector.on('closeProgress', (event: { positionId: string; step: string }) => {
+      if (event.step === 'completed' || event.step === 'failed') {
+        // 延遲清理，確保不會在同一輪檢查中重複處理
+        setTimeout(() => {
+          this._processedByWs.delete(event.positionId);
+        }, this._intervalMs);
+      }
+    });
+
+    logger.info(
+      { intervalMs: this._intervalMs },
+      '[條件單監控] 並行模式已啟用，與 TriggerDetector 協同運作',
+    );
+  }
+
+  /**
+   * T048: 取得並行模式狀態
+   */
+  get parallelModeEnabled(): boolean {
+    return this._parallelModeEnabled;
+  }
+
+  /**
+   * T048: 註冊持倉到 TriggerDetector
+   */
+  registerPositionWithTriggerDetector(position: Position): void {
+    if (!this.triggerDetector || !this._parallelModeEnabled) {
+      return;
+    }
+
+    const monitoredPosition: MonitoredPosition = {
+      id: position.id,
+      userId: position.userId,
+      symbol: position.symbol,
+      longExchange: position.longExchange as any,
+      shortExchange: position.shortExchange as any,
+      longSize: new Decimal(position.longPositionSize),
+      shortSize: new Decimal(position.shortPositionSize),
+      longEntryPrice: new Decimal(position.longEntryPrice),
+      shortEntryPrice: new Decimal(position.shortEntryPrice),
+      stopLossEnabled: position.stopLossEnabled,
+      takeProfitEnabled: position.takeProfitEnabled,
+      longStopLossPrice: position.longStopLossPrice ? new Decimal(position.longStopLossPrice) : undefined,
+      longTakeProfitPrice: position.longTakeProfitPrice ? new Decimal(position.longTakeProfitPrice) : undefined,
+      shortStopLossPrice: position.shortStopLossPrice ? new Decimal(position.shortStopLossPrice) : undefined,
+      shortTakeProfitPrice: position.shortTakeProfitPrice ? new Decimal(position.shortTakeProfitPrice) : undefined,
+      conditionalOrderStatus: position.conditionalOrderStatus as MonitoredPosition['conditionalOrderStatus'],
+    };
+
+    this.triggerDetector.registerPosition(monitoredPosition);
+  }
+
+  /**
+   * T048: 檢查持倉是否應該跳過（已被 WebSocket 處理）
+   */
+  private shouldSkipPosition(positionId: string): boolean {
+    if (!this._parallelModeEnabled) {
+      return false;
+    }
+
+    // 檢查是否已被 WebSocket 處理
+    if (this._processedByWs.has(positionId)) {
+      return true;
+    }
+
+    // 檢查 TriggerDetector 是否正在處理該持倉
+    if (this.triggerDetector) {
+      const registeredPositions = this.triggerDetector.getRegisteredPositions();
+      const isRegistered = registeredPositions.some(p => p.id === positionId);
+      if (isRegistered) {
+        // 如果已註冊在 TriggerDetector，讓 WebSocket 優先處理
+        // 但仍需作為備援檢查，所以不跳過
+        return false;
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -146,14 +254,32 @@ export class ConditionalOrderMonitor {
         return;
       }
 
+      // T048: 統計跳過和檢查的持倉數量
+      let checkedCount = 0;
+      let skippedCount = 0;
+
       logger.info(
-        { count: positions.length },
+        { count: positions.length, parallelMode: this._parallelModeEnabled },
         '[條件單監控] 開始檢查持倉的條件單狀態',
       );
 
       // 逐一檢查每個持倉
       for (const position of positions) {
         try {
+          // T048: 檢查是否應該跳過（已被 WebSocket 處理）
+          if (this.shouldSkipPosition(position.id)) {
+            skippedCount++;
+            logger.debug(
+              { positionId: position.id },
+              '[條件單監控] 跳過持倉（已由 WebSocket 處理）',
+            );
+            continue;
+          }
+
+          // T048: 註冊持倉到 TriggerDetector（如果尚未註冊）
+          this.registerPositionWithTriggerDetector(position);
+
+          checkedCount++;
           const triggerResult = await this.checkPositionConditionalOrders(position);
 
           if (triggerResult) {
@@ -164,8 +290,9 @@ export class ConditionalOrderMonitor {
                 triggerType: triggerResult.triggerType,
                 triggeredExchange: triggerResult.triggeredExchange,
                 confirmedByHistory: triggerResult.confirmedByHistory,
+                source: 'REST', // T048: 標記來源
               },
-              '[條件單監控] 偵測到觸發事件',
+              '[條件單監控] 偵測到觸發事件（透過 REST 輪詢）',
             );
 
             // Phase 4 (US2): 處理自動平倉
@@ -184,6 +311,14 @@ export class ConditionalOrderMonitor {
             'Error checking position conditional orders',
           );
         }
+      }
+
+      // T048: 記錄檢查統計
+      if (this._parallelModeEnabled && skippedCount > 0) {
+        logger.info(
+          { total: positions.length, checked: checkedCount, skipped: skippedCount },
+          '[條件單監控] 檢查完成（並行模式）',
+        );
       }
     } catch (error) {
       logger.error(

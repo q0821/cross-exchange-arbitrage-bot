@@ -29,9 +29,14 @@ export function createPriceData(params: {
 
 /**
  * 計算價格的中間價 (Mid Price)
+ * 如果 bidPrice 或 askPrice 不存在，使用 lastPrice
  */
 export function calculateMidPrice(priceData: IPriceData): number {
-  return (priceData.bidPrice + priceData.askPrice) / 2;
+  if (priceData.bidPrice !== undefined && priceData.askPrice !== undefined) {
+    return (priceData.bidPrice + priceData.askPrice) / 2;
+  }
+  // Fallback to lastPrice when bid/ask not available
+  return priceData.lastPrice;
 }
 
 /**

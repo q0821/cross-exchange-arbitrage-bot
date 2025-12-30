@@ -9,7 +9,10 @@
  * Feature: 026-discord-slack-notification
  */
 
-import type { FundingRatePair } from '../../models/FundingRate';
+import type { FundingRatePair, ExchangeRateData } from '../../models/FundingRate';
+import { FundingRateRecord } from '../../models/FundingRate';
+import type { FundingRateReceived } from '../../types/websocket-events';
+import type { ExchangeName } from '../../connectors/types';
 import { logger } from '../../lib/logger';
 import {
   DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
@@ -165,6 +168,138 @@ export class RatesCache {
         logger.error({ error }, 'Failed to check and expire trackings');
       });
     }
+  }
+
+  /**
+   * 從 WebSocket 更新資金費率數據 (Feature 052: T020)
+   *
+   * 此方法接收 FundingRateReceived 事件並更新快取中相應交易對的數據
+   * 如果交易對不存在於快取中，會建立新的 FundingRatePair
+   *
+   * @param data WebSocket 接收的資金費率數據
+   */
+  updateFromWebSocket(data: FundingRateReceived): void {
+    const { exchange, symbol, fundingRate } = data;
+
+    // 取得現有的快取數據
+    const existing = this.cache.get(symbol);
+
+    if (existing) {
+      // 更新現有的 FundingRatePair 中對應交易所的數據
+      const updatedPair = this.updateExchangeInPair(existing, data);
+      this.cache.set(symbol, {
+        ...updatedPair,
+        cachedAt: new Date(),
+      });
+
+      logger.debug({
+        symbol,
+        exchange,
+        fundingRate: fundingRate.toString(),
+        source: 'websocket',
+      }, 'Rate updated from WebSocket');
+    } else {
+      // 建立新的 FundingRatePair（只有單一交易所數據）
+      const newPair = this.createPairFromWebSocket(data);
+      this.cache.set(symbol, {
+        ...newPair,
+        cachedAt: new Date(),
+      });
+
+      logger.debug({
+        symbol,
+        exchange,
+        fundingRate: fundingRate.toString(),
+        source: 'websocket',
+        isNew: true,
+      }, 'New rate created from WebSocket');
+    }
+  }
+
+  /**
+   * 批量從 WebSocket 更新資金費率數據 (Feature 052: T020)
+   *
+   * @param dataArray WebSocket 接收的資金費率數據陣列
+   */
+  updateBatchFromWebSocket(dataArray: FundingRateReceived[]): void {
+    for (const data of dataArray) {
+      this.updateFromWebSocket(data);
+    }
+
+    logger.debug({
+      count: dataArray.length,
+    }, 'Batch rates updated from WebSocket');
+  }
+
+  /**
+   * 更新 FundingRatePair 中特定交易所的數據 (Feature 052: T020)
+   */
+  private updateExchangeInPair(
+    pair: CachedRatePair,
+    data: FundingRateReceived
+  ): FundingRatePair {
+    const { exchange, fundingRate, nextFundingTime, markPrice } = data;
+    const exchangeName = exchange as ExchangeName;
+
+    // 創建新的 FundingRateRecord
+    const newRate = new FundingRateRecord({
+      exchange: exchangeName,
+      symbol: data.symbol,
+      fundingRate: fundingRate.toNumber(),
+      nextFundingTime,
+      recordedAt: data.receivedAt,
+    });
+
+    // 創建 ExchangeRateData
+    const newExchangeData: ExchangeRateData = {
+      rate: newRate,
+      price: markPrice?.toNumber(),
+    };
+
+    // 更新交易所數據
+    const updatedExchanges = new Map(pair.exchanges || new Map<ExchangeName, ExchangeRateData>());
+    updatedExchanges.set(exchangeName, newExchangeData);
+
+    // 重新計算最佳配對（保持現有邏輯）
+    // 注意：完整的最佳配對計算在 RateDifferenceCalculator 中
+    // 這裡只更新單一交易所數據，不重新計算 bestPair
+    return {
+      ...pair,
+      exchanges: updatedExchanges,
+      recordedAt: data.receivedAt,
+    };
+  }
+
+  /**
+   * 從 WebSocket 數據創建新的 FundingRatePair (Feature 052: T020)
+   */
+  private createPairFromWebSocket(data: FundingRateReceived): FundingRatePair {
+    const { exchange, symbol, fundingRate, nextFundingTime, markPrice } = data;
+    const exchangeName = exchange as ExchangeName;
+
+    // 創建 FundingRateRecord
+    const rate = new FundingRateRecord({
+      exchange: exchangeName,
+      symbol,
+      fundingRate: fundingRate.toNumber(),
+      nextFundingTime,
+      recordedAt: data.receivedAt,
+    });
+
+    // 創建交易所數據 Map
+    const exchanges = new Map<ExchangeName, ExchangeRateData>();
+    exchanges.set(exchangeName, {
+      rate,
+      price: markPrice?.toNumber(),
+    });
+
+    return {
+      symbol,
+      exchanges,
+      recordedAt: data.receivedAt,
+      // 單一交易所無法計算 spread，設為 0
+      spreadPercent: 0,
+    };
   }
 
   /**

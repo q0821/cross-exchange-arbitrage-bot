@@ -3,17 +3,19 @@
  * 顯示用戶在各交易所的資產餘額和歷史曲線
  *
  * Feature 031: Asset Tracking History (T014)
+ * Feature 052: WebSocket 即時餘額更新 (T073)
  */
 
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Wallet, RefreshCw, AlertCircle, TrendingUp, ArrowUp, ArrowDown, Layers, ChevronDown, ChevronUp } from 'lucide-react';
+import { Wallet, RefreshCw, AlertCircle, TrendingUp, ArrowUp, ArrowDown, Layers, ChevronDown, ChevronUp, Radio } from 'lucide-react';
 import { TotalAssetCard } from './components/TotalAssetCard';
 import { AssetSummaryCard } from './components/AssetSummaryCard';
 import { TimeRangeSelector } from './components/TimeRangeSelector';
 import { AssetHistoryChart, HistoryDataPoint } from './components/AssetHistoryChart';
 import { PositionTable } from './components/PositionTable';
+import { useBalanceSocket, BalanceUpdate } from './hooks/useBalanceSocket';
 
 /**
  * 單一交易所餘額資料
@@ -98,6 +100,52 @@ export default function AssetsPage() {
   const [positionsData, setPositionsData] = useState<PositionsData | null>(null);
   const [isLoadingPositions, setIsLoadingPositions] = useState(true);
   const [isPositionsExpanded, setIsPositionsExpanded] = useState(false);
+
+  // WebSocket 連線狀態
+  const [isWsConnected, setIsWsConnected] = useState(false);
+  const [lastWsUpdate, setLastWsUpdate] = useState<Date | null>(null);
+
+  // 處理 WebSocket 餘額更新
+  const handleBalanceUpdate = useCallback((data: BalanceUpdate) => {
+    setLastWsUpdate(new Date());
+
+    // 更新對應交易所的餘額
+    setAssetsData((prev) => {
+      if (!prev) return prev;
+
+      // 只更新 USDT 餘額（主要計算貨幣）
+      if (data.asset !== 'USDT') return prev;
+
+      const exchangeName = data.exchange as ExchangeBalance['exchange'];
+      const newBalance = parseFloat(data.balance);
+
+      const updatedExchanges = prev.exchanges.map((ex) => {
+        if (ex.exchange === exchangeName && ex.status === 'success') {
+          return { ...ex, balanceUSD: newBalance };
+        }
+        return ex;
+      });
+
+      const newTotal = updatedExchanges.reduce(
+        (sum, ex) => sum + (ex.balanceUSD ?? 0),
+        0
+      );
+
+      return {
+        ...prev,
+        exchanges: updatedExchanges,
+        totalBalanceUSD: newTotal,
+        lastUpdated: new Date().toISOString(),
+      };
+    });
+  }, []);
+
+  // WebSocket 連線
+  useBalanceSocket({
+    enabled: true,
+    onBalanceUpdate: handleBalanceUpdate,
+    onConnectionChange: setIsWsConnected,
+  });
 
   // 獲取資產資料
   const fetchAssets = useCallback(async (refresh = false) => {
@@ -247,6 +295,22 @@ export default function AssetsPage() {
           <div className="flex items-center gap-3">
             <Wallet className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold text-foreground">資產總覽</h1>
+            {/* WebSocket 連線狀態指示器 */}
+            <div
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-xs ${
+                isWsConnected
+                  ? 'bg-profit/10 text-profit'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+              title={
+                isWsConnected
+                  ? `即時更新中${lastWsUpdate ? ` (上次更新: ${lastWsUpdate.toLocaleTimeString()})` : ''}`
+                  : '離線中'
+              }
+            >
+              <Radio className={`w-3 h-3 ${isWsConnected ? 'animate-pulse' : ''}`} />
+              <span>{isWsConnected ? '即時' : '離線'}</span>
+            </div>
           </div>
           <button
             onClick={handleRefresh}

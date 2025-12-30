@@ -9,9 +9,29 @@ export interface WSConfig {
   pongTimeout?: number;
   reconnectDelay?: number;
   maxReconnectAttempts?: number;
+  /** 重連延遲倍數 (指數退避) */
+  reconnectBackoffMultiplier?: number;
+  /** 最大重連延遲 (ms) */
+  maxReconnectDelay?: number;
+  /** 連線超時 (ms) */
+  connectionTimeout?: number;
+  /** 是否自動重新訂閱 */
+  autoResubscribe?: boolean;
 }
 
 export type WSState = 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+
+/** 訂閱資訊 */
+export interface SubscriptionInfo {
+  /** 頻道名稱 */
+  channel: string;
+  /** 訂閱參數 */
+  params?: Record<string, unknown>;
+  /** 訂閱時間 */
+  subscribedAt: Date;
+  /** 是否活躍 */
+  active: boolean;
+}
 
 export class WebSocketManager extends EventEmitter {
   private ws: WebSocket | null = null;
@@ -21,13 +41,49 @@ export class WebSocketManager extends EventEmitter {
   private pingTimer: NodeJS.Timeout | null = null;
   private pongTimer: NodeJS.Timeout | null = null;
   private lastPingTime: number = 0;
+  /** 訂閱追蹤 Map<channel, SubscriptionInfo> */
+  private subscriptions: Map<string, SubscriptionInfo> = new Map();
+  /** 連線建立時間 */
+  private connectedAt: Date | null = null;
+  /** 最後心跳接收時間 */
+  private lastHeartbeatAt: Date | null = null;
 
   constructor(
     private readonly config: WSConfig,
     private readonly name: string
   ) {
     super();
-    this.setMaxListeners(50); // 增加監聽器限制
+    this.setMaxListeners(50); // 增加監聯器限制
+  }
+
+  /** 取得所有訂閱 */
+  getSubscriptions(): Map<string, SubscriptionInfo> {
+    return new Map(this.subscriptions);
+  }
+
+  /** 取得訂閱數量 */
+  getSubscriptionCount(): number {
+    return this.subscriptions.size;
+  }
+
+  /** 檢查是否已訂閱指定頻道 */
+  hasSubscription(channel: string): boolean {
+    return this.subscriptions.has(channel);
+  }
+
+  /** 取得連線建立時間 */
+  getConnectedAt(): Date | null {
+    return this.connectedAt;
+  }
+
+  /** 取得最後心跳時間 */
+  getLastHeartbeatAt(): Date | null {
+    return this.lastHeartbeatAt;
+  }
+
+  /** 取得重連嘗試次數 */
+  getReconnectAttempts(): number {
+    return this.reconnectAttempts;
   }
 
   // 連線
@@ -96,7 +152,7 @@ export class WebSocketManager extends EventEmitter {
   }
 
   // 訂閱 (發送訂閱訊息)
-  subscribe(channel: string, params?: object): void {
+  subscribe(channel: string, params?: Record<string, unknown>): void {
     const subscribeMsg = {
       op: 'subscribe',
       channel,
@@ -104,11 +160,20 @@ export class WebSocketManager extends EventEmitter {
     };
 
     this.send(subscribeMsg);
-    logger.info({ name: this.name, channel }, 'WebSocket subscribed');
+
+    // 追蹤訂閱
+    this.subscriptions.set(channel, {
+      channel,
+      params,
+      subscribedAt: new Date(),
+      active: true,
+    });
+
+    logger.info({ name: this.name, channel, totalSubscriptions: this.subscriptions.size }, 'WebSocket subscribed');
   }
 
   // 取消訂閱
-  unsubscribe(channel: string, params?: object): void {
+  unsubscribe(channel: string, params?: Record<string, unknown>): void {
     const unsubscribeMsg = {
       op: 'unsubscribe',
       channel,
@@ -116,7 +181,74 @@ export class WebSocketManager extends EventEmitter {
     };
 
     this.send(unsubscribeMsg);
-    logger.info({ name: this.name, channel }, 'WebSocket unsubscribed');
+
+    // 移除訂閱追蹤
+    this.subscriptions.delete(channel);
+
+    logger.info({ name: this.name, channel, totalSubscriptions: this.subscriptions.size }, 'WebSocket unsubscribed');
+  }
+
+  // 批量訂閱
+  subscribeMany(channels: Array<{ channel: string; params?: Record<string, unknown> }>): void {
+    for (const { channel, params } of channels) {
+      this.subscribe(channel, params);
+    }
+  }
+
+  // 批量取消訂閱
+  unsubscribeMany(channels: string[]): void {
+    for (const channel of channels) {
+      this.unsubscribe(channel);
+    }
+  }
+
+  // 取消所有訂閱
+  unsubscribeAll(): void {
+    const channels = Array.from(this.subscriptions.keys());
+    this.unsubscribeMany(channels);
+  }
+
+  // 重新訂閱所有頻道 (斷線重連後使用)
+  private async resubscribeAll(): Promise<void> {
+    if (!this.config.autoResubscribe) {
+      logger.debug({ name: this.name }, 'Auto-resubscribe disabled, skipping');
+      return;
+    }
+
+    const subscriptions = Array.from(this.subscriptions.entries());
+    if (subscriptions.length === 0) {
+      logger.debug({ name: this.name }, 'No subscriptions to restore');
+      return;
+    }
+
+    logger.info({ name: this.name, count: subscriptions.length }, 'Restoring subscriptions after reconnect');
+
+    for (const [channel, info] of subscriptions) {
+      try {
+        const subscribeMsg = {
+          op: 'subscribe',
+          channel,
+          ...info.params,
+        };
+        this.send(subscribeMsg);
+
+        // 更新訂閱時間
+        info.subscribedAt = new Date();
+        info.active = true;
+
+        logger.debug({ name: this.name, channel }, 'Subscription restored');
+      } catch (error) {
+        logger.error({
+          name: this.name,
+          channel,
+          error: error instanceof Error ? error.message : String(error),
+        }, 'Failed to restore subscription');
+
+        info.active = false;
+      }
+    }
+
+    this.emit('resubscribed', subscriptions.length);
   }
 
   // 取得連線狀態
@@ -130,14 +262,29 @@ export class WebSocketManager extends EventEmitter {
 
   // 私有方法
   private handleOpen(): void {
+    const wasReconnecting = this.state === 'reconnecting';
     this.state = 'connected';
     this.reconnectAttempts = 0;
+    this.connectedAt = new Date();
 
-    logger.info({ name: this.name }, 'WebSocket connected');
+    logger.info({ name: this.name, wasReconnecting }, 'WebSocket connected');
     this.emit('connected');
 
     // 啟動心跳
     this.startPing();
+
+    // 斷線重連後自動重新訂閱
+    if (wasReconnecting && this.subscriptions.size > 0) {
+      // 延遲執行以確保連線穩定
+      setTimeout(() => {
+        this.resubscribeAll().catch((error) => {
+          logger.error({
+            name: this.name,
+            error: error instanceof Error ? error.message : String(error),
+          }, 'Failed to resubscribe after reconnect');
+        });
+      }, 100);
+    }
   }
 
   private handleMessage(data: WebSocket.Data): void {
@@ -208,13 +355,18 @@ export class WebSocketManager extends EventEmitter {
     }
 
     const latency = Date.now() - this.lastPingTime;
+    this.lastHeartbeatAt = new Date();
+
     logger.debug({ name: this.name, latency }, 'WebSocket pong received');
+    this.emit('heartbeat', { latency, timestamp: this.lastHeartbeatAt });
   }
 
   // 重新連線
   private attemptReconnect(): void {
     const maxAttempts = this.config.maxReconnectAttempts || 10;
-    const delay = this.config.reconnectDelay || 5000;
+    const baseDelay = this.config.reconnectDelay || 1000;
+    const backoffMultiplier = this.config.reconnectBackoffMultiplier || 2;
+    const maxDelay = this.config.maxReconnectDelay || 30000;
 
     if (this.reconnectAttempts >= maxAttempts) {
       logger.error({
@@ -229,11 +381,20 @@ export class WebSocketManager extends EventEmitter {
     this.reconnectAttempts++;
     this.state = 'reconnecting';
 
+    // 計算指數退避延遲
+    const delay = Math.min(
+      baseDelay * Math.pow(backoffMultiplier, this.reconnectAttempts - 1),
+      maxDelay
+    );
+
     logger.info({
       name: this.name,
       attempt: this.reconnectAttempts,
       maxAttempts,
-    }, 'Attempting to reconnect');
+      delay,
+    }, 'Attempting to reconnect with exponential backoff');
+
+    this.emit('reconnecting', { attempt: this.reconnectAttempts, delay });
 
     this.reconnectTimer = setTimeout(() => {
       this.connect().catch((error) => {
@@ -339,10 +500,14 @@ export function createWebSocket(url: string, name: string, config?: Partial<WSCo
   return new WebSocketManager(
     {
       url,
-      pingInterval: 30000,
-      pongTimeout: 10000,
-      reconnectDelay: 5000,
-      maxReconnectAttempts: 10,
+      pingInterval: 20000,                // 20 秒 ping 間隔
+      pongTimeout: 60000,                 // 60 秒 pong 超時
+      reconnectDelay: 1000,               // 1 秒初始重連延遲
+      maxReconnectAttempts: 10,           // 最多 10 次重連
+      reconnectBackoffMultiplier: 2,      // 指數退避倍數
+      maxReconnectDelay: 30000,           // 最大 30 秒重連延遲
+      connectionTimeout: 10000,           // 10 秒連線超時
+      autoResubscribe: true,              // 自動重新訂閱
       ...config,
     },
     name

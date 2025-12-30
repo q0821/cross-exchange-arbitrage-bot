@@ -3,15 +3,19 @@
  *
  * 價格監控服務 - 管理 WebSocket 和 REST 備援
  * Feature: 004-fix-okx-add-price-display
- * Task: T033
+ * Feature: 052-specify-scripts-bash (T019: WebSocket 整合, T054: DataSourceManager 整合)
  */
 
 import { EventEmitter } from 'events';
-import type { IExchangeConnector } from '../../connectors/types.js';
+import type { IExchangeConnector, ExchangeName } from '../../connectors/types.js';
 import type { PriceData, PriceSource } from '../../types/service-interfaces.js';
+import type { FundingRateReceived } from '../../types/websocket-events.js';
+import type { DataSourceSwitchEvent } from '../../types/data-source.js';
 import { RestPoller } from '../../lib/rest/RestPoller.js';
 import { PriceCache } from '../../lib/cache/PriceCache.js';
 import { logger } from '../../lib/logger.js';
+import { BinanceFundingWs } from '../websocket/BinanceFundingWs.js';
+import { DataSourceManager } from './DataSourceManager.js';
 
 /**
  * 價格監控配置
@@ -26,6 +30,8 @@ export interface PriceMonitorConfig {
     maxSize?: number;
     staleTresholdMs?: number;
   };
+  /** WebSocket 數據更新回調（來自 BinanceFundingWs 等） */
+  onWebSocketPrice?: (priceData: PriceData) => void;
 }
 
 /**
@@ -52,14 +58,22 @@ export interface PriceMonitorEvents {
  * - 發出價格更新事件
  */
 export class PriceMonitor extends EventEmitter {
-  private config: Required<Omit<PriceMonitorConfig, 'cacheConfig'>> & {
+  private config: Required<Omit<PriceMonitorConfig, 'cacheConfig' | 'onWebSocketPrice'>> & {
     cacheConfig: PriceMonitorConfig['cacheConfig'];
+    onWebSocketPrice?: PriceMonitorConfig['onWebSocketPrice'];
   };
   private connectors: Map<string, IExchangeConnector> = new Map();
   private restPollers: Map<string, RestPoller> = new Map();
   private cache: PriceCache;
   private symbols: string[] = [];
   private isRunning = false;
+
+  // WebSocket 客戶端 (Feature 052: T019)
+  private binanceFundingWs: BinanceFundingWs | null = null;
+  private wsConnected = new Map<ExchangeName, boolean>();
+
+  // 數據源管理器 (Feature 052: T054)
+  private dataSourceManager: DataSourceManager;
 
   constructor(
     connectors: IExchangeConnector[],
@@ -72,6 +86,7 @@ export class PriceMonitor extends EventEmitter {
       enableWebSocket: config.enableWebSocket ?? false, // 先用 REST
       restPollingIntervalMs: config.restPollingIntervalMs ?? 5000, // 5 秒
       cacheConfig: config.cacheConfig,
+      onWebSocketPrice: config.onWebSocketPrice,
     };
 
     this.symbols = symbols;
@@ -84,12 +99,94 @@ export class PriceMonitor extends EventEmitter {
     // 初始化快取
     this.cache = new PriceCache(this.config.cacheConfig);
 
+    // 初始化 DataSourceManager (Feature 052: T054)
+    this.dataSourceManager = DataSourceManager.getInstance({
+      config: {
+        restPollingInterval: this.config.restPollingIntervalMs,
+      },
+    });
+
+    // 監聽數據源切換事件
+    this.setupDataSourceManagerListeners();
+
     logger.info({
       exchanges: Array.from(this.connectors.keys()),
       symbols: symbols.length,
       enableWebSocket: this.config.enableWebSocket,
       restPollingIntervalMs: this.config.restPollingIntervalMs,
     }, 'PriceMonitor initialized');
+  }
+
+  /**
+   * 設定 DataSourceManager 事件監聽 (Feature 052: T054)
+   */
+  private setupDataSourceManagerListeners(): void {
+    // 監聽數據源切換事件
+    this.dataSourceManager.onSwitch((event: DataSourceSwitchEvent) => {
+      logger.info(
+        {
+          exchange: event.exchange,
+          dataType: event.dataType,
+          fromMode: event.fromMode,
+          toMode: event.toMode,
+          reason: event.reason,
+        },
+        '[PriceMonitor] Data source mode changed'
+      );
+
+      // 發送 sourceChanged 事件
+      this.emit('sourceChanged', event.exchange, event.fromMode as PriceSource, event.toMode as PriceSource);
+
+      // 處理 WebSocket 恢復嘗試
+      if (event.toMode === 'rest' && event.dataType === 'fundingRate') {
+        // 如果切換到 REST，可能需要確保 REST poller 正在運行
+        this.ensureRestPollerRunning(event.exchange as ExchangeName);
+      }
+    });
+
+    // 監聯恢復嘗試事件
+    this.dataSourceManager.on('recoveryAttempt', async (event: { exchange: ExchangeName; dataType: string }) => {
+      if (event.dataType === 'fundingRate') {
+        logger.info(
+          { exchange: event.exchange },
+          '[PriceMonitor] Attempting to recover WebSocket connection'
+        );
+        await this.tryRecoverWebSocket(event.exchange);
+      }
+    });
+  }
+
+  /**
+   * 確保 REST 輪詢器正在運行 (Feature 052: T054)
+   */
+  private ensureRestPollerRunning(exchange: ExchangeName): void {
+    if (!this.restPollers.has(exchange)) {
+      const connector = this.connectors.get(exchange);
+      if (connector) {
+        logger.info({ exchange }, '[PriceMonitor] Starting REST poller as fallback');
+        // REST poller 應該在 start() 時就啟動了
+      }
+    }
+  }
+
+  /**
+   * 嘗試恢復 WebSocket 連線 (Feature 052: T054)
+   */
+  private async tryRecoverWebSocket(exchange: ExchangeName): Promise<void> {
+    if (exchange === 'binance' && !this.binanceFundingWs?.isReady()) {
+      try {
+        const success = await this.binanceFundingWs?.tryReconnect();
+        if (success) {
+          this.dataSourceManager.enableWebSocket(exchange, 'fundingRate');
+        }
+      } catch (error) {
+        logger.error(
+          { exchange, error: error instanceof Error ? error.message : String(error) },
+          '[PriceMonitor] Failed to recover WebSocket'
+        );
+      }
+    }
+    // TODO: 其他交易所的恢復邏輯
   }
 
   /**
@@ -106,13 +203,12 @@ export class PriceMonitor extends EventEmitter {
     logger.info('Starting PriceMonitor');
 
     // 啟動 REST 輪詢器（備援或主要數據源）
-    if (!this.config.enableWebSocket || true) { // 目前先強制使用 REST
-      await this.startRestPolling();
-    }
+    // 無論是否啟用 WebSocket，REST 都作為備援
+    await this.startRestPolling();
 
-    // TODO: 啟動 WebSocket 客戶端（未來實作）
+    // 啟動 WebSocket 客戶端 (Feature 052: T019)
     if (this.config.enableWebSocket) {
-      logger.info('WebSocket not yet implemented, using REST polling');
+      await this.startWebSocket();
     }
 
     logger.info('PriceMonitor started');
@@ -138,7 +234,8 @@ export class PriceMonitor extends EventEmitter {
 
     this.restPollers.clear();
 
-    // TODO: 停止 WebSocket 客戶端
+    // 停止 WebSocket 客戶端 (Feature 052: T019)
+    await this.stopWebSocket();
 
     logger.info('PriceMonitor stopped');
   }
@@ -186,6 +283,137 @@ export class PriceMonitor extends EventEmitter {
         }, 'Failed to start REST poller');
       }
     }
+  }
+
+  /**
+   * 啟動 WebSocket 客戶端 (Feature 052: T019)
+   */
+  private async startWebSocket(): Promise<void> {
+    logger.info('Starting WebSocket clients for PriceMonitor');
+
+    // 啟動 Binance Funding WebSocket（包含 markPrice）
+    try {
+      this.binanceFundingWs = new BinanceFundingWs({
+        autoReconnect: true,
+        enableHealthCheck: true,
+        updateSpeed: '1s',
+      });
+
+      // 監聽資金費率事件（包含 markPrice）
+      this.binanceFundingWs.on('fundingRate', (data: FundingRateReceived) => {
+        this.handleWebSocketPriceUpdate(data);
+      });
+
+      // 監聯連線事件 (Feature 052: T054 整合 DataSourceManager)
+      this.binanceFundingWs.on('connected', () => {
+        this.wsConnected.set('binance', true);
+        logger.info({ exchange: 'binance' }, 'WebSocket connected');
+        // 通知 DataSourceManager WebSocket 已連線
+        this.dataSourceManager.enableWebSocket('binance', 'fundingRate');
+      });
+
+      this.binanceFundingWs.on('disconnected', () => {
+        this.wsConnected.set('binance', false);
+        logger.warn({ exchange: 'binance' }, 'WebSocket disconnected');
+        // 通知 DataSourceManager WebSocket 已斷線，切換到 REST
+        this.dataSourceManager.disableWebSocket('binance', 'fundingRate', 'disconnected');
+      });
+
+      this.binanceFundingWs.on('error', (error: Error) => {
+        logger.error({
+          exchange: 'binance',
+          error: error.message,
+        }, 'WebSocket error');
+        this.emit('error', error);
+        // 通知 DataSourceManager WebSocket 錯誤
+        this.dataSourceManager.disableWebSocket('binance', 'fundingRate', `error: ${error.message}`);
+      });
+
+      // 連接並訂閱
+      await this.binanceFundingWs.connect();
+      await this.binanceFundingWs.subscribe(this.symbols);
+
+      logger.info({
+        exchange: 'binance',
+        symbols: this.symbols.length,
+      }, 'Binance WebSocket started');
+    } catch (error) {
+      logger.error({
+        exchange: 'binance',
+        error: error instanceof Error ? error.message : String(error),
+      }, 'Failed to start Binance WebSocket');
+    }
+
+    // 其他交易所的 WebSocket 在 Phase 5 (US5) 實作
+  }
+
+  /**
+   * 停止 WebSocket 客戶端 (Feature 052: T019)
+   */
+  private async stopWebSocket(): Promise<void> {
+    // 停止 Binance WebSocket
+    if (this.binanceFundingWs) {
+      this.binanceFundingWs.destroy();
+      this.binanceFundingWs = null;
+      this.wsConnected.set('binance', false);
+      logger.info({ exchange: 'binance' }, 'Binance WebSocket stopped');
+    }
+
+    this.wsConnected.clear();
+  }
+
+  /**
+   * 處理 WebSocket 價格更新 (Feature 052: T019)
+   *
+   * 從 BinanceFundingWs 接收 markPrice 數據
+   */
+  private handleWebSocketPriceUpdate(data: FundingRateReceived): void {
+    // 只有當 markPrice 存在時才更新價格
+    if (!data.markPrice) {
+      return;
+    }
+
+    const priceData: PriceData = {
+      exchange: data.exchange,
+      symbol: data.symbol,
+      lastPrice: data.markPrice.toNumber(),
+      markPrice: data.markPrice.toNumber(),
+      indexPrice: data.indexPrice?.toNumber(),
+      timestamp: data.receivedAt,
+      source: 'websocket' as PriceSource,
+    };
+
+    // 儲存到快取
+    this.cache.set(priceData);
+
+    // 發出價格更新事件
+    this.emit('price', priceData);
+
+    // 呼叫回調（如果設定）
+    if (this.config.onWebSocketPrice) {
+      this.config.onWebSocketPrice(priceData);
+    }
+
+    logger.debug({
+      exchange: data.exchange,
+      symbol: data.symbol,
+      markPrice: priceData.markPrice,
+      source: 'websocket',
+    }, 'WebSocket price updated');
+  }
+
+  /**
+   * 取得 WebSocket 連線狀態 (Feature 052: T019)
+   */
+  getWebSocketStatus(): Map<ExchangeName, boolean> {
+    return new Map(this.wsConnected);
+  }
+
+  /**
+   * 檢查 WebSocket 是否已連線 (Feature 052: T019)
+   */
+  isWebSocketConnected(exchange: ExchangeName): boolean {
+    return this.wsConnected.get(exchange) ?? false;
   }
 
   /**

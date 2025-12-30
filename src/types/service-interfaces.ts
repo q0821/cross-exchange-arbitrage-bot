@@ -17,7 +17,7 @@ import { EventEmitter } from 'events';
 /**
  * 交易所類型
  */
-export type Exchange = 'binance' | 'okx';
+export type Exchange = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
 
 /**
  * 價格數據來源類型
@@ -48,7 +48,7 @@ export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
  */
 export interface PriceData {
   /** 唯一識別碼 */
-  id: string;
+  id?: string;
   /** 更新時間 */
   timestamp: Date;
   /** 交易對符號（例如: BTCUSDT）*/
@@ -57,10 +57,14 @@ export interface PriceData {
   exchange: Exchange;
   /** 最新成交價 */
   lastPrice: number;
-  /** 最佳買入價 */
-  bidPrice: number;
-  /** 最佳賣出價 */
-  askPrice: number;
+  /** 最佳買入價 (可選) */
+  bidPrice?: number;
+  /** 最佳賣出價 (可選) */
+  askPrice?: number;
+  /** 標記價格 (WebSocket 來源，可選) */
+  markPrice?: number;
+  /** 指數價格 (WebSocket 來源，可選) */
+  indexPrice?: number;
   /** 24 小時成交量 (可選) */
   volume24h?: number;
   /** 數據來源 */
