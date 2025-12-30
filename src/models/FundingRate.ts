@@ -281,7 +281,7 @@ export function createMultiExchangeFundingRatePair(
           netReturn = parseFloat(netProfitResult.netProfit.mul(100).toFixed(4));
         } catch (error) {
           // If calculation fails, netReturn remains undefined
-          console.error('Failed to calculate net return:', error);
+          logger.warn({ error }, 'Failed to calculate net return');
         }
 
         bestPair = {

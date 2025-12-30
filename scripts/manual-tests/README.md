@@ -38,6 +38,13 @@ pnpm tsx scripts/manual-tests/<script-name>.ts
 |------|------|
 | `test-gateio-conditional-price.ts` | Gate.io 條件單價格測試 |
 
+### OKX 測試
+| 腳本 | 說明 |
+|------|------|
+| `test-okx-funding-history.ts` | OKX 資金費率歷史查詢 |
+| `test-okx-report.ts` | OKX 報告生成測試 |
+| `test-okx-simple.ts` | OKX 簡單功能測試 |
+
 ### 通用測試
 | 腳本 | 說明 |
 |------|------|
@@ -45,6 +52,14 @@ pnpm tsx scripts/manual-tests/<script-name>.ts
 | `test-db-apikey.ts` | 資料庫 API Key 測試 |
 | `test-funding-history.ts` | 資金費率歷史查詢測試 |
 | `test-open-close-position.ts` | 開倉/平倉流程測試 |
+| `test-api.ts` | API 端點測試 |
+| `test-repo.ts` | Repository 測試 |
+
+### 工具腳本
+| 腳本 | 說明 |
+|------|------|
+| `check-db.ts` | 資料庫連線檢查 |
+| `clean-test-data.ts` | 清理測試資料 |
 
 ## 注意事項
 
