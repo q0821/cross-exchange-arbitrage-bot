@@ -35,8 +35,20 @@ export interface MonitorStatus {
   intervalMs: number;
 }
 
-// T041: Singleton instance
-let monitorInstance: ConditionalOrderMonitor | null = null;
+// T041: Singleton instance - 使用 globalThis 避免 Next.js hot reload 問題
+declare global {
+  // eslint-disable-next-line no-var
+  var conditionalOrderMonitor: ConditionalOrderMonitor | undefined;
+}
+
+// 使用 globalThis 確保在 Next.js 開發環境中只有一個實例
+const getMonitorInstance = (): ConditionalOrderMonitor | null => {
+  return globalThis.conditionalOrderMonitor ?? null;
+};
+
+const setMonitorInstance = (instance: ConditionalOrderMonitor | null): void => {
+  globalThis.conditionalOrderMonitor = instance ?? undefined;
+};
 
 /**
  * T040: 初始化 ConditionalOrderMonitor
@@ -52,22 +64,24 @@ export function initializeConditionalOrderMonitor(
   const { intervalMs, autoStart = false } = options;
 
   // 如果已存在實例，返回現有實例（單例模式）
-  if (monitorInstance) {
+  const existingInstance = getMonitorInstance();
+  if (existingInstance) {
     logger.warn({}, 'ConditionalOrderMonitor already initialized, returning existing instance');
-    return monitorInstance;
+    return existingInstance;
   }
 
   // 建立新實例
-  monitorInstance = new ConditionalOrderMonitor(prisma, intervalMs);
+  const newInstance = new ConditionalOrderMonitor(prisma, intervalMs);
+  setMonitorInstance(newInstance);
 
   logger.info(
-    { intervalMs: monitorInstance.intervalMs, autoStart },
+    { intervalMs: newInstance.intervalMs, autoStart },
     'ConditionalOrderMonitor initialized',
   );
 
   // 自動啟動
   if (autoStart) {
-    monitorInstance.start().catch((error) => {
+    newInstance.start().catch((error) => {
       logger.error(
         { error: error instanceof Error ? error.message : String(error) },
         'Failed to auto-start ConditionalOrderMonitor',
@@ -75,7 +89,7 @@ export function initializeConditionalOrderMonitor(
     });
   }
 
-  return monitorInstance;
+  return newInstance;
 }
 
 /**
@@ -85,11 +99,12 @@ export function initializeConditionalOrderMonitor(
  * @returns ConditionalOrderMonitor 實例
  */
 export function getConditionalOrderMonitor(): ConditionalOrderMonitor {
-  if (!monitorInstance) {
+  const instance = getMonitorInstance();
+  if (!instance) {
     throw new Error('ConditionalOrderMonitor not initialized. Call initializeConditionalOrderMonitor() first.');
   }
 
-  return monitorInstance;
+  return instance;
 }
 
 /**
@@ -98,9 +113,10 @@ export function getConditionalOrderMonitor(): ConditionalOrderMonitor {
  * 停止並清除現有實例
  */
 export async function resetMonitor(): Promise<void> {
-  if (monitorInstance) {
-    await monitorInstance.stop();
-    monitorInstance = null;
+  const instance = getMonitorInstance();
+  if (instance) {
+    await instance.stop();
+    setMonitorInstance(null);
     logger.info({}, 'ConditionalOrderMonitor reset');
   }
 }
@@ -113,9 +129,10 @@ export async function resetMonitor(): Promise<void> {
 export async function gracefulShutdown(): Promise<void> {
   logger.info({}, 'Graceful shutdown initiated');
 
-  if (monitorInstance) {
+  const instance = getMonitorInstance();
+  if (instance) {
     try {
-      await monitorInstance.stop();
+      await instance.stop();
       logger.info({}, 'ConditionalOrderMonitor stopped during graceful shutdown');
     } catch (error) {
       logger.error(
@@ -157,7 +174,8 @@ export function setupSignalHandlers(): void {
  * @returns 監控狀態物件
  */
 export function getMonitorStatus(): MonitorStatus {
-  if (!monitorInstance) {
+  const instance = getMonitorInstance();
+  if (!instance) {
     return {
       initialized: false,
       isRunning: false,
@@ -167,8 +185,8 @@ export function getMonitorStatus(): MonitorStatus {
 
   return {
     initialized: true,
-    isRunning: monitorInstance.isRunning,
-    intervalMs: monitorInstance.intervalMs,
+    isRunning: instance.isRunning,
+    intervalMs: instance.intervalMs,
   };
 }
 
@@ -178,12 +196,13 @@ export function getMonitorStatus(): MonitorStatus {
  * 如果尚未初始化，會先初始化
  */
 export async function startMonitor(options: MonitorInitOptions = {}): Promise<void> {
-  if (!monitorInstance) {
-    initializeConditionalOrderMonitor(options);
+  let instance = getMonitorInstance();
+  if (!instance) {
+    instance = initializeConditionalOrderMonitor(options);
   }
 
-  if (monitorInstance && !monitorInstance.isRunning) {
-    await monitorInstance.start();
+  if (instance && !instance.isRunning) {
+    await instance.start();
     logger.info({}, 'ConditionalOrderMonitor started');
   }
 }
@@ -192,8 +211,9 @@ export async function startMonitor(options: MonitorInitOptions = {}): Promise<vo
  * 停止監控服務
  */
 export async function stopMonitor(): Promise<void> {
-  if (monitorInstance && monitorInstance.isRunning) {
-    await monitorInstance.stop();
+  const instance = getMonitorInstance();
+  if (instance && instance.isRunning) {
+    await instance.stop();
     logger.info({}, 'ConditionalOrderMonitor stopped');
   }
 }

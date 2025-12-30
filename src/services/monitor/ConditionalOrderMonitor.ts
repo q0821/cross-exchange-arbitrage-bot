@@ -7,9 +7,11 @@
  */
 
 import { PrismaClient, Position, CloseReason } from '@prisma/client';
+import { Decimal } from 'decimal.js';
 import { logger } from '@/lib/logger';
 import { ExchangeQueryService, DecryptedApiKey } from '@/lib/exchange-query-service';
 import { decrypt } from '@/lib/encryption';
+import { calculatePnL, PnLCalculationInput } from '@/lib/pnl-calculator';
 import { PositionCloser, CloseSingleSideResult } from '@/services/trading/PositionCloser';
 import { DiscordNotifier } from '@/services/notification/DiscordNotifier';
 import { SlackNotifier } from '@/services/notification/SlackNotifier';
@@ -753,6 +755,19 @@ export class ConditionalOrderMonitor {
       '[條件單監控] 觸發事件處理完成',
     );
 
+    // 創建 Trade 記錄
+    try {
+      await this.createTradeRecord(position, triggerResult, closeResult);
+    } catch (tradeError) {
+      logger.error(
+        {
+          positionId: position.id,
+          error: tradeError instanceof Error ? tradeError.message : String(tradeError),
+        },
+        '[條件單監控] 創建 Trade 記錄失敗（非致命錯誤）',
+      );
+    }
+
     // T030: 發送觸發通知
     await this.sendTriggerNotifications(position, triggerResult, closeResult);
 
@@ -798,7 +813,275 @@ export class ConditionalOrderMonitor {
       'Position closed due to both sides triggered',
     );
 
+    // 雙邊觸發也需要創建 Trade 記錄
+    try {
+      await this.createTradeRecordForBothTriggered(position);
+    } catch (tradeError) {
+      logger.error(
+        {
+          positionId: position.id,
+          error: tradeError instanceof Error ? tradeError.message : String(tradeError),
+        },
+        '[條件單監控] 創建 Trade 記錄失敗（雙邊觸發，非致命錯誤）',
+      );
+    }
+
     return { success: true };
+  }
+
+  /**
+   * 創建 Trade 記錄（單邊觸發後平倉）
+   *
+   * 當一邊條件單觸發後，系統自動平倉另一邊，需要創建交易記錄
+   */
+  private async createTradeRecord(
+    position: Position,
+    triggerResult: TriggerResult,
+    closeResult: CloseSingleSideResult,
+  ): Promise<void> {
+    const closedAt = new Date();
+    const triggeredSide = triggerResult.triggerType === 'LONG_SL' || triggerResult.triggerType === 'LONG_TP' ? 'LONG' : 'SHORT';
+    const closedSide = this.getOppositeSide(triggerResult.triggerType);
+
+    // 檢查平倉是否成功
+    if (!closeResult.success) {
+      logger.warn(
+        { positionId: position.id },
+        '[條件單監控] closeSingleSide 失敗，無法創建完整 Trade 記錄',
+      );
+      return;
+    }
+
+    // 從 closeResult 獲取系統平倉邊的資訊（成功時一定有 closedSide）
+    const closedSideInfo = closeResult.closedSide;
+
+    // 查詢觸發邊的成交資訊
+    let triggeredExitPrice: Decimal;
+    let triggeredFee: Decimal;
+
+    try {
+      const triggeredExchange = triggeredSide === 'LONG' ? position.longExchange : position.shortExchange;
+      const triggeredOrderId = triggerResult.triggeredOrderId;
+
+      const service = await this.createExchangeService(triggeredExchange, position.userId);
+      const history = await service.fetchOrderHistory(position.symbol, triggeredOrderId);
+      await service.disconnect();
+
+      if (history && history.triggerPrice) {
+        // 使用 triggerPrice 作為成交價格（條件單的觸發價格）
+        triggeredExitPrice = new Decimal(history.triggerPrice);
+        triggeredFee = new Decimal(0); // 手續費暫時無法獲取，設為 0
+      } else {
+        // 使用設定的停損/停利價格作為估計
+        triggeredExitPrice = new Decimal(
+          triggeredSide === 'LONG'
+            ? (position.longStopLossPrice || position.longTakeProfitPrice || position.longEntryPrice)
+            : (position.shortStopLossPrice || position.shortTakeProfitPrice || position.shortEntryPrice)
+        );
+        triggeredFee = new Decimal(0);
+        logger.warn(
+          { positionId: position.id, triggeredSide },
+          '[條件單監控] 無法獲取觸發邊成交資訊，使用估計價格',
+        );
+      }
+    } catch (error) {
+      // 使用設定的停損/停利價格作為估計
+      triggeredExitPrice = new Decimal(
+        triggeredSide === 'LONG'
+          ? (position.longStopLossPrice || position.longTakeProfitPrice || position.longEntryPrice)
+          : (position.shortStopLossPrice || position.shortTakeProfitPrice || position.shortEntryPrice)
+      );
+      triggeredFee = new Decimal(0);
+      logger.warn(
+        {
+          positionId: position.id,
+          triggeredSide,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        '[條件單監控] 查詢觸發邊成交資訊失敗，使用估計價格',
+      );
+    }
+
+    // 組合兩邊的出場資訊
+    const longExitPrice = triggeredSide === 'LONG' ? triggeredExitPrice : closedSideInfo.price;
+    const longFee = triggeredSide === 'LONG' ? triggeredFee : closedSideInfo.fee;
+    const shortExitPrice = triggeredSide === 'SHORT' ? triggeredExitPrice : closedSideInfo.price;
+    const shortFee = triggeredSide === 'SHORT' ? triggeredFee : closedSideInfo.fee;
+
+    // 計算 PnL
+    const pnlInput: PnLCalculationInput = {
+      longEntryPrice: new Decimal(position.longEntryPrice),
+      longExitPrice,
+      longPositionSize: new Decimal(position.longPositionSize),
+      longFee,
+      shortEntryPrice: new Decimal(position.shortEntryPrice),
+      shortExitPrice,
+      shortPositionSize: new Decimal(position.shortPositionSize),
+      shortFee,
+      leverage: position.longLeverage || 10,
+      openedAt: position.openedAt || new Date(),
+      closedAt,
+      fundingRatePnL: new Decimal(0), // 觸發平倉暫不計算資金費率
+    };
+
+    const pnlResult = calculatePnL(pnlInput);
+
+    // 創建 Trade 記錄
+    const trade = await this.prisma.trade.create({
+      data: {
+        userId: position.userId,
+        positionId: position.id,
+        symbol: position.symbol,
+        longExchange: position.longExchange,
+        shortExchange: position.shortExchange,
+        longEntryPrice: position.longEntryPrice,
+        longExitPrice: longExitPrice.toNumber(),
+        longPositionSize: position.longPositionSize,
+        longFee: longFee.toNumber(),
+        shortEntryPrice: position.shortEntryPrice,
+        shortExitPrice: shortExitPrice.toNumber(),
+        shortPositionSize: position.shortPositionSize,
+        shortFee: shortFee.toNumber(),
+        openedAt: position.openedAt || new Date(),
+        closedAt,
+        holdingDuration: pnlResult.holdingDuration,
+        priceDiffPnL: pnlResult.priceDiffPnL.toNumber(),
+        fundingRatePnL: pnlResult.fundingRatePnL.toNumber(),
+        totalFees: pnlResult.totalFees.toNumber(),
+        totalPnL: pnlResult.totalPnL.toNumber(),
+        roi: pnlResult.roi.toNumber(),
+        status: 'SUCCESS',
+      },
+    });
+
+    logger.info(
+      {
+        positionId: position.id,
+        tradeId: trade.id,
+        triggeredSide,
+        closedSide,
+        totalPnL: pnlResult.totalPnL.toString(),
+        roi: pnlResult.roi.toString(),
+      },
+      '[條件單監控] Trade 記錄已創建',
+    );
+  }
+
+  /**
+   * 創建 Trade 記錄（雙邊同時觸發）
+   *
+   * 當兩邊條件單都觸發時，需要查詢兩邊的成交資訊來創建交易記錄
+   */
+  private async createTradeRecordForBothTriggered(position: Position): Promise<void> {
+    const closedAt = new Date();
+
+    // 查詢兩邊的成交資訊
+    let longExitPrice: Decimal;
+    let longFee: Decimal;
+    let shortExitPrice: Decimal;
+    let shortFee: Decimal;
+
+    // 查詢 Long 邊
+    try {
+      const longService = await this.createExchangeService(position.longExchange, position.userId);
+      const longOrderId = position.longStopLossOrderId || position.longTakeProfitOrderId;
+      if (longOrderId) {
+        const history = await longService.fetchOrderHistory(position.symbol, longOrderId);
+        if (history && history.triggerPrice) {
+          longExitPrice = new Decimal(history.triggerPrice);
+          longFee = new Decimal(0);
+        } else {
+          longExitPrice = new Decimal(position.longStopLossPrice || position.longTakeProfitPrice || position.longEntryPrice);
+          longFee = new Decimal(0);
+        }
+      } else {
+        longExitPrice = new Decimal(position.longEntryPrice);
+        longFee = new Decimal(0);
+      }
+      await longService.disconnect();
+    } catch {
+      longExitPrice = new Decimal(position.longStopLossPrice || position.longTakeProfitPrice || position.longEntryPrice);
+      longFee = new Decimal(0);
+    }
+
+    // 查詢 Short 邊
+    try {
+      const shortService = await this.createExchangeService(position.shortExchange, position.userId);
+      const shortOrderId = position.shortStopLossOrderId || position.shortTakeProfitOrderId;
+      if (shortOrderId) {
+        const history = await shortService.fetchOrderHistory(position.symbol, shortOrderId);
+        if (history && history.triggerPrice) {
+          shortExitPrice = new Decimal(history.triggerPrice);
+          shortFee = new Decimal(0);
+        } else {
+          shortExitPrice = new Decimal(position.shortStopLossPrice || position.shortTakeProfitPrice || position.shortEntryPrice);
+          shortFee = new Decimal(0);
+        }
+      } else {
+        shortExitPrice = new Decimal(position.shortEntryPrice);
+        shortFee = new Decimal(0);
+      }
+      await shortService.disconnect();
+    } catch {
+      shortExitPrice = new Decimal(position.shortStopLossPrice || position.shortTakeProfitPrice || position.shortEntryPrice);
+      shortFee = new Decimal(0);
+    }
+
+    // 計算 PnL
+    const pnlInput: PnLCalculationInput = {
+      longEntryPrice: new Decimal(position.longEntryPrice),
+      longExitPrice,
+      longPositionSize: new Decimal(position.longPositionSize),
+      longFee,
+      shortEntryPrice: new Decimal(position.shortEntryPrice),
+      shortExitPrice,
+      shortPositionSize: new Decimal(position.shortPositionSize),
+      shortFee,
+      leverage: position.longLeverage || 10,
+      openedAt: position.openedAt || new Date(),
+      closedAt,
+      fundingRatePnL: new Decimal(0),
+    };
+
+    const pnlResult = calculatePnL(pnlInput);
+
+    // 創建 Trade 記錄
+    const trade = await this.prisma.trade.create({
+      data: {
+        userId: position.userId,
+        positionId: position.id,
+        symbol: position.symbol,
+        longExchange: position.longExchange,
+        shortExchange: position.shortExchange,
+        longEntryPrice: position.longEntryPrice,
+        longExitPrice: longExitPrice.toNumber(),
+        longPositionSize: position.longPositionSize,
+        longFee: longFee.toNumber(),
+        shortEntryPrice: position.shortEntryPrice,
+        shortExitPrice: shortExitPrice.toNumber(),
+        shortPositionSize: position.shortPositionSize,
+        shortFee: shortFee.toNumber(),
+        openedAt: position.openedAt || new Date(),
+        closedAt,
+        holdingDuration: pnlResult.holdingDuration,
+        priceDiffPnL: pnlResult.priceDiffPnL.toNumber(),
+        fundingRatePnL: pnlResult.fundingRatePnL.toNumber(),
+        totalFees: pnlResult.totalFees.toNumber(),
+        totalPnL: pnlResult.totalPnL.toNumber(),
+        roi: pnlResult.roi.toNumber(),
+        status: 'SUCCESS',
+      },
+    });
+
+    logger.info(
+      {
+        positionId: position.id,
+        tradeId: trade.id,
+        totalPnL: pnlResult.totalPnL.toString(),
+        roi: pnlResult.roi.toString(),
+      },
+      '[條件單監控] Trade 記錄已創建（雙邊觸發）',
+    );
   }
 
   /**
