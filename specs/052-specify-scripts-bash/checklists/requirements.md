@@ -2,6 +2,7 @@
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2025-12-31
+**Updated**: 2025-12-31 (新增持倉監控功能)
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -29,9 +30,28 @@
 - [x] Feature meets measurable outcomes defined in Success Criteria
 - [x] No implementation details leak into specification
 
+## Scope Summary
+
+| 類別 | 數量 |
+|------|------|
+| User Stories | 6 (P1: 3, P2: 3) |
+| Functional Requirements | 16 (FR-001 ~ FR-016) |
+| Success Criteria | 10 (SC-001 ~ SC-010) |
+| Edge Cases | 9 |
+
+### 交易所範圍
+
+| 功能 | 支援交易所 |
+|------|-----------|
+| 資金費率 WebSocket | Binance, OKX, Gate.io, MEXC, BingX (5 家) |
+| 持倉監控 WebSocket | Binance, OKX, Gate.io, BingX (4 家) |
+
+> **備註**: MEXC 因不支援 API 交易，持倉監控功能暫不納入實作範圍。
+
 ## Notes
 
 - 規格已通過所有檢查項目
-- 實作優先級已根據市佔率和現有基礎設施排序：Binance → OKX → Gate.io → MEXC → BingX
-- 已識別現有組件（WebSocketManager、BinanceWsClient、RatesCache）可作為實作基礎
-- TODO 位置已記錄於規格文件中，便於後續實作參考
+- 2025-12-31：擴展範圍納入持倉監控功能（User Story 5, 6）
+- 實作優先級分為兩個面向：資金費率 WebSocket 和持倉監控 WebSocket
+- 已識別現有組件（ConditionalOrderMonitor、TriggerProgressEmitter、PositionCloser）可與新功能整合
+- 持倉監控 WebSocket 將逐步替換現有的 REST 輪詢機制（過渡期並行運作）
