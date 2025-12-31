@@ -567,7 +567,19 @@ export abstract class BaseExchangeWs extends EventEmitter {
     // 先斷開現有連接
     if (this.ws) {
       this.ws.removeAllListeners();
-      this.ws.terminate();
+      // 只有在 WebSocket 已連接或正在連接時才呼叫 terminate
+      // readyState: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
+      try {
+        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+          this.ws.terminate();
+        }
+      } catch (error) {
+        // 忽略 terminate 錯誤
+        logger.debug(
+          { service: this.getLogPrefix(), error: error instanceof Error ? error.message : String(error) },
+          'Error terminating WebSocket (ignored)'
+        );
+      }
       this.ws = null;
       this.isConnected = false;
     }
