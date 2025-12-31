@@ -182,11 +182,43 @@ export class PriceMonitor extends EventEmitter {
       } catch (error) {
         logger.error(
           { exchange, error: error instanceof Error ? error.message : String(error) },
+          '[PriceMonitor] Failed to recover Binance WebSocket'
+        );
+      }
+      return;
+    }
+
+    // OKX, Gate.io, MEXC 使用 connector 的 subscribeWS 恢復
+    if (exchange === 'okx' || exchange === 'gateio' || exchange === 'mexc') {
+      const connector = this.connectors.get(exchange);
+      if (!connector) {
+        logger.warn({ exchange }, '[PriceMonitor] Connector not available for recovery');
+        return;
+      }
+
+      try {
+        // 重新訂閱所有交易對
+        for (const symbol of this.symbols) {
+          await connector.subscribeWS({
+            type: 'fundingRate',
+            symbol,
+            callback: (data: unknown) => {
+              this.handleConnectorWebSocketUpdate(exchange, data as FundingRateReceived);
+            },
+            onError: (error: Error) => {
+              logger.error({ exchange, error: error.message }, `${exchange} WebSocket recovery error`);
+              this.emit('error', error);
+            },
+          });
+        }
+        logger.info({ exchange }, '[PriceMonitor] WebSocket recovered');
+      } catch (error) {
+        logger.error(
+          { exchange, error: error instanceof Error ? error.message : String(error) },
           '[PriceMonitor] Failed to recover WebSocket'
         );
       }
     }
-    // TODO: 其他交易所的恢復邏輯
   }
 
   /**
@@ -344,7 +376,202 @@ export class PriceMonitor extends EventEmitter {
       }, 'Failed to start Binance WebSocket');
     }
 
-    // 其他交易所的 WebSocket 在 Phase 5 (US5) 實作
+    // 啟動 OKX WebSocket (Feature 052: T019)
+    await this.startOkxWebSocket();
+
+    // 啟動 Gate.io WebSocket (Feature 052: T019)
+    await this.startGateioWebSocket();
+
+    // 啟動 MEXC WebSocket (Feature 052: T019)
+    await this.startMexcWebSocket();
+  }
+
+  /**
+   * 啟動 OKX WebSocket (Feature 052: T019)
+   */
+  private async startOkxWebSocket(): Promise<void> {
+    const connector = this.connectors.get('okx');
+    if (!connector) {
+      logger.debug('OKX connector not available, skipping WebSocket');
+      return;
+    }
+
+    try {
+      // 為每個交易對訂閱資金費率
+      for (const symbol of this.symbols) {
+        await connector.subscribeWS({
+          type: 'fundingRate',
+          symbol,
+          callback: (data: unknown) => {
+            this.handleConnectorWebSocketUpdate('okx', data as FundingRateReceived);
+          },
+          onError: (error: Error) => {
+            logger.error({ exchange: 'okx', error: error.message }, 'OKX WebSocket error');
+            this.emit('error', error);
+          },
+        });
+      }
+
+      // 監聽連線事件 (使用 EventEmitter 介面)
+      const okxEmitter = connector as unknown as NodeJS.EventEmitter;
+      okxEmitter.on('wsConnected', () => {
+        this.wsConnected.set('okx', true);
+        logger.info({ exchange: 'okx' }, 'OKX WebSocket connected');
+        this.dataSourceManager.enableWebSocket('okx', 'fundingRate');
+      });
+
+      okxEmitter.on('wsDisconnected', () => {
+        this.wsConnected.set('okx', false);
+        logger.warn({ exchange: 'okx' }, 'OKX WebSocket disconnected');
+        this.dataSourceManager.disableWebSocket('okx', 'fundingRate', 'disconnected');
+      });
+
+      logger.info({ exchange: 'okx', symbols: this.symbols.length }, 'OKX WebSocket started');
+    } catch (error) {
+      logger.error({
+        exchange: 'okx',
+        error: error instanceof Error ? error.message : String(error),
+      }, 'Failed to start OKX WebSocket');
+    }
+  }
+
+  /**
+   * 啟動 Gate.io WebSocket (Feature 052: T019)
+   */
+  private async startGateioWebSocket(): Promise<void> {
+    const connector = this.connectors.get('gateio');
+    if (!connector) {
+      logger.debug('Gate.io connector not available, skipping WebSocket');
+      return;
+    }
+
+    try {
+      // 為每個交易對訂閱資金費率
+      for (const symbol of this.symbols) {
+        await connector.subscribeWS({
+          type: 'fundingRate',
+          symbol,
+          callback: (data: unknown) => {
+            this.handleConnectorWebSocketUpdate('gateio', data as FundingRateReceived);
+          },
+          onError: (error: Error) => {
+            logger.error({ exchange: 'gateio', error: error.message }, 'Gate.io WebSocket error');
+            this.emit('error', error);
+          },
+        });
+      }
+
+      // 監聽連線事件 (使用 EventEmitter 介面)
+      const gateioEmitter = connector as unknown as NodeJS.EventEmitter;
+      gateioEmitter.on('wsConnected', () => {
+        this.wsConnected.set('gateio', true);
+        logger.info({ exchange: 'gateio' }, 'Gate.io WebSocket connected');
+        this.dataSourceManager.enableWebSocket('gateio', 'fundingRate');
+      });
+
+      gateioEmitter.on('wsDisconnected', () => {
+        this.wsConnected.set('gateio', false);
+        logger.warn({ exchange: 'gateio' }, 'Gate.io WebSocket disconnected');
+        this.dataSourceManager.disableWebSocket('gateio', 'fundingRate', 'disconnected');
+      });
+
+      logger.info({ exchange: 'gateio', symbols: this.symbols.length }, 'Gate.io WebSocket started');
+    } catch (error) {
+      logger.error({
+        exchange: 'gateio',
+        error: error instanceof Error ? error.message : String(error),
+      }, 'Failed to start Gate.io WebSocket');
+    }
+  }
+
+  /**
+   * 啟動 MEXC WebSocket (Feature 052: T019)
+   */
+  private async startMexcWebSocket(): Promise<void> {
+    const connector = this.connectors.get('mexc');
+    if (!connector) {
+      logger.debug('MEXC connector not available, skipping WebSocket');
+      return;
+    }
+
+    try {
+      // 為每個交易對訂閱資金費率
+      for (const symbol of this.symbols) {
+        await connector.subscribeWS({
+          type: 'fundingRate',
+          symbol,
+          callback: (data: unknown) => {
+            this.handleConnectorWebSocketUpdate('mexc', data as FundingRateReceived);
+          },
+          onError: (error: Error) => {
+            logger.error({ exchange: 'mexc', error: error.message }, 'MEXC WebSocket error');
+            this.emit('error', error);
+          },
+        });
+      }
+
+      // 監聽連線事件 (使用 EventEmitter 介面)
+      const mexcEmitter = connector as unknown as NodeJS.EventEmitter;
+      mexcEmitter.on('wsConnected', () => {
+        this.wsConnected.set('mexc', true);
+        logger.info({ exchange: 'mexc' }, 'MEXC WebSocket connected');
+        this.dataSourceManager.enableWebSocket('mexc', 'fundingRate');
+      });
+
+      mexcEmitter.on('wsDisconnected', () => {
+        this.wsConnected.set('mexc', false);
+        logger.warn({ exchange: 'mexc' }, 'MEXC WebSocket disconnected');
+        this.dataSourceManager.disableWebSocket('mexc', 'fundingRate', 'disconnected');
+      });
+
+      logger.info({ exchange: 'mexc', symbols: this.symbols.length }, 'MEXC WebSocket started');
+    } catch (error) {
+      logger.error({
+        exchange: 'mexc',
+        error: error instanceof Error ? error.message : String(error),
+      }, 'Failed to start MEXC WebSocket');
+    }
+  }
+
+  /**
+   * 處理來自 Connector 的 WebSocket 更新 (Feature 052: T019)
+   */
+  private handleConnectorWebSocketUpdate(exchange: ExchangeName, data: FundingRateReceived): void {
+    // 只有當 markPrice 存在時才更新價格
+    if (!data.markPrice) {
+      return;
+    }
+
+    const priceData: PriceData = {
+      exchange,
+      symbol: data.symbol,
+      lastPrice: data.markPrice.toNumber(),
+      markPrice: data.markPrice.toNumber(),
+      indexPrice: data.indexPrice?.toNumber(),
+      timestamp: data.receivedAt,
+      source: 'websocket' as PriceSource,
+    };
+
+    // 儲存到快取
+    this.cache.set(priceData);
+
+    // 發出價格更新事件
+    this.emit('price', priceData);
+
+    // 呼叫回調（如果設定）
+    if (this.config.onWebSocketPrice) {
+      this.config.onWebSocketPrice(priceData);
+    }
+
+    // 更新 DataSourceManager 數據接收時間
+    this.dataSourceManager.updateLastDataReceived(exchange, 'fundingRate');
+
+    logger.debug({
+      exchange,
+      symbol: data.symbol,
+      markPrice: priceData.markPrice,
+      source: 'websocket',
+    }, 'Connector WebSocket price updated');
   }
 
   /**
@@ -357,6 +584,42 @@ export class PriceMonitor extends EventEmitter {
       this.binanceFundingWs = null;
       this.wsConnected.set('binance', false);
       logger.info({ exchange: 'binance' }, 'Binance WebSocket stopped');
+    }
+
+    // 停止 OKX WebSocket (Feature 052: T019)
+    const okxConnector = this.connectors.get('okx');
+    if (okxConnector && this.wsConnected.get('okx')) {
+      try {
+        await okxConnector.unsubscribeWS('fundingRate');
+        this.wsConnected.set('okx', false);
+        logger.info({ exchange: 'okx' }, 'OKX WebSocket stopped');
+      } catch (error) {
+        logger.error({ exchange: 'okx', error: error instanceof Error ? error.message : String(error) }, 'Failed to stop OKX WebSocket');
+      }
+    }
+
+    // 停止 Gate.io WebSocket (Feature 052: T019)
+    const gateioConnector = this.connectors.get('gateio');
+    if (gateioConnector && this.wsConnected.get('gateio')) {
+      try {
+        await gateioConnector.unsubscribeWS('fundingRate');
+        this.wsConnected.set('gateio', false);
+        logger.info({ exchange: 'gateio' }, 'Gate.io WebSocket stopped');
+      } catch (error) {
+        logger.error({ exchange: 'gateio', error: error instanceof Error ? error.message : String(error) }, 'Failed to stop Gate.io WebSocket');
+      }
+    }
+
+    // 停止 MEXC WebSocket (Feature 052: T019)
+    const mexcConnector = this.connectors.get('mexc');
+    if (mexcConnector && this.wsConnected.get('mexc')) {
+      try {
+        await mexcConnector.unsubscribeWS('fundingRate');
+        this.wsConnected.set('mexc', false);
+        logger.info({ exchange: 'mexc' }, 'MEXC WebSocket stopped');
+      } catch (error) {
+        logger.error({ exchange: 'mexc', error: error instanceof Error ? error.message : String(error) }, 'Failed to stop MEXC WebSocket');
+      }
     }
 
     this.wsConnected.clear();
