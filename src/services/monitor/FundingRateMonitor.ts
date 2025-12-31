@@ -137,9 +137,16 @@ export class FundingRateMonitor extends EventEmitter {
       });
 
       this.priceMonitor.on('error', (error: Error) => {
-        logger.error({
-          error: error.message,
-        }, 'PriceMonitor error');
+        // 交易對不存在的錯誤降級為 debug
+        const isSymbolNotFound = error.message.includes('60018') ||
+          error.message.includes("doesn't exist") ||
+          error.message.includes('does not have market symbol');
+
+        if (isSymbolNotFound) {
+          logger.debug({ error: error.message }, 'Symbol not available on exchange');
+        } else {
+          logger.error({ error: error.message }, 'PriceMonitor error');
+        }
       });
     }
 
