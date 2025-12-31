@@ -91,9 +91,16 @@ export class RestPoller extends EventEmitter {
         const isSymbolNotFound = errorMessage.includes('does not have market symbol') ||
           errorMessage.includes("doesn't exist") ||
           errorMessage.includes('symbol not found');
+        const isRateLimit = errorMessage.includes('too frequent') ||
+          errorMessage.includes('rate limit') ||
+          errorMessage.includes('429') ||
+          errorMessage.includes('Too Many') ||
+          errorMessage.includes('code\":510');
 
         if (isSymbolNotFound) {
           logger.debug({ error: errorMessage }, 'Initial poll - symbol not available');
+        } else if (isRateLimit) {
+          logger.warn({ exchange: this.connector.name }, 'Initial poll - rate limited');
         } else {
           logger.error({ error: errorMessage }, 'Initial poll failed');
         }
@@ -108,9 +115,16 @@ export class RestPoller extends EventEmitter {
         const isSymbolNotFound = errorMessage.includes('does not have market symbol') ||
           errorMessage.includes("doesn't exist") ||
           errorMessage.includes('symbol not found');
+        const isRateLimit = errorMessage.includes('too frequent') ||
+          errorMessage.includes('rate limit') ||
+          errorMessage.includes('429') ||
+          errorMessage.includes('Too Many') ||
+          errorMessage.includes('code\":510');
 
         if (isSymbolNotFound) {
           logger.debug({ error: errorMessage }, 'Poll - symbol not available');
+        } else if (isRateLimit) {
+          logger.warn({ exchange: this.connector.name }, 'Poll - rate limited');
         } else {
           logger.error({ error: errorMessage }, 'Poll failed');
         }
@@ -168,12 +182,21 @@ export class RestPoller extends EventEmitter {
       const isSymbolNotFound = errorMessage.includes('does not have market symbol') ||
         errorMessage.includes("doesn't exist") ||
         errorMessage.includes('symbol not found');
+      const isRateLimit = errorMessage.includes('too frequent') ||
+        errorMessage.includes('rate limit') ||
+        errorMessage.includes('429') ||
+        errorMessage.includes('Too Many') ||
+        errorMessage.includes('code\":510');
 
       if (isSymbolNotFound) {
         logger.debug({
           exchange: this.connector.name,
           error: errorMessage,
         }, 'Symbol not available on exchange');
+      } else if (isRateLimit) {
+        logger.warn({
+          exchange: this.connector.name,
+        }, 'Rate limited by exchange');
       } else {
         logger.error({
           exchange: this.connector.name,

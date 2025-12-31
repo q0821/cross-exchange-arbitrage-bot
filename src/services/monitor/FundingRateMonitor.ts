@@ -141,9 +141,16 @@ export class FundingRateMonitor extends EventEmitter {
         const isSymbolNotFound = error.message.includes('60018') ||
           error.message.includes("doesn't exist") ||
           error.message.includes('does not have market symbol');
+        const isRateLimit = error.message.includes('too frequent') ||
+          error.message.includes('rate limit') ||
+          error.message.includes('429') ||
+          error.message.includes('Too Many') ||
+          error.message.includes('code\":510');
 
         if (isSymbolNotFound) {
           logger.debug({ error: error.message }, 'Symbol not available on exchange');
+        } else if (isRateLimit) {
+          logger.warn({}, 'PriceMonitor rate limited');
         } else {
           logger.error({ error: error.message }, 'PriceMonitor error');
         }
