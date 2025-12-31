@@ -185,16 +185,31 @@ export class UserConnectorFactory {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const errorDetails = (error as any)?.response?.data || (error as any)?.body || null;
 
-        logger.error(
-          { errorName, errorMessage, errorDetails, userId, exchange },
-          'Failed to get balance'
-        );
+        // 判斷錯誤類型以決定日誌等級
+        const isAuthError = errorName === 'AuthenticationError' ||
+          errorMessage.includes('Invalid OK-ACCESS-KEY') ||
+          errorMessage.includes('Invalid API-key') ||
+          errorMessage.includes('API key') ||
+          errorMessage.includes('50111');
 
         // 判斷是否為 rate limit 錯誤
         const isRateLimit =
           errorMessage.includes('rate limit') ||
           errorMessage.includes('429') ||
           errorMessage.includes('Too Many');
+
+        // AuthenticationError 降級為 warn（API 金鑰無效是預期中的用戶配置問題）
+        if (isAuthError) {
+          logger.warn(
+            { errorName, errorMessage, userId, exchange },
+            'Failed to get balance - API key invalid or expired'
+          );
+        } else {
+          logger.error(
+            { errorName, errorMessage, errorDetails, userId, exchange },
+            'Failed to get balance'
+          );
+        }
 
         results.push({
           exchange,
