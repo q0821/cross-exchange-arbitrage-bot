@@ -314,13 +314,19 @@ export class PriceMonitor extends EventEmitter {
   private async startRestPolling(): Promise<void> {
     for (const [exchangeName, connector] of this.connectors.entries()) {
       try {
+        // MEXC 有嚴格的 rate limit，需要使用較長的輪詢間隔
+        const pollingInterval = exchangeName === 'mexc'
+          ? Math.max(this.config.restPollingIntervalMs, 30000) // MEXC 至少 30 秒
+          : this.config.restPollingIntervalMs;
+
         logger.info({
           exchange: exchangeName,
           symbols: this.symbols.length,
+          intervalMs: pollingInterval,
         }, 'Starting REST poller');
 
         const poller = new RestPoller(connector, this.symbols, {
-          intervalMs: this.config.restPollingIntervalMs,
+          intervalMs: pollingInterval,
           immediate: true,
         });
 
