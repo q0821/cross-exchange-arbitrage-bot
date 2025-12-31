@@ -17,9 +17,9 @@ import {
 } from '@/src/lib/constants';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     symbol: string;
-  };
+  }>;
 }
 
 /**
@@ -31,7 +31,7 @@ export async function GET(
   { params }: RouteParams,
 ): Promise<NextResponse> {
   const correlationId = getCorrelationId(request);
-  const { symbol } = params;
+  const { symbol } = await params;
 
   try {
     // 1. 驗證用戶身份

@@ -28,11 +28,11 @@ const VALIDATION_TIMEOUT_MS = 15000;
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const correlationId = getCorrelationId(request);
   const startTime = Date.now();
-  const apiKeyId = params.id;
+  const { id: apiKeyId } = await params;
 
   try {
     // 1. Authenticate user

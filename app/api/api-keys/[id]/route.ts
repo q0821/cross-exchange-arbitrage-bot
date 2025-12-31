@@ -16,7 +16,7 @@ const apiKeyService = new ApiKeyService(prisma);
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const correlationId = getCorrelationId(request);
 
@@ -24,7 +24,7 @@ export async function GET(
     // 1. 驗證用戶身份
     const user = await authenticate(request);
 
-    const apiKeyId = params.id;
+    const { id: apiKeyId } = await params;
 
     logger.info(
       {
@@ -65,7 +65,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const correlationId = getCorrelationId(request);
 
@@ -73,7 +73,7 @@ export async function PATCH(
     // 1. 驗證用戶身份
     const user = await authenticate(request);
 
-    const apiKeyId = params.id;
+    const { id: apiKeyId } = await params;
 
     // 2. 解析並驗證請求 body
     const body = await request.json();
@@ -119,7 +119,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
   const correlationId = getCorrelationId(request);
 
@@ -127,7 +127,7 @@ export async function DELETE(
     // 1. 驗證用戶身份
     const user = await authenticate(request);
 
-    const apiKeyId = params.id;
+    const { id: apiKeyId } = await params;
 
     logger.info(
       {
