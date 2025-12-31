@@ -34,6 +34,7 @@ const mockExchangeQueryService = {
   fetchConditionalOrders: vi.fn().mockResolvedValue([]),
   fetchOrderHistory: vi.fn().mockResolvedValue(null),
   checkOrderExists: vi.fn().mockResolvedValue(true),
+  checkPositionExists: vi.fn().mockResolvedValue(true),
 };
 
 vi.mock('@/lib/exchange-query-service', () => ({
@@ -44,6 +45,7 @@ vi.mock('@/lib/exchange-query-service', () => ({
 const mockPositionCloser = {
   closeSingleSide: vi.fn().mockResolvedValue({ success: true }),
   cancelSingleSideConditionalOrders: vi.fn().mockResolvedValue(undefined),
+  closePosition: vi.fn().mockResolvedValue({ success: true }),
 };
 
 vi.mock('@/services/trading/PositionCloser', () => ({
@@ -1080,6 +1082,137 @@ describe('ConditionalOrderMonitor', () => {
 
     it('should have emitTriggerCloseFailed method', () => {
       expect(typeof monitor.emitTriggerCloseFailed).toBe('function');
+    });
+  });
+
+  // ==================== Bug 053: 重試機制和預防性平倉測試 ====================
+  describe('Bug 053: Retry logic and preventive close', () => {
+    // 使用 realTimers 因為 confirmTriggerWithHistory 內部有 setTimeout
+    beforeEach(() => {
+      vi.useRealTimers();
+    });
+
+    afterEach(() => {
+      vi.useFakeTimers();
+    });
+
+    describe('confirmTriggerWithHistory retry logic', () => {
+      it('should return true when position does not exist (confirmed trigger)', async () => {
+        mockExchangeQueryService.fetchOrderHistory.mockResolvedValue({
+          orderId: 'long-sl-123',
+          status: 'CANCELED',
+        });
+        mockExchangeQueryService.checkPositionExists.mockResolvedValue(false);
+
+        const result = await monitor.confirmTriggerWithHistory(
+          'binance',
+          'user-456',
+          'BTCUSDT',
+          'long-sl-123',
+          'long',
+          mockPosition,
+        );
+
+        expect(result).toBe(true);
+      });
+
+      it('should return false when position still exists (order just canceled)', async () => {
+        mockExchangeQueryService.fetchOrderHistory.mockResolvedValue({
+          orderId: 'long-sl-123',
+          status: 'CANCELED',
+        });
+        mockExchangeQueryService.checkPositionExists.mockResolvedValue(true);
+
+        const result = await monitor.confirmTriggerWithHistory(
+          'binance',
+          'user-456',
+          'BTCUSDT',
+          'long-sl-123',
+          'long',
+          mockPosition,
+        );
+
+        expect(result).toBe(false);
+      });
+
+      it('should retry when checkPositionExists fails and succeed on second attempt', async () => {
+        mockExchangeQueryService.fetchOrderHistory.mockResolvedValue({
+          orderId: 'long-sl-123',
+          status: 'CANCELED',
+        });
+        // 第一次失敗，第二次成功（持倉不存在 = 確認觸發）
+        mockExchangeQueryService.checkPositionExists
+          .mockRejectedValueOnce(new Error('API Error'))
+          .mockResolvedValueOnce(false);
+
+        const result = await monitor.confirmTriggerWithHistory(
+          'binance',
+          'user-456',
+          'BTCUSDT',
+          'long-sl-123',
+          'long',
+          mockPosition,
+        );
+
+        expect(result).toBe(true);
+        expect(mockExchangeQueryService.checkPositionExists).toHaveBeenCalledTimes(2);
+      }, 15000); // 增加超時時間
+
+      it('should call closePosition when API fails 3 times', async () => {
+        mockExchangeQueryService.fetchOrderHistory.mockResolvedValue({
+          orderId: 'long-sl-123',
+          status: 'CANCELED',
+        });
+        // 連續 3 次失敗
+        mockExchangeQueryService.checkPositionExists
+          .mockRejectedValueOnce(new Error('API Error 1'))
+          .mockRejectedValueOnce(new Error('API Error 2'))
+          .mockRejectedValueOnce(new Error('API Error 3'));
+
+        await monitor.confirmTriggerWithHistory(
+          'binance',
+          'user-456',
+          'BTCUSDT',
+          'long-sl-123',
+          'long',
+          mockPosition,
+        );
+
+        // 應該呼叫 3 次
+        expect(mockExchangeQueryService.checkPositionExists).toHaveBeenCalledTimes(3);
+        // 應該執行預防性平倉
+        expect(mockPositionCloser.closePosition).toHaveBeenCalledWith(
+          expect.objectContaining({
+            positionId: mockPosition.id,
+            userId: mockPosition.userId,
+            closeReason: 'UNCONFIRMED_TRIGGER',
+          }),
+        );
+      }, 15000); // 增加超時時間
+
+      it('should return false after preventive close to avoid single-side close', async () => {
+        mockExchangeQueryService.fetchOrderHistory.mockResolvedValue({
+          orderId: 'long-sl-123',
+          status: 'CANCELED',
+        });
+        // 連續 3 次失敗
+        mockExchangeQueryService.checkPositionExists
+          .mockRejectedValueOnce(new Error('API Error 1'))
+          .mockRejectedValueOnce(new Error('API Error 2'))
+          .mockRejectedValueOnce(new Error('API Error 3'));
+
+        const result = await monitor.confirmTriggerWithHistory(
+          'binance',
+          'user-456',
+          'BTCUSDT',
+          'long-sl-123',
+          'long',
+          mockPosition,
+        );
+
+        // 回傳 false 以避免後續的單邊平倉邏輯
+        expect(result).toBe(false);
+      }, 15000); // 增加超時時間
     });
   });
 });
