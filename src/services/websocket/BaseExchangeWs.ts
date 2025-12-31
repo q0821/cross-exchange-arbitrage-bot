@@ -288,7 +288,16 @@ export abstract class BaseExchangeWs extends EventEmitter {
 
         const connectionTimeout = setTimeout(() => {
           reject(new Error('Connection timeout'));
-          this.ws?.terminate();
+          // 安全終止：連接中的 WebSocket 使用 close()
+          try {
+            if (this.ws?.readyState === WebSocket.CONNECTING) {
+              this.ws.close();
+            } else {
+              this.ws?.terminate();
+            }
+          } catch {
+            // 忽略終止時的錯誤
+          }
         }, this.config.connectionTimeoutMs);
 
         this.ws.on('open', () => {
@@ -567,17 +576,20 @@ export abstract class BaseExchangeWs extends EventEmitter {
     // 先斷開現有連接
     if (this.ws) {
       this.ws.removeAllListeners();
-      // 只有在 WebSocket 已連接或正在連接時才呼叫 terminate
+      // 安全終止連接：OPEN/CLOSING 使用 terminate()，CONNECTING 使用 close()
       // readyState: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
       try {
-        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CLOSING) {
           this.ws.terminate();
+        } else if (this.ws.readyState === WebSocket.CONNECTING) {
+          // 連接中的 WebSocket 使用 close() 而非 terminate()
+          this.ws.close();
         }
       } catch (error) {
-        // 忽略 terminate 錯誤
+        // 忽略終止錯誤
         logger.debug(
           { service: this.getLogPrefix(), error: error instanceof Error ? error.message : String(error) },
-          'Error terminating WebSocket (ignored)'
+          'Error during WebSocket cleanup (ignored)'
         );
       }
       this.ws = null;

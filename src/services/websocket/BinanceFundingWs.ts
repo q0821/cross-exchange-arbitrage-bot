@@ -129,7 +129,16 @@ export class BinanceFundingWs extends EventEmitter {
 
         const connectionTimeout = setTimeout(() => {
           reject(new Error('Connection timeout'));
-          this.ws?.terminate();
+          // 安全終止：連接中的 WebSocket 使用 close()
+          try {
+            if (this.ws?.readyState === WebSocket.CONNECTING) {
+              this.ws.close();
+            } else {
+              this.ws?.terminate();
+            }
+          } catch {
+            // 忽略終止時的錯誤
+          }
         }, 10000);
 
         this.ws.on('open', () => {
@@ -437,7 +446,18 @@ export class BinanceFundingWs extends EventEmitter {
     // 先斷開現有連接
     if (this.ws) {
       this.ws.removeAllListeners();
-      this.ws.terminate();
+      // 安全終止連接：只有在 OPEN 或 CLOSING 狀態才呼叫 terminate
+      try {
+        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CLOSING) {
+          this.ws.terminate();
+        } else if (this.ws.readyState === WebSocket.CONNECTING) {
+          // 連接中的 WebSocket 使用 close() 而非 terminate()
+          this.ws.close();
+        }
+      } catch {
+        // 忽略終止時的錯誤
+        logger.debug({ service: 'BinanceFundingWs' }, 'Ignored error during WebSocket cleanup');
+      }
       this.ws = null;
       this.isConnected = false;
     }
