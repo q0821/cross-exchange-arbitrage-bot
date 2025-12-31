@@ -1,6 +1,6 @@
 # 專案審查報告與改進計劃
 
-## 審查日期: 2025-12-28 (更新)
+## 審查日期: 2026-01-01 (更新)
 
 ---
 
@@ -12,45 +12,50 @@
 | 2025-12-25 | API Key 連線測試功能 | #042 |
 | 2025-12-26 | BingX 交易所整合 | #043 |
 | 2025-12-28 | 統一 UI 主題系統 (Dark Glassmorphism) | #046 |
+| 2025-12-29 | BalanceValidator 單元測試 | #047 |
+| 2025-12-30 | 核心交易模組測試（PositionCloser、FundingFeeQueryService） | #051 |
+| 2025-12-31 | 原生 WebSocket 客戶端（OKX、Gate.io、BingX） | #054 |
+| 2026-01-01 | 條件單觸發誤判修復（Gate.io side 正規化） | Bug #053 |
 
 ---
 
 ## 二、高優先級問題
 
-### 1. 核心交易模組零測試覆蓋 🔴
+### 1. 核心交易模組測試覆蓋 ✅ 部分完成
 
-**問題**: 最關鍵的交易邏輯完全沒有單元測試
+**狀態**: 已為關鍵模組添加單元測試
 
-| 模組 | 行數 | 風險 | 說明 |
-|------|------|------|------|
-| `PositionOrchestrator.ts` | 1,214 | 🔴 極高 | 開倉協調器（Saga Pattern） |
-| `PositionCloser.ts` | 1,265 | 🔴 極高 | 平倉協調器 |
-| `BalanceValidator.ts` | 299 | 🔴 高 | 保證金計算、風險控制 |
-| `conditional-order-calculator.ts` | ~300 | 🟠 中 | 停損停利價格計算 |
-| `PositionLockService.ts` | ~200 | 🟠 中 | Redis 分散式鎖 |
-| `cost-calculator.ts` | ~150 | 🟡 低 | 交易成本計算 |
+| 模組 | 行數 | 風險 | 狀態 | 說明 |
+|------|------|------|------|------|
+| `PositionOrchestrator.ts` | 1,214 | 🟠 中 | ⚠️ 待測試 | 開倉協調器（Saga Pattern） |
+| `PositionCloser.ts` | 1,265 | 🟢 低 | ✅ 已測試 | 平倉協調器（#051 bilateral close 測試） |
+| `BalanceValidator.ts` | 299 | 🟢 低 | ✅ 已測試 | 保證金計算、風險控制（#047） |
+| `conditional-order-calculator.ts` | ~300 | 🟠 中 | ⚠️ 待測試 | 停損停利價格計算 |
+| `PositionLockService.ts` | ~200 | 🟠 中 | ⚠️ 待測試 | Redis 分散式鎖 |
+| `cost-calculator.ts` | ~150 | 🟡 低 | ⚠️ 待測試 | 交易成本計算 |
 
-**影響**: 交易邏輯錯誤可能導致資金損失
-
-**建議**: 優先為 PositionOrchestrator 和 PositionCloser 添加測試
+**剩餘工作**: 為 PositionOrchestrator 添加單元測試
 
 ---
 
-### 2. WebSocket 訂閱功能未實作（5 個交易所）
+### 2. WebSocket 訂閱功能 ✅ 已完成 (#054)
 
-**問題**: 所有交易所連接器的 WebSocket 訂閱/取消訂閱方法都未實作
+**狀態**: 已實作原生 WebSocket 客戶端，繞過 CCXT 限制
 
-| 檔案 | 行號 | 狀態 |
-|------|------|------|
-| `src/connectors/binance.ts` | 461-468 | ⚠️ TODO |
-| `src/connectors/okx.ts` | 876-883 | ⚠️ TODO |
-| `src/connectors/gateio.ts` | 479-486 | ⚠️ TODO |
-| `src/connectors/mexc.ts` | 475-482 | ⚠️ TODO |
-| `src/connectors/bingx.ts` | 572-579 | ⚠️ TODO |
+| 交易所 | WebSocket 客戶端 | 狀態 |
+|--------|-----------------|------|
+| Binance | `BinanceFundingWs.ts` | ✅ 已實作 |
+| OKX | `OkxFundingWs.ts` | ✅ 已實作 |
+| Gate.io | `GateioFundingWs.ts` | ✅ 已實作 |
+| BingX | `BingxFundingWs.ts` | ✅ 已實作 |
+| MEXC | REST Poller (備援) | ✅ 運作中 |
 
-**影響**: 無法即時推送數據，套利機會檢測依賴輪詢（延遲較高）
+**架構說明**:
+- `DataSourceManager` 統一管理 WebSocket 和 REST 資料來源
+- `EXCHANGE_DATA_SOURCE_CAPABILITIES` 配置各交易所支援的資料來源類型
+- 自動 fallback：WebSocket 斷線時切換至 REST 輪詢
 
-**目前方案**: 使用 REST API 輪詢（可接受但非最優）
+**註**: Connector 中的 `subscribeToTicker()` 方法保留為 TODO，因實際 WebSocket 邏輯已移至獨立的 `*FundingWs` 類別
 
 ---
 
@@ -135,45 +140,49 @@
 
 ## 五、測試覆蓋率現況
 
-### 已覆蓋（40 個測試檔案，~4,806 行）
+### 已覆蓋（80+ 個測試案例）
 
-- ✅ 所有交易所連接器
+- ✅ 所有交易所連接器（Binance、OKX、Gate.io、MEXC、BingX）
 - ✅ ConditionalOrderService（停損停利）
+- ✅ ConditionalOrderMonitor（條件單觸發偵測，含 Bug #053 修復測試）
 - ✅ FundingFeeQueryService
 - ✅ pnl-calculator
 - ✅ ApiKeyValidator
 - ✅ ArbitrageAssessor
+- ✅ BalanceValidator（#047）
+- ✅ PositionCloser - bilateral close（#051）
+- ✅ WebSocket 客戶端（BaseExchangeWs、OkxFundingWs、GateioFundingWs、BingxFundingWs）
+- ✅ DataSourceManager
+- ✅ ConnectionPool
 
-### 未覆蓋（核心交易邏輯）
+### 未覆蓋（待補充）
 
-- ❌ PositionOrchestrator
-- ❌ PositionCloser
-- ❌ BalanceValidator
-- ❌ PositionDetailsService
-- ❌ PositionLockService
-- ❌ AuditLogger
+- ⚠️ PositionOrchestrator（開倉協調器）
+- ⚠️ PositionDetailsService
+- ⚠️ PositionLockService
+- ⚠️ AuditLogger
 
 ---
 
 ## 六、優先級排序建議
 
-### 立即處理（本週）
-1. 為 `BalanceValidator` 添加單元測試（風險控制）
+### 已完成 ✅
+1. ~~為 `BalanceValidator` 添加單元測試（風險控制）~~ → #047
+2. ~~為 `PositionCloser` 添加單元測試~~ → #051
+3. ~~實現 WebSocket 訂閱功能~~ → #054（4 個交易所）
 
-### 短期（1-2 週）
-2. 為 `PositionOrchestrator` 添加單元測試
-3. 為 `PositionCloser` 添加單元測試
-4. 提取 Binance 帳戶檢測共享工具
+### 短期
+1. 為 `PositionOrchestrator` 添加單元測試
+2. 提取 Binance 帳戶檢測共享工具
 
-### 中期（2-4 週）
-5. 拆分大型檔案（PositionCloser、PositionOrchestrator）
-6. 統一 API 錯誤處理
-7. 實現 WebSocket 訂閱功能（至少 1 個交易所）
+### 中期
+3. 拆分大型檔案（PositionCloser、PositionOrchestrator）
+4. 統一 API 錯誤處理
 
 ### 長期
-8. 移除 any 類型
-9. 完善 Binance 期貨功能
-10. OI 數據 OKX 替代方案
+5. 移除 any 類型
+6. 完善 Binance 期貨功能
+7. OI 數據 OKX 替代方案
 
 ---
 
@@ -213,3 +222,8 @@
 | 2025-12-26 | BingX 交易所整合 | ✅ 完成 |
 | 2025-12-28 | 統一 UI 主題系統 | ✅ 完成 |
 | 2025-12-28 | 專案審查更新 | ✅ 完成 |
+| 2025-12-29 | BalanceValidator 單元測試 (#047) | ✅ 完成 |
+| 2025-12-30 | 核心交易模組測試 (#051) | ✅ 完成 |
+| 2025-12-31 | 原生 WebSocket 客戶端 (#054) | ✅ 完成 |
+| 2026-01-01 | 條件單觸發誤判修復 (Bug #053) | ✅ 完成 |
+| 2026-01-01 | 專案審查報告更新 | ✅ 完成 |
