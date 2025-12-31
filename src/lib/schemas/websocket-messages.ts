@@ -317,8 +317,8 @@ const BingxMarkPriceDataSchema = z.object({
   E: z.number(),
   s: z.string(),
   p: z.string(),
-  r: z.string(),
-  T: z.number(),
+  r: z.string().optional(),   // 資金費率（某些幣種可能沒有）
+  T: z.number().optional(),   // 下次結算時間（某些幣種可能沒有）
 });
 
 /** BingX markPrice event schema (公開頻道) */

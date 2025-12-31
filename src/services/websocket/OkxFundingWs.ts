@@ -372,8 +372,19 @@ export class OkxFundingWs extends BaseExchangeWs {
       let orderType: OrderStatusChanged['orderType'] = 'MARKET';
       if (order.ordType === 'limit') {
         orderType = 'LIMIT';
-      } else if (order.ordType === 'trigger' || order.ordType === 'oco') {
+      } else if (order.ordType === 'trigger' || order.ordType === 'stop_loss' || order.ordType === 'take_profit') {
         orderType = 'STOP_MARKET';
+      }
+
+      // OKX posSide 'net' 表示淨倉模式，需要根據 side 推斷持倉方向
+      let positionSide: 'LONG' | 'SHORT' = 'LONG';
+      if (order.posSide === 'long') {
+        positionSide = 'LONG';
+      } else if (order.posSide === 'short') {
+        positionSide = 'SHORT';
+      } else {
+        // net 模式下根據 side 推斷
+        positionSide = order.side === 'buy' ? 'LONG' : 'SHORT';
       }
 
       const orderStatusChanged: OrderStatusChanged = {
@@ -383,13 +394,13 @@ export class OkxFundingWs extends BaseExchangeWs {
         clientOrderId: order.clOrdId || undefined,
         status,
         side: order.side === 'buy' ? 'BUY' : 'SELL',
-        positionSide: order.posSide === 'long' ? 'LONG' : order.posSide === 'short' ? 'SHORT' : 'BOTH',
+        positionSide,
         orderType,
         price: order.px ? new Decimal(order.px) : undefined,
-        avgPrice: order.avgPx ? new Decimal(order.avgPx) : undefined,
+        avgPrice: order.fillPx ? new Decimal(order.fillPx) : new Decimal(0),
         quantity: new Decimal(order.sz),
-        filledQuantity: order.accFillSz ? new Decimal(order.accFillSz) : new Decimal(0),
-        reduceOnly: order.reduceOnly === 'true',
+        filledQuantity: order.fillSz ? new Decimal(order.fillSz) : new Decimal(0),
+        reduceOnly: false, // OKX WebSocket 不提供此欄位
         updateTime: new Date(parseInt(order.uTime, 10)),
         source: 'websocket',
         receivedAt: new Date(),

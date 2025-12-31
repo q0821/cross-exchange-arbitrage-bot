@@ -181,6 +181,16 @@ export class RatesCache {
   updateFromWebSocket(data: FundingRateReceived): void {
     const { exchange, symbol, fundingRate } = data;
 
+    // 跳過沒有資金費率的數據（某些新上架幣種可能沒有）
+    if (!fundingRate) {
+      logger.debug({
+        symbol,
+        exchange,
+        source: 'websocket',
+      }, 'Skipping rate update - no funding rate');
+      return;
+    }
+
     // 取得現有的快取數據
     const existing = this.cache.get(symbol);
 
@@ -242,11 +252,12 @@ export class RatesCache {
     const exchangeName = exchange as ExchangeName;
 
     // 創建新的 FundingRateRecord
+    // fundingRate 已在 updateFromWebSocket 檢查，這裡使用 ! 斷言
     const newRate = new FundingRateRecord({
       exchange: exchangeName,
       symbol: data.symbol,
-      fundingRate: fundingRate.toNumber(),
-      nextFundingTime,
+      fundingRate: fundingRate!.toNumber(),
+      nextFundingTime: nextFundingTime ?? new Date(), // 若無結算時間則使用當前時間
       recordedAt: data.receivedAt,
     });
 
@@ -278,11 +289,12 @@ export class RatesCache {
     const exchangeName = exchange as ExchangeName;
 
     // 創建 FundingRateRecord
+    // fundingRate 已在 updateFromWebSocket 檢查，這裡使用 ! 斷言
     const rate = new FundingRateRecord({
       exchange: exchangeName,
       symbol,
-      fundingRate: fundingRate.toNumber(),
-      nextFundingTime,
+      fundingRate: fundingRate!.toNumber(),
+      nextFundingTime: nextFundingTime ?? new Date(), // 若無結算時間則使用當前時間
       recordedAt: data.receivedAt,
     });
 

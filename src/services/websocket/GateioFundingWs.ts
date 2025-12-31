@@ -322,7 +322,7 @@ export class GateioFundingWs extends BaseExchangeWs {
         positionSide,
         orderType: 'MARKET', // Gate.io WebSocket 不區分訂單類型
         price: order.price ? new Decimal(order.price) : undefined,
-        avgPrice: order.fill_price ? new Decimal(order.fill_price) : undefined,
+        avgPrice: order.fill_price ? new Decimal(order.fill_price) : new Decimal(0),
         quantity: new Decimal(Math.abs(order.size)),
         filledQuantity: new Decimal(Math.abs(order.size) - order.left),
         reduceOnly: order.is_reduce_only,

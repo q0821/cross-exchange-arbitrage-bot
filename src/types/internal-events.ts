@@ -22,10 +22,10 @@ export interface FundingRateReceived {
   exchange: ExchangeName;
   /** 交易對符號 */
   symbol: string;
-  /** 資金費率 */
-  fundingRate: Decimal;
-  /** 下次結算時間 */
-  nextFundingTime: Date;
+  /** 資金費率（某些幣種可能沒有，如新上架） */
+  fundingRate?: Decimal;
+  /** 下次結算時間（某些幣種可能沒有） */
+  nextFundingTime?: Date;
   /** 標記價格 */
   markPrice?: Decimal;
   /** 指數價格 */

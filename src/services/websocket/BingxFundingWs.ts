@@ -336,11 +336,13 @@ export class BingxFundingWs extends BaseExchangeWs {
 
     const symbol = fromBingxSymbol(data.s);
 
+    // 某些幣種可能沒有資金費率資料（如新上架幣種）
+    // 仍然發送事件，但 fundingRate 和 nextFundingTime 為 undefined
     const fundingRateReceived: FundingRateReceived = {
       exchange: 'bingx',
       symbol,
-      fundingRate: new Decimal(data.r),
-      nextFundingTime: new Date(data.T),
+      fundingRate: data.r ? new Decimal(data.r) : undefined,
+      nextFundingTime: data.T ? new Date(data.T) : undefined,
       markPrice: new Decimal(data.p),
       source: 'websocket',
       receivedAt: new Date(),
@@ -414,7 +416,7 @@ export class BingxFundingWs extends BaseExchangeWs {
       positionSide: order.ps,
       orderType,
       price: undefined, // BingX 不直接提供限價
-      avgPrice: order.ap ? new Decimal(order.ap) : undefined,
+      avgPrice: order.ap ? new Decimal(order.ap) : new Decimal(0),
       quantity: new Decimal(order.z).plus(new Decimal(order.z)), // 無法從此 schema 取得原始數量
       filledQuantity: new Decimal(order.z),
       reduceOnly: false, // BingX WebSocket 不提供此欄位

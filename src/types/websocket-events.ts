@@ -287,8 +287,8 @@ export interface BingxMarkPriceEvent {
     E: number;              // 事件時間 (毫秒)
     s: string;              // 交易對, e.g., 'BTC-USDT'
     p: string;              // 標記價格
-    r: string;              // 資金費率
-    T: number;              // 下次結算時間 (毫秒)
+    r?: string;             // 資金費率（某些幣種可能沒有）
+    T?: number;             // 下次結算時間（某些幣種可能沒有）
   };
 }
 
@@ -463,9 +463,9 @@ export interface WsAuthErrorEvent {
 export interface FundingRateReceived {
   exchange: ExchangeName;
   symbol: string;
-  fundingRate: Decimal;
-  nextFundingTime: Date;
-  nextFundingRate?: Decimal;  // 預估下次資金費率
+  fundingRate?: Decimal;       // 某些幣種可能沒有（如新上架）
+  nextFundingTime?: Date;      // 某些幣種可能沒有
+  nextFundingRate?: Decimal;   // 預估下次資金費率
   markPrice?: Decimal;
   indexPrice?: Decimal;
   source: 'websocket' | 'rest';
@@ -489,14 +489,21 @@ export interface OrderStatusChanged {
   exchange: ExchangeName;
   symbol: string;
   orderId: string;
+  clientOrderId?: string;
   orderType: string;
-  status: 'NEW' | 'FILLED' | 'CANCELED' | 'EXPIRED';
+  status: 'NEW' | 'FILLED' | 'PARTIALLY_FILLED' | 'CANCELED' | 'EXPIRED';
   side: 'BUY' | 'SELL';
   positionSide: 'LONG' | 'SHORT';
-  filledQty: Decimal;
+  price?: Decimal;
   avgPrice: Decimal;
+  quantity?: Decimal;
+  filledQty?: Decimal;
+  filledQuantity?: Decimal;
   stopPrice?: Decimal;     // For conditional orders
   realizedPnl?: Decimal;
+  reduceOnly?: boolean;
+  updateTime?: Date;
+  source?: 'websocket' | 'rest';
   receivedAt: Date;
 }
 
