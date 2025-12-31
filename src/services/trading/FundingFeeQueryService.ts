@@ -174,6 +174,9 @@ export class FundingFeeQueryService {
     try {
       const ccxtExchange = await this.createCcxtExchange(exchange, userId);
 
+      // 必須先載入市場資訊
+      await ccxtExchange.loadMarkets();
+
       logger.info(
         {
           exchange,
@@ -196,13 +199,19 @@ export class FundingFeeQueryService {
         );
       }
 
+      // OKX 需要特殊處理：instType 參數
+      const params: Record<string, unknown> = { until: endTime.getTime() };
+      if (exchange === 'okx') {
+        params.instType = 'SWAP';
+      }
+
       // 調用 CCXT fetchFundingHistory
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const history = await (ccxtExchange as any).fetchFundingHistory(
         ccxtSymbol,
         startTime.getTime(),
         undefined, // limit
-        { until: endTime.getTime() },
+        params,
       );
 
       // 解析並累加結算記錄
@@ -285,42 +294,111 @@ export class FundingFeeQueryService {
         '[BingX] Querying funding fee history via native API',
       );
 
-      // 調用 BingX 原生 API: /openApi/swap/v2/user/income
-      // 不帶 symbol 參數，查詢所有記錄後再過濾
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const response = await (ccxtExchange as any).swapV2PrivateGetUserIncome({
-        incomeType: 'FUNDING_FEE',
-        startTime: startTime.getTime(),
-        endTime: endTime.getTime(),
-        limit: 1000,
-      });
+      // 嘗試多種 API 端點
+      let data: unknown[] = [];
 
-      logger.debug(
-        { response: JSON.stringify(response).slice(0, 500) },
-        '[BingX] Funding fee API response',
-      );
+      try {
+        // 方法 1: 使用 swapV2PrivateGetUserIncome
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const response = await (ccxtExchange as any).swapV2PrivateGetUserIncome({
+          incomeType: 'FUNDING_FEE',
+          startTime: startTime.getTime(),
+          endTime: endTime.getTime(),
+          limit: 1000,
+        });
+
+        logger.debug(
+          { response: JSON.stringify(response).slice(0, 500) },
+          '[BingX] swapV2PrivateGetUserIncome response',
+        );
+
+        data = response?.data || [];
+      } catch (apiError) {
+        const apiErrorMsg = apiError instanceof Error ? apiError.message : String(apiError);
+        logger.debug({ error: apiErrorMsg }, '[BingX] swapV2PrivateGetUserIncome failed, trying alternative');
+
+        // 方法 2: 使用 privateGetSwapV2UserIncome
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const response2 = await (ccxtExchange as any).privateGetSwapV2UserIncome({
+            incomeType: 'FUNDING_FEE',
+            startTime: startTime.getTime(),
+            endTime: endTime.getTime(),
+            limit: 1000,
+          });
+
+          logger.debug(
+            { response: JSON.stringify(response2).slice(0, 500) },
+            '[BingX] privateGetSwapV2UserIncome response',
+          );
+
+          data = response2?.data || [];
+        } catch (apiError2) {
+          const apiError2Msg = apiError2 instanceof Error ? apiError2.message : String(apiError2);
+          logger.debug({ error: apiError2Msg }, '[BingX] privateGetSwapV2UserIncome also failed');
+
+          // 方法 3: 嘗試使用 fetchMyTrades 獲取資金費率
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const trades = await (ccxtExchange as any).fetchMyTrades(
+              `${symbol.replace(/([A-Z]+)(USDT|USDC|USD)$/, '$1/$2:$2')}`,
+              startTime.getTime(),
+              undefined,
+              { endTime: endTime.getTime() },
+            );
+
+            // 過濾出 funding fee 交易
+            const fundingTrades = trades.filter((t: { type?: string; info?: { tradeType?: string } }) =>
+              t.type === 'funding' || t.info?.tradeType === 'FUNDING_FEE'
+            );
+
+            data = fundingTrades.map((t: { timestamp: number; datetime: string; amount?: number; cost?: number; id?: string }) => ({
+              time: t.timestamp,
+              income: t.amount || t.cost || 0,
+              symbol: bingxSymbol,
+              tranId: t.id,
+            }));
+
+            logger.debug({ fundingTradesCount: data.length }, '[BingX] Extracted funding from trades');
+          } catch (tradeError) {
+            logger.debug(
+              { error: tradeError instanceof Error ? tradeError.message : String(tradeError) },
+              '[BingX] fetchMyTrades also failed',
+            );
+          }
+        }
+      }
 
       // 解析響應
       // BingX 返回格式: { code: 0, data: [{ income, symbol, time, ... }] }
-      const data = response?.data || [];
       const entries: FundingFeeEntry[] = [];
       let totalAmount = new Decimal(0);
 
-      for (const entry of data) {
+      for (const entry of data as Array<{
+        symbol?: string;
+        income?: string | number;
+        amount?: string | number;
+        time?: string | number;
+        timestamp?: string | number;
+        tranId?: string;
+        id?: string;
+      }>) {
         // 過濾：只保留匹配的 symbol
         const entrySymbol = entry.symbol || '';
-        if (entrySymbol !== bingxSymbol) {
+        if (entrySymbol && entrySymbol !== bingxSymbol) {
           continue;
         }
 
         const amount = new Decimal(entry.income || entry.amount || 0);
-        const timestamp = parseInt(entry.time || entry.timestamp, 10);
+        const timestamp = parseInt(String(entry.time || entry.timestamp), 10);
+
+        if (isNaN(timestamp)) continue;
 
         entries.push({
           timestamp,
           datetime: new Date(timestamp).toISOString(),
           amount,
-          symbol: entrySymbol,
+          symbol: entrySymbol || bingxSymbol,
           id: entry.tranId || entry.id || String(timestamp),
         });
         totalAmount = totalAmount.plus(amount);
@@ -328,7 +406,7 @@ export class FundingFeeQueryService {
 
       result.entries = entries;
       result.totalAmount = totalAmount;
-      result.success = true;
+      result.success = entries.length > 0 || data.length === 0; // 空結果也算成功
 
       logger.info(
         {

@@ -49,6 +49,7 @@ describe('FundingFeeQueryService', () => {
     fetchFundingHistory: Mock;
     fapiPrivateGetPositionSideDual: Mock;
     papiGetUmPositionSideDual: Mock;
+    loadMarkets: Mock;
   };
 
   // Test fixtures
@@ -73,6 +74,7 @@ describe('FundingFeeQueryService', () => {
       // Mock for Binance account type detection - default to standard Futures
       fapiPrivateGetPositionSideDual: vi.fn().mockResolvedValue({ dualSidePosition: false }),
       papiGetUmPositionSideDual: vi.fn(),
+      loadMarkets: vi.fn().mockResolvedValue({}),
     };
 
     // Mock CCXT constructor to return our mock exchange

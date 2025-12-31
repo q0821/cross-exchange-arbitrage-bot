@@ -224,14 +224,30 @@ export class PositionDetailsService {
     try {
       const ccxtExchange = await this.createCcxtExchange(exchange, userId);
 
-      // 使用 AbortController 實作 3 秒超時
+      // 必須先載入市場資訊，CCXT 才能正確解析永續合約 symbol
+      await ccxtExchange.loadMarkets();
+
+      // 使用 AbortController 實作 5 秒超時（loadMarkets 後 fetchTicker 應該很快）
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
         const ticker = await ccxtExchange.fetchTicker(ccxtSymbol);
         clearTimeout(timeoutId);
-        return ticker.last || null;
+
+        // 優先使用 mark price，若無則使用 last price
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tickerInfo = (ticker as any).info as Record<string, unknown> | undefined;
+        const price = tickerInfo?.markPrice
+          ? parseFloat(String(tickerInfo.markPrice))
+          : (ticker.last || null);
+
+        logger.debug(
+          { exchange, ccxtSymbol, last: ticker.last, markPrice: tickerInfo?.markPrice, returnedPrice: price },
+          'Price fetched successfully',
+        );
+
+        return price;
       } catch (fetchError) {
         clearTimeout(timeoutId);
         throw fetchError;
