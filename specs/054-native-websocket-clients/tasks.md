@@ -34,18 +34,16 @@
 
 **Purpose**: 必須在任何 User Story 之前完成的核心基礎設施
 
-**⚠️ CRITICAL**: 所有 User Story 都依賴此階段完成
-
 - [x] T008 建立 BaseExchangeWs 抽象類別 in `src/services/websocket/BaseExchangeWs.ts`
 - [x] T009 建立 ConnectionPool 多連線管理器 in `src/services/websocket/ConnectionPool.ts`
-- [ ] T010 [P] 更新 DataSourceManager 支援新交易所 in `src/services/monitor/DataSourceManager.ts`
+- [x] T010 [P] 更新 DataSourceManager 支援新交易所 in `src/services/monitor/DataSourceManager.ts`
 - [x] T011 [P] 更新 data-source.ts 新增交易所 WebSocket 支援配置 in `src/types/data-source.ts`
 
-**Checkpoint**: ✅ 基礎架構就緒 - 可開始 User Story 實作
+**Checkpoint**: ✅ 基礎架構就緒 - 所有任務完成
 
 ---
 
-## Phase 3: User Story 1+2 - 即時資金費率與價格監控 (Priority: P1) 🎯 MVP (IN PROGRESS)
+## Phase 3: User Story 1+2 - 即時資金費率與價格監控 (Priority: P1) ✅ COMPLETED
 
 **Goal**: 即時接收 OKX/Gate.io/BingX 的資金費率和標記價格更新
 
@@ -73,7 +71,7 @@
 
 ---
 
-## Phase 4: User Story 3 - 訂單狀態即時通知 (Priority: P2)
+## Phase 4: User Story 3 - 訂單狀態即時通知 (Priority: P2) ✅ COMPLETED
 
 **Goal**: 即時接收訂單狀態更新（成交、部分成交、取消）
 
@@ -99,7 +97,7 @@
 
 ---
 
-## Phase 5: User Story 4 - 自動重連與容錯 (Priority: P2)
+## Phase 5: User Story 4 - 自動重連與容錯 (Priority: P2) ✅ COMPLETED
 
 **Goal**: WebSocket 連線具備自動重連機制，確保系統穩定運作
 
@@ -126,7 +124,7 @@
 
 ---
 
-## Phase 6: User Story 5 - 資料源狀態監控 (Priority: P3)
+## Phase 6: User Story 5 - 資料源狀態監控 (Priority: P3) ✅ COMPLETED
 
 **Goal**: 透過 API 查詢各交易所 WebSocket 連線狀態
 
@@ -148,7 +146,7 @@
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 7: Polish & Cross-Cutting Concerns ✅ COMPLETED
 
 **Purpose**: 跨 User Story 的改進和文件更新
 
