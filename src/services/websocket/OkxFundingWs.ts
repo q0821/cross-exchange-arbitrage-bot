@@ -14,39 +14,64 @@
  * 連線限制：每連線最多 100 個訂閱頻道
  */
 
+import crypto from 'crypto';
 import Decimal from 'decimal.js';
 import { BaseExchangeWs, type BaseExchangeWsConfig } from './BaseExchangeWs';
 import {
   parseOkxFundingRateEvent,
   parseOkxMarkPriceEvent,
+  parseOkxOrderEvent,
 } from '@/lib/schemas/websocket-messages';
 import { toOkxSymbol, fromOkxSymbol } from '@/lib/symbol-converter';
 import { logger } from '@/lib/logger';
 import type { ExchangeName } from '@/connectors/types';
-import type { FundingRateReceived } from '@/types/websocket-events';
+import type { FundingRateReceived, OrderStatusChanged } from '@/types/websocket-events';
 
 // =============================================================================
 // 1. 類型定義
 // =============================================================================
 
+/** OKX API 憑證 */
+export interface OkxCredentials {
+  apiKey: string;
+  secretKey: string;
+  passphrase: string;
+}
+
 /** OKX WebSocket 配置 */
 export interface OkxFundingWsConfig extends BaseExchangeWsConfig {
-  /** WebSocket URL */
+  /** WebSocket URL (public) */
   wsUrl?: string;
+  /** Private WebSocket URL */
+  privateWsUrl?: string;
   /** 訂閱頻道類型：funding-rate, mark-price, both */
   channelType?: 'funding-rate' | 'mark-price' | 'both';
+  /** API 憑證（私有頻道需要） */
+  credentials?: OkxCredentials;
 }
 
 /** OKX 訂閱參數 */
 interface OkxSubscriptionArg {
-  channel: 'funding-rate' | 'mark-price';
-  instId: string;
+  channel: 'funding-rate' | 'mark-price' | 'orders';
+  instId?: string;
+  instType?: 'SWAP';
 }
 
 /** OKX 訂閱請求 */
 interface OkxSubscribeRequest {
   op: 'subscribe' | 'unsubscribe';
   args: OkxSubscriptionArg[];
+}
+
+/** OKX 登入請求 */
+interface OkxLoginRequest {
+  op: 'login';
+  args: Array<{
+    apiKey: string;
+    passphrase: string;
+    timestamp: string;
+    sign: string;
+  }>;
 }
 
 // =============================================================================
@@ -67,21 +92,31 @@ export class OkxFundingWs extends BaseExchangeWs {
   protected readonly exchangeName: ExchangeName = 'okx';
   private channelType: 'funding-rate' | 'mark-price' | 'both';
   private wsUrl: string;
+  private privateWsUrl: string;
+  private credentials?: OkxCredentials;
 
   // 暫存標記價格，用於與資金費率合併
   private markPriceCache: Map<string, Decimal> = new Map();
+
+  // 私有頻道狀態
+  private isPrivateAuthenticated = false;
+  private pendingOrderSubscription = false;
 
   constructor(config: OkxFundingWsConfig = {}) {
     super(config);
 
     this.wsUrl = config.wsUrl ?? 'wss://ws.okx.com:8443/ws/v5/public';
+    this.privateWsUrl = config.privateWsUrl ?? 'wss://ws.okx.com:8443/ws/v5/private';
     this.channelType = config.channelType ?? 'both';
+    this.credentials = config.credentials;
 
     logger.debug(
       {
         service: this.getLogPrefix(),
         wsUrl: this.wsUrl,
+        privateWsUrl: this.privateWsUrl,
         channelType: this.channelType,
+        hasCredentials: !!this.credentials,
       },
       'OkxFundingWs initialized'
     );
@@ -135,6 +170,12 @@ export class OkxFundingWs extends BaseExchangeWs {
     try {
       const message = typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString());
 
+      // 處理登入回應
+      if (message.event === 'login') {
+        this.handleLoginResponse(message);
+        return;
+      }
+
       // 處理訂閱回應
       if (message.event === 'subscribe' || message.event === 'unsubscribe') {
         logger.debug(
@@ -167,6 +208,12 @@ export class OkxFundingWs extends BaseExchangeWs {
       // 處理 mark-price 事件
       if (message.arg?.channel === 'mark-price') {
         this.handleMarkPriceMessage(message);
+        return;
+      }
+
+      // 處理 orders 事件（私有頻道）
+      if (message.arg?.channel === 'orders') {
+        this.handleOrderMessage(message);
         return;
       }
 
@@ -259,8 +306,242 @@ export class OkxFundingWs extends BaseExchangeWs {
     }
   }
 
+  /**
+   * 處理登入回應
+   */
+  private handleLoginResponse(message: { event: 'login'; code: string; msg: string }): void {
+    if (message.code === '0') {
+      this.isPrivateAuthenticated = true;
+      logger.info({ service: this.getLogPrefix() }, 'OKX private channel authenticated');
+      this.emit('authenticated');
+
+      // 如果有待處理的訂單訂閱，執行訂閱
+      if (this.pendingOrderSubscription) {
+        this.pendingOrderSubscription = false;
+        this.doSubscribeOrders();
+      }
+    } else {
+      this.isPrivateAuthenticated = false;
+      logger.error(
+        { service: this.getLogPrefix(), code: message.code, msg: message.msg },
+        'OKX private channel authentication failed'
+      );
+      this.emit('authError', new Error(`Login failed: ${message.code} - ${message.msg}`));
+    }
+  }
+
+  /**
+   * 處理訂單更新訊息
+   */
+  private handleOrderMessage(message: unknown): void {
+    const result = parseOkxOrderEvent(message);
+
+    if (!result.success) {
+      logger.warn(
+        { service: this.getLogPrefix(), error: result.error.message },
+        'Invalid order message'
+      );
+      return;
+    }
+
+    const { data } = result.data;
+
+    for (const order of data) {
+      const symbol = fromOkxSymbol(order.instId);
+
+      // 映射 OKX 狀態到通用狀態
+      let status: OrderStatusChanged['status'];
+      switch (order.state) {
+        case 'live':
+          status = 'NEW';
+          break;
+        case 'partially_filled':
+          status = 'PARTIALLY_FILLED';
+          break;
+        case 'filled':
+          status = 'FILLED';
+          break;
+        case 'canceled':
+          status = 'CANCELED';
+          break;
+        default:
+          status = 'NEW';
+      }
+
+      // 映射訂單類型
+      let orderType: OrderStatusChanged['orderType'] = 'MARKET';
+      if (order.ordType === 'limit') {
+        orderType = 'LIMIT';
+      } else if (order.ordType === 'trigger' || order.ordType === 'oco') {
+        orderType = 'STOP_MARKET';
+      }
+
+      const orderStatusChanged: OrderStatusChanged = {
+        exchange: 'okx',
+        symbol,
+        orderId: order.ordId,
+        clientOrderId: order.clOrdId || undefined,
+        status,
+        side: order.side === 'buy' ? 'BUY' : 'SELL',
+        positionSide: order.posSide === 'long' ? 'LONG' : order.posSide === 'short' ? 'SHORT' : 'BOTH',
+        orderType,
+        price: order.px ? new Decimal(order.px) : undefined,
+        avgPrice: order.avgPx ? new Decimal(order.avgPx) : undefined,
+        quantity: new Decimal(order.sz),
+        filledQuantity: order.accFillSz ? new Decimal(order.accFillSz) : new Decimal(0),
+        reduceOnly: order.reduceOnly === 'true',
+        updateTime: new Date(parseInt(order.uTime, 10)),
+        source: 'websocket',
+        receivedAt: new Date(),
+      };
+
+      this.emit('orderUpdate', orderStatusChanged);
+
+      logger.debug(
+        {
+          service: this.getLogPrefix(),
+          symbol,
+          orderId: order.ordId,
+          status,
+          side: order.side,
+        },
+        'Order update received'
+      );
+    }
+  }
+
   // =============================================================================
-  // 5. 公開方法
+  // 5. 私有頻道認證
+  // =============================================================================
+
+  /**
+   * 生成 OKX 登入簽名
+   * 簽名格式: HMAC-SHA256(timestamp + 'GET' + '/users/self/verify')
+   */
+  private generateLoginSignature(timestamp: string, secretKey: string): string {
+    const signatureString = `${timestamp}GET/users/self/verify`;
+    return crypto.createHmac('sha256', secretKey).update(signatureString).digest('base64');
+  }
+
+  /**
+   * 建立登入訊息
+   */
+  private buildLoginMessage(): OkxLoginRequest | null {
+    if (!this.credentials) {
+      logger.warn({ service: this.getLogPrefix() }, 'Cannot login: no credentials provided');
+      return null;
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const sign = this.generateLoginSignature(timestamp, this.credentials.secretKey);
+
+    return {
+      op: 'login',
+      args: [
+        {
+          apiKey: this.credentials.apiKey,
+          passphrase: this.credentials.passphrase,
+          timestamp,
+          sign,
+        },
+      ],
+    };
+  }
+
+  /**
+   * 執行登入認證
+   * 需要在私有頻道訂閱前調用
+   */
+  login(): boolean {
+    const loginMessage = this.buildLoginMessage();
+    if (!loginMessage) {
+      return false;
+    }
+
+    if (!this.ws || this.ws.readyState !== 1) {
+      logger.warn({ service: this.getLogPrefix() }, 'Cannot login: WebSocket not connected');
+      return false;
+    }
+
+    this.ws.send(JSON.stringify(loginMessage));
+    logger.debug({ service: this.getLogPrefix() }, 'Login message sent');
+    return true;
+  }
+
+  /**
+   * 訂閱訂單更新頻道
+   * 如果尚未認證，會先登入再訂閱
+   */
+  subscribeOrders(): void {
+    if (!this.credentials) {
+      logger.warn({ service: this.getLogPrefix() }, 'Cannot subscribe orders: no credentials');
+      return;
+    }
+
+    if (!this.isPrivateAuthenticated) {
+      // 尚未認證，先登入
+      this.pendingOrderSubscription = true;
+      this.login();
+      return;
+    }
+
+    this.doSubscribeOrders();
+  }
+
+  /**
+   * 實際執行訂單訂閱
+   */
+  private doSubscribeOrders(): void {
+    if (!this.ws || this.ws.readyState !== 1) {
+      logger.warn({ service: this.getLogPrefix() }, 'Cannot subscribe orders: WebSocket not connected');
+      return;
+    }
+
+    const subscribeMessage = {
+      op: 'subscribe',
+      args: [
+        {
+          channel: 'orders',
+          instType: 'SWAP',
+        },
+      ],
+    };
+
+    this.ws.send(JSON.stringify(subscribeMessage));
+    logger.info({ service: this.getLogPrefix() }, 'Subscribed to orders channel');
+  }
+
+  /**
+   * 取消訂閱訂單更新頻道
+   */
+  unsubscribeOrders(): void {
+    if (!this.ws || this.ws.readyState !== 1) {
+      return;
+    }
+
+    const unsubscribeMessage = {
+      op: 'unsubscribe',
+      args: [
+        {
+          channel: 'orders',
+          instType: 'SWAP',
+        },
+      ],
+    };
+
+    this.ws.send(JSON.stringify(unsubscribeMessage));
+    logger.info({ service: this.getLogPrefix() }, 'Unsubscribed from orders channel');
+  }
+
+  /**
+   * 檢查是否已認證
+   */
+  isAuthenticated(): boolean {
+    return this.isPrivateAuthenticated;
+  }
+
+  // =============================================================================
+  // 6. 公開方法
   // =============================================================================
 
   /**

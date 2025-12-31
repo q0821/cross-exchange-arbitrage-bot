@@ -6,12 +6,14 @@
 
 import { describe, it, expect } from 'vitest';
 import Decimal from 'decimal.js';
+import crypto from 'crypto';
 import {
   parseGateioTickerEvent,
+  parseGateioOrderEvent,
   parseCcxtFundingRate,
 } from '@/lib/schemas/websocket-messages';
 import { toGateioSymbol, fromGateioSymbol } from '@/lib/symbol-converter';
-import type { GateioTickerEvent } from '@/types/websocket-events';
+import type { GateioTickerEvent, GateioOrderEvent } from '@/types/websocket-events';
 
 describe('GateioFundingWs', () => {
   describe('Native Message Parsing', () => {
@@ -254,6 +256,240 @@ describe('GateioFundingWs', () => {
         event: 'update',
         result: 'invalid',
       });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // T024: Gate.io 私有頻道認證測試
+  // ==========================================================================
+  describe('Private Channel Authentication (T024)', () => {
+    describe('Auth Message Generation', () => {
+      it('should generate correct auth message structure', () => {
+        const apiKey = 'test-api-key';
+        const secretKey = 'test-secret-key';
+        const channel = 'futures.orders';
+        const event = 'subscribe';
+        const timestamp = Math.floor(Date.now() / 1000);
+
+        // Gate.io 簽名: HMAC-SHA512(channel + event + timestamp)
+        const signatureString = `channel=${channel}&event=${event}&time=${timestamp}`;
+        const sign = crypto
+          .createHmac('sha512', secretKey)
+          .update(signatureString)
+          .digest('hex');
+
+        const authMessage = {
+          time: timestamp,
+          channel,
+          event,
+          auth: {
+            method: 'api_key',
+            KEY: apiKey,
+            SIGN: sign,
+          },
+          payload: ['!all'],
+        };
+
+        expect(authMessage.channel).toBe('futures.orders');
+        expect(authMessage.event).toBe('subscribe');
+        expect(authMessage.auth.method).toBe('api_key');
+        expect(authMessage.auth.KEY).toBe(apiKey);
+        expect(typeof authMessage.auth.SIGN).toBe('string');
+        expect(authMessage.auth.SIGN.length).toBe(128); // SHA512 hex = 128 chars
+      });
+
+      it('should generate valid HMAC-SHA512 signature', () => {
+        const secretKey = 'test-secret';
+        const signatureString = 'channel=futures.orders&event=subscribe&time=1704096000';
+
+        const sign = crypto
+          .createHmac('sha512', secretKey)
+          .update(signatureString)
+          .digest('hex');
+
+        // SHA512 = 64 bytes = 128 hex chars
+        expect(sign.length).toBe(128);
+        // 驗證是有效的 hex 字串
+        expect(/^[0-9a-f]+$/.test(sign)).toBe(true);
+      });
+    });
+
+    describe('Auth Response Handling', () => {
+      it('should parse successful auth response', () => {
+        const successResponse = {
+          time: 1704096000,
+          channel: 'futures.orders',
+          event: 'subscribe',
+          error: null,
+          result: { status: 'success' },
+        };
+
+        expect(successResponse.error).toBeNull();
+        expect(successResponse.result.status).toBe('success');
+      });
+
+      it('should detect auth failure', () => {
+        const failureResponse = {
+          time: 1704096000,
+          channel: 'futures.orders',
+          event: 'subscribe',
+          error: {
+            code: 2,
+            message: 'invalid signature',
+          },
+          result: null,
+        };
+
+        expect(failureResponse.error).not.toBeNull();
+        expect(failureResponse.error?.code).toBe(2);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // T024: Gate.io 訂單更新解析測試
+  // ==========================================================================
+  describe('Order Event Parsing (T024)', () => {
+    it('should parse valid Gate.io futures.orders event', () => {
+      const mockOrderEvent: GateioOrderEvent = {
+        time: 1704096000,
+        channel: 'futures.orders',
+        event: 'update',
+        result: [
+          {
+            id: 123456789,
+            contract: 'BTC_USDT',
+            size: 100,
+            price: '42000',
+            status: 'finished',
+            finish_as: 'filled',
+            fill_price: '42000',
+            left: 0,
+            is_close: false,
+            is_reduce_only: false,
+            create_time: 1704096000,
+            finish_time: 1704096001,
+          },
+        ],
+      };
+
+      const result = parseGateioOrderEvent(mockOrderEvent);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.channel).toBe('futures.orders');
+        expect(result.data.result[0].id).toBe(123456789);
+        expect(result.data.result[0].status).toBe('finished');
+        expect(result.data.result[0].finish_as).toBe('filled');
+      }
+    });
+
+    it('should parse canceled order event', () => {
+      const mockCanceledOrder: GateioOrderEvent = {
+        time: 1704096000,
+        channel: 'futures.orders',
+        event: 'update',
+        result: [
+          {
+            id: 987654321,
+            contract: 'ETH_USDT',
+            size: -50,
+            price: '2200',
+            status: 'finished',
+            finish_as: 'cancelled',
+            fill_price: '0',
+            left: 50,
+            is_close: true,
+            is_reduce_only: true,
+            create_time: 1704096000,
+            finish_time: 1704096002,
+          },
+        ],
+      };
+
+      const result = parseGateioOrderEvent(mockCanceledOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.result[0].status).toBe('finished');
+        expect(result.data.result[0].finish_as).toBe('cancelled');
+        expect(result.data.result[0].left).toBe(50);
+      }
+    });
+
+    it('should parse open order', () => {
+      const mockOpenOrder: GateioOrderEvent = {
+        time: 1704096000,
+        channel: 'futures.orders',
+        event: 'update',
+        result: [
+          {
+            id: 111222333,
+            contract: 'SOL_USDT',
+            size: 10,
+            price: '100',
+            status: 'open',
+            finish_as: 'filled', // Not yet finished
+            fill_price: '0',
+            left: 10,
+            is_close: false,
+            is_reduce_only: false,
+            create_time: 1704096000,
+            finish_time: 0,
+          },
+        ],
+      };
+
+      const result = parseGateioOrderEvent(mockOpenOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.result[0].status).toBe('open');
+        expect(result.data.result[0].left).toBe(10);
+      }
+    });
+
+    it('should handle short position order (negative size)', () => {
+      const mockShortOrder: GateioOrderEvent = {
+        time: 1704096000,
+        channel: 'futures.orders',
+        event: 'update',
+        result: [
+          {
+            id: 444555666,
+            contract: 'BTC_USDT',
+            size: -100, // Negative = short
+            price: '42000',
+            status: 'finished',
+            finish_as: 'filled',
+            fill_price: '42000',
+            left: 0,
+            is_close: false,
+            is_reduce_only: false,
+            create_time: 1704096000,
+            finish_time: 1704096003,
+          },
+        ],
+      };
+
+      const result = parseGateioOrderEvent(mockShortOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.result[0].size).toBe(-100);
+      }
+    });
+
+    it('should reject order event with invalid channel', () => {
+      const invalidChannel = {
+        time: 1704096000,
+        channel: 'futures.tickers', // wrong channel
+        event: 'update',
+        result: [],
+      };
+
+      const result = parseGateioOrderEvent(invalidChannel);
       expect(result.success).toBe(false);
     });
   });

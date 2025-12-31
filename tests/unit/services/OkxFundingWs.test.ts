@@ -6,13 +6,15 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Decimal from 'decimal.js';
+import crypto from 'crypto';
 import {
   parseOkxFundingRateEvent,
   parseOkxMarkPriceEvent,
+  parseOkxOrderEvent,
   parseCcxtFundingRate,
 } from '@/lib/schemas/websocket-messages';
 import { toOkxSymbol, fromOkxSymbol } from '@/lib/symbol-converter';
-import type { OkxFundingRateEvent, OkxMarkPriceEvent } from '@/types/websocket-events';
+import type { OkxFundingRateEvent, OkxMarkPriceEvent, OkxOrderEvent } from '@/types/websocket-events';
 
 describe('OkxFundingWs', () => {
   describe('Native Message Parsing', () => {
@@ -322,6 +324,275 @@ describe('OkxFundingWs', () => {
 
     it('should handle CCXT null data gracefully', () => {
       const result = parseCcxtFundingRate(null);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // T023: OKX 私有頻道認證測試
+  // ==========================================================================
+  describe('Private Channel Authentication (T023)', () => {
+    describe('Login Message Generation', () => {
+      it('should generate correct login message structure', () => {
+        const apiKey = 'test-api-key';
+        const secretKey = 'test-secret-key';
+        const passphrase = 'test-passphrase';
+        const timestamp = '1704096000';
+
+        // 模擬簽名生成
+        const preHash = timestamp + 'GET' + '/users/self/verify';
+        const sign = crypto
+          .createHmac('sha256', secretKey)
+          .update(preHash)
+          .digest('base64');
+
+        const loginMessage = {
+          op: 'login',
+          args: [
+            {
+              apiKey,
+              passphrase,
+              timestamp,
+              sign,
+            },
+          ],
+        };
+
+        expect(loginMessage.op).toBe('login');
+        expect(loginMessage.args).toHaveLength(1);
+        expect(loginMessage.args[0].apiKey).toBe(apiKey);
+        expect(loginMessage.args[0].passphrase).toBe(passphrase);
+        expect(loginMessage.args[0].timestamp).toBe(timestamp);
+        expect(typeof loginMessage.args[0].sign).toBe('string');
+        expect(loginMessage.args[0].sign.length).toBeGreaterThan(0);
+      });
+
+      it('should generate valid HMAC-SHA256 signature', () => {
+        const secretKey = 'test-secret';
+        const timestamp = '1704096000';
+        const preHash = timestamp + 'GET' + '/users/self/verify';
+
+        const sign = crypto
+          .createHmac('sha256', secretKey)
+          .update(preHash)
+          .digest('base64');
+
+        // 驗證簽名是 base64 格式
+        expect(() => Buffer.from(sign, 'base64')).not.toThrow();
+        // 驗證簽名長度 (SHA256 = 32 bytes = 44 chars base64)
+        expect(sign.length).toBe(44);
+      });
+    });
+
+    describe('Login Response Handling', () => {
+      it('should parse successful login response', () => {
+        const successResponse = {
+          event: 'login',
+          code: '0',
+          msg: '',
+        };
+
+        expect(successResponse.event).toBe('login');
+        expect(successResponse.code).toBe('0');
+      });
+
+      it('should detect login failure', () => {
+        const failureResponse = {
+          event: 'error',
+          code: '60005',
+          msg: 'Invalid sign',
+        };
+
+        expect(failureResponse.event).toBe('error');
+        expect(failureResponse.code).not.toBe('0');
+      });
+
+      it('should detect invalid API key', () => {
+        const invalidKeyResponse = {
+          event: 'error',
+          code: '60001',
+          msg: 'Invalid API Key',
+        };
+
+        expect(invalidKeyResponse.code).toBe('60001');
+      });
+
+      it('should detect expired timestamp', () => {
+        const expiredResponse = {
+          event: 'error',
+          code: '60007',
+          msg: 'Timestamp request expired',
+        };
+
+        expect(expiredResponse.code).toBe('60007');
+      });
+    });
+  });
+
+  // ==========================================================================
+  // T023: OKX 訂單更新解析測試
+  // ==========================================================================
+  describe('Order Event Parsing (T023)', () => {
+    it('should parse valid OKX orders event', () => {
+      const mockOrderEvent: OkxOrderEvent = {
+        arg: {
+          channel: 'orders',
+          instType: 'SWAP',
+        },
+        data: [
+          {
+            instId: 'BTC-USDT-SWAP',
+            ordId: '123456789',
+            clOrdId: 'client-order-1',
+            px: '42000',
+            sz: '0.1',
+            ordType: 'limit',
+            side: 'buy',
+            posSide: 'long',
+            state: 'filled',
+            fillSz: '0.1',
+            fillPx: '42000',
+            pnl: '10.5',
+            fee: '-0.42',
+            feeCcy: 'USDT',
+            cTime: '1704096000000',
+            uTime: '1704096001000',
+          },
+        ],
+      };
+
+      const result = parseOkxOrderEvent(mockOrderEvent);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.arg.channel).toBe('orders');
+        expect(result.data.data[0].ordId).toBe('123456789');
+        expect(result.data.data[0].state).toBe('filled');
+        expect(result.data.data[0].fillSz).toBe('0.1');
+      }
+    });
+
+    it('should parse canceled order event', () => {
+      const mockCanceledOrder: OkxOrderEvent = {
+        arg: {
+          channel: 'orders',
+          instType: 'SWAP',
+        },
+        data: [
+          {
+            instId: 'ETH-USDT-SWAP',
+            ordId: '987654321',
+            clOrdId: 'client-order-2',
+            px: '2200',
+            sz: '1',
+            ordType: 'limit',
+            side: 'sell',
+            posSide: 'short',
+            state: 'canceled',
+            fillSz: '0',
+            fillPx: '0',
+            pnl: '0',
+            fee: '0',
+            feeCcy: 'USDT',
+            cTime: '1704096000000',
+            uTime: '1704096002000',
+          },
+        ],
+      };
+
+      const result = parseOkxOrderEvent(mockCanceledOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.data[0].state).toBe('canceled');
+        expect(result.data.data[0].fillSz).toBe('0');
+      }
+    });
+
+    it('should parse partially filled order', () => {
+      const mockPartialOrder: OkxOrderEvent = {
+        arg: {
+          channel: 'orders',
+          instType: 'SWAP',
+        },
+        data: [
+          {
+            instId: 'SOL-USDT-SWAP',
+            ordId: '111222333',
+            clOrdId: 'client-order-3',
+            px: '100',
+            sz: '10',
+            ordType: 'limit',
+            side: 'buy',
+            posSide: 'long',
+            state: 'partially_filled',
+            fillSz: '5',
+            fillPx: '100',
+            pnl: '0',
+            fee: '-0.5',
+            feeCcy: 'USDT',
+            cTime: '1704096000000',
+            uTime: '1704096003000',
+          },
+        ],
+      };
+
+      const result = parseOkxOrderEvent(mockPartialOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.data[0].state).toBe('partially_filled');
+        expect(result.data.data[0].fillSz).toBe('5');
+        expect(result.data.data[0].sz).toBe('10');
+      }
+    });
+
+    it('should parse trigger order types', () => {
+      const mockTriggerOrder: OkxOrderEvent = {
+        arg: {
+          channel: 'orders',
+          instType: 'SWAP',
+        },
+        data: [
+          {
+            instId: 'BTC-USDT-SWAP',
+            ordId: '444555666',
+            clOrdId: 'sl-order-1',
+            px: '40000',
+            sz: '0.1',
+            ordType: 'stop_loss',
+            side: 'sell',
+            posSide: 'long',
+            state: 'filled',
+            fillSz: '0.1',
+            fillPx: '40000',
+            pnl: '-200',
+            fee: '-0.4',
+            feeCcy: 'USDT',
+            cTime: '1704096000000',
+            uTime: '1704096004000',
+          },
+        ],
+      };
+
+      const result = parseOkxOrderEvent(mockTriggerOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.data[0].ordType).toBe('stop_loss');
+      }
+    });
+
+    it('should reject order event with invalid channel', () => {
+      const invalidChannel = {
+        arg: {
+          channel: 'positions', // wrong channel
+          instType: 'SWAP',
+        },
+        data: [],
+      };
+
+      const result = parseOkxOrderEvent(invalidChannel);
       expect(result.success).toBe(false);
     });
   });

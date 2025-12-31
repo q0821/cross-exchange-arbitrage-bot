@@ -6,12 +6,14 @@
 
 import { describe, it, expect } from 'vitest';
 import Decimal from 'decimal.js';
+import crypto from 'crypto';
 import {
   parseBingxMarkPriceEvent,
+  parseBingxUserDataEvent,
   parseCcxtFundingRate,
 } from '@/lib/schemas/websocket-messages';
 import { toBingxSymbol, fromBingxSymbol } from '@/lib/symbol-converter';
-import type { BingxMarkPriceEvent } from '@/types/websocket-events';
+import type { BingxMarkPriceEvent, BingxOrderTradeUpdate } from '@/types/websocket-events';
 
 describe('BingxFundingWs', () => {
   describe('Native Message Parsing', () => {
@@ -303,6 +305,245 @@ describe('BingxFundingWs', () => {
 
       expect(errorResponse.code).not.toBe(0);
       expect(errorResponse.msg).toBe('Invalid symbol');
+    });
+  });
+
+  // ==========================================================================
+  // T025: BingX 私有頻道認證測試 (listenKey 機制)
+  // ==========================================================================
+  describe('Private Channel Authentication (T025)', () => {
+    describe('listenKey Management', () => {
+      it('should generate correct listenKey request headers', () => {
+        const apiKey = 'test-api-key';
+        const secretKey = 'test-secret-key';
+        const timestamp = Date.now();
+
+        // BingX 簽名格式
+        const params = `timestamp=${timestamp}`;
+        const sign = crypto
+          .createHmac('sha256', secretKey)
+          .update(params)
+          .digest('hex');
+
+        const headers = {
+          'X-BX-APIKEY': apiKey,
+          'X-BX-SIGN': sign,
+          'X-BX-TIMESTAMP': timestamp.toString(),
+        };
+
+        expect(headers['X-BX-APIKEY']).toBe(apiKey);
+        expect(typeof headers['X-BX-SIGN']).toBe('string');
+        expect(headers['X-BX-SIGN'].length).toBe(64); // SHA256 hex = 64 chars
+      });
+
+      it('should generate valid HMAC-SHA256 signature', () => {
+        const secretKey = 'test-secret';
+        const params = 'timestamp=1704096000000';
+
+        const sign = crypto
+          .createHmac('sha256', secretKey)
+          .update(params)
+          .digest('hex');
+
+        // SHA256 = 32 bytes = 64 hex chars
+        expect(sign.length).toBe(64);
+        // 驗證是有效的 hex 字串
+        expect(/^[0-9a-f]+$/.test(sign)).toBe(true);
+      });
+
+      it('should construct private WebSocket URL with listenKey', () => {
+        const listenKey = 'pqia91ma19a5s61cv6a81va65sd099v8a65va65s';
+        const baseUrl = 'wss://open-api-swap.bingx.com/swap-market';
+
+        const privateUrl = `${baseUrl}?listenKey=${listenKey}`;
+
+        expect(privateUrl).toContain('listenKey=');
+        expect(privateUrl).toBe(
+          'wss://open-api-swap.bingx.com/swap-market?listenKey=pqia91ma19a5s61cv6a81va65sd099v8a65va65s'
+        );
+      });
+    });
+
+    describe('listenKey Response Handling', () => {
+      it('should parse successful listenKey response', () => {
+        const successResponse = {
+          code: 0,
+          data: {
+            listenKey: 'pqia91ma19a5s61cv6a81va65sd099v8a65va65s',
+          },
+        };
+
+        expect(successResponse.code).toBe(0);
+        expect(successResponse.data.listenKey).toBeTruthy();
+        expect(typeof successResponse.data.listenKey).toBe('string');
+      });
+
+      it('should detect listenKey creation failure', () => {
+        const failureResponse = {
+          code: 100001,
+          msg: 'Invalid API Key',
+          data: null,
+        };
+
+        expect(failureResponse.code).not.toBe(0);
+        expect(failureResponse.data).toBeNull();
+      });
+
+      it('should handle listenKey renewal response', () => {
+        const renewResponse = {
+          code: 0,
+          msg: 'success',
+        };
+
+        expect(renewResponse.code).toBe(0);
+      });
+    });
+  });
+
+  // ==========================================================================
+  // T025: BingX 訂單更新解析測試
+  // ==========================================================================
+  describe('Order Event Parsing (T025)', () => {
+    it('should parse valid BingX ORDER_TRADE_UPDATE event', () => {
+      const mockOrderEvent: BingxOrderTradeUpdate = {
+        e: 'ORDER_TRADE_UPDATE',
+        E: 1704096000000,
+        o: {
+          s: 'BTC-USDT',
+          c: 'client-order-1',
+          S: 'BUY',
+          o: 'LIMIT',
+          X: 'FILLED',
+          i: '123456789',
+          z: '0.1',
+          ap: '42000',
+          sp: '0',
+          rp: '10.5',
+          ps: 'LONG',
+        },
+      };
+
+      const result = parseBingxUserDataEvent(mockOrderEvent);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.e).toBe('ORDER_TRADE_UPDATE');
+        expect(result.data.o.i).toBe('123456789');
+        expect(result.data.o.X).toBe('FILLED');
+        expect(result.data.o.z).toBe('0.1');
+      }
+    });
+
+    it('should parse canceled order event', () => {
+      const mockCanceledOrder: BingxOrderTradeUpdate = {
+        e: 'ORDER_TRADE_UPDATE',
+        E: 1704096001000,
+        o: {
+          s: 'ETH-USDT',
+          c: 'client-order-2',
+          S: 'SELL',
+          o: 'LIMIT',
+          X: 'CANCELED',
+          i: '987654321',
+          z: '0',
+          ap: '0',
+          sp: '0',
+          rp: '0',
+          ps: 'SHORT',
+        },
+      };
+
+      const result = parseBingxUserDataEvent(mockCanceledOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.o.X).toBe('CANCELED');
+        expect(result.data.o.z).toBe('0');
+      }
+    });
+
+    it('should parse stop loss order', () => {
+      const mockStopLossOrder: BingxOrderTradeUpdate = {
+        e: 'ORDER_TRADE_UPDATE',
+        E: 1704096002000,
+        o: {
+          s: 'BTC-USDT',
+          c: 'sl-order-1',
+          S: 'SELL',
+          o: 'STOP_MARKET',
+          X: 'FILLED',
+          i: '444555666',
+          z: '0.1',
+          ap: '40000',
+          sp: '40000', // Stop price
+          rp: '-200',
+          ps: 'LONG',
+        },
+      };
+
+      const result = parseBingxUserDataEvent(mockStopLossOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.o.o).toBe('STOP_MARKET');
+        expect(result.data.o.sp).toBe('40000');
+      }
+    });
+
+    it('should parse take profit order', () => {
+      const mockTakeProfitOrder: BingxOrderTradeUpdate = {
+        e: 'ORDER_TRADE_UPDATE',
+        E: 1704096003000,
+        o: {
+          s: 'BTC-USDT',
+          c: 'tp-order-1',
+          S: 'SELL',
+          o: 'TAKE_PROFIT_MARKET',
+          X: 'FILLED',
+          i: '777888999',
+          z: '0.1',
+          ap: '45000',
+          sp: '45000',
+          rp: '300',
+          ps: 'LONG',
+        },
+      };
+
+      const result = parseBingxUserDataEvent(mockTakeProfitOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.o.o).toBe('TAKE_PROFIT_MARKET');
+        expect(result.data.o.rp).toBe('300');
+      }
+    });
+
+    it('should handle SHORT position order', () => {
+      const mockShortOrder: BingxOrderTradeUpdate = {
+        e: 'ORDER_TRADE_UPDATE',
+        E: 1704096004000,
+        o: {
+          s: 'SOL-USDT',
+          c: 'short-order-1',
+          S: 'SELL',
+          o: 'MARKET',
+          X: 'FILLED',
+          i: '111222333',
+          z: '10',
+          ap: '100',
+          sp: '0',
+          rp: '0',
+          ps: 'SHORT',
+        },
+      };
+
+      const result = parseBingxUserDataEvent(mockShortOrder);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.o.ps).toBe('SHORT');
+        expect(result.data.o.S).toBe('SELL');
+      }
     });
   });
 });

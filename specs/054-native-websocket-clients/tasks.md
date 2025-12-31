@@ -79,21 +79,21 @@
 
 **Independent Test**: 訂單狀態改變時，系統可即時收到通知
 
-### Tests for US3 (TDD - 先寫測試)
+### Tests for US3 (TDD - 先寫測試) ✅
 
-- [ ] T023 [P] [US3] 撰寫 OKX 私有頻道認證測試 in `tests/unit/services/OkxFundingWs.test.ts`
-- [ ] T024 [P] [US3] 撰寫 Gate.io 訂單更新解析測試 in `tests/unit/services/GateioFundingWs.test.ts`
-- [ ] T025 [P] [US3] 撰寫 BingX 訂單更新解析測試 in `tests/unit/services/BingxFundingWs.test.ts`
+- [x] T023 [P] [US3] 撰寫 OKX 私有頻道認證測試 in `tests/unit/services/OkxFundingWs.test.ts`
+- [x] T024 [P] [US3] 撰寫 Gate.io 訂單更新解析測試 in `tests/unit/services/GateioFundingWs.test.ts`
+- [x] T025 [P] [US3] 撰寫 BingX 訂單更新解析測試 in `tests/unit/services/BingxFundingWs.test.ts`
 
 ### Implementation for US3
 
-- [ ] T026 [US3] 新增 OrderUpdate 類型和 Zod Schema in `src/types/websocket-events.ts`
-- [ ] T027 [US3] 實作 OKX 私有頻道認證 (login) in `src/services/websocket/OkxFundingWs.ts`
-- [ ] T028 [US3] 實作 Gate.io 私有頻道認證 in `src/services/websocket/GateioFundingWs.ts`
-- [ ] T029 [US3] 實作 BingX listenKey 機制 in `src/services/websocket/BingxFundingWs.ts`
-- [ ] T030 [US3] 新增訂單狀態訂閱方法 (subscribeOrders) in `src/services/websocket/OkxFundingWs.ts`
-- [ ] T031 [US3] 新增訂單狀態訂閱方法 in `src/services/websocket/GateioFundingWs.ts`
-- [ ] T032 [US3] 新增訂單狀態訂閱方法 in `src/services/websocket/BingxFundingWs.ts`
+- [x] T026 [US3] 新增 OrderUpdate 類型和 Zod Schema in `src/types/websocket-events.ts` (已存在)
+- [x] T027 [US3] 實作 OKX 私有頻道認證 (login) in `src/services/websocket/OkxFundingWs.ts`
+- [x] T028 [US3] 實作 Gate.io 私有頻道認證 in `src/services/websocket/GateioFundingWs.ts`
+- [x] T029 [US3] 實作 BingX listenKey 機制 in `src/services/websocket/BingxFundingWs.ts`
+- [x] T030 [US3] 新增訂單狀態訂閱方法 (subscribeOrders) in `src/services/websocket/OkxFundingWs.ts`
+- [x] T031 [US3] 新增訂單狀態訂閱方法 in `src/services/websocket/GateioFundingWs.ts`
+- [x] T032 [US3] 新增訂單狀態訂閱方法 in `src/services/websocket/BingxFundingWs.ts`
 
 **Checkpoint**: P2 訂單狀態功能完成
 

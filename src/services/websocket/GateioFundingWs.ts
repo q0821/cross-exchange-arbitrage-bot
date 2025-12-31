@@ -12,22 +12,31 @@
  * 連線限制：每連線最多 20 個訂閱頻道
  */
 
+import crypto from 'crypto';
 import Decimal from 'decimal.js';
 import { BaseExchangeWs, type BaseExchangeWsConfig } from './BaseExchangeWs';
-import { parseGateioTickerEvent } from '@/lib/schemas/websocket-messages';
+import { parseGateioTickerEvent, parseGateioOrderEvent } from '@/lib/schemas/websocket-messages';
 import { toGateioSymbol, fromGateioSymbol } from '@/lib/symbol-converter';
 import { logger } from '@/lib/logger';
 import type { ExchangeName } from '@/connectors/types';
-import type { FundingRateReceived } from '@/types/websocket-events';
+import type { FundingRateReceived, OrderStatusChanged } from '@/types/websocket-events';
 
 // =============================================================================
 // 1. 類型定義
 // =============================================================================
 
+/** Gate.io API 憑證 */
+export interface GateioCredentials {
+  apiKey: string;
+  secretKey: string;
+}
+
 /** Gate.io WebSocket 配置 */
 export interface GateioFundingWsConfig extends BaseExchangeWsConfig {
   /** WebSocket URL */
   wsUrl?: string;
+  /** API 憑證（私有頻道需要） */
+  credentials?: GateioCredentials;
 }
 
 /** Gate.io 訂閱請求 */
@@ -36,6 +45,19 @@ interface GateioSubscribeRequest {
   channel: string;
   event: 'subscribe' | 'unsubscribe';
   payload: string[];
+}
+
+/** Gate.io 私有頻道訂閱請求（含認證） */
+interface GateioAuthSubscribeRequest {
+  time: number;
+  channel: string;
+  event: 'subscribe' | 'unsubscribe';
+  payload: string[];
+  auth: {
+    method: 'api_key';
+    KEY: string;
+    SIGN: string;
+  };
 }
 
 // =============================================================================
@@ -57,16 +79,22 @@ interface GateioSubscribeRequest {
 export class GateioFundingWs extends BaseExchangeWs {
   protected readonly exchangeName: ExchangeName = 'gateio';
   private wsUrl: string;
+  private credentials?: GateioCredentials;
+
+  // 私有頻道狀態
+  private isOrdersSubscribed = false;
 
   constructor(config: GateioFundingWsConfig = {}) {
     super(config);
 
     this.wsUrl = config.wsUrl ?? 'wss://fx-ws.gateio.ws/v4/ws/usdt';
+    this.credentials = config.credentials;
 
     logger.debug(
       {
         service: this.getLogPrefix(),
         wsUrl: this.wsUrl,
+        hasCredentials: !!this.credentials,
       },
       'GateioFundingWs initialized'
     );
@@ -137,6 +165,12 @@ export class GateioFundingWs extends BaseExchangeWs {
       // 處理 futures.tickers 更新
       if (message.channel === 'futures.tickers' && message.event === 'update') {
         this.handleTickerMessage(message);
+        return;
+      }
+
+      // 處理 futures.orders 更新（私有頻道）
+      if (message.channel === 'futures.orders' && message.event === 'update') {
+        this.handleOrderMessage(message);
         return;
       }
 
@@ -245,8 +279,177 @@ export class GateioFundingWs extends BaseExchangeWs {
     return nextFunding;
   }
 
+  /**
+   * 處理訂單更新訊息
+   */
+  private handleOrderMessage(message: unknown): void {
+    const result = parseGateioOrderEvent(message);
+
+    if (!result.success) {
+      logger.warn(
+        { service: this.getLogPrefix(), error: result.error.message },
+        'Invalid order message'
+      );
+      return;
+    }
+
+    const { result: orders } = result.data;
+
+    for (const order of orders) {
+      const symbol = fromGateioSymbol(order.contract);
+
+      // 映射 Gate.io 狀態到通用狀態
+      let status: OrderStatusChanged['status'];
+      if (order.status === 'finished') {
+        status = order.finish_as === 'filled' ? 'FILLED' : 'CANCELED';
+      } else if (order.status === 'open' && order.left < Math.abs(order.size)) {
+        status = 'PARTIALLY_FILLED';
+      } else {
+        status = 'NEW';
+      }
+
+      // Gate.io size: 正數為多，負數為空
+      const side = order.size > 0 ? 'BUY' : 'SELL';
+      const positionSide = order.size > 0 ? 'LONG' : 'SHORT';
+
+      const orderStatusChanged: OrderStatusChanged = {
+        exchange: 'gateio',
+        symbol,
+        orderId: order.id.toString(),
+        clientOrderId: undefined,
+        status,
+        side,
+        positionSide,
+        orderType: 'MARKET', // Gate.io WebSocket 不區分訂單類型
+        price: order.price ? new Decimal(order.price) : undefined,
+        avgPrice: order.fill_price ? new Decimal(order.fill_price) : undefined,
+        quantity: new Decimal(Math.abs(order.size)),
+        filledQuantity: new Decimal(Math.abs(order.size) - order.left),
+        reduceOnly: order.is_reduce_only,
+        updateTime: new Date(order.finish_time ? order.finish_time * 1000 : order.create_time * 1000),
+        source: 'websocket',
+        receivedAt: new Date(),
+      };
+
+      this.emit('orderUpdate', orderStatusChanged);
+
+      logger.debug(
+        {
+          service: this.getLogPrefix(),
+          symbol,
+          orderId: order.id,
+          status,
+          side,
+        },
+        'Order update received'
+      );
+    }
+  }
+
   // =============================================================================
-  // 5. 覆寫方法
+  // 5. 私有頻道認證
+  // =============================================================================
+
+  /**
+   * 生成 Gate.io 認證簽名
+   * 簽名格式: HMAC-SHA512(channel=futures.orders&event=subscribe&time={timestamp})
+   */
+  private generateAuthSignature(channel: string, event: string, timestamp: number): string {
+    const signatureString = `channel=${channel}&event=${event}&time=${timestamp}`;
+    return crypto.createHmac('sha512', this.credentials!.secretKey).update(signatureString).digest('hex');
+  }
+
+  /**
+   * 建立認證訂閱訊息
+   */
+  private buildAuthSubscribeMessage(channel: string): GateioAuthSubscribeRequest | null {
+    if (!this.credentials) {
+      logger.warn({ service: this.getLogPrefix() }, 'Cannot subscribe to private channel: no credentials');
+      return null;
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const sign = this.generateAuthSignature(channel, 'subscribe', timestamp);
+
+    return {
+      time: timestamp,
+      channel,
+      event: 'subscribe',
+      payload: ['!all'], // 訂閱所有合約的訂單
+      auth: {
+        method: 'api_key',
+        KEY: this.credentials.apiKey,
+        SIGN: sign,
+      },
+    };
+  }
+
+  /**
+   * 訂閱訂單更新頻道
+   * Gate.io 認證和訂閱合併在同一個訊息中
+   */
+  subscribeOrders(): void {
+    if (!this.credentials) {
+      logger.warn({ service: this.getLogPrefix() }, 'Cannot subscribe orders: no credentials');
+      return;
+    }
+
+    if (!this.ws || this.ws.readyState !== 1) {
+      logger.warn({ service: this.getLogPrefix() }, 'Cannot subscribe orders: WebSocket not connected');
+      return;
+    }
+
+    const subscribeMessage = this.buildAuthSubscribeMessage('futures.orders');
+    if (!subscribeMessage) {
+      return;
+    }
+
+    this.ws.send(JSON.stringify(subscribeMessage));
+    this.isOrdersSubscribed = true;
+    logger.info({ service: this.getLogPrefix() }, 'Subscribed to futures.orders channel');
+  }
+
+  /**
+   * 取消訂閱訂單更新頻道
+   */
+  unsubscribeOrders(): void {
+    if (!this.ws || this.ws.readyState !== 1) {
+      return;
+    }
+
+    if (!this.credentials) {
+      return;
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const sign = this.generateAuthSignature('futures.orders', 'unsubscribe', timestamp);
+
+    const unsubscribeMessage: GateioAuthSubscribeRequest = {
+      time: timestamp,
+      channel: 'futures.orders',
+      event: 'unsubscribe',
+      payload: ['!all'],
+      auth: {
+        method: 'api_key',
+        KEY: this.credentials.apiKey,
+        SIGN: sign,
+      },
+    };
+
+    this.ws.send(JSON.stringify(unsubscribeMessage));
+    this.isOrdersSubscribed = false;
+    logger.info({ service: this.getLogPrefix() }, 'Unsubscribed from futures.orders channel');
+  }
+
+  /**
+   * 檢查是否已訂閱訂單頻道
+   */
+  isOrdersChannelSubscribed(): boolean {
+    return this.isOrdersSubscribed;
+  }
+
+  // =============================================================================
+  // 6. 覆寫方法
   // =============================================================================
 
   /**
