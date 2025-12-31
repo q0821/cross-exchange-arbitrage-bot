@@ -15,6 +15,10 @@ import { RestPoller } from '../../lib/rest/RestPoller.js';
 import { PriceCache } from '../../lib/cache/PriceCache.js';
 import { logger } from '../../lib/logger.js';
 import { BinanceFundingWs } from '../websocket/BinanceFundingWs.js';
+// Feature 054: 原生 WebSocket 客戶端
+import { OkxFundingWs } from '../websocket/OkxFundingWs.js';
+import { GateioFundingWs } from '../websocket/GateioFundingWs.js';
+import { BingxFundingWs } from '../websocket/BingxFundingWs.js';
 import { DataSourceManager } from './DataSourceManager.js';
 
 /**
@@ -70,6 +74,10 @@ export class PriceMonitor extends EventEmitter {
 
   // WebSocket 客戶端 (Feature 052: T019)
   private binanceFundingWs: BinanceFundingWs | null = null;
+  // Feature 054: 原生 WebSocket 客戶端
+  private okxFundingWs: OkxFundingWs | null = null;
+  private gateioFundingWs: GateioFundingWs | null = null;
+  private bingxFundingWs: BingxFundingWs | null = null;
   private wsConnected = new Map<ExchangeName, boolean>();
 
   // 數據源管理器 (Feature 052: T054)
@@ -170,54 +178,82 @@ export class PriceMonitor extends EventEmitter {
   }
 
   /**
-   * 嘗試恢復 WebSocket 連線 (Feature 052: T054)
+   * 嘗試恢復 WebSocket 連線 (Feature 054: 使用原生客戶端)
    */
   private async tryRecoverWebSocket(exchange: ExchangeName): Promise<void> {
-    if (exchange === 'binance' && !this.binanceFundingWs?.isReady()) {
-      try {
-        const success = await this.binanceFundingWs?.tryReconnect();
-        if (success) {
-          this.dataSourceManager.enableWebSocket(exchange, 'fundingRate');
-        }
-      } catch (error) {
-        logger.error(
-          { exchange, error: error instanceof Error ? error.message : String(error) },
-          '[PriceMonitor] Failed to recover Binance WebSocket'
-        );
-      }
-      return;
-    }
+    try {
+      switch (exchange) {
+        case 'binance':
+          if (this.binanceFundingWs && !this.binanceFundingWs.isReady()) {
+            const success = await this.binanceFundingWs.tryReconnect();
+            if (success) {
+              this.dataSourceManager.enableWebSocket(exchange, 'fundingRate');
+              logger.info({ exchange }, '[PriceMonitor] Binance WebSocket recovered');
+            }
+          }
+          break;
 
-    // OKX, Gate.io, MEXC 使用 connector 的 subscribeWS 恢復
-    if (exchange === 'okx' || exchange === 'gateio' || exchange === 'mexc') {
-      const connector = this.connectors.get(exchange);
-      if (!connector) {
-        logger.warn({ exchange }, '[PriceMonitor] Connector not available for recovery');
-        return;
-      }
+        case 'okx':
+          if (this.okxFundingWs && !this.okxFundingWs.isReady()) {
+            const success = await this.okxFundingWs.tryReconnect();
+            if (success) {
+              this.dataSourceManager.enableWebSocket(exchange, 'fundingRate');
+              logger.info({ exchange }, '[PriceMonitor] OKX WebSocket recovered');
+            }
+          }
+          break;
 
-      try {
-        // 重新訂閱所有交易對
-        for (const symbol of this.symbols) {
-          await connector.subscribeWS({
-            type: 'fundingRate',
-            symbol,
-            callback: (data: unknown) => {
-              this.handleConnectorWebSocketUpdate(exchange, data as FundingRateReceived);
-            },
-            onError: (error: Error) => {
-              logger.error({ exchange, error: error.message }, `${exchange} WebSocket recovery error`);
-              this.emit('error', error);
-            },
-          });
-        }
-        logger.info({ exchange }, '[PriceMonitor] WebSocket recovered');
-      } catch (error) {
-        logger.error(
-          { exchange, error: error instanceof Error ? error.message : String(error) },
-          '[PriceMonitor] Failed to recover WebSocket'
-        );
+        case 'gateio':
+          if (this.gateioFundingWs && !this.gateioFundingWs.isReady()) {
+            const success = await this.gateioFundingWs.tryReconnect();
+            if (success) {
+              this.dataSourceManager.enableWebSocket(exchange, 'fundingRate');
+              logger.info({ exchange }, '[PriceMonitor] Gate.io WebSocket recovered');
+            }
+          }
+          break;
+
+        case 'bingx':
+          if (this.bingxFundingWs && !this.bingxFundingWs.isReady()) {
+            const success = await this.bingxFundingWs.tryReconnect();
+            if (success) {
+              this.dataSourceManager.enableWebSocket(exchange, 'fundingRate');
+              logger.info({ exchange }, '[PriceMonitor] BingX WebSocket recovered');
+            }
+          }
+          break;
+
+        case 'mexc':
+          // MEXC 仍使用 CCXT connector
+          const connector = this.connectors.get('mexc');
+          if (!connector) {
+            logger.warn({ exchange }, '[PriceMonitor] MEXC connector not available for recovery');
+            return;
+          }
+          for (const symbol of this.symbols) {
+            await connector.subscribeWS({
+              type: 'fundingRate',
+              symbol,
+              callback: (data: unknown) => {
+                this.handleConnectorWebSocketUpdate('mexc', data as FundingRateReceived);
+              },
+              onError: (error: Error) => {
+                logger.error({ exchange: 'mexc', error: error.message }, 'MEXC WebSocket recovery error');
+                this.emit('error', error);
+              },
+            });
+          }
+          logger.info({ exchange }, '[PriceMonitor] MEXC WebSocket recovered');
+          break;
+
+        default:
+          logger.warn({ exchange }, '[PriceMonitor] Unknown exchange for WebSocket recovery');
       }
+    } catch (error) {
+      logger.error(
+        { exchange, error: error instanceof Error ? error.message : String(error) },
+        '[PriceMonitor] Failed to recover WebSocket'
+      );
     }
   }
 
@@ -376,55 +412,58 @@ export class PriceMonitor extends EventEmitter {
       }, 'Failed to start Binance WebSocket');
     }
 
-    // 啟動 OKX WebSocket (Feature 052: T019)
+    // 啟動 OKX WebSocket (Feature 054: 原生客戶端)
     await this.startOkxWebSocket();
 
-    // 啟動 Gate.io WebSocket (Feature 052: T019)
+    // 啟動 Gate.io WebSocket (Feature 054: 原生客戶端)
     await this.startGateioWebSocket();
 
-    // 啟動 MEXC WebSocket (Feature 052: T019)
+    // 啟動 BingX WebSocket (Feature 054: 原生客戶端)
+    await this.startBingxWebSocket();
+
+    // 啟動 MEXC WebSocket (Feature 052: T019 - 仍使用 CCXT)
     await this.startMexcWebSocket();
   }
 
   /**
-   * 啟動 OKX WebSocket (Feature 052: T019)
+   * 啟動 OKX WebSocket (Feature 054: 使用原生 WebSocket 客戶端)
    */
   private async startOkxWebSocket(): Promise<void> {
-    const connector = this.connectors.get('okx');
-    if (!connector) {
-      logger.debug('OKX connector not available, skipping WebSocket');
-      return;
-    }
-
     try {
-      // 為每個交易對訂閱資金費率
-      for (const symbol of this.symbols) {
-        await connector.subscribeWS({
-          type: 'fundingRate',
-          symbol,
-          callback: (data: unknown) => {
-            this.handleConnectorWebSocketUpdate('okx', data as FundingRateReceived);
-          },
-          onError: (error: Error) => {
-            logger.error({ exchange: 'okx', error: error.message }, 'OKX WebSocket error');
-            this.emit('error', error);
-          },
-        });
-      }
+      this.okxFundingWs = new OkxFundingWs({
+        autoReconnect: true,
+        enableHealthCheck: true,
+      });
 
-      // 監聽連線事件 (使用 EventEmitter 介面)
-      const okxEmitter = connector as unknown as NodeJS.EventEmitter;
-      okxEmitter.on('wsConnected', () => {
+      // 監聽資金費率事件
+      this.okxFundingWs.on('fundingRate', (data: FundingRateReceived) => {
+        this.handleWebSocketPriceUpdate(data);
+        // 更新 DataSourceManager 數據接收時間
+        this.dataSourceManager.updateLastDataReceived('okx', 'fundingRate');
+      });
+
+      // 監聽連線事件
+      this.okxFundingWs.on('connected', () => {
         this.wsConnected.set('okx', true);
         logger.info({ exchange: 'okx' }, 'OKX WebSocket connected');
         this.dataSourceManager.enableWebSocket('okx', 'fundingRate');
       });
 
-      okxEmitter.on('wsDisconnected', () => {
+      this.okxFundingWs.on('disconnected', () => {
         this.wsConnected.set('okx', false);
         logger.warn({ exchange: 'okx' }, 'OKX WebSocket disconnected');
         this.dataSourceManager.disableWebSocket('okx', 'fundingRate', 'disconnected');
       });
+
+      this.okxFundingWs.on('error', (error: Error) => {
+        logger.error({ exchange: 'okx', error: error.message }, 'OKX WebSocket error');
+        this.emit('error', error);
+        this.dataSourceManager.disableWebSocket('okx', 'fundingRate', `error: ${error.message}`);
+      });
+
+      // 連接並訂閱
+      await this.okxFundingWs.connect();
+      await this.okxFundingWs.subscribe(this.symbols);
 
       logger.info({ exchange: 'okx', symbols: this.symbols.length }, 'OKX WebSocket started');
     } catch (error) {
@@ -436,44 +475,44 @@ export class PriceMonitor extends EventEmitter {
   }
 
   /**
-   * 啟動 Gate.io WebSocket (Feature 052: T019)
+   * 啟動 Gate.io WebSocket (Feature 054: 使用原生 WebSocket 客戶端)
    */
   private async startGateioWebSocket(): Promise<void> {
-    const connector = this.connectors.get('gateio');
-    if (!connector) {
-      logger.debug('Gate.io connector not available, skipping WebSocket');
-      return;
-    }
-
     try {
-      // 為每個交易對訂閱資金費率
-      for (const symbol of this.symbols) {
-        await connector.subscribeWS({
-          type: 'fundingRate',
-          symbol,
-          callback: (data: unknown) => {
-            this.handleConnectorWebSocketUpdate('gateio', data as FundingRateReceived);
-          },
-          onError: (error: Error) => {
-            logger.error({ exchange: 'gateio', error: error.message }, 'Gate.io WebSocket error');
-            this.emit('error', error);
-          },
-        });
-      }
+      this.gateioFundingWs = new GateioFundingWs({
+        autoReconnect: true,
+        enableHealthCheck: true,
+      });
 
-      // 監聽連線事件 (使用 EventEmitter 介面)
-      const gateioEmitter = connector as unknown as NodeJS.EventEmitter;
-      gateioEmitter.on('wsConnected', () => {
+      // 監聽資金費率事件
+      this.gateioFundingWs.on('fundingRate', (data: FundingRateReceived) => {
+        this.handleWebSocketPriceUpdate(data);
+        // 更新 DataSourceManager 數據接收時間
+        this.dataSourceManager.updateLastDataReceived('gateio', 'fundingRate');
+      });
+
+      // 監聽連線事件
+      this.gateioFundingWs.on('connected', () => {
         this.wsConnected.set('gateio', true);
         logger.info({ exchange: 'gateio' }, 'Gate.io WebSocket connected');
         this.dataSourceManager.enableWebSocket('gateio', 'fundingRate');
       });
 
-      gateioEmitter.on('wsDisconnected', () => {
+      this.gateioFundingWs.on('disconnected', () => {
         this.wsConnected.set('gateio', false);
         logger.warn({ exchange: 'gateio' }, 'Gate.io WebSocket disconnected');
         this.dataSourceManager.disableWebSocket('gateio', 'fundingRate', 'disconnected');
       });
+
+      this.gateioFundingWs.on('error', (error: Error) => {
+        logger.error({ exchange: 'gateio', error: error.message }, 'Gate.io WebSocket error');
+        this.emit('error', error);
+        this.dataSourceManager.disableWebSocket('gateio', 'fundingRate', `error: ${error.message}`);
+      });
+
+      // 連接並訂閱
+      await this.gateioFundingWs.connect();
+      await this.gateioFundingWs.subscribe(this.symbols);
 
       logger.info({ exchange: 'gateio', symbols: this.symbols.length }, 'Gate.io WebSocket started');
     } catch (error) {
@@ -485,7 +524,56 @@ export class PriceMonitor extends EventEmitter {
   }
 
   /**
-   * 啟動 MEXC WebSocket (Feature 052: T019)
+   * 啟動 BingX WebSocket (Feature 054: 使用原生 WebSocket 客戶端)
+   */
+  private async startBingxWebSocket(): Promise<void> {
+    try {
+      this.bingxFundingWs = new BingxFundingWs({
+        autoReconnect: true,
+        enableHealthCheck: true,
+      });
+
+      // 監聽資金費率事件
+      this.bingxFundingWs.on('fundingRate', (data: FundingRateReceived) => {
+        this.handleWebSocketPriceUpdate(data);
+        // 更新 DataSourceManager 數據接收時間
+        this.dataSourceManager.updateLastDataReceived('bingx', 'fundingRate');
+      });
+
+      // 監聽連線事件
+      this.bingxFundingWs.on('connected', () => {
+        this.wsConnected.set('bingx', true);
+        logger.info({ exchange: 'bingx' }, 'BingX WebSocket connected');
+        this.dataSourceManager.enableWebSocket('bingx', 'fundingRate');
+      });
+
+      this.bingxFundingWs.on('disconnected', () => {
+        this.wsConnected.set('bingx', false);
+        logger.warn({ exchange: 'bingx' }, 'BingX WebSocket disconnected');
+        this.dataSourceManager.disableWebSocket('bingx', 'fundingRate', 'disconnected');
+      });
+
+      this.bingxFundingWs.on('error', (error: Error) => {
+        logger.error({ exchange: 'bingx', error: error.message }, 'BingX WebSocket error');
+        this.emit('error', error);
+        this.dataSourceManager.disableWebSocket('bingx', 'fundingRate', `error: ${error.message}`);
+      });
+
+      // 連接並訂閱
+      await this.bingxFundingWs.connect();
+      await this.bingxFundingWs.subscribe(this.symbols);
+
+      logger.info({ exchange: 'bingx', symbols: this.symbols.length }, 'BingX WebSocket started');
+    } catch (error) {
+      logger.error({
+        exchange: 'bingx',
+        error: error instanceof Error ? error.message : String(error),
+      }, 'Failed to start BingX WebSocket');
+    }
+  }
+
+  /**
+   * 啟動 MEXC WebSocket (Feature 052: T019 - 仍使用 CCXT)
    */
   private async startMexcWebSocket(): Promise<void> {
     const connector = this.connectors.get('mexc');
@@ -575,7 +663,7 @@ export class PriceMonitor extends EventEmitter {
   }
 
   /**
-   * 停止 WebSocket 客戶端 (Feature 052: T019)
+   * 停止 WebSocket 客戶端 (Feature 054: 使用原生客戶端)
    */
   private async stopWebSocket(): Promise<void> {
     // 停止 Binance WebSocket
@@ -586,31 +674,31 @@ export class PriceMonitor extends EventEmitter {
       logger.info({ exchange: 'binance' }, 'Binance WebSocket stopped');
     }
 
-    // 停止 OKX WebSocket (Feature 052: T019)
-    const okxConnector = this.connectors.get('okx');
-    if (okxConnector && this.wsConnected.get('okx')) {
-      try {
-        await okxConnector.unsubscribeWS('fundingRate');
-        this.wsConnected.set('okx', false);
-        logger.info({ exchange: 'okx' }, 'OKX WebSocket stopped');
-      } catch (error) {
-        logger.error({ exchange: 'okx', error: error instanceof Error ? error.message : String(error) }, 'Failed to stop OKX WebSocket');
-      }
+    // 停止 OKX WebSocket (Feature 054: 原生客戶端)
+    if (this.okxFundingWs) {
+      this.okxFundingWs.destroy();
+      this.okxFundingWs = null;
+      this.wsConnected.set('okx', false);
+      logger.info({ exchange: 'okx' }, 'OKX WebSocket stopped');
     }
 
-    // 停止 Gate.io WebSocket (Feature 052: T019)
-    const gateioConnector = this.connectors.get('gateio');
-    if (gateioConnector && this.wsConnected.get('gateio')) {
-      try {
-        await gateioConnector.unsubscribeWS('fundingRate');
-        this.wsConnected.set('gateio', false);
-        logger.info({ exchange: 'gateio' }, 'Gate.io WebSocket stopped');
-      } catch (error) {
-        logger.error({ exchange: 'gateio', error: error instanceof Error ? error.message : String(error) }, 'Failed to stop Gate.io WebSocket');
-      }
+    // 停止 Gate.io WebSocket (Feature 054: 原生客戶端)
+    if (this.gateioFundingWs) {
+      this.gateioFundingWs.destroy();
+      this.gateioFundingWs = null;
+      this.wsConnected.set('gateio', false);
+      logger.info({ exchange: 'gateio' }, 'Gate.io WebSocket stopped');
     }
 
-    // 停止 MEXC WebSocket (Feature 052: T019)
+    // 停止 BingX WebSocket (Feature 054: 原生客戶端)
+    if (this.bingxFundingWs) {
+      this.bingxFundingWs.destroy();
+      this.bingxFundingWs = null;
+      this.wsConnected.set('bingx', false);
+      logger.info({ exchange: 'bingx' }, 'BingX WebSocket stopped');
+    }
+
+    // 停止 MEXC WebSocket (Feature 052: T019 - 仍使用 CCXT)
     const mexcConnector = this.connectors.get('mexc');
     if (mexcConnector && this.wsConnected.get('mexc')) {
       try {

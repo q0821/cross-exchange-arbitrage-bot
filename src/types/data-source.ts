@@ -266,7 +266,8 @@ export const EXCHANGE_DATA_SOURCE_CAPABILITIES: Record<ExchangeName, ExchangeDat
   okx: {
     exchange: 'okx',
     capabilities: {
-      fundingRate: { websocket: true, rest: true, method: 'ccxt' },
+      // Feature 054: 使用原生 WebSocket 客戶端 (OkxFundingWs)
+      fundingRate: { websocket: true, rest: true, method: 'native' },
       position: { websocket: true, rest: true, method: 'ccxt' },
       order: { websocket: true, rest: true, method: 'ccxt' },
       balance: { websocket: true, rest: true, method: 'ccxt' },
@@ -275,7 +276,8 @@ export const EXCHANGE_DATA_SOURCE_CAPABILITIES: Record<ExchangeName, ExchangeDat
   gateio: {
     exchange: 'gateio',
     capabilities: {
-      fundingRate: { websocket: true, rest: true, method: 'ccxt' },
+      // Feature 054: 使用原生 WebSocket 客戶端 (GateioFundingWs)
+      fundingRate: { websocket: true, rest: true, method: 'native' },
       position: { websocket: true, rest: true, method: 'ccxt' },
       order: { websocket: true, rest: true, method: 'ccxt' },
       balance: { websocket: true, rest: true, method: 'ccxt' },
@@ -291,8 +293,9 @@ export const EXCHANGE_DATA_SOURCE_CAPABILITIES: Record<ExchangeName, ExchangeDat
   bingx: {
     exchange: 'bingx',
     capabilities: {
-      fundingRate: { websocket: false, rest: true },  // BingX 無資金費率 WebSocket
-      position: { websocket: true, rest: true, method: 'native' },  // CCXT watchPositions 有 bug
+      // Feature 054: 使用原生 WebSocket 客戶端 (BingxFundingWs)
+      fundingRate: { websocket: true, rest: true, method: 'native' },
+      position: { websocket: true, rest: true, method: 'native' },
       order: { websocket: true, rest: true, method: 'native' },
       balance: { websocket: true, rest: true, method: 'native' },
     },

@@ -36,8 +36,8 @@ describe('DataSourceManager', () => {
     });
 
     it('should initialize with REST for unsupported combinations', () => {
-      // BingX 不支援 fundingRate WebSocket
-      const mode = manager.getCurrentMode('bingx', 'fundingRate');
+      // MEXC 不支援 position WebSocket (Feature 054: BingX fundingRate 現在支援)
+      const mode = manager.getCurrentMode('mexc', 'position');
       expect(mode).toBe('rest');
     });
 
@@ -142,10 +142,10 @@ describe('DataSourceManager', () => {
     });
 
     it('should not recover if WebSocket is not supported', async () => {
-      // BingX fundingRate 不支援 WebSocket
-      const result = await manager.tryRecoverWebSocket('bingx', 'fundingRate');
+      // MEXC position 不支援 WebSocket (Feature 054: BingX fundingRate 現在支援)
+      const result = await manager.tryRecoverWebSocket('mexc', 'position');
       expect(result).toBe(false);
-      expect(manager.getCurrentMode('bingx', 'fundingRate')).toBe('rest');
+      expect(manager.getCurrentMode('mexc', 'position')).toBe('rest');
     });
 
     it('should emit recoveryAttempt event when in REST mode', async () => {

@@ -105,6 +105,19 @@ export interface OkxFundingRateEvent {
   }>;
 }
 
+/** OKX mark-price 事件 */
+export interface OkxMarkPriceEvent {
+  arg: {
+    channel: 'mark-price';
+    instId: string;       // e.g., 'BTC-USDT-SWAP'
+  };
+  data: Array<{
+    instId: string;
+    markPx: string;       // 標記價格
+    ts: string;           // 毫秒時間戳
+  }>;
+}
+
 /** OKX positions 事件 */
 export interface OkxPositionEvent {
   arg: {
@@ -205,12 +218,12 @@ export interface OkxAccountEvent {
 // 1.3 Gate.io 事件
 // -----------------------------------------------------------------------------
 
-/** Gate.io futures.tickers 事件 (資金費率) */
+/** Gate.io futures.tickers 事件 (資金費率) - result 為陣列 */
 export interface GateioTickerEvent {
   time: number;
   channel: 'futures.tickers';
   event: 'update';
-  result: {
+  result: Array<{
     contract: string;       // e.g., 'BTC_USDT'
     last: string;
     mark_price: string;
@@ -219,7 +232,7 @@ export interface GateioTickerEvent {
     funding_rate_indicative: string;
     volume_24h: string;
     volume_24h_usd: string;
-  };
+  }>;
 }
 
 /** Gate.io futures.positions 事件 */
@@ -265,6 +278,19 @@ export interface GateioOrderEvent {
 // -----------------------------------------------------------------------------
 // 1.4 BingX 事件 (GZIP 壓縮)
 // -----------------------------------------------------------------------------
+
+/** BingX markPriceUpdate 公開頻道事件 */
+export interface BingxMarkPriceEvent {
+  code: number;
+  data: {
+    e: 'markPriceUpdate';   // 事件類型
+    E: number;              // 事件時間 (毫秒)
+    s: string;              // 交易對, e.g., 'BTC-USDT'
+    p: string;              // 標記價格
+    r: string;              // 資金費率
+    T: number;              // 下次結算時間 (毫秒)
+  };
+}
 
 /** BingX ACCOUNT_UPDATE 事件 */
 export interface BingxAccountUpdate {
@@ -439,6 +465,7 @@ export interface FundingRateReceived {
   symbol: string;
   fundingRate: Decimal;
   nextFundingTime: Date;
+  nextFundingRate?: Decimal;  // 預估下次資金費率
   markPrice?: Decimal;
   indexPrice?: Decimal;
   source: 'websocket' | 'rest';
@@ -493,12 +520,14 @@ export type InboundWsEvent =
   | BinanceMarkPriceUpdate
   | BinanceUserDataEvent
   | OkxFundingRateEvent
+  | OkxMarkPriceEvent
   | OkxPositionEvent
   | OkxOrderEvent
   | OkxAccountEvent
   | GateioTickerEvent
   | GateioPositionEvent
   | GateioOrderEvent
+  | BingxMarkPriceEvent
   | BingxUserDataEvent
   | MexcFundingRateData;
 

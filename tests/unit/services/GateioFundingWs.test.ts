@@ -10,6 +10,7 @@ import {
   parseGateioTickerEvent,
   parseCcxtFundingRate,
 } from '@/lib/schemas/websocket-messages';
+import { toGateioSymbol, fromGateioSymbol } from '@/lib/symbol-converter';
 import type { GateioTickerEvent } from '@/types/websocket-events';
 
 describe('GateioFundingWs', () => {
@@ -20,16 +21,18 @@ describe('GateioFundingWs', () => {
           time: 1704067200,
           channel: 'futures.tickers',
           event: 'update',
-          result: {
-            contract: 'BTC_USDT',
-            last: '42000.5',
-            mark_price: '42001.2',
-            index_price: '42000.8',
-            funding_rate: '0.0001',
-            funding_rate_indicative: '0.00012',
-            volume_24h: '100000',
-            volume_24h_usd: '4200000000',
-          },
+          result: [
+            {
+              contract: 'BTC_USDT',
+              last: '42000.5',
+              mark_price: '42001.2',
+              index_price: '42000.8',
+              funding_rate: '0.0001',
+              funding_rate_indicative: '0.00012',
+              volume_24h: '100000',
+              volume_24h_usd: '4200000000',
+            },
+          ],
         };
 
         const result = parseGateioTickerEvent(mockMessage);
@@ -37,8 +40,8 @@ describe('GateioFundingWs', () => {
         expect(result.success).toBe(true);
         if (result.success) {
           expect(result.data.channel).toBe('futures.tickers');
-          expect(result.data.result.contract).toBe('BTC_USDT');
-          expect(result.data.result.funding_rate).toBe('0.0001');
+          expect(result.data.result[0].contract).toBe('BTC_USDT');
+          expect(result.data.result[0].funding_rate).toBe('0.0001');
         }
       });
 
@@ -47,23 +50,25 @@ describe('GateioFundingWs', () => {
           time: 1704067200,
           channel: 'futures.tickers',
           event: 'update',
-          result: {
-            contract: 'ETH_USDT',
-            last: '2200.5',
-            mark_price: '2201.2',
-            index_price: '2200.8',
-            funding_rate: '-0.0002',
-            funding_rate_indicative: '-0.00015',
-            volume_24h: '50000',
-            volume_24h_usd: '110000000',
-          },
+          result: [
+            {
+              contract: 'ETH_USDT',
+              last: '2200.5',
+              mark_price: '2201.2',
+              index_price: '2200.8',
+              funding_rate: '-0.0002',
+              funding_rate_indicative: '-0.00015',
+              volume_24h: '50000',
+              volume_24h_usd: '110000000',
+            },
+          ],
         };
 
         const result = parseGateioTickerEvent(mockMessage);
 
         expect(result.success).toBe(true);
         if (result.success) {
-          expect(result.data.result.funding_rate).toBe('-0.0002');
+          expect(result.data.result[0].funding_rate).toBe('-0.0002');
         }
       });
 
@@ -72,16 +77,18 @@ describe('GateioFundingWs', () => {
           time: 1704067200,
           channel: 'invalid.channel',
           event: 'update',
-          result: {
-            contract: 'BTC_USDT',
-            last: '42000.5',
-            mark_price: '42001.2',
-            index_price: '42000.8',
-            funding_rate: '0.0001',
-            funding_rate_indicative: '0.00012',
-            volume_24h: '100000',
-            volume_24h_usd: '4200000000',
-          },
+          result: [
+            {
+              contract: 'BTC_USDT',
+              last: '42000.5',
+              mark_price: '42001.2',
+              index_price: '42000.8',
+              funding_rate: '0.0001',
+              funding_rate_indicative: '0.00012',
+              volume_24h: '100000',
+              volume_24h_usd: '4200000000',
+            },
+          ],
         };
 
         const result = parseGateioTickerEvent(invalidMessage);
@@ -94,16 +101,18 @@ describe('GateioFundingWs', () => {
           time: 1704067200,
           channel: 'futures.tickers',
           event: 'subscribe', // Should be 'update'
-          result: {
-            contract: 'BTC_USDT',
-            last: '42000.5',
-            mark_price: '42001.2',
-            index_price: '42000.8',
-            funding_rate: '0.0001',
-            funding_rate_indicative: '0.00012',
-            volume_24h: '100000',
-            volume_24h_usd: '4200000000',
-          },
+          result: [
+            {
+              contract: 'BTC_USDT',
+              last: '42000.5',
+              mark_price: '42001.2',
+              index_price: '42000.8',
+              funding_rate: '0.0001',
+              funding_rate_indicative: '0.00012',
+              volume_24h: '100000',
+              volume_24h_usd: '4200000000',
+            },
+          ],
         };
 
         const result = parseGateioTickerEvent(invalidMessage);
@@ -116,10 +125,12 @@ describe('GateioFundingWs', () => {
           time: 1704067200,
           channel: 'futures.tickers',
           event: 'update',
-          result: {
-            contract: 'BTC_USDT',
-            // Missing other required fields
-          },
+          result: [
+            {
+              contract: 'BTC_USDT',
+              // Missing other required fields
+            },
+          ],
         };
 
         const result = parseGateioTickerEvent(incompleteMessage);
@@ -153,12 +164,17 @@ describe('GateioFundingWs', () => {
     });
   });
 
-  describe('Symbol Conversion', () => {
+  describe('Symbol Conversion (using symbol-converter)', () => {
+    it('should convert internal symbol to Gate.io format', () => {
+      expect(toGateioSymbol('BTCUSDT')).toBe('BTC_USDT');
+      expect(toGateioSymbol('ETHUSDT')).toBe('ETH_USDT');
+      expect(toGateioSymbol('SOLUSDT')).toBe('SOL_USDT');
+    });
+
     it('should convert Gate.io contract to internal format', () => {
-      const contract = 'BTC_USDT';
-      // Gate.io: BTC_USDT -> BTCUSDT
-      const symbol = contract.replace('_', '');
-      expect(symbol).toBe('BTCUSDT');
+      expect(fromGateioSymbol('BTC_USDT')).toBe('BTCUSDT');
+      expect(fromGateioSymbol('ETH_USDT')).toBe('ETHUSDT');
+      expect(fromGateioSymbol('SOL_USDT')).toBe('SOLUSDT');
     });
 
     it('should convert CCXT symbol to internal format', () => {
@@ -168,17 +184,17 @@ describe('GateioFundingWs', () => {
       expect(symbol).toBe('BTCUSDT');
     });
 
-    it('should handle various Gate.io contracts', () => {
-      const contracts = [
-        { contract: 'BTC_USDT', expected: 'BTCUSDT' },
-        { contract: 'ETH_USDT', expected: 'ETHUSDT' },
-        { contract: 'SOL_USDT', expected: 'SOLUSDT' },
-        { contract: 'DOGE_USDT', expected: 'DOGEUSDT' },
+    it('should handle various Gate.io trading pairs', () => {
+      const pairs = [
+        { internal: 'BTCUSDT', gateio: 'BTC_USDT' },
+        { internal: 'ETHUSDT', gateio: 'ETH_USDT' },
+        { internal: 'SOLUSDT', gateio: 'SOL_USDT' },
+        { internal: 'DOGEUSDT', gateio: 'DOGE_USDT' },
       ];
 
-      for (const { contract, expected } of contracts) {
-        const symbol = contract.replace('_', '');
-        expect(symbol).toBe(expected);
+      for (const { internal, gateio } of pairs) {
+        expect(toGateioSymbol(internal)).toBe(gateio);
+        expect(fromGateioSymbol(gateio)).toBe(internal);
       }
     });
   });

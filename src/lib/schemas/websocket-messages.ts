@@ -113,6 +113,22 @@ export const OkxFundingRateEventSchema = z.object({
   data: z.array(OkxFundingRateDataItemSchema),
 });
 
+/** OKX mark-price data item schema */
+const OkxMarkPriceDataItemSchema = z.object({
+  instId: z.string(),
+  markPx: z.string(),
+  ts: z.string(),
+});
+
+/** OKX mark-price event schema */
+export const OkxMarkPriceEventSchema = z.object({
+  arg: z.object({
+    channel: z.literal('mark-price'),
+    instId: z.string(),
+  }),
+  data: z.array(OkxMarkPriceDataItemSchema),
+});
+
 /** OKX position data item schema */
 const OkxPositionDataItemSchema = z.object({
   posId: z.string(),
@@ -237,12 +253,12 @@ const GateioTickerResultSchema = z.object({
   volume_24h_usd: z.string(),
 });
 
-/** Gate.io futures.tickers event schema */
+/** Gate.io futures.tickers event schema (result 為陣列) */
 export const GateioTickerEventSchema = z.object({
   time: z.number(),
   channel: z.literal('futures.tickers'),
   event: z.literal('update'),
-  result: GateioTickerResultSchema,
+  result: z.array(GateioTickerResultSchema),
 });
 
 /** Gate.io futures.positions result item schema */
@@ -294,6 +310,22 @@ export const GateioOrderEventSchema = z.object({
 // =============================================================================
 // 4. BingX Schemas (GZIP 壓縮後解析)
 // =============================================================================
+
+/** BingX markPrice data item schema (公開頻道) */
+const BingxMarkPriceDataSchema = z.object({
+  e: z.literal('markPriceUpdate'),
+  E: z.number(),
+  s: z.string(),
+  p: z.string(),
+  r: z.string(),
+  T: z.number(),
+});
+
+/** BingX markPrice event schema (公開頻道) */
+export const BingxMarkPriceEventSchema = z.object({
+  code: z.number(),
+  data: BingxMarkPriceDataSchema,
+});
 
 /** BingX balance item schema */
 const BingxBalanceItemSchema = z.object({
@@ -478,6 +510,11 @@ export function parseOkxFundingRateEvent(data: unknown) {
   return OkxFundingRateEventSchema.safeParse(data);
 }
 
+/** 安全解析 OKX mark-price event */
+export function parseOkxMarkPriceEvent(data: unknown) {
+  return OkxMarkPriceEventSchema.safeParse(data);
+}
+
 /** 安全解析 OKX position event */
 export function parseOkxPositionEvent(data: unknown) {
   return OkxPositionEventSchema.safeParse(data);
@@ -513,6 +550,11 @@ export function parseBingxUserDataEvent(data: unknown) {
   return BingxUserDataEventSchema.safeParse(data);
 }
 
+/** 安全解析 BingX markPrice event (公開頻道) */
+export function parseBingxMarkPriceEvent(data: unknown) {
+  return BingxMarkPriceEventSchema.safeParse(data);
+}
+
 /** 安全解析 CCXT FundingRate */
 export function parseCcxtFundingRate(data: unknown) {
   return CcxtFundingRateSchema.safeParse(data);
@@ -543,6 +585,7 @@ export type BinanceOrderTradeUpdateParsed = z.infer<typeof BinanceOrderTradeUpda
 export type BinanceUserDataEventParsed = z.infer<typeof BinanceUserDataEventSchema>;
 
 export type OkxFundingRateEventParsed = z.infer<typeof OkxFundingRateEventSchema>;
+export type OkxMarkPriceEventParsed = z.infer<typeof OkxMarkPriceEventSchema>;
 export type OkxPositionEventParsed = z.infer<typeof OkxPositionEventSchema>;
 export type OkxOrderEventParsed = z.infer<typeof OkxOrderEventSchema>;
 export type OkxAccountEventParsed = z.infer<typeof OkxAccountEventSchema>;
@@ -554,6 +597,7 @@ export type GateioOrderEventParsed = z.infer<typeof GateioOrderEventSchema>;
 export type BingxAccountUpdateParsed = z.infer<typeof BingxAccountUpdateSchema>;
 export type BingxOrderTradeUpdateParsed = z.infer<typeof BingxOrderTradeUpdateSchema>;
 export type BingxUserDataEventParsed = z.infer<typeof BingxUserDataEventSchema>;
+export type BingxMarkPriceEventParsed = z.infer<typeof BingxMarkPriceEventSchema>;
 
 export type CcxtFundingRateParsed = z.infer<typeof CcxtFundingRateSchema>;
 export type CcxtPositionParsed = z.infer<typeof CcxtPositionSchema>;

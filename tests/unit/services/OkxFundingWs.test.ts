@@ -8,9 +8,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Decimal from 'decimal.js';
 import {
   parseOkxFundingRateEvent,
+  parseOkxMarkPriceEvent,
   parseCcxtFundingRate,
 } from '@/lib/schemas/websocket-messages';
-import type { OkxFundingRateEvent } from '@/types/websocket-events';
+import { toOkxSymbol, fromOkxSymbol } from '@/lib/symbol-converter';
+import type { OkxFundingRateEvent, OkxMarkPriceEvent } from '@/types/websocket-events';
 
 describe('OkxFundingWs', () => {
   describe('Native Message Parsing', () => {
@@ -181,12 +183,17 @@ describe('OkxFundingWs', () => {
     });
   });
 
-  describe('Symbol Conversion', () => {
+  describe('Symbol Conversion (using symbol-converter)', () => {
+    it('should convert internal symbol to OKX format', () => {
+      expect(toOkxSymbol('BTCUSDT')).toBe('BTC-USDT-SWAP');
+      expect(toOkxSymbol('ETHUSDT')).toBe('ETH-USDT-SWAP');
+      expect(toOkxSymbol('SOLUSDT')).toBe('SOL-USDT-SWAP');
+    });
+
     it('should convert OKX instId to internal format', () => {
-      const instId = 'BTC-USDT-SWAP';
-      // OKX: BTC-USDT-SWAP -> BTCUSDT
-      const symbol = instId.replace('-SWAP', '').replace('-', '');
-      expect(symbol).toBe('BTCUSDT');
+      expect(fromOkxSymbol('BTC-USDT-SWAP')).toBe('BTCUSDT');
+      expect(fromOkxSymbol('ETH-USDT-SWAP')).toBe('ETHUSDT');
+      expect(fromOkxSymbol('SOL-USDT-SWAP')).toBe('SOLUSDT');
     });
 
     it('should convert CCXT symbol to internal format', () => {
@@ -198,15 +205,61 @@ describe('OkxFundingWs', () => {
 
     it('should handle various OKX trading pairs', () => {
       const pairs = [
-        { instId: 'BTC-USDT-SWAP', expected: 'BTCUSDT' },
-        { instId: 'ETH-USDT-SWAP', expected: 'ETHUSDT' },
-        { instId: 'SOL-USDT-SWAP', expected: 'SOLUSDT' },
+        { internal: 'BTCUSDT', okx: 'BTC-USDT-SWAP' },
+        { internal: 'ETHUSDT', okx: 'ETH-USDT-SWAP' },
+        { internal: 'SOLUSDT', okx: 'SOL-USDT-SWAP' },
+        { internal: 'DOGEUSDT', okx: 'DOGE-USDT-SWAP' },
       ];
 
-      for (const { instId, expected } of pairs) {
-        const symbol = instId.replace('-SWAP', '').replace('-', '');
-        expect(symbol).toBe(expected);
+      for (const { internal, okx } of pairs) {
+        expect(toOkxSymbol(internal)).toBe(okx);
+        expect(fromOkxSymbol(okx)).toBe(internal);
       }
+    });
+  });
+
+  describe('Mark Price Parsing', () => {
+    it('should parse valid OKX mark-price event', () => {
+      const mockMessage: OkxMarkPriceEvent = {
+        arg: {
+          channel: 'mark-price',
+          instId: 'BTC-USDT-SWAP',
+        },
+        data: [
+          {
+            instId: 'BTC-USDT-SWAP',
+            markPx: '42000.5',
+            ts: '1704096000000',
+          },
+        ],
+      };
+
+      const result = parseOkxMarkPriceEvent(mockMessage);
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.arg.channel).toBe('mark-price');
+        expect(result.data.data[0].markPx).toBe('42000.5');
+      }
+    });
+
+    it('should reject mark-price message with wrong channel', () => {
+      const invalidMessage = {
+        arg: {
+          channel: 'funding-rate', // wrong channel
+          instId: 'BTC-USDT-SWAP',
+        },
+        data: [
+          {
+            instId: 'BTC-USDT-SWAP',
+            markPx: '42000.5',
+            ts: '1704096000000',
+          },
+        ],
+      };
+
+      const result = parseOkxMarkPriceEvent(invalidMessage);
+      expect(result.success).toBe(false);
     });
   });
 
