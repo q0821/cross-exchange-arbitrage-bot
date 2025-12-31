@@ -331,10 +331,22 @@ export class PriceMonitor extends EventEmitter {
 
         // 監聽錯誤
         poller.on('error', (error: Error) => {
-          logger.error({
-            exchange: exchangeName,
-            error: error.message,
-          }, 'REST poller error');
+          // 交易對不存在的錯誤降級為 debug
+          const isSymbolNotFound = error.message.includes('does not have market symbol') ||
+            error.message.includes("doesn't exist") ||
+            error.message.includes('symbol not found');
+
+          if (isSymbolNotFound) {
+            logger.debug({
+              exchange: exchangeName,
+              error: error.message,
+            }, 'Symbol not available on exchange');
+          } else {
+            logger.error({
+              exchange: exchangeName,
+              error: error.message,
+            }, 'REST poller error');
+          }
           this.emit('error', error);
         });
 
@@ -456,9 +468,18 @@ export class PriceMonitor extends EventEmitter {
       });
 
       this.okxFundingWs.on('error', (error: Error) => {
-        logger.error({ exchange: 'okx', error: error.message }, 'OKX WebSocket error');
+        // 交易對不存在的錯誤降級為 debug
+        const isSymbolNotFound = error.message.includes('60018') ||
+          error.message.includes("doesn't exist") ||
+          error.message.includes('does not have market symbol');
+
+        if (isSymbolNotFound) {
+          logger.debug({ exchange: 'okx', error: error.message }, 'OKX symbol not available');
+        } else {
+          logger.error({ exchange: 'okx', error: error.message }, 'OKX WebSocket error');
+          this.dataSourceManager.disableWebSocket('okx', 'fundingRate', `error: ${error.message}`);
+        }
         this.emit('error', error);
-        this.dataSourceManager.disableWebSocket('okx', 'fundingRate', `error: ${error.message}`);
       });
 
       // 連接並訂閱

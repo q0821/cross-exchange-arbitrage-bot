@@ -87,9 +87,16 @@ export class RestPoller extends EventEmitter {
     // 立即執行一次（如果配置為 immediate）
     if (this.config.immediate) {
       this.poll().catch((error) => {
-        logger.error({
-          error: error instanceof Error ? error.message : String(error),
-        }, 'Initial poll failed');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isSymbolNotFound = errorMessage.includes('does not have market symbol') ||
+          errorMessage.includes("doesn't exist") ||
+          errorMessage.includes('symbol not found');
+
+        if (isSymbolNotFound) {
+          logger.debug({ error: errorMessage }, 'Initial poll - symbol not available');
+        } else {
+          logger.error({ error: errorMessage }, 'Initial poll failed');
+        }
         this.emit('error', error instanceof Error ? error : new Error(String(error)));
       });
     }
@@ -97,9 +104,16 @@ export class RestPoller extends EventEmitter {
     // 設定定期輪詢
     this.pollTimer = setInterval(() => {
       this.poll().catch((error) => {
-        logger.error({
-          error: error instanceof Error ? error.message : String(error),
-        }, 'Poll failed');
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const isSymbolNotFound = errorMessage.includes('does not have market symbol') ||
+          errorMessage.includes("doesn't exist") ||
+          errorMessage.includes('symbol not found');
+
+        if (isSymbolNotFound) {
+          logger.debug({ error: errorMessage }, 'Poll - symbol not available');
+        } else {
+          logger.error({ error: errorMessage }, 'Poll failed');
+        }
         this.emit('error', error instanceof Error ? error : new Error(String(error)));
       });
     }, this.config.intervalMs);
@@ -148,10 +162,24 @@ export class RestPoller extends EventEmitter {
         this.emit('ticker', priceData);
       }
     } catch (error) {
-      logger.error({
-        exchange: this.connector.name,
-        error: error instanceof Error ? error.message : String(error),
-      }, 'Failed to poll prices');
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // 交易對不存在的錯誤降級為 debug
+      const isSymbolNotFound = errorMessage.includes('does not have market symbol') ||
+        errorMessage.includes("doesn't exist") ||
+        errorMessage.includes('symbol not found');
+
+      if (isSymbolNotFound) {
+        logger.debug({
+          exchange: this.connector.name,
+          error: errorMessage,
+        }, 'Symbol not available on exchange');
+      } else {
+        logger.error({
+          exchange: this.connector.name,
+          error: errorMessage,
+        }, 'Failed to poll prices');
+      }
       throw error;
     }
   }

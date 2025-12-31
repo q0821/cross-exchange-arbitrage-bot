@@ -187,14 +187,29 @@ export class OkxFundingWs extends BaseExchangeWs {
 
       // 處理錯誤回應
       if (message.event === 'error') {
-        logger.error(
-          {
-            service: this.getLogPrefix(),
-            code: message.code,
-            msg: message.msg,
-          },
-          'OKX WebSocket error response'
-        );
+        // 60018: 交易對不存在 - 降級為 debug（不是所有交易對都在 OKX 上市）
+        const isSymbolNotFound = message.code === '60018' ||
+          (message.msg && message.msg.includes("doesn't exist"));
+
+        if (isSymbolNotFound) {
+          logger.debug(
+            {
+              service: this.getLogPrefix(),
+              code: message.code,
+              msg: message.msg,
+            },
+            'OKX symbol not available (expected for some pairs)'
+          );
+        } else {
+          logger.error(
+            {
+              service: this.getLogPrefix(),
+              code: message.code,
+              msg: message.msg,
+            },
+            'OKX WebSocket error response'
+          );
+        }
         this.emit('error', new Error(`OKX error ${message.code}: ${message.msg}`));
         return;
       }
