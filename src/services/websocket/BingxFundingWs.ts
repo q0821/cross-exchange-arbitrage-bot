@@ -186,21 +186,75 @@ export class BingxFundingWs extends BaseExchangeWs {
 
   protected handleMessage(data: Buffer | string): void {
     try {
-      // BingX 訊息可能是 GZIP 壓縮的
+      // BingX 訊息都是 GZIP 壓縮的
       let message: unknown;
 
+      // 確保 data 是 Buffer
+      let buffer: Buffer;
       if (Buffer.isBuffer(data)) {
+        buffer = data;
+      } else if (typeof data === 'string') {
+        // 如果是 string，可能已經是解壓後的 JSON
         try {
-          // 嘗試解壓 GZIP
-          const decompressed = gunzipSync(data);
-          message = JSON.parse(decompressed.toString());
+          message = JSON.parse(data);
+          // 如果成功解析，直接處理
+          this.processMessage(message);
+          return;
         } catch {
-          // 如果解壓失敗，嘗試直接解析
-          message = JSON.parse(data.toString());
+          // 不是有效 JSON，嘗試轉換為 Buffer
+          buffer = Buffer.from(data, 'binary');
         }
       } else {
-        message = JSON.parse(data);
+        logger.warn({ service: this.getLogPrefix(), dataType: typeof data }, 'Unknown data type');
+        return;
       }
+
+      // 檢查是否是 GZIP 壓縮 (magic number: 0x1f 0x8b)
+      if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
+        try {
+          const decompressed = gunzipSync(buffer);
+          message = JSON.parse(decompressed.toString('utf8'));
+        } catch (gzipError) {
+          logger.debug(
+            {
+              service: this.getLogPrefix(),
+              error: gzipError instanceof Error ? gzipError.message : String(gzipError),
+              bufferLength: buffer.length,
+            },
+            'GZIP decompression failed, skipping message'
+          );
+          return;
+        }
+      } else {
+        // 不是 GZIP，嘗試直接解析
+        try {
+          message = JSON.parse(buffer.toString('utf8'));
+        } catch {
+          logger.debug(
+            { service: this.getLogPrefix(), bufferLength: buffer.length },
+            'Non-GZIP message parsing failed, skipping'
+          );
+          return;
+        }
+      }
+
+      this.processMessage(message);
+    } catch (error) {
+      logger.error(
+        {
+          service: this.getLogPrefix(),
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to parse BingX WebSocket message'
+      );
+    }
+  }
+
+  /**
+   * 處理解析後的訊息
+   */
+  private processMessage(message: unknown): void {
+    try {
 
       // 處理 ping（BingX 客戶端需要主動發送 ping）
       if (typeof message === 'object' && message !== null && 'ping' in message) {
