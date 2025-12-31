@@ -123,7 +123,7 @@ export class FundingRateMonitor extends EventEmitter {
     if (this.enablePriceMonitor) {
       const connectors = Array.from(this.exchanges.values());
       this.priceMonitor = new PriceMonitor(connectors, symbols, {
-        enableWebSocket: false, // 目前只使用 REST
+        enableWebSocket: true, // 啟用交易所 WebSocket 即時數據
         restPollingIntervalMs: updateInterval,
       });
 
