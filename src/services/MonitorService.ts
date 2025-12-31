@@ -74,6 +74,9 @@ export async function startMonitorService(): Promise<void> {
     const exchangesEnv = process.env.MONITORED_EXCHANGES || 'binance,okx,mexc,gateio,bingx';
     const exchanges = exchangesEnv.split(',').map((e) => e.trim()) as ('binance' | 'okx' | 'mexc' | 'gateio' | 'bingx')[];
 
+    // 從環境變數讀取是否啟用 WebSocket 價格監控
+    const enablePriceMonitor = process.env.ENABLE_PRICE_MONITOR !== 'false'; // 預設啟用
+
     monitorInstance = new FundingRateMonitor(
       symbols,                                            // 第1個參數：交易對數組
       updateInterval,                                     // 第2個參數：更新間隔（從環境變數讀取）
@@ -81,6 +84,7 @@ export async function startMonitorService(): Promise<void> {
       process.env.BINANCE_TESTNET === 'true',            // 第4個參數：是否測試網
       {
         exchanges,                                        // 指定要監控的交易所列表
+        enablePriceMonitor,                               // 啟用 WebSocket 價格監控
       },
     );
 
