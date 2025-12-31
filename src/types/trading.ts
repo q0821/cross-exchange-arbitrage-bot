@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import { Decimal } from 'decimal.js';
+import { CloseReason } from '@/generated/prisma/client';
 
 // ============================================================================
 // Enums & Constants
@@ -421,6 +422,8 @@ export interface PartialCloseResponse {
 export interface ClosePositionParams {
   userId: string;
   positionId: string;
+  /** 可選：平倉原因（預設為 MANUAL） */
+  closeReason?: CloseReason;
 }
 
 /**

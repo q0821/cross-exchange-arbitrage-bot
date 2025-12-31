@@ -249,7 +249,7 @@ enum ConditionalOrderStatus {
   @@map("conditional_order_status")
 }
 
-// ===== 平倉原因 (Feature 050) =====
+// ===== 平倉原因 (Feature 050, 053) =====
 enum CloseReason {
   MANUAL              // 手動平倉
   LONG_SL_TRIGGERED   // 多方停損觸發
@@ -257,6 +257,7 @@ enum CloseReason {
   SHORT_SL_TRIGGERED  // 空方停損觸發
   SHORT_TP_TRIGGERED  // 空方停利觸發
   BOTH_TRIGGERED      // 雙邊同時觸發
+  UNCONFIRMED_TRIGGER // 無法確認觸發狀態，預防性平倉 (Feature 053)
 
   @@map("close_reason")
 }

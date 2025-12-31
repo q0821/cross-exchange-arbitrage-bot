@@ -967,6 +967,23 @@ export class ExchangeQueryService {
   }
 
   /**
+   * 標準化持倉方向格式
+   * 不同交易所返回不同格式：
+   * - Binance/OKX/BingX: 'long' / 'short'
+   * - Gate.io: 'buy' / 'sell'
+   * @param side 原始的 side 字串
+   * @returns 標準化的 'long' | 'short' | ''
+   */
+  private normalizeSide(side: string | undefined): 'long' | 'short' | '' {
+    const s = (side || '').toLowerCase();
+    // long 方向: long, buy, LONG, BUY
+    if (s === 'long' || s === 'buy') return 'long';
+    // short 方向: short, sell, SHORT, SELL
+    if (s === 'short' || s === 'sell') return 'short';
+    return '';
+  }
+
+  /**
    * 檢查交易所持倉是否存在
    * @param symbol 交易對
    * @param side 持倉方向 'long' | 'short'
@@ -1000,8 +1017,26 @@ export class ExchangeQueryService {
       // 尋找對應方向的持倉
       for (const pos of positions) {
         const posSymbol = pos.symbol || '';
-        const posSide = pos.side?.toLowerCase() || '';
-        const contracts = Math.abs(parseFloat(pos.contracts || pos.contractSize || '0'));
+        // 使用 normalizeSide 統一處理不同交易所的 side 格式
+        const posSide = this.normalizeSide(pos.side);
+        // 增強 contracts 解析，支援更多欄位名稱
+        const contracts = Math.abs(parseFloat(
+          pos.contracts || pos.contractSize || pos.info?.size || pos.info?.contracts || '0'
+        ));
+
+        // 記錄詳細的持倉資訊以便除錯
+        logger.debug(
+          {
+            exchange: this.exchangeName,
+            symbol,
+            expectedSide: side,
+            rawSide: pos.side,
+            normalizedSide: posSide,
+            contracts,
+            posSymbol,
+          },
+          '[ExchangeQueryService] 檢查持倉詳情',
+        );
 
         // 檢查 symbol 匹配（可能是 BTC/USDT:USDT 或其他格式）
         const symbolMatches = posSymbol === ccxtSymbol ||
@@ -1009,7 +1044,7 @@ export class ExchangeQueryService {
 
         if (symbolMatches && posSide === side && contracts > 0) {
           logger.info(
-            { exchange: this.exchangeName, symbol, side, contracts },
+            { exchange: this.exchangeName, symbol, side, contracts, rawSide: pos.side },
             '[ExchangeQueryService] 找到持倉',
           );
           return true;

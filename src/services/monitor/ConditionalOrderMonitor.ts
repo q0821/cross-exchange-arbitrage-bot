@@ -399,6 +399,7 @@ export class ConditionalOrderMonitor {
       position.symbol,
       orderId,
       positionSide,
+      position, // 傳入 position 以支援預防性平倉
     );
 
     if (!confirmed) {
@@ -542,6 +543,14 @@ export class ConditionalOrderMonitor {
    * 3. 如果狀態是 CANCELLED，檢查交易所持倉是否還存在
    *    - 如果持倉不存在，表示用戶可能修改了條件單價格導致觸發，視為觸發
    *    - 如果持倉還存在，表示訂單只是被取消，不視為觸發
+   *    - 如果連續 3 次查詢失敗，執行預防性雙邊平倉以避免單邊曝險
+   *
+   * @param exchange 交易所名稱
+   * @param userId 用戶 ID
+   * @param symbol 交易對
+   * @param orderId 訂單 ID
+   * @param positionSide 持倉方向
+   * @param position 持倉記錄（用於預防性平倉）
    */
   async confirmTriggerWithHistory(
     exchange: string,
@@ -549,6 +558,7 @@ export class ConditionalOrderMonitor {
     symbol: string,
     orderId: string,
     positionSide?: 'long' | 'short',
+    position?: Position,
   ): Promise<boolean> {
     try {
       const service = await this.createExchangeService(exchange, userId);
@@ -578,31 +588,63 @@ export class ConditionalOrderMonitor {
           '[條件單監控] 訂單已取消，檢查交易所持倉是否存在',
         );
 
-        try {
-          const positionExists = await service.checkPositionExists(symbol, positionSide);
-          await service.disconnect();
+        // 重試機制：最多嘗試 3 次
+        const maxAttempts = 3;
+        let lastError: Error | null = null;
 
-          if (!positionExists) {
-            logger.info(
-              { exchange, symbol, orderId, positionSide },
-              '[條件單監控] 交易所持倉已不存在，視為觸發（可能是修改條件單價格後觸發）',
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          try {
+            const positionExists = await service.checkPositionExists(symbol, positionSide);
+
+            if (!positionExists) {
+              logger.info(
+                { exchange, symbol, orderId, positionSide, attempt },
+                '[條件單監控] 交易所持倉已不存在，視為觸發（可能是修改條件單價格後觸發）',
+              );
+              await service.disconnect();
+              return true;
+            } else {
+              logger.info(
+                { exchange, symbol, orderId, positionSide, attempt },
+                '[條件單監控] 交易所持倉仍存在，訂單只是被取消',
+              );
+              await service.disconnect();
+              return false;
+            }
+          } catch (posError) {
+            lastError = posError as Error;
+            logger.warn(
+              { exchange, symbol, orderId, positionSide, attempt, error: lastError.message },
+              '[條件單監控] 查詢持倉失敗，準備重試',
             );
-            return true;
-          } else {
-            logger.info(
-              { exchange, symbol, orderId, positionSide },
-              '[條件單監控] 交易所持倉仍存在，訂單只是被取消',
-            );
-            return false;
+
+            // 如果還有重試機會，等待 1 秒
+            if (attempt < maxAttempts - 1) {
+              await new Promise(r => setTimeout(r, 1000));
+            }
           }
-        } catch (posError) {
-          logger.warn(
-            { exchange, symbol, orderId, error: (posError as Error).message },
-            '[條件單監控] 查詢持倉失敗，無法確認觸發',
-          );
-          await service.disconnect();
-          return false;
         }
+
+        // 重試仍然失敗 → 執行預防性雙邊平倉以避免單邊曝險
+        logger.error(
+          { exchange, symbol, orderId, positionSide, lastError: lastError?.message },
+          '[條件單監控] 連續 3 次查詢持倉失敗，啟動預防性雙邊平倉以避免單邊曝險',
+        );
+
+        // 如果有 Position 物件，執行預防性平倉
+        if (position) {
+          await this.executePreventiveClose(position, '無法確認觸發狀態，連續 3 次 API 查詢失敗');
+        } else {
+          // 沒有 Position 物件，只發送緊急通知
+          logger.error(
+            { exchange, symbol, orderId, positionSide },
+            '[條件單監控] 無法執行預防性平倉（缺少 Position 物件），請立即手動處理！',
+          );
+        }
+
+        await service.disconnect();
+        // 回傳 false 避免後續的單邊平倉邏輯
+        return false;
       }
 
       await service.disconnect();
@@ -617,6 +659,116 @@ export class ConditionalOrderMonitor {
         '[條件單監控] 查詢訂單歷史確認觸發失敗',
       );
       return false;
+    }
+  }
+
+  /**
+   * 預防性雙邊平倉
+   * 當無法確認觸發狀態時，主動平倉雙邊以避免單邊曝險
+   * 核心策略：避免單邊曝險是最高優先級，少賺沒關係
+   */
+  private async executePreventiveClose(
+    position: Position,
+    reason: string,
+  ): Promise<void> {
+    logger.warn(
+      { positionId: position.id, symbol: position.symbol, reason },
+      '[條件單監控] 開始執行預防性雙邊平倉',
+    );
+
+    try {
+      // 使用 PositionCloser 執行雙邊平倉
+      const closeResult = await this.positionCloser.closePosition({
+        positionId: position.id,
+        userId: position.userId,
+        closeReason: 'UNCONFIRMED_TRIGGER',
+      });
+
+      logger.info(
+        { positionId: position.id, closeResult: closeResult.success, reason },
+        '[條件單監控] 預防性雙邊平倉完成',
+      );
+
+      // 發送緊急通知
+      await this.sendEmergencyNotification(
+        position,
+        `預防性雙邊平倉已執行 - ${reason}`,
+        closeResult.success,
+      );
+    } catch (error) {
+      logger.error(
+        { positionId: position.id, error: (error as Error).message, reason },
+        '[條件單監控] 預防性雙邊平倉失敗',
+      );
+
+      // 即使平倉失敗，也要發送緊急通知
+      await this.sendEmergencyNotification(
+        position,
+        `預防性平倉失敗: ${(error as Error).message}，請立即手動處理！`,
+        false,
+      );
+    }
+  }
+
+  /**
+   * 發送緊急通知（預防性平倉專用）
+   */
+  private async sendEmergencyNotification(
+    position: Position,
+    errorMessage: string,
+    success: boolean,
+  ): Promise<void> {
+    try {
+      // 查詢用戶的 Webhook
+      const webhooks = await this.prisma.notificationWebhook.findMany({
+        where: {
+          userId: position.userId,
+          isEnabled: true,
+        },
+      });
+
+      if (webhooks.length === 0) {
+        logger.warn(
+          { positionId: position.id, userId: position.userId },
+          '[條件單監控] 用戶沒有設定通知 Webhook，無法發送緊急通知',
+        );
+        return;
+      }
+
+      // 構建緊急通知訊息
+      const notificationMessage = buildEmergencyNotificationMessage({
+        positionId: position.id,
+        symbol: position.symbol,
+        triggerType: 'BOTH', // 預防性平倉影響雙邊
+        triggeredExchange: `${position.longExchange}/${position.shortExchange}`,
+        error: errorMessage,
+        requiresManualIntervention: !success,
+      });
+
+      // 發送到所有 Webhook
+      for (const webhook of webhooks) {
+        try {
+          if (webhook.platform === 'discord') {
+            await this.discordNotifier.sendEmergencyNotification(webhook.webhookUrl, notificationMessage);
+          } else if (webhook.platform === 'slack') {
+            await this.slackNotifier.sendEmergencyNotification(webhook.webhookUrl, notificationMessage);
+          }
+          logger.info(
+            { positionId: position.id, platform: webhook.platform },
+            '[條件單監控] 緊急通知發送成功',
+          );
+        } catch (notifyError) {
+          logger.error(
+            { positionId: position.id, platform: webhook.platform, error: (notifyError as Error).message },
+            '[條件單監控] 緊急通知發送失敗',
+          );
+        }
+      }
+    } catch (error) {
+      logger.error(
+        { positionId: position.id, error: (error as Error).message },
+        '[條件單監控] 發送緊急通知時發生錯誤',
+      );
     }
   }
 
@@ -646,6 +798,7 @@ export class ConditionalOrderMonitor {
         position.symbol,
         position.longStopLossOrderId,
         'long',
+        position, // 傳入 position 以支援預防性平倉
       );
     }
     if (!orderStatus.longTakeProfitExists && position.longTakeProfitOrderId) {
@@ -655,6 +808,7 @@ export class ConditionalOrderMonitor {
         position.symbol,
         position.longTakeProfitOrderId,
         'long',
+        position, // 傳入 position 以支援預防性平倉
       );
     }
     return false;
@@ -674,6 +828,7 @@ export class ConditionalOrderMonitor {
         position.symbol,
         position.shortStopLossOrderId,
         'short',
+        position, // 傳入 position 以支援預防性平倉
       );
     }
     if (!orderStatus.shortTakeProfitExists && position.shortTakeProfitOrderId) {
@@ -683,6 +838,7 @@ export class ConditionalOrderMonitor {
         position.symbol,
         position.shortTakeProfitOrderId,
         'short',
+        position, // 傳入 position 以支援預防性平倉
       );
     }
     return false;

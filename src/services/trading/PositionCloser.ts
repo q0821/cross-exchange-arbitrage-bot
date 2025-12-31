@@ -187,16 +187,16 @@ export class PositionCloser {
    * @returns 平倉結果
    */
   async closePosition(params: ClosePositionParams): Promise<ClosePositionResult> {
-    const { userId, positionId } = params;
+    const { userId, positionId, closeReason = 'MANUAL' } = params;
 
     logger.info(
-      { userId, positionId },
+      { userId, positionId, closeReason },
       'Starting position close orchestration',
     );
 
     // 使用分散式鎖執行平倉
     return this.withCloseLock(positionId, async () => {
-      return this.executeClosePositionWithLock(userId, positionId);
+      return this.executeClosePositionWithLock(userId, positionId, closeReason);
     });
   }
 
@@ -269,6 +269,7 @@ export class PositionCloser {
   private async executeClosePositionWithLock(
     userId: string,
     positionId: string,
+    closeReason: CloseReason = 'MANUAL',
   ): Promise<ClosePositionResult> {
     // 1. 獲取並驗證持倉
     const position = await this.getAndValidatePosition(userId, positionId);
@@ -288,7 +289,7 @@ export class PositionCloser {
       );
 
       // 4. 處理結果
-      return await this.handleCloseResult(position, result);
+      return await this.handleCloseResult(position, result, closeReason);
     } catch (error) {
       // 更新 Position 狀態（如果還沒被更新為 PARTIAL）
       const currentPosition = await this.prisma.position.findUnique({
@@ -455,12 +456,13 @@ export class PositionCloser {
   private async handleCloseResult(
     position: Position,
     result: BilateralCloseResult,
+    closeReason: CloseReason = 'MANUAL',
   ): Promise<ClosePositionResult> {
     const { longResult, shortResult } = result;
 
     // 兩邊都成功
     if (longResult.success && shortResult.success) {
-      return this.handleBothCloseSuccess(position, longResult, shortResult);
+      return this.handleBothCloseSuccess(position, longResult, shortResult, closeReason);
     }
 
     // 兩邊都失敗
@@ -479,6 +481,7 @@ export class PositionCloser {
     position: Position,
     longResult: ExecuteCloseResult,
     shortResult: ExecuteCloseResult,
+    closeReason: CloseReason = 'MANUAL',
   ): Promise<ClosePositionSuccessResult> {
     // 詳細記錄平倉結果，用於偵錯 PnL 計算
     logger.info(
@@ -589,13 +592,13 @@ export class PositionCloser {
     );
 
     // 更新 Position 狀態
-    // T039: closePosition() 設定 closeReason = MANUAL（手動平倉）
+    // T039: closePosition() 設定 closeReason（預設 MANUAL，可透過參數覆蓋）
     const updatedPosition = await this.prisma.position.update({
       where: { id: position.id },
       data: {
         status: 'CLOSED',
         closedAt,
-        closeReason: 'MANUAL',
+        closeReason,
         longExitPrice: longExitPrice.toNumber(),
         longCloseOrderId: longResult.orderId,
         shortExitPrice: shortExitPrice.toNumber(),
