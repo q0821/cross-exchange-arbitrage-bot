@@ -458,69 +458,63 @@ class BinanceUserConnector implements IExchangeConnector {
       );
     }
 
-    // Fallback 1: 使用 Portfolio Margin API（統一保證金帳戶）
+    // Fallback 1: 使用 Portfolio Margin Account Info API（統一保證金帳戶資訊）
     try {
-      logger.info('Attempting Binance Portfolio Margin API /papi/v1/balance');
-      const pmData = (await this.signedRequest(
+      logger.info('Attempting Binance Portfolio Margin Account Info API /papi/v1/account');
+      const pmAccountData = (await this.signedRequest(
         this.portfolioMarginBaseUrl,
-        '/papi/v1/balance'
-      )) as Array<{
-        asset: string;
-        totalWalletBalance: string;
-        crossMarginAsset: string;
-        crossMarginFree: string;
-        crossMarginLocked: string;
-        umWalletBalance: string;
-        cmWalletBalance: string;
-      }>;
+        '/papi/v1/account'
+      )) as {
+        uniMMR: string;                    // 統一維持保證金率
+        accountEquity: string;             // 帳戶權益
+        actualEquity: string;              // 實際權益
+        accountInitialMargin: string;      // 初始保證金
+        accountMaintMargin: string;        // 維持保證金
+        accountStatus: string;
+        virtualMaxWithdrawAmount: string;  // 可提領金額（這就是可用餘額）
+        totalAvailableBalance: string;     // 總可用餘額
+        totalMarginOpenLoss: string;       // 未實現損失
+        updateTime: number;
+      };
 
-      let totalEquityUSD = 0;
-      const prices = await this.getSpotPrices();
+      // 記錄完整的 API 回應以便調試
+      logger.info(
+        { rawResponse: pmAccountData },
+        'Binance Portfolio Margin Account Info raw response'
+      );
 
-      const balances = pmData
-        .filter((b) => parseFloat(b.totalWalletBalance) > 0)
-        .map((b) => {
-          const total = parseFloat(b.totalWalletBalance);
-          const free = parseFloat(b.crossMarginFree) || 0;
-          const locked = parseFloat(b.crossMarginLocked) || 0;
-
-          // 計算 USD 價值
-          let usdValue = 0;
-          if (b.asset === 'USDT' || b.asset === 'BUSD' || b.asset === 'USDC' || b.asset === 'USD') {
-            usdValue = total;
-          } else {
-            const price = prices[`${b.asset}USDT`];
-            if (price) usdValue = total * price;
-          }
-          totalEquityUSD += usdValue;
-
-          return { asset: b.asset, free, locked, total };
-        });
-
-      // 計算可用餘額（USDT 的 free）
-      const usdtBalance = balances.find(b => b.asset === 'USDT');
-      const availableBalanceUSD = usdtBalance?.free || 0;
+      // 總權益 = 帳戶權益
+      const totalEquityUSD = parseFloat(pmAccountData.accountEquity) || 0;
+      // 可用餘額 = totalAvailableBalance 或 virtualMaxWithdrawAmount
+      const availableBalanceUSD = parseFloat(pmAccountData.totalAvailableBalance) ||
+                                   parseFloat(pmAccountData.virtualMaxWithdrawAmount) || 0;
 
       logger.info(
-        { totalEquityUSD, availableBalanceUSD },
-        'Binance Portfolio Margin API SUCCESS - using USDT free as available'
+        {
+          totalEquityUSD,
+          availableBalanceUSD,
+          accountEquity: pmAccountData.accountEquity,
+          totalAvailableBalance: pmAccountData.totalAvailableBalance,
+          virtualMaxWithdrawAmount: pmAccountData.virtualMaxWithdrawAmount,
+        },
+        'Binance Portfolio Margin Account Info SUCCESS'
       );
 
       return {
         exchange: 'binance',
-        balances,
+        balances: [],
         totalEquityUSD,
         availableBalanceUSD,
         timestamp: new Date(),
       };
     } catch (pmError) {
-      // Portfolio Margin API 失敗，記錄錯誤後 fallback 到 Spot API
+      // Portfolio Margin Account Info API 失敗，記錄錯誤後 fallback 到 Spot API
       logger.warn(
         {
           error: pmError instanceof Error ? pmError.message : String(pmError),
           apiKey: this.apiKey.slice(0, 8) + '...',
         },
-        'Binance Portfolio Margin API FAILED - falling back to Spot API'
+        'Binance Portfolio Margin Account Info API FAILED - falling back to Spot API'
       );
     }
 
