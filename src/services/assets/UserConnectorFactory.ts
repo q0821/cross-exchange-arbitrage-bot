@@ -393,8 +393,11 @@ class BinanceUserConnector implements IExchangeConnector {
   }
 
   async getBalance(): Promise<AccountBalance> {
+    logger.info({ apiKey: this.apiKey.slice(0, 8) + '...' }, 'BinanceUserConnector.getBalance() called');
+
     // 優先使用 Futures API 獲取合約帳戶餘額（開倉需要的可用餘額）
     try {
+      logger.info('Attempting Binance Futures API /fapi/v2/account');
       const futuresData = (await this.signedRequest(
         this.futuresBaseUrl,
         '/fapi/v2/account'
@@ -425,13 +428,15 @@ class BinanceUserConnector implements IExchangeConnector {
           total: parseFloat(a.marginBalance) || parseFloat(a.walletBalance),
         }));
 
-      logger.debug(
+      logger.info(
         {
           totalEquityUSD,
           availableBalanceUSD,
           totalWalletBalance: futuresData.totalWalletBalance,
+          totalMarginBalance: futuresData.totalMarginBalance,
+          rawAvailableBalance: futuresData.availableBalance,
         },
-        'Binance Futures account balance fetched'
+        'Binance Futures API SUCCESS - returning availableBalance'
       );
 
       return {
@@ -443,17 +448,19 @@ class BinanceUserConnector implements IExchangeConnector {
       };
     } catch (futuresError) {
       // Futures API 失敗，記錄錯誤後 fallback 到 Portfolio Margin API
-      logger.debug(
+      logger.warn(
         {
           error: futuresError instanceof Error ? futuresError.message : String(futuresError),
+          errorName: futuresError instanceof Error ? futuresError.name : 'Unknown',
           apiKey: this.apiKey.slice(0, 8) + '...',
         },
-        'Binance Futures API failed, falling back to Portfolio Margin API'
+        'Binance Futures API FAILED - falling back to Portfolio Margin API'
       );
     }
 
     // Fallback 1: 使用 Portfolio Margin API（統一保證金帳戶）
     try {
+      logger.info('Attempting Binance Portfolio Margin API /papi/v1/balance');
       const pmData = (await this.signedRequest(
         this.portfolioMarginBaseUrl,
         '/papi/v1/balance'
@@ -494,6 +501,11 @@ class BinanceUserConnector implements IExchangeConnector {
       const usdtBalance = balances.find(b => b.asset === 'USDT');
       const availableBalanceUSD = usdtBalance?.free || 0;
 
+      logger.info(
+        { totalEquityUSD, availableBalanceUSD },
+        'Binance Portfolio Margin API SUCCESS - using USDT free as available'
+      );
+
       return {
         exchange: 'binance',
         balances,
@@ -503,16 +515,17 @@ class BinanceUserConnector implements IExchangeConnector {
       };
     } catch (pmError) {
       // Portfolio Margin API 失敗，記錄錯誤後 fallback 到 Spot API
-      logger.debug(
+      logger.warn(
         {
           error: pmError instanceof Error ? pmError.message : String(pmError),
           apiKey: this.apiKey.slice(0, 8) + '...',
         },
-        'Binance Portfolio Margin API failed, falling back to Spot API'
+        'Binance Portfolio Margin API FAILED - falling back to Spot API'
       );
     }
 
     // Fallback 2: 使用 Spot API（只需要「啟用讀取」權限）
+    logger.info('Attempting Binance Spot API /api/v3/account');
     const data = (await this.signedRequest(this.spotBaseUrl, '/api/v3/account')) as {
       balances: Array<{
         asset: string;
@@ -550,6 +563,11 @@ class BinanceUserConnector implements IExchangeConnector {
     // 計算可用餘額（USDT 的 free）
     const usdtBalance = balances.find(b => b.asset === 'USDT');
     const availableBalanceUSD = usdtBalance?.free || 0;
+
+    logger.info(
+      { totalEquityUSD, availableBalanceUSD },
+      'Binance Spot API SUCCESS - using USDT free as available (WARNING: This is SPOT balance, not FUTURES!)'
+    );
 
     return {
       exchange: 'binance',
