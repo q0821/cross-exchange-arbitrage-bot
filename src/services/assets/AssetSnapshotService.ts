@@ -209,6 +209,7 @@ export class AssetSnapshotService {
 
   /**
    * 將快照資料轉換為 API 回應格式
+   * 注意：快照資料不保存 availableBalanceUSD，這裡使用 balanceUSD 作為 fallback
    */
   snapshotToBalanceResult(snapshot: AssetSnapshotData): UserBalanceResult {
     const exchanges: ExchangeBalanceResult[] = [
@@ -216,26 +217,31 @@ export class AssetSnapshotService {
         exchange: 'binance',
         status: (snapshot.binanceStatus as ExchangeBalanceResult['status']) || 'no_api_key',
         balanceUSD: snapshot.binanceBalanceUSD,
+        availableBalanceUSD: snapshot.binanceBalanceUSD, // 快照不區分，使用相同值
       },
       {
         exchange: 'okx',
         status: (snapshot.okxStatus as ExchangeBalanceResult['status']) || 'no_api_key',
         balanceUSD: snapshot.okxBalanceUSD,
+        availableBalanceUSD: snapshot.okxBalanceUSD,
       },
       {
         exchange: 'mexc',
         status: (snapshot.mexcStatus as ExchangeBalanceResult['status']) || 'no_api_key',
         balanceUSD: snapshot.mexcBalanceUSD,
+        availableBalanceUSD: snapshot.mexcBalanceUSD,
       },
       {
         exchange: 'gateio',
         status: (snapshot.gateioStatus as ExchangeBalanceResult['status']) || 'no_api_key',
         balanceUSD: snapshot.gateioBalanceUSD,
+        availableBalanceUSD: snapshot.gateioBalanceUSD,
       },
       {
         exchange: 'bingx',
         status: (snapshot.bingxStatus as ExchangeBalanceResult['status']) || 'no_api_key',
         balanceUSD: snapshot.bingxBalanceUSD,
+        availableBalanceUSD: snapshot.bingxBalanceUSD,
       },
     ];
 

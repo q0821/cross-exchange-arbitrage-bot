@@ -360,13 +360,15 @@ export class BingxConnector extends BaseExchangeConnector {
             total: total as number,
           }));
 
-        // 計算總權益 (使用 USDT 計價)
+        // 計算總權益和可用餘額 (使用 USDT 計價)
         const totalEquityUSD = (balance.total['USDT'] as number) || 0;
+        const availableBalanceUSD = (balance.free['USDT'] as number) || 0;
 
         return {
           exchange: 'bingx',
           balances,
           totalEquityUSD,
+          availableBalanceUSD,
           timestamp: new Date(),
         };
       } catch (error) {

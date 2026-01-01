@@ -65,7 +65,8 @@ export interface Balance {
 export interface AccountBalance {
   exchange: ExchangeName;
   balances: Balance[];
-  totalEquityUSD: number;
+  totalEquityUSD: number;      // 總權益（用於資產總覽）：可用餘額 + 持倉價值
+  availableBalanceUSD: number; // 可用餘額（用於開倉驗證）：可自由使用的餘額
   timestamp: Date;
 }
 

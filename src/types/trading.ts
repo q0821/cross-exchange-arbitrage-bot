@@ -153,10 +153,10 @@ export interface TradeInfo {
  */
 export interface BalanceInfo {
   exchange: SupportedExchange;
-  available: number;
-  total: number;
-  status: 'success' | 'error';
-  error?: string;
+  available: number;  // 可用餘額（用於開倉驗證）
+  total: number;      // 總權益（用於資產總覽）
+  status: 'success' | 'error' | 'no_api_key' | 'api_error' | 'rate_limited';
+  errorMessage?: string;
 }
 
 /**
