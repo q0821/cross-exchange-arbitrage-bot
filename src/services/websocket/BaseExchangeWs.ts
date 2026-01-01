@@ -288,12 +288,12 @@ export abstract class BaseExchangeWs extends EventEmitter {
 
         const connectionTimeout = setTimeout(() => {
           reject(new Error('Connection timeout'));
-          // 安全終止：連接中的 WebSocket 使用 close()
+          // 安全終止：使用 terminate() 並加入臨時錯誤處理器
           try {
-            if (this.ws?.readyState === WebSocket.CONNECTING) {
-              this.ws.close();
-            } else {
-              this.ws?.terminate();
+            if (this.ws) {
+              this.ws.removeAllListeners();
+              this.ws.on('error', () => {});
+              this.ws.terminate();
             }
           } catch {
             // 忽略終止時的錯誤
@@ -576,15 +576,13 @@ export abstract class BaseExchangeWs extends EventEmitter {
     // 先斷開現有連接
     if (this.ws) {
       this.ws.removeAllListeners();
-      // 安全終止連接：OPEN/CLOSING 使用 terminate()，CONNECTING 使用 close()
+      // 加入臨時錯誤處理器，避免 close() 非同步錯誤成為 uncaught exception
+      this.ws.on('error', () => {});
+      // 安全終止連接：直接使用 terminate() 強制關閉
       // readyState: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
       try {
-        if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CLOSING) {
-          this.ws.terminate();
-        } else if (this.ws.readyState === WebSocket.CONNECTING) {
-          // 連接中的 WebSocket 使用 close() 而非 terminate()
-          this.ws.close();
-        }
+        // terminate() 是同步的，不會發出非同步錯誤
+        this.ws.terminate();
       } catch (error) {
         // 忽略終止錯誤
         logger.debug(
