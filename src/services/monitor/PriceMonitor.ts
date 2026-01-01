@@ -395,6 +395,8 @@ export class PriceMonitor extends EventEmitter {
       // 監聽資金費率事件（包含 markPrice）
       this.binanceFundingWs.on('fundingRate', (data: FundingRateReceived) => {
         this.handleWebSocketPriceUpdate(data);
+        // 更新 DataSourceManager 數據接收時間
+        this.dataSourceManager.updateLastDataReceived('binance', 'fundingRate');
       });
 
       // 監聯連線事件 (Feature 052: T054 整合 DataSourceManager)

@@ -21,7 +21,7 @@ import {
  */
 export class MarketRatesHandler {
   private broadcastInterval: NodeJS.Timeout | null = null;
-  private readonly BROADCAST_INTERVAL_MS = 5000; // 5 秒推送一次
+  private readonly BROADCAST_INTERVAL_MS = 2000; // 2 秒推送一次
 
   constructor(private readonly io: SocketIOServer) {}
 

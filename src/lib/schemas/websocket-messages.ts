@@ -249,8 +249,8 @@ const GateioTickerResultSchema = z.object({
   index_price: z.string(),
   funding_rate: z.string(),
   funding_rate_indicative: z.string(),
-  volume_24h: z.string(),
-  volume_24h_usd: z.string(),
+  volume_24h: z.string().optional(),
+  volume_24h_usd: z.string().optional(),
 });
 
 /** Gate.io futures.tickers event schema (result 為陣列) */
