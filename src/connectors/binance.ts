@@ -334,11 +334,13 @@ export class BinanceConnector extends BaseExchangeConnector {
 
         // CLI 監控用簡化實作，完整 USD 計算見 UserConnectorFactory.BinanceUserConnector
         const totalEquityUSD = 0;
+        const availableBalanceUSD = 0;
 
         return {
           exchange: 'binance',
           balances,
           totalEquityUSD,
+          availableBalanceUSD,
           timestamp: new Date(),
         };
       } catch (error) {

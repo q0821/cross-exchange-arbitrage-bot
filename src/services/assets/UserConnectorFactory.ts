@@ -20,7 +20,10 @@ export type ConnectionStatus = 'success' | 'no_api_key' | 'api_error' | 'rate_li
 export interface ExchangeBalanceResult {
   exchange: ExchangeName;
   status: ConnectionStatus;
+  /** 總權益（用於資產總覽）：包含持倉價值 */
   balanceUSD: number | null;
+  /** 可用餘額（用於開倉驗證）：可自由使用的餘額 */
+  availableBalanceUSD: number | null;
   errorMessage?: string;
 }
 
@@ -146,6 +149,7 @@ export class UserConnectorFactory {
           exchange,
           status: 'no_api_key',
           balanceUSD: null,
+          availableBalanceUSD: null,
         });
         continue;
       }
@@ -164,6 +168,7 @@ export class UserConnectorFactory {
             exchange,
             status: 'no_api_key',
             balanceUSD: null,
+            availableBalanceUSD: null,
             errorMessage: 'Connector not implemented',
           });
           continue;
@@ -177,6 +182,7 @@ export class UserConnectorFactory {
           exchange,
           status: 'success',
           balanceUSD: balance.totalEquityUSD,
+          availableBalanceUSD: balance.availableBalanceUSD,
         });
       } catch (error) {
         // 提取詳細錯誤資訊
@@ -215,6 +221,7 @@ export class UserConnectorFactory {
           exchange,
           status: isRateLimit ? 'rate_limited' : 'api_error',
           balanceUSD: null,
+          availableBalanceUSD: null,
           errorMessage: `${errorName}: ${errorMessage}`,
         });
       }
@@ -424,10 +431,15 @@ class BinanceUserConnector implements IExchangeConnector {
           return { asset: b.asset, free, locked, total };
         });
 
+      // 計算可用餘額（USDT 的 free）
+      const usdtBalance = balances.find(b => b.asset === 'USDT');
+      const availableBalanceUSD = usdtBalance?.free || 0;
+
       return {
         exchange: 'binance',
         balances,
         totalEquityUSD,
+        availableBalanceUSD,
         timestamp: new Date(),
       };
     } catch (pmError) {
@@ -476,10 +488,15 @@ class BinanceUserConnector implements IExchangeConnector {
         return { asset: b.asset, free, locked, total };
       });
 
+    // 計算可用餘額（USDT 的 free）
+    const usdtBalance = balances.find(b => b.asset === 'USDT');
+    const availableBalanceUSD = usdtBalance?.free || 0;
+
     return {
       exchange: 'binance',
       balances,
       totalEquityUSD,
+      availableBalanceUSD,
       timestamp: new Date(),
     };
   }
@@ -680,6 +697,8 @@ class OkxUserConnector implements IExchangeConnector {
     (this.exchange as any).options['defaultType'] = 'swap';
     const balance = await this.exchange.fetchBalance();
     const totalUSD = balance.total?.USDT || balance.total?.USD || 0;
+    // 可用餘額：使用 free.USDT
+    const availableUSD = balance.free?.USDT || balance.free?.USD || 0;
 
     const balances = Object.entries(balance.total || {})
       .filter(([_, value]) => (value as number) > 0)
@@ -694,6 +713,7 @@ class OkxUserConnector implements IExchangeConnector {
       exchange: 'okx',
       balances,
       totalEquityUSD: totalUSD as number,
+      availableBalanceUSD: availableUSD as number,
       timestamp: new Date(),
     };
   }
@@ -819,6 +839,8 @@ class MexcUserConnector implements IExchangeConnector {
     // 使用 swap 模式查詢合約帳戶餘額
     const balance = await this.exchange.fetchBalance({ type: 'swap' });
     const totalUSD = balance.total?.USDT || balance.total?.USD || 0;
+    // 可用餘額：使用 free.USDT
+    const availableUSD = balance.free?.USDT || balance.free?.USD || 0;
 
     const balances = Object.entries(balance.total || {})
       .filter(([_, value]) => (value as number) > 0)
@@ -833,6 +855,7 @@ class MexcUserConnector implements IExchangeConnector {
       exchange: 'mexc',
       balances,
       totalEquityUSD: totalUSD as number,
+      availableBalanceUSD: availableUSD as number,
       timestamp: new Date(),
     };
   }
@@ -915,6 +938,7 @@ class MexcUserConnector implements IExchangeConnector {
 /**
  * 用戶特定的 Gate.io 連接器
  * Feature 032: MEXC 和 Gate.io 資產追蹤
+ * Feature 056: 修復餘額顯示 - totalEquityUSD 納入持倉價值
  */
 class GateioUserConnector implements IExchangeConnector {
   readonly name: ExchangeName = 'gateio';
@@ -969,7 +993,23 @@ class GateioUserConnector implements IExchangeConnector {
 
     // Fallback: 使用 swap 帳戶
     const balance = await this.exchange.fetchBalance({ type: 'swap' });
-    const totalUSD = balance.total?.USDT || balance.total?.USD || 0;
+    const availableUSD = balance.free?.USDT || balance.free?.USD || 0;
+
+    // 查詢持倉計算持倉價值
+    let positionValue = 0;
+    try {
+      const positions = await this.exchange.fetchPositions();
+      for (const p of positions) {
+        const margin = parseFloat(p.initialMargin?.toString() || '0');
+        const unrealizedPnl = parseFloat(p.unrealizedPnl?.toString() || '0');
+        positionValue += margin + unrealizedPnl;
+      }
+    } catch (posError) {
+      logger.debug({ error: posError }, 'Gate.io failed to fetch positions for equity calculation');
+    }
+
+    // 總權益 = 可用餘額 + 持倉價值
+    const totalEquityUSD = (availableUSD as number) + positionValue;
 
     const balances = Object.entries(balance.total || {})
       .filter(([_, value]) => (value as number) > 0)
@@ -983,13 +1023,15 @@ class GateioUserConnector implements IExchangeConnector {
     return {
       exchange: 'gateio',
       balances,
-      totalEquityUSD: totalUSD as number,
+      totalEquityUSD,
+      availableBalanceUSD: availableUSD as number,
       timestamp: new Date(),
     };
   }
 
   /**
    * 查詢 Gate.io 統一帳戶餘額 (跨幣種保證金模式)
+   * Feature 056: 修正 totalEquityUSD 納入持倉價值
    */
   private async fetchUnifiedAccountBalance(): Promise<AccountBalance | null> {
     const crypto = await import('crypto');
@@ -1024,8 +1066,25 @@ class GateioUserConnector implements IExchangeConnector {
     }
 
     // 解析統一帳戶餘額
-    const totalEquityUSD = parseFloat(data.unified_account_total_equity || '0');
+    // unified_account_total_equity 是可用餘額，不包含持倉
+    const availableBalanceUSD = parseFloat(data.unified_account_total_equity || '0');
     const balancesData = data.balances || {};
+
+    // 查詢持倉計算持倉價值
+    let positionValue = 0;
+    try {
+      const positionsData = await this.fetchFuturesPositions();
+      for (const pos of positionsData) {
+        const margin = parseFloat(pos.margin || '0');
+        const unrealisedPnl = parseFloat(pos.unrealised_pnl || '0');
+        positionValue += margin + unrealisedPnl;
+      }
+    } catch (posError) {
+      logger.debug({ error: posError }, 'Gate.io failed to fetch positions for unified account equity');
+    }
+
+    // 總權益 = 可用餘額 + 持倉價值
+    const totalEquityUSD = availableBalanceUSD + positionValue;
 
     const balances = Object.entries(balancesData)
       .filter(([_, v]) => {
@@ -1049,8 +1108,46 @@ class GateioUserConnector implements IExchangeConnector {
       exchange: 'gateio',
       balances,
       totalEquityUSD,
+      availableBalanceUSD,
       timestamp: new Date(),
     };
+  }
+
+  /**
+   * 查詢 Gate.io 合約持倉
+   * Feature 056: 用於計算總權益
+   */
+  private async fetchFuturesPositions(): Promise<Array<{ margin: string; unrealised_pnl: string }>> {
+    const crypto = await import('crypto');
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const method = 'GET';
+    const url = '/api/v4/futures/usdt/positions';
+    const queryString = '';
+    const bodyHash = crypto.createHash('sha512').update('').digest('hex');
+
+    const signString = `${method}\n${url}\n${queryString}\n${bodyHash}\n${timestamp}`;
+    const signature = crypto.createHmac('sha512', this.apiSecret).update(signString).digest('hex');
+
+    const response = await fetch(`https://api.gateio.ws${url}`, {
+      method,
+      headers: {
+        KEY: this.apiKey,
+        Timestamp: timestamp,
+        SIGN: signature,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    return data;
   }
 
   async getPositions(): Promise<PositionInfo> {
@@ -1175,6 +1272,8 @@ class BingxUserConnector implements IExchangeConnector {
     // 使用 swap 模式查詢合約帳戶餘額
     const balance = await this.exchange.fetchBalance({ type: 'swap' });
     const totalUSD = balance.total?.USDT || balance.total?.USD || 0;
+    // 可用餘額：使用 free.USDT
+    const availableUSD = balance.free?.USDT || balance.free?.USD || 0;
 
     const balances = Object.entries(balance.total || {})
       .filter(([_, value]) => (value as number) > 0)
@@ -1189,6 +1288,7 @@ class BingxUserConnector implements IExchangeConnector {
       exchange: 'bingx',
       balances,
       totalEquityUSD: totalUSD as number,
+      availableBalanceUSD: availableUSD as number,
       timestamp: new Date(),
     };
   }

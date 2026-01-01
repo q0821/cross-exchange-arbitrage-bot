@@ -122,10 +122,11 @@ export class BalanceValidator {
         );
       }
 
-      balanceMap.set(exchange, balanceResult.balanceUSD ?? 0);
+      // Feature 056: 使用 availableBalanceUSD（可用餘額）進行開倉驗證
+      balanceMap.set(exchange, balanceResult.availableBalanceUSD ?? 0);
     }
 
-    logger.info({ userId, balances: Object.fromEntries(balanceMap) }, 'User balances fetched');
+    logger.info({ userId, balances: Object.fromEntries(balanceMap) }, 'User available balances fetched');
 
     return balanceMap;
   }

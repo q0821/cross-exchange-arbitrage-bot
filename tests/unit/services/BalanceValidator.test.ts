@@ -150,10 +150,10 @@ describe('BalanceValidator', () => {
 
   describe('getBalances', () => {
     it('should return balances for valid API keys', async () => {
-      // Arrange
+      // Arrange - Feature 056: 使用 availableBalanceUSD 進行開倉驗證
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 10000 },
-        { exchange: 'okx', status: 'success', balanceUSD: 5000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 5000, availableBalanceUSD: 5000 },
       ]);
 
       // Act
@@ -167,7 +167,7 @@ describe('BalanceValidator', () => {
     it('should throw ApiKeyNotFoundError when status is no_api_key', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'no_api_key' },
+        { exchange: 'binance', status: 'no_api_key', balanceUSD: null, availableBalanceUSD: null },
       ]);
 
       // Act & Assert
@@ -179,7 +179,7 @@ describe('BalanceValidator', () => {
     it('should throw ExchangeApiError when status is api_error', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'api_error', errorMessage: 'Connection failed' },
+        { exchange: 'binance', status: 'api_error', balanceUSD: null, availableBalanceUSD: null, errorMessage: 'Connection failed' },
       ]);
 
       // Act & Assert
@@ -191,7 +191,7 @@ describe('BalanceValidator', () => {
     it('should throw ExchangeApiError with rate_limited flag when status is rate_limited', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'okx', status: 'rate_limited', errorMessage: 'Rate limit exceeded' },
+        { exchange: 'okx', status: 'rate_limited', balanceUSD: null, availableBalanceUSD: null, errorMessage: 'Rate limit exceeded' },
       ]);
 
       // Act & Assert
@@ -209,7 +209,7 @@ describe('BalanceValidator', () => {
     it('should set balance to 0 when exchange result is missing', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 10000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
         // 'okx' is missing from the response
       ]);
 
@@ -224,7 +224,7 @@ describe('BalanceValidator', () => {
     it('should set balance to 0 when balanceUSD is null', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: null },
+        { exchange: 'binance', status: 'success', balanceUSD: null, availableBalanceUSD: null },
       ]);
 
       // Act
@@ -237,7 +237,7 @@ describe('BalanceValidator', () => {
     it('should set balance to 0 when balanceUSD is undefined', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'gateio', status: 'success' }, // balanceUSD is undefined
+        { exchange: 'gateio', status: 'success', balanceUSD: null, availableBalanceUSD: null }, // balanceUSD/availableBalanceUSD is null
       ]);
 
       // Act
@@ -256,8 +256,8 @@ describe('BalanceValidator', () => {
     it('should return isValid=true when both exchanges have sufficient balance', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 10000 },
-        { exchange: 'okx', status: 'success', balanceUSD: 10000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
       ]);
 
       // Act
@@ -282,8 +282,8 @@ describe('BalanceValidator', () => {
     it('should throw InsufficientBalanceError for long exchange when balance insufficient', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 1000 }, // Not enough
-        { exchange: 'okx', status: 'success', balanceUSD: 10000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 1000, availableBalanceUSD: 1000 }, // Not enough
+        { exchange: 'okx', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
       ]);
 
       // Act & Assert
@@ -320,8 +320,8 @@ describe('BalanceValidator', () => {
     it('should throw InsufficientBalanceError for short exchange when balance insufficient', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 10000 },
-        { exchange: 'okx', status: 'success', balanceUSD: 1000 }, // Not enough
+        { exchange: 'binance', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 1000, availableBalanceUSD: 1000 }, // Not enough
       ]);
 
       // Act & Assert
@@ -344,8 +344,8 @@ describe('BalanceValidator', () => {
     it('should check long exchange first when both insufficient', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 1000 }, // Not enough
-        { exchange: 'okx', status: 'success', balanceUSD: 1000 }, // Not enough
+        { exchange: 'binance', status: 'success', balanceUSD: 1000, availableBalanceUSD: 1000 }, // Not enough
+        { exchange: 'okx', status: 'success', balanceUSD: 1000, availableBalanceUSD: 1000 }, // Not enough
       ]);
 
       // Act & Assert
@@ -370,8 +370,8 @@ describe('BalanceValidator', () => {
       // Required margin = 5000 (without buffer), with buffer = 5500
       // Balance = 5000, which is less than 5500
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 5000 },
-        { exchange: 'okx', status: 'success', balanceUSD: 10000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 5000, availableBalanceUSD: 5000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
       ]);
 
       // Act & Assert
@@ -391,8 +391,8 @@ describe('BalanceValidator', () => {
     it('should include correct values in validation result', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 8000 },
-        { exchange: 'okx', status: 'success', balanceUSD: 6000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 8000, availableBalanceUSD: 8000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 6000, availableBalanceUSD: 6000 },
       ]);
 
       // Act
@@ -425,8 +425,8 @@ describe('BalanceValidator', () => {
     it('should return isValid=true when balance is sufficient', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 10000 },
-        { exchange: 'okx', status: 'success', balanceUSD: 10000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
       ]);
 
       // Act
@@ -449,8 +449,8 @@ describe('BalanceValidator', () => {
     it('should return isValid=false with insufficientExchange and insufficientAmount when balance insufficient', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 1000 },
-        { exchange: 'okx', status: 'success', balanceUSD: 10000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 1000, availableBalanceUSD: 1000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
       ]);
 
       // Act
@@ -494,7 +494,7 @@ describe('BalanceValidator', () => {
     it('should re-throw ExchangeApiError (not convert to validation result)', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'api_error', errorMessage: 'Connection failed' },
+        { exchange: 'binance', status: 'api_error', balanceUSD: null, availableBalanceUSD: null, errorMessage: 'Connection failed' },
       ]);
 
       // Act & Assert
@@ -546,7 +546,7 @@ describe('BalanceValidator', () => {
     it('should handle same exchange for long and short', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 20000 },
+        { exchange: 'binance', status: 'success', balanceUSD: 20000, availableBalanceUSD: 20000 },
       ]);
 
       // Act
@@ -584,8 +584,8 @@ describe('BalanceValidator', () => {
     it('should handle null/undefined balanceUSD gracefully in getBalances', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: null },
-        { exchange: 'okx', status: 'success' }, // undefined
+        { exchange: 'binance', status: 'success', balanceUSD: null, availableBalanceUSD: null },
+        { exchange: 'okx', status: 'success', balanceUSD: null, availableBalanceUSD: null }, // null
       ]);
 
       // Act
@@ -599,8 +599,8 @@ describe('BalanceValidator', () => {
     it('should handle case-insensitive exchange matching', async () => {
       // Arrange
       mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'BINANCE', status: 'success', balanceUSD: 10000 },
-        { exchange: 'OKX', status: 'success', balanceUSD: 5000 },
+        { exchange: 'BINANCE', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
+        { exchange: 'OKX', status: 'success', balanceUSD: 5000, availableBalanceUSD: 5000 },
       ]);
 
       // Act

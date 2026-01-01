@@ -3,6 +3,7 @@
  *
  * 查詢用戶在指定交易所的可用餘額
  * Feature: 033-manual-open-position (T009)
+ * Feature: 056-fix-balance-display - 區分 available 和 total
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,7 +12,7 @@ import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
-import { BalanceValidator } from '@/src/services/trading/BalanceValidator';
+import { UserConnectorFactory } from '@/src/services/assets/UserConnectorFactory';
 import { GetBalancesRequestSchema, type BalancesResponse, type SupportedExchange } from '@/src/types/trading';
 
 /**
@@ -60,17 +61,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       'Get balances request received',
     );
 
-    // 4. 查詢餘額
-    const balanceValidator = new BalanceValidator(prisma);
-    const balanceMap = await balanceValidator.getBalances(user.userId, exchanges);
+    // 4. 查詢餘額 (使用 UserConnectorFactory 獲取完整資訊)
+    const userConnectorFactory = new UserConnectorFactory(prisma);
+    const allBalances = await userConnectorFactory.getBalancesForUser(user.userId);
 
-    // 5. 格式化回應
+    // 5. 格式化回應 - Feature 056: 區分 available (可用餘額) 和 total (總權益)
     const balances = exchanges.map((exchange) => {
-      const balance = balanceMap.get(exchange) ?? 0;
+      const balanceResult = allBalances.find(
+        (b) => b.exchange.toLowerCase() === exchange.toLowerCase()
+      );
+
+      if (!balanceResult || balanceResult.status !== 'success') {
+        return {
+          exchange,
+          available: 0,
+          total: 0,
+          status: (balanceResult?.status || 'api_error') as 'success' | 'no_api_key' | 'api_error' | 'rate_limited',
+          errorMessage: balanceResult?.errorMessage,
+        };
+      }
+
       return {
         exchange,
-        available: balance,
-        total: balance, // 目前只回傳可用餘額
+        available: balanceResult.availableBalanceUSD ?? 0, // 可用餘額（用於開倉）
+        total: balanceResult.balanceUSD ?? 0,              // 總權益（用於資產總覽）
         status: 'success' as const,
       };
     });
