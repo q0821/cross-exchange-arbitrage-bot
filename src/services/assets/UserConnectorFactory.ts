@@ -393,7 +393,66 @@ class BinanceUserConnector implements IExchangeConnector {
   }
 
   async getBalance(): Promise<AccountBalance> {
-    // 優先使用 Portfolio Margin API（統一保證金帳戶）
+    // 優先使用 Futures API 獲取合約帳戶餘額（開倉需要的可用餘額）
+    try {
+      const futuresData = (await this.signedRequest(
+        this.futuresBaseUrl,
+        '/fapi/v2/account'
+      )) as {
+        totalWalletBalance: string;      // 總錢包餘額
+        totalMarginBalance: string;      // 總保證金餘額
+        totalUnrealizedProfit: string;   // 未實現損益
+        availableBalance: string;        // 可用餘額（扣除保證金後）
+        assets: Array<{
+          asset: string;
+          walletBalance: string;
+          availableBalance: string;
+          marginBalance: string;
+        }>;
+      };
+
+      // 總權益 = 錢包餘額 + 未實現損益
+      const totalEquityUSD = parseFloat(futuresData.totalMarginBalance) || 0;
+      // 可用餘額 = 可自由使用的餘額（已扣除持倉保證金）
+      const availableBalanceUSD = parseFloat(futuresData.availableBalance) || 0;
+
+      const balances = futuresData.assets
+        .filter((a) => parseFloat(a.walletBalance) > 0)
+        .map((a) => ({
+          asset: a.asset,
+          free: parseFloat(a.availableBalance) || 0,
+          locked: parseFloat(a.walletBalance) - parseFloat(a.availableBalance),
+          total: parseFloat(a.marginBalance) || parseFloat(a.walletBalance),
+        }));
+
+      logger.debug(
+        {
+          totalEquityUSD,
+          availableBalanceUSD,
+          totalWalletBalance: futuresData.totalWalletBalance,
+        },
+        'Binance Futures account balance fetched'
+      );
+
+      return {
+        exchange: 'binance',
+        balances,
+        totalEquityUSD,
+        availableBalanceUSD,
+        timestamp: new Date(),
+      };
+    } catch (futuresError) {
+      // Futures API 失敗，記錄錯誤後 fallback 到 Portfolio Margin API
+      logger.debug(
+        {
+          error: futuresError instanceof Error ? futuresError.message : String(futuresError),
+          apiKey: this.apiKey.slice(0, 8) + '...',
+        },
+        'Binance Futures API failed, falling back to Portfolio Margin API'
+      );
+    }
+
+    // Fallback 1: 使用 Portfolio Margin API（統一保證金帳戶）
     try {
       const pmData = (await this.signedRequest(
         this.portfolioMarginBaseUrl,
@@ -453,7 +512,7 @@ class BinanceUserConnector implements IExchangeConnector {
       );
     }
 
-    // Fallback: 使用 Spot API（只需要「啟用讀取」權限）
+    // Fallback 2: 使用 Spot API（只需要「啟用讀取」權限）
     const data = (await this.signedRequest(this.spotBaseUrl, '/api/v3/account')) as {
       balances: Array<{
         asset: string;
