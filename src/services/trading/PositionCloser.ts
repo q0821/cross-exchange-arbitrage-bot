@@ -527,6 +527,40 @@ export class PositionCloser {
       );
     }
 
+    // 價格合理性檢查：兩邊平倉價格差異超過 10% 則警告
+    // 正常情況下，同一幣種在不同交易所的價格不應該差太多
+    if (!longExitPrice.isZero() && !shortExitPrice.isZero()) {
+      const priceDiffPercent = longExitPrice.minus(shortExitPrice).abs()
+        .div(longExitPrice.plus(shortExitPrice).div(2))
+        .times(100);
+
+      if (priceDiffPercent.gt(10)) {
+        logger.error(
+          {
+            positionId: position.id,
+            symbol: position.symbol,
+            longExchange: position.longExchange,
+            shortExchange: position.shortExchange,
+            longExitPrice: longExitPrice.toString(),
+            shortExitPrice: shortExitPrice.toString(),
+            priceDiffPercent: priceDiffPercent.toFixed(2),
+          },
+          'CRITICAL: Exit prices differ by more than 10% between exchanges - possible API error!',
+        );
+      } else if (priceDiffPercent.gt(5)) {
+        logger.warn(
+          {
+            positionId: position.id,
+            symbol: position.symbol,
+            longExitPrice: longExitPrice.toString(),
+            shortExitPrice: shortExitPrice.toString(),
+            priceDiffPercent: priceDiffPercent.toFixed(2),
+          },
+          'Exit prices differ by more than 5% between exchanges - unusual but possible',
+        );
+      }
+    }
+
     // 查詢資金費率損益
     const fundingFeeResult = await this.fundingFeeQueryService.queryBilateralFundingFees(
       position.longExchange as SupportedExchange,
