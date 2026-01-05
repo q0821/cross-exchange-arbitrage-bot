@@ -17,6 +17,8 @@ import { PriceMonitor } from './PriceMonitor.js';
 import { ArbitrageAssessor, type ArbitrageConfig, type ArbitrageAssessment } from '../assessment/ArbitrageAssessor.js';
 import type { TimeBasis } from '../../lib/validation/fundingRateSchemas';
 import { FundingRateNormalizer } from './FundingRateNormalizer';
+import { isSymbolSupported } from '../../lib/exchanges/constants';
+import type { SupportedExchange } from '../../types/exchange-links';
 
 /**
  * 監控狀態
@@ -173,8 +175,19 @@ export class FundingRateMonitor extends EventEmitter {
     this.status.symbols = symbols;
     this.status.updateInterval = updateInterval;
 
+    // 統計各交易所過濾掉的交易對數量
+    const filterStats: Record<string, number> = {};
+    for (const exchange of this.exchangeNames) {
+      const filtered = symbols.filter(
+        (s) => !isSymbolSupported(exchange as SupportedExchange, s)
+      );
+      if (filtered.length > 0) {
+        filterStats[exchange] = filtered.length;
+      }
+    }
+
     logger.info({
-      symbols,
+      symbols: symbols.length,
       updateInterval,
       minSpreadThreshold,
       isTestnet,
@@ -182,6 +195,7 @@ export class FundingRateMonitor extends EventEmitter {
       enableValidation: this.enableValidation,
       enablePriceMonitor: this.enablePriceMonitor,
       enableArbitrageAssessment: this.enableArbitrageAssessment,
+      filteredSymbolsByExchange: Object.keys(filterStats).length > 0 ? filterStats : undefined,
     }, 'FundingRateMonitor initialized');
   }
 
@@ -370,8 +384,13 @@ export class FundingRateMonitor extends EventEmitter {
    * 更新單一交易對的資金費率（多交易所版本）
    */
   private async updateRateForSymbol(symbol: string): Promise<void> {
-    // 並行獲取所有交易所的資金費率和價格
-    const dataPromises = Array.from(this.exchanges.entries()).map(
+    // 過濾出支援此交易對的交易所
+    const supportedExchanges = Array.from(this.exchanges.entries()).filter(
+      ([exchangeName]) => isSymbolSupported(exchangeName as SupportedExchange, symbol)
+    );
+
+    // 並行獲取所有支援交易所的資金費率和價格
+    const dataPromises = supportedExchanges.map(
       async ([exchangeName, connector]) => {
         try {
           const [rateData, priceData] = await Promise.all([
