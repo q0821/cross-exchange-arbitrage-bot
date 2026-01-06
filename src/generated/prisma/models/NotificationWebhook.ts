@@ -45,6 +45,7 @@ export type NotificationWebhookMinAggregateOutputType = {
   isEnabled: boolean | null
   threshold: runtime.Decimal | null
   notifyOnDisappear: boolean | null
+  requireFavorablePrice: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -58,6 +59,7 @@ export type NotificationWebhookMaxAggregateOutputType = {
   isEnabled: boolean | null
   threshold: runtime.Decimal | null
   notifyOnDisappear: boolean | null
+  requireFavorablePrice: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -72,6 +74,7 @@ export type NotificationWebhookCountAggregateOutputType = {
   threshold: number
   notifyOnDisappear: number
   notificationMinutes: number
+  requireFavorablePrice: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -97,6 +100,7 @@ export type NotificationWebhookMinAggregateInputType = {
   isEnabled?: true
   threshold?: true
   notifyOnDisappear?: true
+  requireFavorablePrice?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -110,6 +114,7 @@ export type NotificationWebhookMaxAggregateInputType = {
   isEnabled?: true
   threshold?: true
   notifyOnDisappear?: true
+  requireFavorablePrice?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -124,6 +129,7 @@ export type NotificationWebhookCountAggregateInputType = {
   threshold?: true
   notifyOnDisappear?: true
   notificationMinutes?: true
+  requireFavorablePrice?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -225,6 +231,7 @@ export type NotificationWebhookGroupByOutputType = {
   threshold: runtime.Decimal
   notifyOnDisappear: boolean
   notificationMinutes: number[]
+  requireFavorablePrice: boolean
   createdAt: Date
   updatedAt: Date
   _count: NotificationWebhookCountAggregateOutputType | null
@@ -262,6 +269,7 @@ export type NotificationWebhookWhereInput = {
   threshold?: Prisma.DecimalFilter<"NotificationWebhook"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFilter<"NotificationWebhook"> | boolean
   notificationMinutes?: Prisma.IntNullableListFilter<"NotificationWebhook">
+  requireFavorablePrice?: Prisma.BoolFilter<"NotificationWebhook"> | boolean
   createdAt?: Prisma.DateTimeFilter<"NotificationWebhook"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"NotificationWebhook"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -277,6 +285,7 @@ export type NotificationWebhookOrderByWithRelationInput = {
   threshold?: Prisma.SortOrder
   notifyOnDisappear?: Prisma.SortOrder
   notificationMinutes?: Prisma.SortOrder
+  requireFavorablePrice?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -295,6 +304,7 @@ export type NotificationWebhookWhereUniqueInput = Prisma.AtLeast<{
   threshold?: Prisma.DecimalFilter<"NotificationWebhook"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFilter<"NotificationWebhook"> | boolean
   notificationMinutes?: Prisma.IntNullableListFilter<"NotificationWebhook">
+  requireFavorablePrice?: Prisma.BoolFilter<"NotificationWebhook"> | boolean
   createdAt?: Prisma.DateTimeFilter<"NotificationWebhook"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"NotificationWebhook"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -310,6 +320,7 @@ export type NotificationWebhookOrderByWithAggregationInput = {
   threshold?: Prisma.SortOrder
   notifyOnDisappear?: Prisma.SortOrder
   notificationMinutes?: Prisma.SortOrder
+  requireFavorablePrice?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.NotificationWebhookCountOrderByAggregateInput
@@ -332,6 +343,7 @@ export type NotificationWebhookScalarWhereWithAggregatesInput = {
   threshold?: Prisma.DecimalWithAggregatesFilter<"NotificationWebhook"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolWithAggregatesFilter<"NotificationWebhook"> | boolean
   notificationMinutes?: Prisma.IntNullableListFilter<"NotificationWebhook">
+  requireFavorablePrice?: Prisma.BoolWithAggregatesFilter<"NotificationWebhook"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"NotificationWebhook"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"NotificationWebhook"> | Date | string
 }
@@ -345,6 +357,7 @@ export type NotificationWebhookCreateInput = {
   threshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: boolean
   notificationMinutes?: Prisma.NotificationWebhookCreatenotificationMinutesInput | number[]
+  requireFavorablePrice?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutNotificationWebhooksInput
@@ -360,6 +373,7 @@ export type NotificationWebhookUncheckedCreateInput = {
   threshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: boolean
   notificationMinutes?: Prisma.NotificationWebhookCreatenotificationMinutesInput | number[]
+  requireFavorablePrice?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -373,6 +387,7 @@ export type NotificationWebhookUpdateInput = {
   threshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notificationMinutes?: Prisma.NotificationWebhookUpdatenotificationMinutesInput | number[]
+  requireFavorablePrice?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutNotificationWebhooksNestedInput
@@ -388,6 +403,7 @@ export type NotificationWebhookUncheckedUpdateInput = {
   threshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notificationMinutes?: Prisma.NotificationWebhookUpdatenotificationMinutesInput | number[]
+  requireFavorablePrice?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -402,6 +418,7 @@ export type NotificationWebhookCreateManyInput = {
   threshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: boolean
   notificationMinutes?: Prisma.NotificationWebhookCreatenotificationMinutesInput | number[]
+  requireFavorablePrice?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -415,6 +432,7 @@ export type NotificationWebhookUpdateManyMutationInput = {
   threshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notificationMinutes?: Prisma.NotificationWebhookUpdatenotificationMinutesInput | number[]
+  requireFavorablePrice?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -429,6 +447,7 @@ export type NotificationWebhookUncheckedUpdateManyInput = {
   threshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notificationMinutes?: Prisma.NotificationWebhookUpdatenotificationMinutesInput | number[]
+  requireFavorablePrice?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -461,6 +480,7 @@ export type NotificationWebhookCountOrderByAggregateInput = {
   threshold?: Prisma.SortOrder
   notifyOnDisappear?: Prisma.SortOrder
   notificationMinutes?: Prisma.SortOrder
+  requireFavorablePrice?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -479,6 +499,7 @@ export type NotificationWebhookMaxOrderByAggregateInput = {
   isEnabled?: Prisma.SortOrder
   threshold?: Prisma.SortOrder
   notifyOnDisappear?: Prisma.SortOrder
+  requireFavorablePrice?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -492,6 +513,7 @@ export type NotificationWebhookMinOrderByAggregateInput = {
   isEnabled?: Prisma.SortOrder
   threshold?: Prisma.SortOrder
   notifyOnDisappear?: Prisma.SortOrder
+  requireFavorablePrice?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -561,6 +583,7 @@ export type NotificationWebhookCreateWithoutUserInput = {
   threshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: boolean
   notificationMinutes?: Prisma.NotificationWebhookCreatenotificationMinutesInput | number[]
+  requireFavorablePrice?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -574,6 +597,7 @@ export type NotificationWebhookUncheckedCreateWithoutUserInput = {
   threshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: boolean
   notificationMinutes?: Prisma.NotificationWebhookCreatenotificationMinutesInput | number[]
+  requireFavorablePrice?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -617,6 +641,7 @@ export type NotificationWebhookScalarWhereInput = {
   threshold?: Prisma.DecimalFilter<"NotificationWebhook"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFilter<"NotificationWebhook"> | boolean
   notificationMinutes?: Prisma.IntNullableListFilter<"NotificationWebhook">
+  requireFavorablePrice?: Prisma.BoolFilter<"NotificationWebhook"> | boolean
   createdAt?: Prisma.DateTimeFilter<"NotificationWebhook"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"NotificationWebhook"> | Date | string
 }
@@ -630,6 +655,7 @@ export type NotificationWebhookCreateManyUserInput = {
   threshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: boolean
   notificationMinutes?: Prisma.NotificationWebhookCreatenotificationMinutesInput | number[]
+  requireFavorablePrice?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -643,6 +669,7 @@ export type NotificationWebhookUpdateWithoutUserInput = {
   threshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notificationMinutes?: Prisma.NotificationWebhookUpdatenotificationMinutesInput | number[]
+  requireFavorablePrice?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -656,6 +683,7 @@ export type NotificationWebhookUncheckedUpdateWithoutUserInput = {
   threshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notificationMinutes?: Prisma.NotificationWebhookUpdatenotificationMinutesInput | number[]
+  requireFavorablePrice?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -669,6 +697,7 @@ export type NotificationWebhookUncheckedUpdateManyWithoutUserInput = {
   threshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   notifyOnDisappear?: Prisma.BoolFieldUpdateOperationsInput | boolean
   notificationMinutes?: Prisma.NotificationWebhookUpdatenotificationMinutesInput | number[]
+  requireFavorablePrice?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -685,6 +714,7 @@ export type NotificationWebhookSelect<ExtArgs extends runtime.Types.Extensions.I
   threshold?: boolean
   notifyOnDisappear?: boolean
   notificationMinutes?: boolean
+  requireFavorablePrice?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -700,6 +730,7 @@ export type NotificationWebhookSelectCreateManyAndReturn<ExtArgs extends runtime
   threshold?: boolean
   notifyOnDisappear?: boolean
   notificationMinutes?: boolean
+  requireFavorablePrice?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -715,6 +746,7 @@ export type NotificationWebhookSelectUpdateManyAndReturn<ExtArgs extends runtime
   threshold?: boolean
   notifyOnDisappear?: boolean
   notificationMinutes?: boolean
+  requireFavorablePrice?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -730,11 +762,12 @@ export type NotificationWebhookSelectScalar = {
   threshold?: boolean
   notifyOnDisappear?: boolean
   notificationMinutes?: boolean
+  requireFavorablePrice?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type NotificationWebhookOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "platform" | "webhookUrl" | "name" | "isEnabled" | "threshold" | "notifyOnDisappear" | "notificationMinutes" | "createdAt" | "updatedAt", ExtArgs["result"]["notificationWebhook"]>
+export type NotificationWebhookOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "platform" | "webhookUrl" | "name" | "isEnabled" | "threshold" | "notifyOnDisappear" | "notificationMinutes" | "requireFavorablePrice" | "createdAt" | "updatedAt", ExtArgs["result"]["notificationWebhook"]>
 export type NotificationWebhookInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -760,6 +793,7 @@ export type $NotificationWebhookPayload<ExtArgs extends runtime.Types.Extensions
     threshold: runtime.Decimal
     notifyOnDisappear: boolean
     notificationMinutes: number[]
+    requireFavorablePrice: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["notificationWebhook"]>
@@ -1195,6 +1229,7 @@ export interface NotificationWebhookFieldRefs {
   readonly threshold: Prisma.FieldRef<"NotificationWebhook", 'Decimal'>
   readonly notifyOnDisappear: Prisma.FieldRef<"NotificationWebhook", 'Boolean'>
   readonly notificationMinutes: Prisma.FieldRef<"NotificationWebhook", 'Int[]'>
+  readonly requireFavorablePrice: Prisma.FieldRef<"NotificationWebhook", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"NotificationWebhook", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"NotificationWebhook", 'DateTime'>
 }

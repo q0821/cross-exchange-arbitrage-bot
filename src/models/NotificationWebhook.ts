@@ -27,6 +27,7 @@ export const CreateWebhookSchema = z.object({
     .min(1)
     .max(2)
     .default([50]), // 通知時間（每小時的第幾分鐘），最多 2 個
+  requireFavorablePrice: z.boolean().default(false), // Feature 057: 價差過濾開關
 });
 
 export const UpdateWebhookSchema = z.object({
@@ -40,6 +41,7 @@ export const UpdateWebhookSchema = z.object({
     .min(1)
     .max(2)
     .optional(), // 通知時間（每小時的第幾分鐘）
+  requireFavorablePrice: z.boolean().optional(), // Feature 057: 價差過濾開關
 });
 
 /**

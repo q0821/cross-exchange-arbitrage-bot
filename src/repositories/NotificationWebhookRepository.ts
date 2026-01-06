@@ -32,6 +32,7 @@ export class NotificationWebhookRepository {
       threshold: Number(webhook.threshold),
       notifyOnDisappear: webhook.notifyOnDisappear, // Feature 027
       notificationMinutes: webhook.notificationMinutes ?? [50], // 通知時間
+      requireFavorablePrice: webhook.requireFavorablePrice, // Feature 057
     };
   }
 
@@ -126,6 +127,7 @@ export class NotificationWebhookRepository {
           isEnabled: true,
           notifyOnDisappear: data.notifyOnDisappear ?? true, // Feature 027
           notificationMinutes: data.notificationMinutes ?? [50], // 通知時間
+          requireFavorablePrice: data.requireFavorablePrice ?? false, // Feature 057
         },
       });
 
@@ -174,6 +176,9 @@ export class NotificationWebhookRepository {
       }
       if (data.notificationMinutes !== undefined) {
         updateData.notificationMinutes = data.notificationMinutes; // 通知時間
+      }
+      if (data.requireFavorablePrice !== undefined) {
+        updateData.requireFavorablePrice = data.requireFavorablePrice; // Feature 057
       }
 
       const webhook = await this.prisma.notificationWebhook.update({

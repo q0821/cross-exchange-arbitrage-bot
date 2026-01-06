@@ -13,6 +13,7 @@ interface Webhook {
   threshold: number;
   notifyOnDisappear: boolean;  // Feature 027: 接收結束通知開關
   notificationMinutes: number[];  // 通知時間（每小時的第幾分鐘）
+  requireFavorablePrice: boolean;  // Feature 057: 價差過濾開關
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +25,7 @@ interface WebhookFormData {
   threshold: number;
   notifyOnDisappear: boolean;  // Feature 027: 接收結束通知開關
   notificationMinutes: number[];  // 通知時間（每小時的第幾分鐘）
+  requireFavorablePrice: boolean;  // Feature 057: 價差過濾開關
 }
 
 // 可選的通知時間選項
@@ -50,6 +52,7 @@ export default function NotificationsSettingsPage() {
     threshold: 800,
     notifyOnDisappear: true,  // Feature 027: 預設開啟結束通知
     notificationMinutes: [50],  // 預設 :50 分通知
+    requireFavorablePrice: false,  // Feature 057: 預設關閉價差過濾（後向兼容）
   });
 
   // 載入 Webhooks
@@ -93,7 +96,7 @@ export default function NotificationsSettingsPage() {
 
       if (data.success) {
         setShowForm(false);
-        setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50] });
+        setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50], requireFavorablePrice: false });
         await loadWebhooks();
       } else {
         setError(data.message || 'Failed to create webhook');
@@ -198,6 +201,7 @@ export default function NotificationsSettingsPage() {
           webhookUrl: formData.webhookUrl || undefined,
           notifyOnDisappear: formData.notifyOnDisappear,  // Feature 027
           notificationMinutes: formData.notificationMinutes,  // 通知時間
+          requireFavorablePrice: formData.requireFavorablePrice,  // Feature 057
         }),
       });
 
@@ -205,7 +209,7 @@ export default function NotificationsSettingsPage() {
 
       if (data.success) {
         setEditingWebhook(null);
-        setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50] });
+        setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50], requireFavorablePrice: false });
         await loadWebhooks();
       } else {
         setError(data.message || 'Failed to update webhook');
@@ -228,6 +232,7 @@ export default function NotificationsSettingsPage() {
       threshold: webhook.threshold,
       notifyOnDisappear: webhook.notifyOnDisappear,  // Feature 027
       notificationMinutes: webhook.notificationMinutes || [50],  // 通知時間
+      requireFavorablePrice: webhook.requireFavorablePrice ?? false,  // Feature 057
     });
     setShowForm(false);
   };
@@ -355,6 +360,31 @@ export default function NotificationsSettingsPage() {
               </button>
             </div>
 
+            {/* Feature 057: 價差過濾開關 */}
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <label className="block text-sm font-medium text-foreground">
+                  只在價差有利時通知
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  只有當淨收益 &gt; 0 且價差方向正確時才發送通知
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, requireFavorablePrice: !formData.requireFavorablePrice })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  formData.requireFavorablePrice ? 'bg-primary' : 'bg-muted'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.requireFavorablePrice ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* 通知時間選擇 */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
@@ -420,7 +450,7 @@ export default function NotificationsSettingsPage() {
                 type="button"
                 onClick={() => {
                   setShowForm(false);
-                  setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50] });
+                  setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50], requireFavorablePrice: false });
                 }}
                 className="px-4 py-2 text-foreground bg-muted rounded-md hover:bg-muted transition-colors"
               >
@@ -503,6 +533,31 @@ export default function NotificationsSettingsPage() {
               </button>
             </div>
 
+            {/* Feature 057: 價差過濾開關 (編輯表單) */}
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <label className="block text-sm font-medium text-foreground">
+                  只在價差有利時通知
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  只有當淨收益 &gt; 0 且價差方向正確時才發送通知
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, requireFavorablePrice: !formData.requireFavorablePrice })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  formData.requireFavorablePrice ? 'bg-primary' : 'bg-muted'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    formData.requireFavorablePrice ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
             {/* 通知時間選擇 */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">
@@ -568,7 +623,7 @@ export default function NotificationsSettingsPage() {
                 type="button"
                 onClick={() => {
                   setEditingWebhook(null);
-                  setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50] });
+                  setFormData({ platform: 'discord', webhookUrl: '', name: '', threshold: 800, notifyOnDisappear: true, notificationMinutes: [50], requireFavorablePrice: false });
                 }}
                 className="px-4 py-2 text-foreground bg-muted rounded-md hover:bg-muted transition-colors"
               >
@@ -628,6 +683,14 @@ export default function NotificationsSettingsPage() {
                           }
                         >
                           {webhook.notifyOnDisappear ? '開' : '關'}
+                        </span>
+                        {' | '}價差過濾：
+                        <span
+                          className={
+                            webhook.requireFavorablePrice ? 'text-profit' : 'text-muted-foreground'
+                          }
+                        >
+                          {webhook.requireFavorablePrice ? '開' : '關'}
                         </span>
                       </p>
                     </div>

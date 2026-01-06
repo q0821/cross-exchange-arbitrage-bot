@@ -192,6 +192,19 @@ export class NotificationService {
         continue;
       }
 
+      // Feature 057: 檢查價差過濾條件
+      if (!this.passesPriceFilter(rate, webhook.requireFavorablePrice)) {
+        logger.debug(
+          {
+            webhookId: webhook.id,
+            symbol: rate.symbol,
+            requireFavorablePrice: webhook.requireFavorablePrice,
+          },
+          'Notification skipped due to price filter'
+        );
+        continue;
+      }
+
       // 檢查重複過濾
       const key = this.generateOpportunityKey(
         userId,
@@ -1082,6 +1095,79 @@ export class NotificationService {
       return true; // 無價格資料時預設為正確
     }
     return longPrice <= shortPrice;
+  }
+
+  /**
+   * Feature 057: 價差過濾檢查
+   *
+   * 判斷機會是否通過價差過濾條件。
+   *
+   * 規則：
+   * - requireFavorablePrice = false → 始終通過（不過濾）
+   * - requireFavorablePrice = true → 需同時滿足：
+   *   1. netReturn > 0（淨收益為正）
+   *   2. isPriceDirectionCorrect = true（價差方向正確）
+   * - bestPair 不存在 → 不通過（保守策略）
+   *
+   * @param rate 費率對資料
+   * @param requireFavorablePrice 是否要求有利價差
+   * @returns true 如果通過過濾，false 如果被過濾掉
+   */
+  private passesPriceFilter(
+    rate: FundingRatePair,
+    requireFavorablePrice: boolean
+  ): boolean {
+    // 規則 1: 如果不要求價差過濾，直接通過
+    if (!requireFavorablePrice) {
+      return true;
+    }
+
+    // 規則 2: 需要 bestPair 存在
+    const bestPair = rate.bestPair;
+    if (!bestPair) {
+      logger.debug(
+        { symbol: rate.symbol },
+        'Price filter rejected: no bestPair'
+      );
+      return false;
+    }
+
+    // 規則 3: 淨收益必須 > 0
+    const netReturn = bestPair.netReturn ?? 0;
+    if (netReturn <= 0) {
+      logger.debug(
+        {
+          symbol: rate.symbol,
+          netReturn,
+        },
+        'Price filter rejected: netReturn <= 0'
+      );
+      return false;
+    }
+
+    // 規則 4: 價差方向必須正確
+    // 如果 isPriceDirectionCorrect 是 undefined，採用保守策略（不通過）
+    const isPriceDirectionCorrect = bestPair.isPriceDirectionCorrect;
+    if (isPriceDirectionCorrect === undefined || isPriceDirectionCorrect === false) {
+      logger.debug(
+        {
+          symbol: rate.symbol,
+          isPriceDirectionCorrect,
+        },
+        'Price filter rejected: price direction not favorable'
+      );
+      return false;
+    }
+
+    logger.debug(
+      {
+        symbol: rate.symbol,
+        netReturn,
+        isPriceDirectionCorrect,
+      },
+      'Price filter passed'
+    );
+    return true;
   }
 
   /**

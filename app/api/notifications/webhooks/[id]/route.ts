@@ -73,6 +73,7 @@ export async function GET(
             threshold: webhook.threshold,
             notifyOnDisappear: webhook.notifyOnDisappear, // Feature 027
             notificationMinutes: webhook.notificationMinutes, // 通知時間
+            requireFavorablePrice: webhook.requireFavorablePrice, // Feature 057
           },
         },
       },
@@ -178,6 +179,7 @@ export async function PUT(
             threshold: updatedWebhook.threshold,
             notifyOnDisappear: updatedWebhook.notifyOnDisappear, // Feature 027
             notificationMinutes: updatedWebhook.notificationMinutes, // 通知時間
+            requireFavorablePrice: updatedWebhook.requireFavorablePrice, // Feature 057
           },
         },
       },

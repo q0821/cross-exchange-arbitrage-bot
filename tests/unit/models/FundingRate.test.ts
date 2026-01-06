@@ -2,10 +2,15 @@
  * Unit tests for FundingRate model - Normalized Rate Calculations
  * Feature: 019-fix-time-basis-switching
  * User Story 3: 查看基於時間基準的正確費率差
+ *
+ * Feature: 057-notification-price-filter
+ * T003a: isPriceDirectionCorrect calculation tests
  */
 
 import { describe, it, expect } from 'vitest';
-import type { ExchangeRateData, TimeBasis } from '@/models/FundingRate';
+import type { ExchangeRateData, TimeBasis, ExchangeName } from '@/models/FundingRate';
+import { createMultiExchangeFundingRatePair, FundingRateRecord } from '@/models/FundingRate';
+import { MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF } from '@/lib/cost-constants';
 
 /**
  * T020: 驗證不同時間基準下的費率差計算正確性
@@ -335,5 +340,178 @@ describe('FundingRate - Annualized Return Calculation', () => {
     const minReturn = Math.min(...annualizedReturns);
     const variance = maxReturn - minReturn;
     expect(variance).toBeLessThan(expectedReturn * 0.005); // Less than 0.5% variance
+  });
+});
+
+/**
+ * Unit tests for isPriceDirectionCorrect calculation
+ * Feature: 057-notification-price-filter
+ * T003a: 價差方向判斷測試
+ *
+ * 規則：
+ * - 空方價格 >= 多方價格 → true（有利價差）
+ * - 空方價格 < 多方價格但在 0.05% 容忍範圍內 → true（可接受）
+ * - 空方價格 < 多方價格超過 0.05% → false（不利價差）
+ * - 無價格數據 → undefined（讓消費者決定如何處理）
+ */
+describe('FundingRate - isPriceDirectionCorrect Calculation', () => {
+  /**
+   * Helper: 建立測試用的 ExchangeRateData
+   */
+  function createExchangeData(
+    exchange: ExchangeName,
+    fundingRate: number,
+    price?: number
+  ): ExchangeRateData {
+    return {
+      rate: new FundingRateRecord({
+        exchange,
+        symbol: 'BTCUSDT',
+        fundingRate,
+        nextFundingTime: new Date('2025-01-19T16:00:00Z'),
+        markPrice: price,
+        recordedAt: new Date(),
+      }),
+      price,
+      originalFundingInterval: 8,
+    };
+  }
+
+  /**
+   * T003a-1: 空方價格 > 多方價格時應該返回 true
+   */
+  it('should set isPriceDirectionCorrect=true when short price > long price', () => {
+    // Binance: 0.01%, OKX: -0.01% → 做空 Binance（價格 50010），做多 OKX（價格 50000）
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    exchangesData.set('binance', createExchangeData('binance', 0.0001, 50010)); // short
+    exchangesData.set('okx', createExchangeData('okx', -0.0001, 50000)); // long
+
+    const pair = createMultiExchangeFundingRatePair('BTCUSDT', exchangesData);
+
+    expect(pair.bestPair).toBeDefined();
+    expect(pair.bestPair?.shortExchange).toBe('binance');
+    expect(pair.bestPair?.longExchange).toBe('okx');
+    // Feature 057: isPriceDirectionCorrect should be calculated
+    expect(pair.bestPair?.isPriceDirectionCorrect).toBe(true);
+  });
+
+  /**
+   * T003a-2: 空方價格 = 多方價格時應該返回 true
+   */
+  it('should set isPriceDirectionCorrect=true when short price = long price', () => {
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    exchangesData.set('binance', createExchangeData('binance', 0.0001, 50000)); // short
+    exchangesData.set('okx', createExchangeData('okx', -0.0001, 50000)); // long
+
+    const pair = createMultiExchangeFundingRatePair('BTCUSDT', exchangesData);
+
+    expect(pair.bestPair).toBeDefined();
+    expect(pair.bestPair?.isPriceDirectionCorrect).toBe(true);
+  });
+
+  /**
+   * T003a-3: 空方價格略低於多方，但在 0.05% 容忍範圍內，應返回 true
+   */
+  it('should set isPriceDirectionCorrect=true when adverse price diff is within tolerance', () => {
+    // short price = 50000, long price = 50010
+    // priceDiffRate = (50000 - 50010) / 50000 = -0.0002 = -0.02%
+    // MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF = 0.0005 = 0.05%
+    // |-0.02%| < 0.05% → 在容忍範圍內 → true
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    exchangesData.set('binance', createExchangeData('binance', 0.0001, 50000)); // short (lower price)
+    exchangesData.set('okx', createExchangeData('okx', -0.0001, 50010)); // long (higher price)
+
+    const pair = createMultiExchangeFundingRatePair('BTCUSDT', exchangesData);
+
+    expect(pair.bestPair).toBeDefined();
+    expect(pair.bestPair?.shortExchange).toBe('binance');
+    expect(pair.bestPair?.longExchange).toBe('okx');
+    expect(pair.bestPair?.isPriceDirectionCorrect).toBe(true);
+  });
+
+  /**
+   * T003a-4: 空方價格明顯低於多方，超過 0.05% 容忍範圍，應返回 false
+   */
+  it('should set isPriceDirectionCorrect=false when adverse price diff exceeds tolerance', () => {
+    // short price = 50000, long price = 50100
+    // priceDiffRate = (50000 - 50100) / 50000 = -0.002 = -0.2%
+    // |-0.2%| > 0.05% → 超過容忍範圍 → false
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    exchangesData.set('binance', createExchangeData('binance', 0.0001, 50000)); // short (lower price)
+    exchangesData.set('okx', createExchangeData('okx', -0.0001, 50100)); // long (higher price)
+
+    const pair = createMultiExchangeFundingRatePair('BTCUSDT', exchangesData);
+
+    expect(pair.bestPair).toBeDefined();
+    expect(pair.bestPair?.shortExchange).toBe('binance');
+    expect(pair.bestPair?.longExchange).toBe('okx');
+    expect(pair.bestPair?.isPriceDirectionCorrect).toBe(false);
+  });
+
+  /**
+   * T003a-5: 無價格數據時應該返回 undefined
+   */
+  it('should set isPriceDirectionCorrect=undefined when price data is missing', () => {
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    exchangesData.set('binance', createExchangeData('binance', 0.0001, undefined)); // no price
+    exchangesData.set('okx', createExchangeData('okx', -0.0001, undefined)); // no price
+
+    const pair = createMultiExchangeFundingRatePair('BTCUSDT', exchangesData);
+
+    expect(pair.bestPair).toBeDefined();
+    // 無價格時，應該是 undefined（讓消費者決定如何處理）
+    expect(pair.bestPair?.isPriceDirectionCorrect).toBeUndefined();
+  });
+
+  /**
+   * T003a-6: 只有一方有價格時應該返回 undefined
+   */
+  it('should set isPriceDirectionCorrect=undefined when only one side has price', () => {
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    exchangesData.set('binance', createExchangeData('binance', 0.0001, 50000)); // has price
+    exchangesData.set('okx', createExchangeData('okx', -0.0001, undefined)); // no price
+
+    const pair = createMultiExchangeFundingRatePair('BTCUSDT', exchangesData);
+
+    expect(pair.bestPair).toBeDefined();
+    expect(pair.bestPair?.isPriceDirectionCorrect).toBeUndefined();
+  });
+
+  /**
+   * T003a-7: 邊界案例 - 價差剛好在容忍範圍邊界
+   */
+  it('should set isPriceDirectionCorrect=true when adverse price diff is exactly at tolerance boundary', () => {
+    // short price = 50000
+    // 要讓 priceDiffRate = -0.0005 = -0.05%
+    // (shortPrice - longPrice) / shortPrice = -0.0005
+    // shortPrice - longPrice = -0.0005 * shortPrice
+    // longPrice = shortPrice * 1.0005 = 50000 * 1.0005 = 50025
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    exchangesData.set('binance', createExchangeData('binance', 0.0001, 50000)); // short
+    exchangesData.set('okx', createExchangeData('okx', -0.0001, 50025)); // long
+
+    const pair = createMultiExchangeFundingRatePair('BTCUSDT', exchangesData);
+
+    expect(pair.bestPair).toBeDefined();
+    // 在邊界上（<= 0.05%），應該是 true
+    expect(pair.bestPair?.isPriceDirectionCorrect).toBe(true);
+  });
+
+  /**
+   * T003a-8: 邊界案例 - 價差剛好超過容忍範圍一點點
+   */
+  it('should set isPriceDirectionCorrect=false when adverse price diff slightly exceeds tolerance', () => {
+    // short price = 50000
+    // 要讓 priceDiffRate = -0.0006 = -0.06%（比 0.05% 多一點）
+    // longPrice = shortPrice * 1.0006 = 50000 * 1.0006 = 50030
+    const exchangesData = new Map<ExchangeName, ExchangeRateData>();
+    exchangesData.set('binance', createExchangeData('binance', 0.0001, 50000)); // short
+    exchangesData.set('okx', createExchangeData('okx', -0.0001, 50030)); // long
+
+    const pair = createMultiExchangeFundingRatePair('BTCUSDT', exchangesData);
+
+    expect(pair.bestPair).toBeDefined();
+    // 超過邊界（> 0.05%），應該是 false
+    expect(pair.bestPair?.isPriceDirectionCorrect).toBe(false);
   });
 });

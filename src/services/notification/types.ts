@@ -189,6 +189,7 @@ export interface WebhookConfig {
   threshold: number; // 年化收益閾值 (%)
   notifyOnDisappear: boolean; // Feature 027: 是否接收機會結束通知
   notificationMinutes: number[]; // 通知時間（每小時的第幾分鐘），最多 2 個
+  requireFavorablePrice: boolean; // Feature 057: 是否啟用價差過濾（淨收益 > 0 且價差方向正確時才通知）
 }
 
 /**
@@ -290,6 +291,7 @@ export interface CreateWebhookRequest {
   threshold?: number;
   notifyOnDisappear?: boolean; // Feature 027
   notificationMinutes?: number[]; // 通知時間（每小時的第幾分鐘）
+  requireFavorablePrice?: boolean; // Feature 057: 是否啟用價差過濾
 }
 
 /**
@@ -302,6 +304,7 @@ export interface UpdateWebhookRequest {
   threshold?: number;
   notifyOnDisappear?: boolean; // Feature 027
   notificationMinutes?: number[]; // 通知時間（每小時的第幾分鐘）
+  requireFavorablePrice?: boolean; // Feature 057: 是否啟用價差過濾
 }
 
 /**
@@ -315,6 +318,7 @@ export interface WebhookResponse {
   threshold: number;
   notifyOnDisappear: boolean; // Feature 027
   notificationMinutes: number[]; // 通知時間（每小時的第幾分鐘）
+  requireFavorablePrice: boolean; // Feature 057: 是否啟用價差過濾
   createdAt: string;
   updatedAt: string;
 }

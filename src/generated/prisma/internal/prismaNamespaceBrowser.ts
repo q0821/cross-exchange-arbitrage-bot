@@ -287,6 +287,7 @@ export const NotificationWebhookScalarFieldEnum = {
   threshold: 'threshold',
   notifyOnDisappear: 'notifyOnDisappear',
   notificationMinutes: 'notificationMinutes',
+  requireFavorablePrice: 'requireFavorablePrice',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

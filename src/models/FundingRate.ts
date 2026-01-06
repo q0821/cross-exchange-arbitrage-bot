@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { netProfitCalculator } from '../services/calculation/NetProfitCalculator';
 import type { TimeBasis } from '../lib/validation/fundingRateSchemas';
 import { logger } from '../lib/logger';
+import { MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF } from '../lib/cost-constants';
 
 /**
  * 資金費率資料模型
@@ -176,6 +177,7 @@ export interface BestArbitragePair {
   spreadAnnualized: number;      // 年化利差百分比
   priceDiffPercent?: number;     // 價差百分比
   netReturn?: number;            // Feature 012: 淨收益百分比（扣除所有成本）
+  isPriceDirectionCorrect?: boolean; // Feature 057: 價差方向是否正確（空方 >= 多方，或在 0.05% 容忍範圍內）
 }
 
 /**
@@ -284,6 +286,27 @@ export function createMultiExchangeFundingRatePair(
           logger.warn({ error }, 'Failed to calculate net return');
         }
 
+        // Feature 057: 計算 isPriceDirectionCorrect
+        // 規則：空方價格 >= 多方價格，或在 0.05% 容忍範圍內
+        let isPriceDirectionCorrect: boolean | undefined;
+        if (price1 && price2) {
+          const shortPrice = shortExchange === exchange1 ? price1 : price2;
+          const longPrice = shortExchange === exchange1 ? price2 : price1;
+          const priceDiffRate = (shortPrice - longPrice) / shortPrice;
+
+          if (priceDiffRate >= 0) {
+            // 價差有利（做空交易所價格較高）
+            isPriceDirectionCorrect = true;
+          } else if (Math.abs(priceDiffRate) <= MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF) {
+            // 價差略微不利，但在可接受範圍內
+            isPriceDirectionCorrect = true;
+          } else {
+            // 價差明顯不利
+            isPriceDirectionCorrect = false;
+          }
+        }
+        // 如果沒有價格數據，isPriceDirectionCorrect 保持 undefined
+
         bestPair = {
           longExchange,
           shortExchange,
@@ -291,6 +314,7 @@ export function createMultiExchangeFundingRatePair(
           spreadAnnualized: spread * 365 * (24 / timeBasis) * 100,
           priceDiffPercent,
           netReturn,
+          isPriceDirectionCorrect,
         };
       }
     }
