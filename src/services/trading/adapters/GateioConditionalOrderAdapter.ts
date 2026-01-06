@@ -30,6 +30,10 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
   private ccxtExchange: any; // CCXT Gate.io instance
   private marketsLoaded = false;
 
+  // Gate.io 條件單過期時間（秒）
+  // 設定為 30 天以支援長期持倉的停損停利
+  private readonly DEFAULT_EXPIRATION_SECONDS = 30 * 24 * 3600; // 30 天 = 2592000 秒
+
   constructor(ccxtExchange: any) {
     this.ccxtExchange = ccxtExchange;
   }
@@ -272,7 +276,7 @@ export class GateioConditionalOrderAdapter implements ConditionalOrderAdapter {
           price_type: 1, // 1: mark price (較穩定)
           price: formattedPrice,
           rule: triggerRule, // 1: >=, 2: <=
-          expiration: 86400, // 24 小時有效期
+          expiration: this.DEFAULT_EXPIRATION_SECONDS, // 30 天有效期
         },
       };
 
