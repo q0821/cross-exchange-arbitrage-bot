@@ -436,16 +436,30 @@ class BinanceUserConnector implements IExchangeConnector {
           totalMarginBalance: futuresData.totalMarginBalance,
           rawAvailableBalance: futuresData.availableBalance,
         },
-        'Binance Futures API SUCCESS - returning availableBalance'
+        'Binance Futures API SUCCESS'
       );
 
-      return {
-        exchange: 'binance',
-        balances,
-        totalEquityUSD,
-        availableBalanceUSD,
-        timestamp: new Date(),
-      };
+      // 如果 Futures 餘額大於閾值（1 USDT），直接返回
+      // 否則可能是 Portfolio Margin 模式，繼續嘗試 PM API
+      if (availableBalanceUSD > 1) {
+        logger.info(
+          { availableBalanceUSD },
+          'Binance Futures balance sufficient, returning result'
+        );
+        return {
+          exchange: 'binance',
+          balances,
+          totalEquityUSD,
+          availableBalanceUSD,
+          timestamp: new Date(),
+        };
+      }
+
+      // Futures 餘額接近 0，可能是 PM 模式，繼續嘗試 PM API
+      logger.info(
+        { availableBalanceUSD },
+        'Binance Futures balance near zero, trying Portfolio Margin API (user may be in PM mode)'
+      );
     } catch (futuresError) {
       // Futures API 失敗，記錄錯誤後 fallback 到 Portfolio Margin API
       logger.warn(
