@@ -124,7 +124,7 @@ export function ActiveTrackingCard({
               <div>
                 <span className="capitalize">{tracking.longExchange}</span>:{' '}
                 {tracking.initialLongPrice ? (
-                  <span className="font-mono">${tracking.initialLongPrice.toFixed(4)}</span>
+                  <span className="font-mono">${tracking.initialLongPrice.toFixed(6)}</span>
                 ) : (
                   <span className="text-muted-foreground">N/A</span>
                 )}
@@ -132,7 +132,7 @@ export function ActiveTrackingCard({
               <div>
                 <span className="capitalize">{tracking.shortExchange}</span>:{' '}
                 {tracking.initialShortPrice ? (
-                  <span className="font-mono">${tracking.initialShortPrice.toFixed(4)}</span>
+                  <span className="font-mono">${tracking.initialShortPrice.toFixed(6)}</span>
                 ) : (
                   <span className="text-muted-foreground">N/A</span>
                 )}
@@ -152,7 +152,7 @@ export function ActiveTrackingCard({
 
         {/* Total Profit */}
         <div>
-          <div className="text-xs text-muted-foreground mb-1">累計收益</div>
+          <div className="text-xs text-muted-foreground mb-1">預估收益</div>
           <div
             className={`text-sm font-medium ${
               isPositive ? 'text-profit' : 'text-loss'
@@ -206,6 +206,11 @@ export function ActiveTrackingCard({
           </button>
         </div>
       )}
+
+      {/* Disclaimer */}
+      <div className="px-4 pb-3 text-xs text-muted-foreground">
+        ⚠️ 使用預測費率計算，與實際可能有誤差
+      </div>
     </div>
   );
 }

@@ -58,10 +58,10 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
       return undefined;
     }
     const longPriceStr = tracking.initialLongPrice
-      ? `$${tracking.initialLongPrice.toFixed(4)}`
+      ? `$${tracking.initialLongPrice.toFixed(6)}`
       : 'N/A';
     const shortPriceStr = tracking.initialShortPrice
-      ? `$${tracking.initialShortPrice.toFixed(4)}`
+      ? `$${tracking.initialShortPrice.toFixed(6)}`
       : 'N/A';
     return `${longPriceStr} / ${shortPriceStr}`;
   })();
@@ -85,7 +85,7 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
       bgColor: 'bg-cyan-50 dark:bg-cyan-900/20',
     },
     {
-      label: '累計收益',
+      label: '預估收益',
       value: `${isPositive ? '+' : ''}$${tracking.totalFundingProfit.toFixed(2)}`,
       subValue: `(${isPositive ? '+' : ''}${profitPercentage.toFixed(2)}%)`,
       icon: isPositive ? TrendingUp : TrendingDown,
@@ -174,15 +174,15 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
               </div>
               {tracking.exitLongPrice && tracking.exitShortPrice && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  平倉價: ${tracking.exitLongPrice.toFixed(4)} / $
-                  {tracking.exitShortPrice.toFixed(4)}
+                  平倉價: ${tracking.exitLongPrice.toFixed(6)} / $
+                  {tracking.exitShortPrice.toFixed(6)}
                 </div>
               )}
             </div>
 
             {/* 資費差損益 */}
             <div className="p-3 rounded-lg bg-muted border border-border">
-              <div className="text-xs text-muted-foreground mb-1">資費差損益</div>
+              <div className="text-xs text-muted-foreground mb-1">預估資費差</div>
               <div
                 className={`text-lg font-semibold ${
                   (tracking.fundingPnl ?? 0) >= 0
@@ -206,7 +206,7 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
                   : 'bg-loss/10 border-loss/30'
               }`}
             >
-              <div className="text-xs text-muted-foreground mb-1">合計損益</div>
+              <div className="text-xs text-muted-foreground mb-1">預估合計</div>
               <div
                 className={`text-xl font-bold ${
                   (tracking.totalPnl ?? 0) >= 0
@@ -229,6 +229,11 @@ export function TrackingStatCards({ tracking }: TrackingStatCardsProps) {
           </div>
         </div>
       )}
+
+      {/* Disclaimer */}
+      <div className="glass-card p-3 text-xs text-muted-foreground">
+        ⚠️ 模擬追蹤使用預測費率計算，與實際結算可能有 1-5% 誤差
+      </div>
     </div>
   );
 }

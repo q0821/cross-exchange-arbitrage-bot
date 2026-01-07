@@ -74,7 +74,7 @@ export function TrackingHistoryTable({
                 倉位/均價
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                累計收益
+                預估收益
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 結算次數
@@ -136,9 +136,9 @@ export function TrackingHistoryTable({
                           <span className="text-xs text-muted-foreground">{coinSymbol}</span>
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {tracking.initialLongPrice ? `$${tracking.initialLongPrice.toFixed(4)}` : 'N/A'}
+                          {tracking.initialLongPrice ? `$${tracking.initialLongPrice.toFixed(6)}` : 'N/A'}
                           {' / '}
-                          {tracking.initialShortPrice ? `$${tracking.initialShortPrice.toFixed(4)}` : 'N/A'}
+                          {tracking.initialShortPrice ? `$${tracking.initialShortPrice.toFixed(6)}` : 'N/A'}
                         </div>
                       </div>
                     ) : (
@@ -180,13 +180,13 @@ export function TrackingHistoryTable({
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">開倉價格：</span>
                                 <span>
-                                  ${tracking.initialLongPrice?.toFixed(4) ?? 'N/A'} / ${tracking.initialShortPrice?.toFixed(4) ?? 'N/A'}
+                                  ${tracking.initialLongPrice?.toFixed(6) ?? 'N/A'} / ${tracking.initialShortPrice?.toFixed(6) ?? 'N/A'}
                                 </span>
                               </div>
                               <div className="flex justify-between">
                                 <span className="text-muted-foreground">關倉價格：</span>
                                 <span>
-                                  ${tracking.exitLongPrice?.toFixed(4) ?? 'N/A'} / ${tracking.exitShortPrice?.toFixed(4) ?? 'N/A'}
+                                  ${tracking.exitLongPrice?.toFixed(6) ?? 'N/A'} / ${tracking.exitShortPrice?.toFixed(6) ?? 'N/A'}
                                 </span>
                               </div>
                               <div className="flex justify-between">
