@@ -3,6 +3,7 @@
  * Feature 026: Discord/Slack 套利機會即時推送通知
  * Feature 027: 套利機會結束監測和通知
  * Feature 050: 停損停利觸發通知
+ * Feature 058: 通知加入開倉連結
  */
 
 import type {
@@ -10,6 +11,37 @@ import type {
   TriggerNotificationType,
   EmergencyNotificationMessage,
 } from './types';
+
+// ===== Feature 058: 開倉連結生成 =====
+
+/**
+ * 產生開倉頁面連結
+ * Feature 058: 通知加入開倉連結
+ *
+ * @param symbol 交易對符號（如 BTCUSDT）
+ * @param longExchange 做多交易所名稱
+ * @param shortExchange 做空交易所名稱
+ * @returns 開倉頁面 URL，格式：{BASE_URL}/market-monitor?symbol={symbol}&long={long}&short={short}
+ */
+export function generateOpenPositionUrl(
+  symbol: string,
+  longExchange: string,
+  shortExchange: string
+): string {
+  // 優先使用 NEXT_PUBLIC_BASE_URL，fallback 到 NEXT_PUBLIC_WS_URL 或預設值
+  const baseUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_WS_URL ||
+    'http://localhost:3000';
+
+  const params = new URLSearchParams({
+    symbol,
+    long: longExchange.toLowerCase(),
+    short: shortExchange.toLowerCase(),
+  });
+
+  return `${baseUrl}/market-monitor?${params.toString()}`;
+}
 
 /**
  * 交易所永續合約交易 URL 對應表

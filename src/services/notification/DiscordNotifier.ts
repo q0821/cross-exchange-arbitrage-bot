@@ -11,6 +11,7 @@ import type {
 } from './types';
 import {
   generateExchangeUrl,
+  generateOpenPositionUrl,
   formatPriceSmart,
   formatTime,
   formatProfitInfoDiscord,
@@ -90,8 +91,9 @@ export class DiscordNotifier implements INotifier {
           // Feature 033: 風險警告區塊（如果有）
           ...(riskWarningField ? [riskWarningField] : []),
           {
-            name: '🔗 交易連結',
+            name: '🔗 快速操作',
             value: [
+              `[🚀 開倉](${generateOpenPositionUrl(message.symbol, message.longExchange, message.shortExchange)})`,
               `[${message.longExchange.toUpperCase()}](${generateExchangeUrl(message.longExchange, message.symbol)})`,
               `[${message.shortExchange.toUpperCase()}](${generateExchangeUrl(message.shortExchange, message.symbol)})`,
             ].join(' | '),

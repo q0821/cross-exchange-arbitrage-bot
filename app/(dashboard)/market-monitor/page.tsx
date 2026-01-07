@@ -9,7 +9,8 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { RatesTable } from './components/RatesTable';
 import { StatsCard } from './components/StatsCard';
 import { SymbolSelector } from './components/SymbolSelector';
@@ -78,6 +79,51 @@ export default function MarketMonitorPage() {
 
   // Feature 038: 交易設定（停損停利預設值）
   const { settings: tradingSettings } = useTradingSettings();
+
+  // Feature 058: URL 參數解析（通知開倉連結）
+  const searchParams = useSearchParams();
+  const urlSymbol = searchParams.get('symbol');
+  const urlLong = searchParams.get('long');
+  const urlShort = searchParams.get('short');
+
+  // Feature 058: 追蹤是否已從 URL 開啟對話框（避免重複觸發）
+  const hasOpenedFromUrl = useRef(false);
+
+  // Feature 058: 當 URL 參數存在且 ratesMap 已載入時，自動開啟開倉對話框
+  useEffect(() => {
+    // 已經觸發過則跳過
+    if (hasOpenedFromUrl.current) return;
+
+    // 參數不完整則跳過
+    if (!urlSymbol || !urlLong || !urlShort) return;
+
+    // ratesMap 尚未載入則等待
+    if (ratesMap.size === 0) return;
+
+    // 查找符合的 rate
+    const rate = ratesMap.get(urlSymbol);
+    if (!rate?.bestPair) {
+      console.warn(`[MarketMonitor] URL 參數指定的交易對 ${urlSymbol} 不存在或無最佳組合`);
+      return;
+    }
+
+    // 檢查交易所組合是否匹配
+    const matchesExchanges =
+      rate.bestPair.longExchange.toLowerCase() === urlLong.toLowerCase() &&
+      rate.bestPair.shortExchange.toLowerCase() === urlShort.toLowerCase();
+
+    if (!matchesExchanges) {
+      console.warn(
+        `[MarketMonitor] URL 參數指定的交易所組合 (${urlLong}/${urlShort}) 與當前最佳組合 (${rate.bestPair.longExchange}/${rate.bestPair.shortExchange}) 不匹配`
+      );
+      return;
+    }
+
+    // 標記已觸發並開啟對話框
+    hasOpenedFromUrl.current = true;
+    console.log(`[MarketMonitor] 從 URL 參數自動開啟開倉對話框: ${urlSymbol} (${urlLong}/${urlShort})`);
+    openPositionDialog(rate);
+  }, [urlSymbol, urlLong, urlShort, ratesMap, openPositionDialog]);
 
   // 根據選中的群組過濾費率數據 (Feature 009: 使用 Map)
   const filteredRatesMap = useMemo(() => {

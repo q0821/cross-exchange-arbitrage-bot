@@ -11,6 +11,7 @@ import type {
 } from './types';
 import {
   generateExchangeUrl,
+  generateOpenPositionUrl,
   formatPriceSmart,
   formatTime,
   formatProfitInfo,
@@ -118,7 +119,7 @@ export class SlackNotifier implements INotifier {
           type: 'section',
           text: {
             type: 'mrkdwn',
-            text: `*🔗 交易連結*\n<${generateExchangeUrl(message.longExchange, message.symbol)}|${message.longExchange.toUpperCase()}> | <${generateExchangeUrl(message.shortExchange, message.symbol)}|${message.shortExchange.toUpperCase()}>`,
+            text: `*🔗 快速操作*\n<${generateOpenPositionUrl(message.symbol, message.longExchange, message.shortExchange)}|🚀 開倉> | <${generateExchangeUrl(message.longExchange, message.symbol)}|${message.longExchange.toUpperCase()}> | <${generateExchangeUrl(message.shortExchange, message.symbol)}|${message.shortExchange.toUpperCase()}>`,
           },
         },
       ];
