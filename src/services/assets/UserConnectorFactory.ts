@@ -1080,21 +1080,9 @@ class GateioUserConnector implements IExchangeConnector {
     const balance = await this.exchange.fetchBalance({ type: 'swap' });
     const availableUSD = balance.free?.USDT || balance.free?.USD || 0;
 
-    // 查詢持倉計算持倉價值
-    let positionValue = 0;
-    try {
-      const positions = await this.exchange.fetchPositions();
-      for (const p of positions) {
-        const margin = parseFloat(p.initialMargin?.toString() || '0');
-        const unrealizedPnl = parseFloat(p.unrealizedPnl?.toString() || '0');
-        positionValue += margin + unrealizedPnl;
-      }
-    } catch (posError) {
-      logger.debug({ error: posError }, 'Gate.io failed to fetch positions for equity calculation');
-    }
-
-    // 總權益 = 可用餘額 + 持倉價值
-    const totalEquityUSD = (availableUSD as number) + positionValue;
+    // Gate.io swap 帳戶的 total 已包含持倉保證金和未實現盈虧
+    // 直接使用 total 作為總權益，避免重複計算
+    const totalEquityUSD = (balance.total?.USDT || balance.total?.USD || 0) as number;
 
     const balances = Object.entries(balance.total || {})
       .filter(([_, value]) => (value as number) > 0)
@@ -1116,7 +1104,7 @@ class GateioUserConnector implements IExchangeConnector {
 
   /**
    * 查詢 Gate.io 統一帳戶餘額 (跨幣種保證金模式)
-   * Feature 056: 修正 totalEquityUSD 納入持倉價值
+   * Feature 059: 修正重複計算問題，unified_account_total_equity 已包含持倉價值
    */
   private async fetchUnifiedAccountBalance(): Promise<AccountBalance | null> {
     const crypto = await import('crypto');
@@ -1151,25 +1139,12 @@ class GateioUserConnector implements IExchangeConnector {
     }
 
     // 解析統一帳戶餘額
-    // unified_account_total_equity 是可用餘額，不包含持倉
-    const availableBalanceUSD = parseFloat(data.unified_account_total_equity || '0');
+    // Gate.io 統一帳戶 API：
+    // - unified_account_total_equity: 統一帳戶總權益（已包含持倉價值）
+    // - available: 可用餘額
+    const totalEquityUSD = parseFloat(data.unified_account_total_equity || '0');
+    const availableBalanceUSD = parseFloat(data.available || data.unified_account_total_equity || '0');
     const balancesData = data.balances || {};
-
-    // 查詢持倉計算持倉價值
-    let positionValue = 0;
-    try {
-      const positionsData = await this.fetchFuturesPositions();
-      for (const pos of positionsData) {
-        const margin = parseFloat(pos.margin || '0');
-        const unrealisedPnl = parseFloat(pos.unrealised_pnl || '0');
-        positionValue += margin + unrealisedPnl;
-      }
-    } catch (posError) {
-      logger.debug({ error: posError }, 'Gate.io failed to fetch positions for unified account equity');
-    }
-
-    // 總權益 = 可用餘額 + 持倉價值
-    const totalEquityUSD = availableBalanceUSD + positionValue;
 
     const balances = Object.entries(balancesData)
       .filter(([_, v]) => {
@@ -1196,43 +1171,6 @@ class GateioUserConnector implements IExchangeConnector {
       availableBalanceUSD,
       timestamp: new Date(),
     };
-  }
-
-  /**
-   * 查詢 Gate.io 合約持倉
-   * Feature 056: 用於計算總權益
-   */
-  private async fetchFuturesPositions(): Promise<Array<{ margin: string; unrealised_pnl: string }>> {
-    const crypto = await import('crypto');
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const method = 'GET';
-    const url = '/api/v4/futures/usdt/positions';
-    const queryString = '';
-    const bodyHash = crypto.createHash('sha512').update('').digest('hex');
-
-    const signString = `${method}\n${url}\n${queryString}\n${bodyHash}\n${timestamp}`;
-    const signature = crypto.createHmac('sha512', this.apiSecret).update(signString).digest('hex');
-
-    const response = await fetch(`https://api.gateio.ws${url}`, {
-      method,
-      headers: {
-        KEY: this.apiKey,
-        Timestamp: timestamp,
-        SIGN: signature,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const data = await response.json();
-    if (!Array.isArray(data)) {
-      return [];
-    }
-
-    return data;
   }
 
   async getPositions(): Promise<PositionInfo> {
