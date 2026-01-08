@@ -23,7 +23,9 @@ import {
   Shield,
   Target,
   ExternalLink,
+  Copy,
 } from 'lucide-react';
+import { splitQuantity } from '@/lib/split-quantity';
 import type { MarketRate, ExchangeName } from '../types';
 import {
   isArbitragePairRestricted,
@@ -52,7 +54,7 @@ interface OpenPositionDialogProps {
     stopLossPercent?: number;
     takeProfitEnabled: boolean;
     takeProfitPercent?: number;
-  }) => Promise<void>;
+  }, positionCount: number) => Promise<void>;
   isLoading: boolean;
   error: string | null;
   /** 用戶各交易所餘額 */
@@ -63,11 +65,19 @@ interface OpenPositionDialogProps {
   onRefreshMarketData?: () => Promise<void>;
   /** 預設停損停利設定 */
   defaultStopLossConfig?: StopLossTakeProfitConfig;
+  /** 分單開倉進度 - 當前組數 (Feature 060) */
+  currentGroup?: number;
+  /** 分單開倉進度 - 總組數 (Feature 060) */
+  totalGroups?: number;
 }
 
 const MIN_QUANTITY = 0.0001;
 const MAX_QUANTITY = 1000000;
 const MARGIN_BUFFER = 0.1; // 10% 緩衝
+
+// Feature 060: 分單開倉限制
+const MIN_POSITION_COUNT = 1;
+const MAX_POSITION_COUNT = 10;
 
 // 停損停利百分比限制 (Feature 038)
 const STOP_LOSS_PERCENT_MIN = 0.5;
@@ -88,12 +98,23 @@ export function OpenPositionDialog({
   isLoadingBalances,
   onRefreshMarketData,
   defaultStopLossConfig,
+  currentGroup = 0,
+  totalGroups = 0,
 }: OpenPositionDialogProps) {
   const [quantity, setQuantity] = useState<number>(0);
   const [leverage, setLeverage] = useState<1 | 2>(1);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Feature 060: 分單開倉組數
+  const [positionCount, setPositionCount] = useState<number>(1);
+
+  // 計算每組數量預覽
+  const quantitiesPreview = quantity > 0 && positionCount > 0
+    ? splitQuantity(quantity, positionCount)
+    : [];
+  const quantityPerGroup = quantitiesPreview.length > 0 ? quantitiesPreview[0] ?? 0 : 0;
 
   // 停損停利狀態 (Feature 038)
   const [stopLossEnabled, setStopLossEnabled] = useState<boolean>(
@@ -168,6 +189,8 @@ export function OpenPositionDialog({
       setLeverage(1);
       setValidationError(null);
       setLastUpdated(null);
+      // Feature 060: 重置分單開倉組數
+      setPositionCount(1);
       // 重置停損停利到預設值
       setStopLossEnabled(defaultStopLossConfig?.stopLossEnabled ?? true);
       setStopLossPercent(defaultStopLossConfig?.stopLossPercent ?? DEFAULT_STOP_LOSS_PERCENT);
@@ -184,6 +207,19 @@ export function OpenPositionDialog({
 
   const handleLeverageChange = (newLeverage: 1 | 2) => {
     setLeverage(newLeverage);
+    setValidationError(null);
+  };
+
+  // Feature 060: 處理開倉組數變更
+  const handlePositionCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value, 10);
+    if (isNaN(value) || value < MIN_POSITION_COUNT) {
+      setPositionCount(MIN_POSITION_COUNT);
+    } else if (value > MAX_POSITION_COUNT) {
+      setPositionCount(MAX_POSITION_COUNT);
+    } else {
+      setPositionCount(value);
+    }
     setValidationError(null);
   };
 
@@ -259,6 +295,14 @@ export function OpenPositionDialog({
       }
     }
 
+    // Feature 060: 驗證每組最小數量
+    if (positionCount > 1 && quantityPerGroup < MIN_QUANTITY) {
+      setValidationError(
+        `每組數量不得小於 ${MIN_QUANTITY}，請減少開倉組數或增加總數量`
+      );
+      return;
+    }
+
     await onConfirm({
       symbol: rate!.symbol,
       longExchange: bestPair.longExchange,
@@ -270,7 +314,7 @@ export function OpenPositionDialog({
       stopLossPercent: stopLossEnabled ? stopLossPercent : undefined,
       takeProfitEnabled,
       takeProfitPercent: takeProfitEnabled ? takeProfitPercent : undefined,
-    });
+    }, positionCount);
   };
 
   const handleClose = () => {
@@ -461,6 +505,61 @@ export function OpenPositionDialog({
               </div>
             </div>
 
+            {/* Feature 060: 分單開倉組數 */}
+            <div className="mb-4">
+              <label
+                htmlFor="positionCount"
+                className="block text-sm font-medium text-foreground mb-1"
+              >
+                <Copy className="w-4 h-4 inline mr-1" />
+                開倉組數
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  id="positionCount"
+                  value={positionCount}
+                  onChange={handlePositionCountChange}
+                  min={MIN_POSITION_COUNT}
+                  max={MAX_POSITION_COUNT}
+                  step="1"
+                  disabled={isLoading}
+                  className="w-24 px-3 py-2 border border-border rounded-md focus:outline-hidden focus:ring-2 focus:ring-profit disabled:bg-muted"
+                />
+                <span className="text-sm text-muted-foreground">
+                  組（{MIN_POSITION_COUNT}-{MAX_POSITION_COUNT}）
+                </span>
+              </div>
+              {positionCount > 1 && quantity > 0 && (
+                <div className="mt-2 p-2 bg-muted rounded-md">
+                  <p className="text-xs text-muted-foreground mb-1">每組數量預覽：</p>
+                  <div className="flex flex-wrap gap-1">
+                    {quantitiesPreview.map((q, i) => (
+                      <span
+                        key={i}
+                        className={`text-xs px-2 py-0.5 rounded ${
+                          q < MIN_QUANTITY
+                            ? 'bg-loss/20 text-loss'
+                            : 'bg-profit/20 text-profit'
+                        }`}
+                      >
+                        第{i + 1}組: {q.toFixed(4)} {coinSymbol}
+                      </span>
+                    ))}
+                  </div>
+                  {quantityPerGroup < MIN_QUANTITY && (
+                    <p className="text-xs text-loss mt-1 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      每組數量不得小於 {MIN_QUANTITY}
+                    </p>
+                  )}
+                </div>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">
+                分單開倉可減少滑價，每組建立獨立持倉
+              </p>
+            </div>
+
             {/* Stop Loss / Take Profit Settings (Feature 038) */}
             <div className="border border-border rounded-lg p-3 mb-4">
               <h4 className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
@@ -619,13 +718,15 @@ export function OpenPositionDialog({
               </button>
               <button
                 type="submit"
-                disabled={isLoading || !avgPrice || !isBalanceSufficient || isMexcRestricted}
+                disabled={isLoading || !avgPrice || !isBalanceSufficient || isMexcRestricted || (positionCount > 1 && quantityPerGroup < MIN_QUANTITY)}
                 className="px-4 py-2 text-sm font-medium text-white bg-profit rounded-md hover:bg-profit/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    開倉中...
+                    {totalGroups > 1
+                      ? `正在建立第 ${currentGroup}/${totalGroups} 組持倉...`
+                      : '開倉中...'}
                   </>
                 ) : isMexcRestricted ? (
                   <>
@@ -635,7 +736,7 @@ export function OpenPositionDialog({
                 ) : (
                   <>
                     <TrendingUp className="w-4 h-4" />
-                    確認開倉
+                    {positionCount > 1 ? `確認開倉（${positionCount} 組）` : '確認開倉'}
                   </>
                 )}
               </button>

@@ -70,11 +70,14 @@ export default function MarketMonitorPage() {
     isLoadingBalances,
     openDialog: openPositionDialog,
     closeDialog: closeOpenPositionDialog,
-    executeOpen,
+    executeSplitOpen,
     refreshMarketData,
     requiresManualIntervention,
     rollbackFailedDetails,
     clearRollbackFailed,
+    // Feature 060: 分單開倉進度
+    currentGroup,
+    totalGroups,
   } = useOpenPosition();
 
   // Feature 038: 交易設定（停損停利預設值）
@@ -340,7 +343,7 @@ export default function MarketMonitorPage() {
         isOpen={isOpenPositionDialogOpen}
         onClose={closeOpenPositionDialog}
         rate={openPositionRate}
-        onConfirm={executeOpen}
+        onConfirm={executeSplitOpen}
         isLoading={openPositionLoading}
         error={openPositionError}
         balances={balances}
@@ -352,6 +355,8 @@ export default function MarketMonitorPage() {
           takeProfitEnabled: tradingSettings.defaultTakeProfitEnabled,
           takeProfitPercent: tradingSettings.defaultTakeProfitPercent,
         } : undefined}
+        currentGroup={currentGroup}
+        totalGroups={totalGroups}
       />
 
       {/* 交易對詳情對話框 */}

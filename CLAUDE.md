@@ -10,6 +10,13 @@ Auto-generated from all feature plans. Last updated: 2025-12-30
 - Vitest 4.x, Decimal.js
 - TypeScript 5.6 + Node.js 20.x LTS + CCXT 4.x (WebSocket watch* methods), ws 8.x, @binance/connector 3.x (REST only) (052-specify-scripts-bash)
 - PostgreSQL 15 + TimescaleDB (現有 Position 模型) (052-specify-scripts-bash)
+- TypeScript 5.6 + Node.js 20.x LTS + ws 8.x (WebSocket), Decimal.js (精度計算), Zod (訊息驗證), Pino (日誌) (054-native-websocket-clients)
+- PostgreSQL 15 + TimescaleDB (現有 ApiKey 模型) (054-native-websocket-clients)
+- TypeScript 5.8 + Node.js 20.x LTS + CCXT 4.x (交易所抽象), Prisma 7.x (ORM), Next.js 15 (Web) (056-fix-balance-display)
+- TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, Prisma 7.x, Vitest 4.x, Pino (logging) (057-notification-price-filter)
+- PostgreSQL 15 + TimescaleDB (existing `NotificationWebhook` table) (057-notification-price-filter)
+- TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, axios (Discord/Slack webhook) (058-notification-open-link)
+- N/A (無新增資料儲存需求) (058-notification-open-link)
 
 ## Project Structure
 ```
@@ -233,5 +240,32 @@ type: 'markPrice' | 'fundingRate' | 'ticker' | 'balanceUpdate'
 
 ### Environment Variables
 - `NEXT_PUBLIC_WS_URL` - WebSocket 服務 URL（預設使用相對路徑）
+
+## Feature 060: 分單開倉（獨立持倉）
+
+### Key Paths
+- **數量分配工具**: `src/lib/split-quantity.ts` - splitQuantity() 大組優先分配算法
+- **開倉 Hook**: `app/(dashboard)/market-monitor/hooks/useOpenPosition.ts` - executeSplitOpen() 串行開倉
+- **開倉對話框**: `app/(dashboard)/market-monitor/components/OpenPositionDialog.tsx` - 組數輸入和進度顯示
+
+### Frontend Components
+- `OpenPositionDialog.tsx` - 新增開倉組數輸入欄位（1-10 組）
+- `useOpenPosition.ts` - 新增 `executeSplitOpen`, `currentGroup`, `totalGroups`
+
+### Hooks
+- `useOpenPosition.ts`:
+  - `executeSplitOpen(data, positionCount)` - 串行執行分單開倉
+  - `currentGroup` - 當前開倉組數（用於進度顯示）
+  - `totalGroups` - 總組數（用於進度顯示）
+
+### Utility Functions
+- `splitQuantity(total: number, count: number): number[]` - 將總數量分配到指定組數
+- `validateSplitQuantity(total, quantities): boolean` - 驗證分配結果
+
+### Constraints
+- 最大 10 組，最小 1 組
+- 每組數量不得小於 MIN_QUANTITY (0.0001)
+- 串行執行，失敗時立即停止後續開倉
+- 已成功的持倉保持完整
 
 <!-- MANUAL ADDITIONS END -->

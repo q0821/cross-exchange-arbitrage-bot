@@ -7,6 +7,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import type { MarketRate } from '../types';
+import { splitQuantity } from '@/lib/split-quantity';
 
 export interface OpenPositionData {
   symbol: string;
@@ -40,6 +41,8 @@ interface UseOpenPositionReturn {
   closeDialog: () => void;
   /** 執行開倉 */
   executeOpen: (data: OpenPositionData) => Promise<void>;
+  /** 執行分單開倉 (Feature 060) */
+  executeSplitOpen: (data: OpenPositionData, positionCount: number) => Promise<void>;
   /** 刷新市場數據 */
   refreshMarketData: () => Promise<void>;
   /** 是否發生鎖衝突 */
@@ -55,6 +58,10 @@ interface UseOpenPositionReturn {
   } | null;
   /** 清除回滾失敗狀態 */
   clearRollbackFailed: () => void;
+  /** 分單開倉進度 - 當前組數 (Feature 060) */
+  currentGroup: number;
+  /** 分單開倉進度 - 總組數 (Feature 060) */
+  totalGroups: number;
 }
 
 /**
@@ -89,6 +96,10 @@ export function useOpenPosition(): UseOpenPositionReturn {
     side: string;
     quantity: string;
   } | null>(null);
+
+  // Feature 060: 分單開倉進度狀態
+  const [currentGroup, setCurrentGroup] = useState(0);
+  const [totalGroups, setTotalGroups] = useState(0);
 
   // 用於取消請求的 AbortController
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -250,6 +261,117 @@ export function useOpenPosition(): UseOpenPositionReturn {
   }, [closeDialog]);
 
   /**
+   * 執行分單開倉 (Feature 060)
+   * 將開倉數量分配到多個獨立持倉，串行執行
+   *
+   * @param data - 開倉數據
+   * @param positionCount - 分組數量 (1-10)
+   */
+  const executeSplitOpen = useCallback(
+    async (data: OpenPositionData, positionCount: number) => {
+      // 如果只有 1 組，直接調用原有的 executeOpen
+      if (positionCount <= 1) {
+        return executeOpen(data);
+      }
+
+      // 計算每組數量
+      const quantities = splitQuantity(data.quantity, positionCount);
+      setTotalGroups(positionCount);
+      setIsLoading(true);
+      setError(null);
+
+      let completedCount = 0;
+      let lastError: string | null = null;
+
+      try {
+        for (let i = 0; i < positionCount; i++) {
+          setCurrentGroup(i + 1);
+
+          // 創建這一組的開倉數據
+          const groupQuantity = quantities[i];
+          if (groupQuantity === undefined) {
+            throw new Error(`Invalid quantity at index ${i}`);
+          }
+          const groupData: OpenPositionData = {
+            ...data,
+            quantity: groupQuantity,
+          };
+
+          // 執行單組開倉
+          const response = await fetch('/api/positions/open', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(groupData),
+          });
+
+          const result = await response.json();
+
+          if (response.ok && result.success) {
+            completedCount++;
+            console.log(
+              `[useOpenPosition] Split position ${i + 1}/${positionCount} opened successfully:`,
+              result.data
+            );
+          } else {
+            // 錯誤處理：停止後續開倉
+            const errorCode = result.error?.code || 'UNKNOWN_ERROR';
+            const errorMessage =
+              ERROR_MESSAGES[errorCode] || result.error?.message || '開倉失敗';
+
+            // Feature 060: 格式化錯誤訊息包含進度資訊
+            if (completedCount > 0) {
+              lastError = `已完成 ${completedCount}/${positionCount} 組，第 ${i + 1} 組失敗：${errorMessage}`;
+            } else {
+              lastError = `第 ${i + 1} 組開倉失敗：${errorMessage}`;
+            }
+
+            setError(lastError);
+            console.error(
+              `[useOpenPosition] Split position ${i + 1}/${positionCount} failed:`,
+              errorMessage
+            );
+            break;
+          }
+        }
+
+        // 如果全部成功
+        if (completedCount === positionCount) {
+          closeDialog();
+          toast.success('分單開倉完成', {
+            description: `${data.symbol} 已成功建立 ${positionCount} 個獨立持倉`,
+          });
+
+          // 延遲跳轉讓用戶看到通知
+          setTimeout(() => {
+            window.location.href = '/positions';
+          }, 1500);
+        } else if (completedCount > 0) {
+          // 部分成功
+          toast.warning('分單開倉部分完成', {
+            description: `已建立 ${completedCount}/${positionCount} 個持倉，其餘失敗`,
+          });
+        }
+      } catch (err) {
+        console.error('[useOpenPosition] Split open error:', err);
+        if (completedCount > 0) {
+          setError(
+            `已完成 ${completedCount}/${positionCount} 組，後續開倉發生網路錯誤`
+          );
+        } else {
+          setError('分單開倉請求失敗，請稍後再試');
+        }
+      } finally {
+        setIsLoading(false);
+        setCurrentGroup(0);
+        setTotalGroups(0);
+      }
+    },
+    [executeOpen, closeDialog]
+  );
+
+  /**
    * 刷新市場數據
    */
   const refreshMarketData = useCallback(async () => {
@@ -334,10 +456,13 @@ export function useOpenPosition(): UseOpenPositionReturn {
     openDialog,
     closeDialog,
     executeOpen,
+    executeSplitOpen,
     refreshMarketData,
     isLockConflict,
     requiresManualIntervention,
     rollbackFailedDetails,
     clearRollbackFailed,
+    currentGroup,
+    totalGroups,
   };
 }
