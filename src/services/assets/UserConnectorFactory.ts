@@ -1078,11 +1078,22 @@ class GateioUserConnector implements IExchangeConnector {
 
     // Fallback: 使用 swap 帳戶
     const balance = await this.exchange.fetchBalance({ type: 'swap' });
-    const availableUSD = balance.free?.USDT || balance.free?.USD || 0;
+    const availableUSD = (balance.free?.USDT || balance.free?.USD || 0) as number;
 
-    // Gate.io swap 帳戶的 total 已包含持倉保證金和未實現盈虧
-    // 直接使用 total 作為總權益，避免重複計算
-    const totalEquityUSD = (balance.total?.USDT || balance.total?.USD || 0) as number;
+    // Gate.io CCXT swap 帳戶的 total 可能返回錯誤值（接近 0）
+    // 改用 fetchPositions 獲取未實現盈虧，然後計算總權益
+    let unrealizedPnl = 0;
+    try {
+      const positions = await this.exchange.fetchPositions();
+      unrealizedPnl = positions
+        .filter((p: { contracts?: number }) => (p.contracts || 0) > 0)
+        .reduce((sum: number, p: { unrealizedPnl?: number }) => sum + (p.unrealizedPnl || 0), 0);
+    } catch {
+      // 忽略錯誤，使用 0
+    }
+
+    // 總權益 = 可用餘額 + 未實現盈虧
+    const totalEquityUSD = availableUSD + unrealizedPnl;
 
     const balances = Object.entries(balance.total || {})
       .filter(([_, value]) => (value as number) > 0)
@@ -1140,10 +1151,12 @@ class GateioUserConnector implements IExchangeConnector {
 
     // 解析統一帳戶餘額
     // Gate.io 統一帳戶 API：
-    // - unified_account_total_equity: 統一帳戶總權益（已包含持倉價值）
-    // - available: 可用餘額
-    const totalEquityUSD = parseFloat(data.unified_account_total_equity || '0');
-    const availableBalanceUSD = parseFloat(data.available || data.unified_account_total_equity || '0');
+    // - unified_account_total: 統一帳戶總資產（包含隔離保證金）
+    // - unified_account_total_equity: 統一帳戶總權益（不含隔離保證金佔用）
+    // - total_available_margin: 可用保證金
+    // 使用 unified_account_total 作為總資產，因為它包含被持倉佔用的保證金
+    const totalEquityUSD = parseFloat(data.unified_account_total || data.unified_account_total_equity || '0');
+    const availableBalanceUSD = parseFloat(data.total_available_margin || data.unified_account_total_equity || '0');
     const balancesData = data.balances || {};
 
     const balances = Object.entries(balancesData)
