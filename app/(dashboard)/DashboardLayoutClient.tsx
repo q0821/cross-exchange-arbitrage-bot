@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { UserMenu } from '@/components/ui/UserMenu';
 import { Toaster } from 'sonner';
 
 /**
@@ -93,16 +94,13 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
     }
   };
 
+  // 核心功能導航（設定選項已移至右上角 UserMenu）
   const navLinks = [
     { href: '/market-monitor', label: '市場監控' },
     { href: '/simulated-tracking', label: '模擬追蹤' }, // Feature 029
     { href: '/assets', label: '資產總覽' }, // Feature 031
     { href: '/positions', label: '持倉管理' }, // Feature 033
     { href: '/trades', label: '交易歷史' }, // Feature 035
-    { href: '/settings/api-keys', label: 'API 金鑰管理' },
-    { href: '/settings/notifications', label: '通知設定' },
-    { href: '/settings/trading', label: '交易設定' }, // Feature 036
-    { href: '/settings/security', label: '安全設定' }, // Feature 061
   ];
 
   return (
@@ -169,16 +167,10 @@ export default function DashboardLayoutClient({ children }: { children: React.Re
               })}
             </nav>
 
-            {/* 主題切換和登出按鈕 */}
-            <div className="flex items-center space-x-3">
+            {/* 主題切換和用戶選單 */}
+            <div className="flex items-center space-x-2">
               <ThemeToggle />
-              <button
-                onClick={handleLogout}
-                disabled={isLoggingOut}
-                className="px-4 py-2 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoggingOut ? '登出中...' : '登出'}
-              </button>
+              <UserMenu onLogout={handleLogout} isLoggingOut={isLoggingOut} />
             </div>
           </div>
 
