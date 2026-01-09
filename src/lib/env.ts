@@ -366,9 +366,11 @@ export const env = validateEnv();
 
 /**
  * 檢查 Redis 是否已配置
+ * 使用 process.env 而非 env 來避免預設值影響判斷
  */
 export function isRedisConfigured(): boolean {
-  return !!(env.REDIS_URL || env.REDIS_HOST);
+  // 只有明確設定 REDIS_URL 或 REDIS_HOST 時才啟用 Redis
+  return !!(process.env.REDIS_URL || process.env.REDIS_HOST);
 }
 
 /**
