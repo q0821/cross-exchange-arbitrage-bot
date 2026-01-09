@@ -225,6 +225,27 @@ export class InvalidTokenError extends AuthError {
   }
 }
 
+// Feature 061: 帳戶鎖定錯誤
+export class AccountLockedError extends AuthError {
+  constructor(
+    message: string = '帳戶已被暫時鎖定',
+    public readonly lockedUntil?: Date,
+    public readonly remainingSeconds?: number
+  ) {
+    super(message, { lockedUntil, remainingSeconds });
+    this.code = 'ACCOUNT_LOCKED';
+    this.statusCode = 423; // Locked
+  }
+}
+
+// Feature 061: Token 版本不匹配（密碼已變更）
+export class TokenVersionMismatchError extends AuthError {
+  constructor(message: string = '登入已過期，請重新登入') {
+    super(message);
+    this.code = 'TOKEN_VERSION_MISMATCH';
+  }
+}
+
 // 資源錯誤
 export class NotFoundError extends BaseError {
   constructor(resource: string, identifier?: string) {

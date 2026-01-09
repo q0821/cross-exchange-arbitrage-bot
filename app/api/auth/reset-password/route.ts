@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/src/lib/db';
-import { AuthService } from '@/src/services/auth/AuthService';
-import { SessionManager } from '@/src/services/auth/SessionManager';
-import { loginSchema } from '@/src/lib/validation';
+import { PasswordResetService } from '@/src/services/auth/PasswordResetService';
+import { resetPasswordSchema } from '@/src/lib/validation';
 import { handleError } from '@/src/middleware/errorHandler';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 
-const authService = new AuthService(prisma);
+const passwordResetService = new PasswordResetService(prisma);
 
 /**
- * POST /api/auth/login
- * 用戶登入
+ * POST /api/auth/reset-password
+ * 執行密碼重設
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const correlationId = getCorrelationId(request);
@@ -21,14 +20,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.json();
 
     // 2. 驗證請求資料
-    const validatedData = loginSchema.parse(body);
+    const validatedData = resetPasswordSchema.parse(body);
 
     logger.info(
       {
         correlationId,
-        email: validatedData.email,
       },
-      'Login request received',
+      'Reset password request received'
     );
 
     // 3. 取得客戶端 IP
@@ -37,42 +35,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       request.headers.get('x-real-ip') ||
       undefined;
 
-    // 4. 執行登入
-    const user = await authService.login(
+    // 4. 執行密碼重設
+    const result = await passwordResetService.resetPassword(
       {
-        email: validatedData.email,
-        password: validatedData.password,
+        token: validatedData.token,
+        newPassword: validatedData.newPassword,
+        confirmPassword: validatedData.confirmPassword,
       },
       ipAddress
     );
 
-    // 4. 建立 Session（設定 JWT Cookie）
+    // 5. 建立回應
     const response = NextResponse.json(
       {
         success: true,
-        data: {
-          user: user.toDTO(),
-        },
+        data: result,
       },
-      { status: 200 },
+      { status: 200 }
     );
 
-    SessionManager.createSession(response, {
-      userId: user.id,
-      email: user.email,
-      tokenVersion: user.tokenVersion,
-    });
-
-    // 5. 設定 Correlation ID header
+    // 6. 設定 Correlation ID header
     response.headers.set('X-Correlation-Id', correlationId);
 
     logger.info(
       {
         correlationId,
-        userId: user.id,
-        email: user.email,
       },
-      'User logged in successfully',
+      'Password reset completed successfully'
     );
 
     return response;

@@ -16,6 +16,7 @@ export interface UserDTO {
   email: string;
   createdAt: Date;
   updatedAt: Date;
+  tokenVersion: number; // Feature 061
 }
 
 /**
@@ -27,6 +28,11 @@ export class User {
   private readonly passwordHash: string;
   readonly createdAt: Date;
   readonly updatedAt: Date;
+  // Feature 061: 密碼管理
+  readonly tokenVersion: number;
+  readonly failedLoginAttempts: number;
+  readonly lockedUntil: Date | null;
+  readonly passwordChangedAt: Date | null;
 
   constructor(data: PrismaUser) {
     this.id = data.id;
@@ -34,6 +40,11 @@ export class User {
     this.passwordHash = data.password;
     this.createdAt = data.createdAt;
     this.updatedAt = data.updatedAt;
+    // Feature 061: 密碼管理
+    this.tokenVersion = data.tokenVersion;
+    this.failedLoginAttempts = data.failedLoginAttempts;
+    this.lockedUntil = data.lockedUntil;
+    this.passwordChangedAt = data.passwordChangedAt;
   }
 
   /**
@@ -52,7 +63,24 @@ export class User {
       email: this.email,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
+      tokenVersion: this.tokenVersion,
     };
+  }
+
+  /**
+   * 檢查帳戶是否被鎖定 (Feature 061)
+   */
+  isLocked(): boolean {
+    return this.lockedUntil !== null && this.lockedUntil > new Date();
+  }
+
+  /**
+   * 取得鎖定剩餘時間（秒）(Feature 061)
+   */
+  getRemainingLockTime(): number {
+    if (!this.lockedUntil) return 0;
+    const remaining = Math.ceil((this.lockedUntil.getTime() - Date.now()) / 1000);
+    return Math.max(0, remaining);
   }
 
   /**

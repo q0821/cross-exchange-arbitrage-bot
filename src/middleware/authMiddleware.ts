@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, JwtPayload } from '@lib/jwt';
-import { UnauthorizedError, InvalidTokenError } from '@lib/errors';
+import { UnauthorizedError, InvalidTokenError, TokenVersionMismatchError } from '@lib/errors';
+import { prisma } from '@lib/db';
 
 /**
  * 認證中介軟體
@@ -33,11 +34,16 @@ export function extractToken(request: NextRequest): string | null {
 /**
  * 驗證請求是否已認證
  * @param request Next.js 請求對象
+ * @param validateTokenVersion 是否驗證 tokenVersion（預設 false，因為大部分 API 不需要）
  * @returns JWT Payload
  * @throws UnauthorizedError 如果未提供 Token
  * @throws InvalidTokenError 如果 Token 無效
+ * @throws TokenVersionMismatchError 如果 tokenVersion 不匹配
  */
-export async function authenticate(request: NextRequest): Promise<JwtPayload> {
+export async function authenticate(
+  request: NextRequest,
+  validateTokenVersion = false
+): Promise<JwtPayload> {
   const token = extractToken(request);
 
   if (!token) {
@@ -46,8 +52,28 @@ export async function authenticate(request: NextRequest): Promise<JwtPayload> {
 
   try {
     const payload = verifyToken(token);
+
+    // Feature 061: 驗證 tokenVersion
+    if (validateTokenVersion) {
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: { tokenVersion: true },
+      });
+
+      if (!user) {
+        throw new InvalidTokenError('User not found');
+      }
+
+      if (user.tokenVersion !== payload.tokenVersion) {
+        throw new TokenVersionMismatchError();
+      }
+    }
+
     return payload;
   } catch (error) {
+    if (error instanceof TokenVersionMismatchError) {
+      throw error;
+    }
     if (error instanceof Error) {
       throw new InvalidTokenError(error.message);
     }

@@ -10,6 +10,7 @@ import { logger } from '@lib/logger';
 export interface CreateSessionOptions {
   userId: string;
   email: string;
+  tokenVersion: number; // Feature 061: 密碼變更後遞增以使舊 session 失效
 }
 
 export class SessionManager {
@@ -26,6 +27,7 @@ export class SessionManager {
     const payload: JwtPayload = {
       userId: options.userId,
       email: options.email,
+      tokenVersion: options.tokenVersion,
     };
 
     const token = generateToken(payload);
@@ -95,6 +97,7 @@ export class SessionManager {
     return this.createSession(response, {
       userId: payload.userId,
       email: payload.email,
+      tokenVersion: payload.tokenVersion,
     });
   }
 }

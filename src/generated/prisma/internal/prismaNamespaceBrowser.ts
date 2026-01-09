@@ -56,6 +56,7 @@ export const ModelName = {
   FundingRateValidation: 'FundingRateValidation',
   SystemEvent: 'SystemEvent',
   User: 'User',
+  PasswordResetToken: 'PasswordResetToken',
   ApiKey: 'ApiKey',
   Position: 'Position',
   Trade: 'Trade',
@@ -163,10 +164,27 @@ export const UserScalarFieldEnum = {
   password: 'password',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  timeBasisPreference: 'timeBasisPreference'
+  timeBasisPreference: 'timeBasisPreference',
+  tokenVersion: 'tokenVersion',
+  failedLoginAttempts: 'failedLoginAttempts',
+  lockedUntil: 'lockedUntil',
+  passwordChangedAt: 'passwordChangedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
+
+
+export const PasswordResetTokenScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  expiresAt: 'expiresAt',
+  usedAt: 'usedAt',
+  ipAddress: 'ipAddress',
+  createdAt: 'createdAt'
+} as const
+
+export type PasswordResetTokenScalarFieldEnum = (typeof PasswordResetTokenScalarFieldEnum)[keyof typeof PasswordResetTokenScalarFieldEnum]
 
 
 export const ApiKeyScalarFieldEnum = {

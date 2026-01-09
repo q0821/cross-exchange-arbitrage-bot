@@ -28,10 +28,14 @@ export type AggregateUser = {
 
 export type UserAvgAggregateOutputType = {
   timeBasisPreference: number | null
+  tokenVersion: number | null
+  failedLoginAttempts: number | null
 }
 
 export type UserSumAggregateOutputType = {
   timeBasisPreference: number | null
+  tokenVersion: number | null
+  failedLoginAttempts: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -41,6 +45,10 @@ export type UserMinAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   timeBasisPreference: number | null
+  tokenVersion: number | null
+  failedLoginAttempts: number | null
+  lockedUntil: Date | null
+  passwordChangedAt: Date | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -50,6 +58,10 @@ export type UserMaxAggregateOutputType = {
   createdAt: Date | null
   updatedAt: Date | null
   timeBasisPreference: number | null
+  tokenVersion: number | null
+  failedLoginAttempts: number | null
+  lockedUntil: Date | null
+  passwordChangedAt: Date | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -59,16 +71,24 @@ export type UserCountAggregateOutputType = {
   createdAt: number
   updatedAt: number
   timeBasisPreference: number
+  tokenVersion: number
+  failedLoginAttempts: number
+  lockedUntil: number
+  passwordChangedAt: number
   _all: number
 }
 
 
 export type UserAvgAggregateInputType = {
   timeBasisPreference?: true
+  tokenVersion?: true
+  failedLoginAttempts?: true
 }
 
 export type UserSumAggregateInputType = {
   timeBasisPreference?: true
+  tokenVersion?: true
+  failedLoginAttempts?: true
 }
 
 export type UserMinAggregateInputType = {
@@ -78,6 +98,10 @@ export type UserMinAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   timeBasisPreference?: true
+  tokenVersion?: true
+  failedLoginAttempts?: true
+  lockedUntil?: true
+  passwordChangedAt?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -87,6 +111,10 @@ export type UserMaxAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   timeBasisPreference?: true
+  tokenVersion?: true
+  failedLoginAttempts?: true
+  lockedUntil?: true
+  passwordChangedAt?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -96,6 +124,10 @@ export type UserCountAggregateInputType = {
   createdAt?: true
   updatedAt?: true
   timeBasisPreference?: true
+  tokenVersion?: true
+  failedLoginAttempts?: true
+  lockedUntil?: true
+  passwordChangedAt?: true
   _all?: true
 }
 
@@ -192,6 +224,10 @@ export type UserGroupByOutputType = {
   createdAt: Date
   updatedAt: Date
   timeBasisPreference: number
+  tokenVersion: number
+  failedLoginAttempts: number
+  lockedUntil: Date | null
+  passwordChangedAt: Date | null
   _count: UserCountAggregateOutputType | null
   _avg: UserAvgAggregateOutputType | null
   _sum: UserSumAggregateOutputType | null
@@ -224,6 +260,10 @@ export type UserWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   timeBasisPreference?: Prisma.IntFilter<"User"> | number
+  tokenVersion?: Prisma.IntFilter<"User"> | number
+  failedLoginAttempts?: Prisma.IntFilter<"User"> | number
+  lockedUntil?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  passwordChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   apiKeys?: Prisma.ApiKeyListRelationFilter
   positions?: Prisma.PositionListRelationFilter
   trades?: Prisma.TradeListRelationFilter
@@ -233,6 +273,7 @@ export type UserWhereInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingListRelationFilter
   assetSnapshots?: Prisma.AssetSnapshotListRelationFilter
   tradingSettings?: Prisma.XOR<Prisma.TradingSettingsNullableScalarRelationFilter, Prisma.TradingSettingsWhereInput> | null
+  passwordResetTokens?: Prisma.PasswordResetTokenListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -242,6 +283,10 @@ export type UserOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  failedLoginAttempts?: Prisma.SortOrder
+  lockedUntil?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   apiKeys?: Prisma.ApiKeyOrderByRelationAggregateInput
   positions?: Prisma.PositionOrderByRelationAggregateInput
   trades?: Prisma.TradeOrderByRelationAggregateInput
@@ -251,6 +296,7 @@ export type UserOrderByWithRelationInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingOrderByRelationAggregateInput
   assetSnapshots?: Prisma.AssetSnapshotOrderByRelationAggregateInput
   tradingSettings?: Prisma.TradingSettingsOrderByWithRelationInput
+  passwordResetTokens?: Prisma.PasswordResetTokenOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -263,6 +309,10 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
   timeBasisPreference?: Prisma.IntFilter<"User"> | number
+  tokenVersion?: Prisma.IntFilter<"User"> | number
+  failedLoginAttempts?: Prisma.IntFilter<"User"> | number
+  lockedUntil?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  passwordChangedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   apiKeys?: Prisma.ApiKeyListRelationFilter
   positions?: Prisma.PositionListRelationFilter
   trades?: Prisma.TradeListRelationFilter
@@ -272,6 +322,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   simulatedTrackings?: Prisma.SimulatedTrackingListRelationFilter
   assetSnapshots?: Prisma.AssetSnapshotListRelationFilter
   tradingSettings?: Prisma.XOR<Prisma.TradingSettingsNullableScalarRelationFilter, Prisma.TradingSettingsWhereInput> | null
+  passwordResetTokens?: Prisma.PasswordResetTokenListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -281,6 +332,10 @@ export type UserOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  failedLoginAttempts?: Prisma.SortOrder
+  lockedUntil?: Prisma.SortOrderInput | Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
@@ -298,6 +353,10 @@ export type UserScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   timeBasisPreference?: Prisma.IntWithAggregatesFilter<"User"> | number
+  tokenVersion?: Prisma.IntWithAggregatesFilter<"User"> | number
+  failedLoginAttempts?: Prisma.IntWithAggregatesFilter<"User"> | number
+  lockedUntil?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  passwordChangedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
 }
 
 export type UserCreateInput = {
@@ -307,6 +366,10 @@ export type UserCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -316,6 +379,7 @@ export type UserCreateInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -325,6 +389,10 @@ export type UserUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -334,6 +402,7 @@ export type UserUncheckedCreateInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -343,6 +412,10 @@ export type UserUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -352,6 +425,7 @@ export type UserUpdateInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -361,6 +435,10 @@ export type UserUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -370,6 +448,7 @@ export type UserUncheckedUpdateInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -379,6 +458,10 @@ export type UserCreateManyInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -388,6 +471,10 @@ export type UserUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -397,6 +484,10 @@ export type UserUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -406,10 +497,16 @@ export type UserCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  failedLoginAttempts?: Prisma.SortOrder
+  lockedUntil?: Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrder
 }
 
 export type UserAvgOrderByAggregateInput = {
   timeBasisPreference?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  failedLoginAttempts?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -419,6 +516,10 @@ export type UserMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  failedLoginAttempts?: Prisma.SortOrder
+  lockedUntil?: Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -428,10 +529,16 @@ export type UserMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  failedLoginAttempts?: Prisma.SortOrder
+  lockedUntil?: Prisma.SortOrder
+  passwordChangedAt?: Prisma.SortOrder
 }
 
 export type UserSumOrderByAggregateInput = {
   timeBasisPreference?: Prisma.SortOrder
+  tokenVersion?: Prisma.SortOrder
+  failedLoginAttempts?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -442,6 +549,20 @@ export type UserScalarRelationFilter = {
 export type UserNullableScalarRelationFilter = {
   is?: Prisma.UserWhereInput | null
   isNot?: Prisma.UserWhereInput | null
+}
+
+export type UserCreateNestedOneWithoutPasswordResetTokensInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPasswordResetTokensInput, Prisma.UserUncheckedCreateWithoutPasswordResetTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPasswordResetTokensInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutPasswordResetTokensNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutPasswordResetTokensInput, Prisma.UserUncheckedCreateWithoutPasswordResetTokensInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutPasswordResetTokensInput
+  upsert?: Prisma.UserUpsertWithoutPasswordResetTokensInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutPasswordResetTokensInput, Prisma.UserUpdateWithoutPasswordResetTokensInput>, Prisma.UserUncheckedUpdateWithoutPasswordResetTokensInput>
 }
 
 export type UserCreateNestedOneWithoutApiKeysInput = {
@@ -572,13 +693,18 @@ export type UserUpdateOneRequiredWithoutTradingSettingsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTradingSettingsInput, Prisma.UserUpdateWithoutTradingSettingsInput>, Prisma.UserUncheckedUpdateWithoutTradingSettingsInput>
 }
 
-export type UserCreateWithoutApiKeysInput = {
+export type UserCreateWithoutPasswordResetTokensInput = {
   id?: string
   email: string
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
+  apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
@@ -589,13 +715,18 @@ export type UserCreateWithoutApiKeysInput = {
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
 }
 
-export type UserUncheckedCreateWithoutApiKeysInput = {
+export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
   id?: string
   email: string
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
+  apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
@@ -604,6 +735,110 @@ export type UserUncheckedCreateWithoutApiKeysInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutPasswordResetTokensInput, Prisma.UserUncheckedCreateWithoutPasswordResetTokensInput>
+}
+
+export type UserUpsertWithoutPasswordResetTokensInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutPasswordResetTokensInput, Prisma.UserUncheckedUpdateWithoutPasswordResetTokensInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutPasswordResetTokensInput, Prisma.UserUncheckedCreateWithoutPasswordResetTokensInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutPasswordResetTokensInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutPasswordResetTokensInput, Prisma.UserUncheckedUpdateWithoutPasswordResetTokensInput>
+}
+
+export type UserUpdateWithoutPasswordResetTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
+  positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
+  trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
+  notificationWebhooks?: Prisma.NotificationWebhookUpdateManyWithoutUserNestedInput
+  opportunityEndHistories?: Prisma.OpportunityEndHistoryUpdateManyWithoutUserNestedInput
+  simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
+  assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
+  tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+  positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
+  trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
+  auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
+  notificationWebhooks?: Prisma.NotificationWebhookUncheckedUpdateManyWithoutUserNestedInput
+  opportunityEndHistories?: Prisma.OpportunityEndHistoryUncheckedUpdateManyWithoutUserNestedInput
+  simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
+  assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
+  tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+}
+
+export type UserCreateWithoutApiKeysInput = {
+  id?: string
+  email: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
+  positions?: Prisma.PositionCreateNestedManyWithoutUserInput
+  trades?: Prisma.TradeCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
+  notificationWebhooks?: Prisma.NotificationWebhookCreateNestedManyWithoutUserInput
+  opportunityEndHistories?: Prisma.OpportunityEndHistoryCreateNestedManyWithoutUserInput
+  simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
+  assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
+  tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutApiKeysInput = {
+  id?: string
+  email: string
+  password: string
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
+  positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
+  trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
+  auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
+  notificationWebhooks?: Prisma.NotificationWebhookUncheckedCreateNestedManyWithoutUserInput
+  opportunityEndHistories?: Prisma.OpportunityEndHistoryUncheckedCreateNestedManyWithoutUserInput
+  simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
+  assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
+  tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -629,6 +864,10 @@ export type UserUpdateWithoutApiKeysInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
@@ -637,6 +876,7 @@ export type UserUpdateWithoutApiKeysInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -646,6 +886,10 @@ export type UserUncheckedUpdateWithoutApiKeysInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
@@ -654,6 +898,7 @@ export type UserUncheckedUpdateWithoutApiKeysInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutPositionsInput = {
@@ -663,6 +908,10 @@ export type UserCreateWithoutPositionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
@@ -671,6 +920,7 @@ export type UserCreateWithoutPositionsInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutPositionsInput = {
@@ -680,6 +930,10 @@ export type UserUncheckedCreateWithoutPositionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
@@ -688,6 +942,7 @@ export type UserUncheckedCreateWithoutPositionsInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutPositionsInput = {
@@ -713,6 +968,10 @@ export type UserUpdateWithoutPositionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
@@ -721,6 +980,7 @@ export type UserUpdateWithoutPositionsInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPositionsInput = {
@@ -730,6 +990,10 @@ export type UserUncheckedUpdateWithoutPositionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
@@ -738,6 +1002,7 @@ export type UserUncheckedUpdateWithoutPositionsInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTradesInput = {
@@ -747,6 +1012,10 @@ export type UserCreateWithoutTradesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogCreateNestedManyWithoutUserInput
@@ -755,6 +1024,7 @@ export type UserCreateWithoutTradesInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTradesInput = {
@@ -764,6 +1034,10 @@ export type UserUncheckedCreateWithoutTradesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   auditLogs?: Prisma.AuditLogUncheckedCreateNestedManyWithoutUserInput
@@ -772,6 +1046,7 @@ export type UserUncheckedCreateWithoutTradesInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTradesInput = {
@@ -797,6 +1072,10 @@ export type UserUpdateWithoutTradesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUpdateManyWithoutUserNestedInput
@@ -805,6 +1084,7 @@ export type UserUpdateWithoutTradesInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTradesInput = {
@@ -814,6 +1094,10 @@ export type UserUncheckedUpdateWithoutTradesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   auditLogs?: Prisma.AuditLogUncheckedUpdateManyWithoutUserNestedInput
@@ -822,6 +1106,7 @@ export type UserUncheckedUpdateWithoutTradesInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAuditLogsInput = {
@@ -831,6 +1116,10 @@ export type UserCreateWithoutAuditLogsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -839,6 +1128,7 @@ export type UserCreateWithoutAuditLogsInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -848,6 +1138,10 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -856,6 +1150,7 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -881,6 +1176,10 @@ export type UserUpdateWithoutAuditLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -889,6 +1188,7 @@ export type UserUpdateWithoutAuditLogsInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -898,6 +1198,10 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -906,6 +1210,7 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutNotificationWebhooksInput = {
@@ -915,6 +1220,10 @@ export type UserCreateWithoutNotificationWebhooksInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -923,6 +1232,7 @@ export type UserCreateWithoutNotificationWebhooksInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutNotificationWebhooksInput = {
@@ -932,6 +1242,10 @@ export type UserUncheckedCreateWithoutNotificationWebhooksInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -940,6 +1254,7 @@ export type UserUncheckedCreateWithoutNotificationWebhooksInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutNotificationWebhooksInput = {
@@ -965,6 +1280,10 @@ export type UserUpdateWithoutNotificationWebhooksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -973,6 +1292,7 @@ export type UserUpdateWithoutNotificationWebhooksInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationWebhooksInput = {
@@ -982,6 +1302,10 @@ export type UserUncheckedUpdateWithoutNotificationWebhooksInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -990,6 +1314,7 @@ export type UserUncheckedUpdateWithoutNotificationWebhooksInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutOpportunityEndHistoriesInput = {
@@ -999,6 +1324,10 @@ export type UserCreateWithoutOpportunityEndHistoriesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -1007,6 +1336,7 @@ export type UserCreateWithoutOpportunityEndHistoriesInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutOpportunityEndHistoriesInput = {
@@ -1016,6 +1346,10 @@ export type UserUncheckedCreateWithoutOpportunityEndHistoriesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -1024,6 +1358,7 @@ export type UserUncheckedCreateWithoutOpportunityEndHistoriesInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutOpportunityEndHistoriesInput = {
@@ -1049,6 +1384,10 @@ export type UserUpdateWithoutOpportunityEndHistoriesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -1057,6 +1396,7 @@ export type UserUpdateWithoutOpportunityEndHistoriesInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOpportunityEndHistoriesInput = {
@@ -1066,6 +1406,10 @@ export type UserUncheckedUpdateWithoutOpportunityEndHistoriesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -1074,6 +1418,7 @@ export type UserUncheckedUpdateWithoutOpportunityEndHistoriesInput = {
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSimulatedTrackingsInput = {
@@ -1083,6 +1428,10 @@ export type UserCreateWithoutSimulatedTrackingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -1091,6 +1440,7 @@ export type UserCreateWithoutSimulatedTrackingsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSimulatedTrackingsInput = {
@@ -1100,6 +1450,10 @@ export type UserUncheckedCreateWithoutSimulatedTrackingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -1108,6 +1462,7 @@ export type UserUncheckedCreateWithoutSimulatedTrackingsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSimulatedTrackingsInput = {
@@ -1133,6 +1488,10 @@ export type UserUpdateWithoutSimulatedTrackingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -1141,6 +1500,7 @@ export type UserUpdateWithoutSimulatedTrackingsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSimulatedTrackingsInput = {
@@ -1150,6 +1510,10 @@ export type UserUncheckedUpdateWithoutSimulatedTrackingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -1158,6 +1522,7 @@ export type UserUncheckedUpdateWithoutSimulatedTrackingsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAssetSnapshotsInput = {
@@ -1167,6 +1532,10 @@ export type UserCreateWithoutAssetSnapshotsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -1175,6 +1544,7 @@ export type UserCreateWithoutAssetSnapshotsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryCreateNestedManyWithoutUserInput
   simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAssetSnapshotsInput = {
@@ -1184,6 +1554,10 @@ export type UserUncheckedCreateWithoutAssetSnapshotsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -1192,6 +1566,7 @@ export type UserUncheckedCreateWithoutAssetSnapshotsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUncheckedCreateNestedManyWithoutUserInput
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   tradingSettings?: Prisma.TradingSettingsUncheckedCreateNestedOneWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAssetSnapshotsInput = {
@@ -1217,6 +1592,10 @@ export type UserUpdateWithoutAssetSnapshotsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -1225,6 +1604,7 @@ export type UserUpdateWithoutAssetSnapshotsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUpdateManyWithoutUserNestedInput
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssetSnapshotsInput = {
@@ -1234,6 +1614,10 @@ export type UserUncheckedUpdateWithoutAssetSnapshotsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -1242,6 +1626,7 @@ export type UserUncheckedUpdateWithoutAssetSnapshotsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUncheckedUpdateManyWithoutUserNestedInput
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   tradingSettings?: Prisma.TradingSettingsUncheckedUpdateOneWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTradingSettingsInput = {
@@ -1251,6 +1636,10 @@ export type UserCreateWithoutTradingSettingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeCreateNestedManyWithoutUserInput
@@ -1259,6 +1648,7 @@ export type UserCreateWithoutTradingSettingsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryCreateNestedManyWithoutUserInput
   simulatedTrackings?: Prisma.SimulatedTrackingCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotCreateNestedManyWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTradingSettingsInput = {
@@ -1268,6 +1658,10 @@ export type UserUncheckedCreateWithoutTradingSettingsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   timeBasisPreference?: number
+  tokenVersion?: number
+  failedLoginAttempts?: number
+  lockedUntil?: Date | string | null
+  passwordChangedAt?: Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedCreateNestedManyWithoutUserInput
   positions?: Prisma.PositionUncheckedCreateNestedManyWithoutUserInput
   trades?: Prisma.TradeUncheckedCreateNestedManyWithoutUserInput
@@ -1276,6 +1670,7 @@ export type UserUncheckedCreateWithoutTradingSettingsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUncheckedCreateNestedManyWithoutUserInput
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedCreateNestedManyWithoutUserInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedCreateNestedManyWithoutUserInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTradingSettingsInput = {
@@ -1301,6 +1696,10 @@ export type UserUpdateWithoutTradingSettingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUpdateManyWithoutUserNestedInput
@@ -1309,6 +1708,7 @@ export type UserUpdateWithoutTradingSettingsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUpdateManyWithoutUserNestedInput
   simulatedTrackings?: Prisma.SimulatedTrackingUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUpdateManyWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTradingSettingsInput = {
@@ -1318,6 +1718,10 @@ export type UserUncheckedUpdateWithoutTradingSettingsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
+  tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
+  failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
+  lockedUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  passwordChangedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   apiKeys?: Prisma.ApiKeyUncheckedUpdateManyWithoutUserNestedInput
   positions?: Prisma.PositionUncheckedUpdateManyWithoutUserNestedInput
   trades?: Prisma.TradeUncheckedUpdateManyWithoutUserNestedInput
@@ -1326,6 +1730,7 @@ export type UserUncheckedUpdateWithoutTradingSettingsInput = {
   opportunityEndHistories?: Prisma.OpportunityEndHistoryUncheckedUpdateManyWithoutUserNestedInput
   simulatedTrackings?: Prisma.SimulatedTrackingUncheckedUpdateManyWithoutUserNestedInput
   assetSnapshots?: Prisma.AssetSnapshotUncheckedUpdateManyWithoutUserNestedInput
+  passwordResetTokens?: Prisma.PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1342,6 +1747,7 @@ export type UserCountOutputType = {
   opportunityEndHistories: number
   simulatedTrackings: number
   assetSnapshots: number
+  passwordResetTokens: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1353,6 +1759,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   opportunityEndHistories?: boolean | UserCountOutputTypeCountOpportunityEndHistoriesArgs
   simulatedTrackings?: boolean | UserCountOutputTypeCountSimulatedTrackingsArgs
   assetSnapshots?: boolean | UserCountOutputTypeCountAssetSnapshotsArgs
+  passwordResetTokens?: boolean | UserCountOutputTypeCountPasswordResetTokensArgs
 }
 
 /**
@@ -1421,6 +1828,13 @@ export type UserCountOutputTypeCountAssetSnapshotsArgs<ExtArgs extends runtime.T
   where?: Prisma.AssetSnapshotWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountPasswordResetTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.PasswordResetTokenWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1429,6 +1843,10 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   createdAt?: boolean
   updatedAt?: boolean
   timeBasisPreference?: boolean
+  tokenVersion?: boolean
+  failedLoginAttempts?: boolean
+  lockedUntil?: boolean
+  passwordChangedAt?: boolean
   apiKeys?: boolean | Prisma.User$apiKeysArgs<ExtArgs>
   positions?: boolean | Prisma.User$positionsArgs<ExtArgs>
   trades?: boolean | Prisma.User$tradesArgs<ExtArgs>
@@ -1438,6 +1856,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   simulatedTrackings?: boolean | Prisma.User$simulatedTrackingsArgs<ExtArgs>
   assetSnapshots?: boolean | Prisma.User$assetSnapshotsArgs<ExtArgs>
   tradingSettings?: boolean | Prisma.User$tradingSettingsArgs<ExtArgs>
+  passwordResetTokens?: boolean | Prisma.User$passwordResetTokensArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1448,6 +1867,10 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   createdAt?: boolean
   updatedAt?: boolean
   timeBasisPreference?: boolean
+  tokenVersion?: boolean
+  failedLoginAttempts?: boolean
+  lockedUntil?: boolean
+  passwordChangedAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1457,6 +1880,10 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   createdAt?: boolean
   updatedAt?: boolean
   timeBasisPreference?: boolean
+  tokenVersion?: boolean
+  failedLoginAttempts?: boolean
+  lockedUntil?: boolean
+  passwordChangedAt?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1466,9 +1893,13 @@ export type UserSelectScalar = {
   createdAt?: boolean
   updatedAt?: boolean
   timeBasisPreference?: boolean
+  tokenVersion?: boolean
+  failedLoginAttempts?: boolean
+  lockedUntil?: boolean
+  passwordChangedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "createdAt" | "updatedAt" | "timeBasisPreference", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "createdAt" | "updatedAt" | "timeBasisPreference" | "tokenVersion" | "failedLoginAttempts" | "lockedUntil" | "passwordChangedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   apiKeys?: boolean | Prisma.User$apiKeysArgs<ExtArgs>
   positions?: boolean | Prisma.User$positionsArgs<ExtArgs>
@@ -1479,6 +1910,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   simulatedTrackings?: boolean | Prisma.User$simulatedTrackingsArgs<ExtArgs>
   assetSnapshots?: boolean | Prisma.User$assetSnapshotsArgs<ExtArgs>
   tradingSettings?: boolean | Prisma.User$tradingSettingsArgs<ExtArgs>
+  passwordResetTokens?: boolean | Prisma.User$passwordResetTokensArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1496,6 +1928,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     simulatedTrackings: Prisma.$SimulatedTrackingPayload<ExtArgs>[]
     assetSnapshots: Prisma.$AssetSnapshotPayload<ExtArgs>[]
     tradingSettings: Prisma.$TradingSettingsPayload<ExtArgs> | null
+    passwordResetTokens: Prisma.$PasswordResetTokenPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1504,6 +1937,10 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     createdAt: Date
     updatedAt: Date
     timeBasisPreference: number
+    tokenVersion: number
+    failedLoginAttempts: number
+    lockedUntil: Date | null
+    passwordChangedAt: Date | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -1907,6 +2344,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   simulatedTrackings<T extends Prisma.User$simulatedTrackingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$simulatedTrackingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SimulatedTrackingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   assetSnapshots<T extends Prisma.User$assetSnapshotsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$assetSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AssetSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   tradingSettings<T extends Prisma.User$tradingSettingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$tradingSettingsArgs<ExtArgs>>): Prisma.Prisma__TradingSettingsClient<runtime.Types.Result.GetResult<Prisma.$TradingSettingsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  passwordResetTokens<T extends Prisma.User$passwordResetTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$passwordResetTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PasswordResetTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1942,6 +2380,10 @@ export interface UserFieldRefs {
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly timeBasisPreference: Prisma.FieldRef<"User", 'Int'>
+  readonly tokenVersion: Prisma.FieldRef<"User", 'Int'>
+  readonly failedLoginAttempts: Prisma.FieldRef<"User", 'Int'>
+  readonly lockedUntil: Prisma.FieldRef<"User", 'DateTime'>
+  readonly passwordChangedAt: Prisma.FieldRef<"User", 'DateTime'>
 }
     
 
@@ -2538,6 +2980,30 @@ export type User$tradingSettingsArgs<ExtArgs extends runtime.Types.Extensions.In
    */
   include?: Prisma.TradingSettingsInclude<ExtArgs> | null
   where?: Prisma.TradingSettingsWhereInput
+}
+
+/**
+ * User.passwordResetTokens
+ */
+export type User$passwordResetTokensArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the PasswordResetToken
+   */
+  select?: Prisma.PasswordResetTokenSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the PasswordResetToken
+   */
+  omit?: Prisma.PasswordResetTokenOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.PasswordResetTokenInclude<ExtArgs> | null
+  where?: Prisma.PasswordResetTokenWhereInput
+  orderBy?: Prisma.PasswordResetTokenOrderByWithRelationInput | Prisma.PasswordResetTokenOrderByWithRelationInput[]
+  cursor?: Prisma.PasswordResetTokenWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.PasswordResetTokenScalarFieldEnum | Prisma.PasswordResetTokenScalarFieldEnum[]
 }
 
 /**

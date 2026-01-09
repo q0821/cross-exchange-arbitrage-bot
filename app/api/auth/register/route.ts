@@ -51,6 +51,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     SessionManager.createSession(response, {
       userId: user.id,
       email: user.email,
+      tokenVersion: user.tokenVersion,
     });
 
     // 5. 設定 Correlation ID header

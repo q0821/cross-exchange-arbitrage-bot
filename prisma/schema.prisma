@@ -120,19 +120,44 @@ model User {
   // 用戶偏好設定
   timeBasisPreference Int @default(8) // 時間基準偏好: 1, 4, 8, 24 小時
 
+  // ===== 密碼管理 (Feature 061) =====
+  tokenVersion        Int       @default(0)                // JWT 版本號，密碼變更時遞增
+  failedLoginAttempts Int       @default(0)                // 連續登入失敗次數
+  lockedUntil         DateTime? @db.Timestamptz            // 帳戶鎖定截止時間
+  passwordChangedAt   DateTime? @db.Timestamptz            // 最後密碼變更時間
+
   // Relations
-  apiKeys              ApiKey[]
-  positions            Position[]
-  trades               Trade[]
-  auditLogs            AuditLog[]
-  notificationWebhooks NotificationWebhook[]
+  apiKeys                 ApiKey[]
+  positions               Position[]
+  trades                  Trade[]
+  auditLogs               AuditLog[]
+  notificationWebhooks    NotificationWebhook[]
   opportunityEndHistories OpportunityEndHistory[]
   simulatedTrackings      SimulatedTracking[]
   assetSnapshots          AssetSnapshot[]
   tradingSettings         TradingSettings?
+  passwordResetTokens     PasswordResetToken[]             // Feature 061
 
   @@index([email])
   @@map("users")
+}
+
+// ===== 密碼重設 Token (Feature 061) =====
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @db.VarChar(255)              // bcrypt hashed token
+  expiresAt DateTime  @db.Timestamptz               // 過期時間（建立後 1 小時）
+  usedAt    DateTime? @db.Timestamptz               // 使用時間（null = 未使用）
+  ipAddress String?   @db.VarChar(45)               // 請求 IP
+  createdAt DateTime  @default(now()) @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 // ===== API Key 管理 =====

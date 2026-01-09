@@ -1,0 +1,312 @@
+openapi: 3.0.3
+info:
+  title: Password Management API
+  description: 用戶密碼變更與重設 API
+  version: 1.0.0
+
+servers:
+  - url: /api
+    description: Local development
+
+paths:
+  /auth/change-password:
+    post:
+      summary: 變更密碼
+      description: 已登入用戶變更自己的密碼
+      tags:
+        - Authentication
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: 密碼變更成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: 請求無效（密碼不符合規則）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 未登入或目前密碼錯誤
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '423':
+          description: 帳戶已鎖定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountLockedResponse'
+
+  /auth/forgot-password:
+    post:
+      summary: 忘記密碼
+      description: 請求密碼重設郵件
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: 已發送重設郵件（無論帳戶是否存在）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPasswordResponse'
+        '429':
+          description: 請求過於頻繁（60 秒內重複請求）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RateLimitResponse'
+
+  /auth/reset-password:
+    post:
+      summary: 重設密碼
+      description: 使用重設 token 設定新密碼
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: 密碼重設成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Token 無效、已過期或已使用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/validate-reset-token:
+    get:
+      summary: 驗證重設 Token
+      description: 檢查重設 token 是否有效（用於前端顯示表單前驗證）
+      tags:
+        - Authentication
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+          description: 密碼重設 token
+      responses:
+        '200':
+          description: Token 有效
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateTokenResponse'
+        '400':
+          description: Token 無效、已過期或已使用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/password-strength:
+    post:
+      summary: 檢查密碼強度
+      description: 計算密碼強度（前端輔助，非必要）
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordStrengthRequest'
+      responses:
+        '200':
+          description: 密碼強度結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordStrengthResponse'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: auth_token
+
+  schemas:
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+        - confirmPassword
+      properties:
+        currentPassword:
+          type: string
+          minLength: 1
+          description: 目前密碼
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: 新密碼（至少 8 字元，包含大小寫字母和數字）
+        confirmPassword:
+          type: string
+          description: 確認新密碼（必須與 newPassword 相同）
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: 註冊時使用的電子郵件
+
+    ForgotPasswordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "如果該電子郵件已註冊，您將收到密碼重設郵件"
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - newPassword
+        - confirmPassword
+      properties:
+        token:
+          type: string
+          description: 密碼重設 token（從郵件連結取得）
+        newPassword:
+          type: string
+          minLength: 8
+          maxLength: 128
+          description: 新密碼
+        confirmPassword:
+          type: string
+          description: 確認新密碼
+
+    ValidateTokenResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            valid:
+              type: boolean
+              example: true
+            expiresAt:
+              type: string
+              format: date-time
+              description: Token 過期時間
+
+    PasswordStrengthRequest:
+      type: object
+      required:
+        - password
+      properties:
+        password:
+          type: string
+          description: 要檢查的密碼
+
+    PasswordStrengthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            strength:
+              type: string
+              enum: [weak, medium, strong]
+              description: 密碼強度
+            score:
+              type: integer
+              minimum: 0
+              maximum: 100
+              description: 密碼分數
+            suggestions:
+              type: array
+              items:
+                type: string
+              description: 改善建議
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: 錯誤訊息
+
+    AccountLockedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "帳戶已被暫時鎖定"
+        lockedUntil:
+          type: string
+          format: date-time
+          description: 解鎖時間
+
+    RateLimitResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: "請求過於頻繁，請稍後再試"
+        retryAfter:
+          type: integer
+          description: 需等待的秒數

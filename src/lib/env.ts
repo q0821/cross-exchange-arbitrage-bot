@@ -133,6 +133,23 @@ const serverEnvSchema = z.object({
   TELEGRAM_CHAT_ID: optionalString,
 
   // -------------------------------------------------------------------------
+  // 郵件服務（密碼重設功能）
+  // -------------------------------------------------------------------------
+  SMTP_HOST: optionalString,
+  SMTP_PORT: integerString(587),
+  SMTP_USER: optionalString,
+  SMTP_PASS: optionalString,
+  SMTP_FROM: optionalString,
+
+  // -------------------------------------------------------------------------
+  // 密碼管理配置
+  // -------------------------------------------------------------------------
+  PASSWORD_RESET_EXPIRY_HOURS: integerString(1),
+  PASSWORD_RESET_RATE_LIMIT_SECONDS: integerString(60),
+  ACCOUNT_LOCKOUT_THRESHOLD: integerString(5),
+  ACCOUNT_LOCKOUT_DURATION_MINUTES: integerString(15),
+
+  // -------------------------------------------------------------------------
   // 交易配置
   // -------------------------------------------------------------------------
   MIN_SPREAD_THRESHOLD: numericString(0.0005),
@@ -307,6 +324,17 @@ function getDefaultServerEnv(): Partial<ServerEnv> {
     BINGX_TESTNET: false,
     TELEGRAM_BOT_TOKEN: '',
     TELEGRAM_CHAT_ID: '',
+    // 郵件服務預設值
+    SMTP_HOST: '',
+    SMTP_PORT: 587,
+    SMTP_USER: '',
+    SMTP_PASS: '',
+    SMTP_FROM: '',
+    // 密碼管理預設值
+    PASSWORD_RESET_EXPIRY_HOURS: 1,
+    PASSWORD_RESET_RATE_LIMIT_SECONDS: 60,
+    ACCOUNT_LOCKOUT_THRESHOLD: 5,
+    ACCOUNT_LOCKOUT_DURATION_MINUTES: 15,
     // 交易配置預設值
     MIN_SPREAD_THRESHOLD: 0.0005,
     MAX_POSITION_SIZE_USD: 10000,
@@ -371,6 +399,14 @@ export const env = validateEnv();
 export function isRedisConfigured(): boolean {
   // 只有明確設定 REDIS_URL 或 REDIS_HOST 時才啟用 Redis
   return !!(process.env.REDIS_URL || process.env.REDIS_HOST);
+}
+
+/**
+ * 檢查 SMTP 郵件服務是否已配置
+ * 需要同時設定 host 和 user 才視為已配置
+ */
+export function isSmtpConfigured(): boolean {
+  return !!(process.env.SMTP_HOST && process.env.SMTP_USER);
 }
 
 /**

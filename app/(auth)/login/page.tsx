@@ -111,11 +111,16 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">還沒有帳號？</span>{' '}
-            <Link href="/register" className="font-medium text-primary hover:text-primary/80">
-              立即註冊
+          <div className="flex items-center justify-between text-sm">
+            <Link href="/forgot-password" className="text-muted-foreground hover:text-primary">
+              忘記密碼？
             </Link>
+            <div>
+              <span className="text-muted-foreground">還沒有帳號？</span>{' '}
+              <Link href="/register" className="font-medium text-primary hover:text-primary/80">
+                立即註冊
+              </Link>
+            </div>
           </div>
         </form>
       </div>

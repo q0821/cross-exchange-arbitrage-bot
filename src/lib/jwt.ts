@@ -8,6 +8,7 @@ import { env } from './env';
 export interface JwtPayload {
   userId: string;
   email: string;
+  tokenVersion: number; // Feature 061: 密碼變更後遞增以使舊 session 失效
 }
 
 /**
