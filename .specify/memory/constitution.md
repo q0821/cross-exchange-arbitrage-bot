@@ -1,7 +1,20 @@
 <!--
-Sync Impact Report - Constitution v1.2.0
+Sync Impact Report - Constitution v1.3.0
 Created: 2025-10-19
-Last Updated: 2025-12-23
+Last Updated: 2026-01-11
+
+Changes in v1.3.0:
+- Enhanced Principle IV: Data Integrity - Migration File Mandate (NON-NEGOTIABLE)
+  - schema.prisma 變更 MUST 同時產生 migration 檔案
+  - Migration 檔案 MUST 與 schema 變更一起 commit
+  - PR/Code Review MUST 拒絕沒有 migration 的 schema 變更
+  - 新增 Migration Workflow 強制流程
+- Root cause: Feature 061 部署後登入失敗，因 migration 檔案遺漏
+- Templates requiring updates:
+  ✅ plan-template.md - no changes needed (already has Constitution Check)
+  ✅ spec-template.md - no changes needed
+  ✅ tasks-template.md - no changes needed
+- Follow-up TODOs: None
 
 Changes in v1.2.0:
 - Added Principle VII: Test-Driven Development (TDD) Discipline (NON-NEGOTIABLE)
@@ -79,7 +92,7 @@ Changes in v1.0.0 (Initial):
 
 **Rationale**: Exchanges have variable reliability. The system must operate continuously even when individual services fail.
 
-### IV. Data Integrity
+### IV. Data Integrity (NON-NEGOTIABLE)
 
 **MUST** requirements for data management:
 
@@ -89,7 +102,36 @@ Changes in v1.0.0 (Initial):
 - Position records MUST capture state transitions (PENDING → OPEN → CLOSED)
 - Financial calculations MUST use `Decimal` type (never JavaScript `Number` for money)
 
-**Rationale**: Incorrect data can lead to wrong trading decisions. Financial precision and audit trails are critical.
+**Migration File Mandate** (NON-NEGOTIABLE):
+
+- Every `schema.prisma` modification MUST be accompanied by a migration file
+- Migration files MUST be generated using `npx prisma migrate dev --name <descriptive-name>`
+- Migration files MUST be committed together with schema changes in the same commit
+- Pull requests with schema changes but without migration files MUST be rejected
+- Code review MUST verify migration file existence for any `schema.prisma` diff
+
+**Migration Workflow** (MUST follow):
+
+```bash
+# 1. Modify schema.prisma
+# 2. Generate migration (REQUIRED - not optional)
+npx prisma migrate dev --name <feature-name>
+
+# 3. Verify migration file created in prisma/migrations/
+# 4. Commit BOTH schema.prisma AND migration file together
+git add prisma/schema.prisma prisma/migrations/<timestamp>_<name>/
+git commit -m "feat: <description>"
+```
+
+**Migration Prohibitions**:
+
+- ❌ Committing schema.prisma changes without migration files
+- ❌ Using `prisma db push` in production or for permanent changes
+- ❌ Manually editing migration SQL files after generation (regenerate instead)
+- ❌ Skipping migration generation "because it's a small change"
+- ❌ Assuming deployment will "figure it out" - it won't
+
+**Rationale**: Migration files are the contract between code and database. Without them, deployments will fail and production systems will break. Feature 061 incident (2026-01-11) demonstrated that missing migrations cause complete authentication failures in production.
 
 ### V. Incremental Delivery
 
@@ -159,19 +201,19 @@ Exchange APIs         TimescaleDB                 React Client
 
 **TDD Execution Flow** (MUST follow in order):
 
-1. **🔴 Red Phase - Write Failing Test First**
+1. **Red Phase - Write Failing Test First**
    - Write a single test case for the expected behavior
    - Run the test and verify it FAILS
    - The test failure message MUST clearly indicate what is missing
    - DO NOT proceed to Green phase until test failure is verified
 
-2. **🟢 Green Phase - Minimal Implementation**
+2. **Green Phase - Minimal Implementation**
    - Write the MINIMUM code to make the test pass
    - DO NOT add extra functionality, optimizations, or "nice-to-haves"
    - Run the test and verify it PASSES
    - DO NOT proceed to Refactor phase until test passes
 
-3. **🔵 Refactor Phase - Improve Code Quality**
+3. **Refactor Phase - Improve Code Quality**
    - Improve code structure, naming, and clarity
    - Run ALL tests after each refactoring step
    - If any test fails, revert the refactoring change
@@ -255,6 +297,7 @@ Before merging to main branch:
 3. ✅ ESLint checks passing
 4. ✅ Build succeeds
 5. ✅ Constitution compliance verified
+6. ✅ Migration files present for schema changes (Principle IV)
 
 ### Configuration Management
 
@@ -289,6 +332,7 @@ Before merging to main branch:
 - Pull requests touching trade execution MUST be reviewed by 2+ developers
 - Constitution violations MUST be justified in writing or code must be revised
 - Complexity additions (new patterns, abstractions) MUST be justified against Principle V (Incremental Delivery)
+- Schema changes MUST include migration files (Principle IV enforcement)
 
 ### Living Document
 
@@ -296,4 +340,4 @@ Before merging to main branch:
 - Principles should be challenged if they block necessary improvements
 - But convenience is not sufficient justification for weakening safety (Principle I)
 
-**Version**: 1.2.0 | **Ratified**: 2025-10-19 | **Last Amended**: 2025-12-23
+**Version**: 1.3.0 | **Ratified**: 2025-10-19 | **Last Amended**: 2026-01-11
