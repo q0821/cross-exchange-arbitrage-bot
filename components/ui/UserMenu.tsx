@@ -38,6 +38,10 @@ export function UserMenu({ onLogout, isLoggingOut = false }: UserMenuProps) {
       try {
         // JWT 結構: header.payload.signature
         const payload = token.split('.')[1];
+        if (!payload) {
+          setEmail(null);
+          return;
+        }
         const decoded = JSON.parse(atob(payload));
         setEmail(decoded.email || null);
       } catch {
