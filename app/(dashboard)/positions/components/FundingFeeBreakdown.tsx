@@ -69,8 +69,10 @@ function FundingFeeList({
         <tbody>
           {sortedEntries.map((entry, index) => {
             const { text, colorClass } = formatAmount(entry.amount);
+            // 使用 timestamp + index 確保 key 唯一性（同一時間可能有多筆記錄）
+            const uniqueKey = `${entry.id || entry.datetime}-${index}`;
             return (
-              <tr key={entry.id || index} className="border-b border-border last:border-0">
+              <tr key={uniqueKey} className="border-b border-border last:border-0">
                 <td className="py-1 px-2 text-muted-foreground">
                   {new Date(entry.datetime).toLocaleString('zh-TW', {
                     month: '2-digit',
