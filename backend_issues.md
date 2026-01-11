@@ -1,10 +1,25 @@
 # Backend Issues Log
 
-Last Updated: 2026-01-02T02:32:00Z
-Monitoring Duration: ~4 minutes
-Total Log Entries: 2824 (1033 info, 1776 warn, 0 error, 0 fatal)
+Last Updated: 2026-01-09T14:54:52Z
+Monitoring Duration: Continuous
+Total Log Entries: Continuous monitoring active
 
 ## Critical Issues 🔴
+
+- [ ] **Port 3000 已被佔用導致服務無法啟動** - [Priority: Critical]
+  - **Discovered**: 2026-01-09 14:54:52
+  - **Description**: 服務嘗試監聽 port 3000 但發生 EADDRINUSE 錯誤，導致整個服務啟動失敗
+  - **Log Fragment**:
+    ```
+    {"level":"fatal","time":"2026-01-09T14:54:52.347Z","pid":85189,"hostname":"MacBookPro.home","message":"listen EADDRINUSE: address already in use :::3000","stack":"Error: listen EADDRINUSE: address already in use :::3000\n    at Server.setupListenHandle [as _listen2] (node:net:1940:16)\n    at listenInCluster (node:net:1997:12)\n    at Server.listen (node:net:2102:7)\n    at file:///Users/hd/WORK/case/cross-exchange-arbitrage-bot/server.ts:1:1200","msg":"Uncaught Exception"}
+    Error: listen EADDRINUSE: address already in use :::3000
+    ```
+  - **Suggested Fix**:
+    1. 檢查是否有其他 Next.js 或 Node.js 服務正在使用 port 3000: `lsof -i :3000`
+    2. 終止佔用的進程: `kill -9 <PID>` 或變更服務 port（在 .env 設定 `PORT=3001`）
+    3. 檢查是否有殭屍進程佔用端口
+  - **Affected Component**: server.ts - HTTP Server 初始化
+  - **Impact**: 阻擋服務啟動，所有功能無法使用
 
 - [ ] **Node.js Heap Out of Memory** - [Priority: Critical]
   - **Discovered**: 2026-01-09
@@ -31,6 +46,50 @@ Total Log Entries: 2824 (1033 info, 1776 warn, 0 error, 0 fatal)
   - **Affected Component**: PriceMonitor, WebSocket clients, DataSourceManager
 
 ## High Priority Issues 🟠
+
+- [ ] **Binance API 回傳 404 錯誤** - [Priority: High]
+  - **Discovered**: 2026-01-09 14:54:51
+  - **Description**: 條件單監控服務呼叫 Binance futures API `/fapi/v1/positionRisk` 時收到 404 Not Found，導致無法查詢持倉條件單狀態
+  - **Log Fragment**:
+    ```
+    {"level":"error","time":"2026-01-09T14:54:51.954Z","pid":85189,"hostname":"MacBookPro.home","positionId":"cmk6ahyty0001gp5j5j09m3ik","exchange":"binance","error":"binance GET https://fapi.binance.com/fapi/v1/positionRisk?timestamp=1767970491212&recvWindow=10000&signature=17432994c98af22879a0f2687761e8c486a86ef9a47d8fd51973b128b17bedd1 404 Not Found <!DOCTYPE html>..."}
+    ```
+  - **Suggested Fix**:
+    1. 檢查 Binance API Key 權限是否包含合約交易 (Futures Trading)
+    2. 確認 API endpoint 是否正確（可能需要使用 `/fapi/v2/positionRisk`）
+    3. 驗證 API Key 的 IP 白名單設定（雖然 404 通常不是 IP 問題）
+    4. 檢查 Binance testnet vs mainnet 配置
+    5. 檢查該 API Key 是否啟用了 Futures 權限
+  - **Affected Component**: ConditionalOrderMonitor - Binance 持倉查詢
+  - **Impact**: 無法監控 Binance 持倉的停損停利觸發狀態
+
+- [ ] **OKX API IP 白名單驗證失敗** - [Priority: High]
+  - **Discovered**: 2026-01-09 14:54:52
+  - **Description**: OKX API 拒絕來自 IP `36.228.12.229` 的請求，因為該 IP 不在 API Key 的白名單中
+  - **Log Fragment**:
+    ```
+    {"level":"error","time":"2026-01-09T14:54:52.095Z","pid":85189,"hostname":"MacBookPro.home","positionId":"cmk6ahyty0001gp5j5j09m3ik","exchange":"okx","error":"okx {\"msg\":\"Your IP 36.228.12.229 is not included in your API key's 42b72d4c-fcf4-4abf-9c89-b0f8c7547e07 IP whitelist.\",\"code\":\"50110\"}","msg":"[條件單監控] 檢查空方條件單失敗"}
+    ```
+  - **Suggested Fix**:
+    1. 前往 OKX API 管理頁面: https://www.okx.com/account/my-api
+    2. 將當前 IP `36.228.12.229` 加入 API Key `42b72d4c-fcf4-4abf-9c89-b0f8c7547e07` 的白名單
+    3. 如果 IP 經常變動，考慮使用固定 IP 或調整白名單策略
+  - **Affected Component**: ConditionalOrderMonitor - OKX 持倉查詢
+  - **Impact**: 無法監控 OKX 持倉的停損停利觸發狀態
+
+- [ ] **BingX API IP 白名單驗證失敗** - [Priority: High]
+  - **Discovered**: 2026-01-09 14:54:53
+  - **Description**: BingX API 拒絕來自 IP `36.228.12.229` 的請求，錯誤碼 100419
+  - **Log Fragment**:
+    ```
+    {"level":"error","time":"2026-01-09T14:54:53.028Z","pid":85189,"hostname":"MacBookPro.home","positionId":"cmk6bgk0x0005gp5ji8ig64gl","exchange":"bingx","error":"bingx {\"code\":100419,\"msg\":\"your current request IP is 36.228.12.229 does not match IP whitelist , please go to https://bingx.com/en/account/api/ to verify the ip you have set\",\"timestamp\":1767970493002}","msg":"[條件單監控] 檢查多方條件單失敗"}
+    ```
+  - **Suggested Fix**:
+    1. 前往 BingX API 管理頁面: https://bingx.com/en/account/api/
+    2. 將當前 IP `36.228.12.229` 加入 API Key 的白名單
+    3. 驗證設定後重新啟動條件單監控服務
+  - **Affected Component**: ConditionalOrderMonitor - BingX 持倉查詢
+  - **Impact**: 無法監控 BingX 持倉的停損停利觸發狀態
 
 - [ ] **BingX WebSocket 連線不穩定** - [Priority: High]
   - **Discovered**: 2026-01-02T02:29:08Z
@@ -185,7 +244,10 @@ Total Log Entries: 2824 (1033 info, 1776 warn, 0 error, 0 fatal)
 
 ## Resolved Issues ✅
 
-暫無
+- [x] **Port 3000 被舊進程佔用** - Resolved on 2026-01-09 15:05
+  - **Resolution**: 終止兩個殭屍 tsx 進程（PID 63865 和 85183），服務成功啟動在 port 3000
+  - **Action Taken**: `kill -9 63865 85183 && pnpm dev`
+  - **Current Status**: 服務正常運行在 http://localhost:3000
 
 ---
 
@@ -241,10 +303,11 @@ pnpm tsx src/scripts/cleanup-invalid-symbols.ts
 
 ### 服務狀態
 - **狀態**: 運行中 ✅
-- **PID**: 20668
-- **啟動時間**: 2026-01-02T02:28:02Z
+- **PID**: 88805
+- **啟動時間**: 2026-01-09T15:05:08Z
 - **環境**: development
 - **埠**: 3000
+- **URL**: http://localhost:3000
 
 ### 已初始化服務
 - ✅ RatesCache
@@ -275,8 +338,9 @@ pnpm tsx src/scripts/cleanup-invalid-symbols.ts
 - 所有交易所健康檢查已啟動 ✅
 
 ### 當前持倉
-- 1 個活躍持倉 (FOLKSUSDT)
-- 條件單狀態檢查已執行
+- 3 個活躍持倉 (PIPPINUSDT x2, RIVERUSDT x1)
+- 條件單狀態檢查每 30 秒執行一次
+- 檢測到多個交易所 API 白名單問題（見 High Priority Issues）
 
 ### 觀察到的日誌模式
 - ✅ 正常的初始化序列

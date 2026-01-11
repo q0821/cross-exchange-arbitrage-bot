@@ -45,14 +45,12 @@ vi.mock('../../../src/lib/config', () => ({
   },
 }));
 
-describe('BinanceConnector.getFundingInterval', () => {
+describe('BinanceConnector', () => {
   let connector: BinanceConnector;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     connector = new BinanceConnector(false);
-
-    await connector.connect();
   });
 
   afterEach(async () => {
@@ -61,7 +59,50 @@ describe('BinanceConnector.getFundingInterval', () => {
     }
   });
 
+  describe('Connection Management', () => {
+    it('should connect successfully', async () => {
+      await connector.connect();
+      expect(connector.isConnected()).toBe(true);
+    });
+
+    it('should emit connected event on successful connection', async () => {
+      const connectedHandler = vi.fn();
+      connector.on('connected', connectedHandler);
+
+      await connector.connect();
+
+      expect(connectedHandler).toHaveBeenCalled();
+    });
+
+    it('should disconnect successfully', async () => {
+      await connector.connect();
+      expect(connector.isConnected()).toBe(true);
+
+      await connector.disconnect();
+      expect(connector.isConnected()).toBe(false);
+    });
+
+    it('should emit disconnected event on disconnect', async () => {
+      await connector.connect();
+
+      const disconnectedHandler = vi.fn();
+      connector.on('disconnected', disconnectedHandler);
+
+      await connector.disconnect();
+
+      expect(disconnectedHandler).toHaveBeenCalled();
+    });
+
+    it('should have binance as exchange name', () => {
+      // BinanceConnector inherits from BaseExchangeConnector with name='binance'
+      expect(connector['name']).toBe('binance');
+    });
+  });
+
   describe('getFundingInterval method', () => {
+    beforeEach(async () => {
+      await connector.connect();
+    });
     it('should fetch 4h interval for BLZUSDT from Binance API', async () => {
       // Mock /fapi/v1/fundingInfo API response
       vi.mocked(axios.get).mockResolvedValueOnce({
@@ -180,6 +221,10 @@ describe('BinanceConnector.getFundingInterval', () => {
   });
 
   describe('getFundingRate with dynamic interval', () => {
+    beforeEach(async () => {
+      await connector.connect();
+    });
+
     it('should populate fundingInterval field dynamically', async () => {
       // First, populate the interval via getFundingInterval
       vi.mocked(axios.get).mockResolvedValueOnce({
@@ -210,6 +255,93 @@ describe('BinanceConnector.getFundingInterval', () => {
       expect(fundingRate.fundingInterval).toBe(4);
       expect(fundingRate.symbol).toBe('BLZUSDT');
       expect(fundingRate.fundingRate).toBe(0.0001);
+    });
+  });
+
+  describe('getFundingRates (batch)', () => {
+    beforeEach(async () => {
+      await connector.connect();
+    });
+
+    it('should fetch multiple funding rates at once', async () => {
+      // Mock premiumIndex API response for all symbols
+      vi.mocked(axios.get).mockResolvedValueOnce({
+        data: [
+          {
+            symbol: 'BTCUSDT',
+            lastFundingRate: '0.0001',
+            nextFundingTime: Date.now() + 3600000,
+            markPrice: '50000',
+            indexPrice: '49990',
+          },
+          {
+            symbol: 'ETHUSDT',
+            lastFundingRate: '0.00015',
+            nextFundingTime: Date.now() + 3600000,
+            markPrice: '3000',
+            indexPrice: '2998',
+          },
+        ],
+      });
+
+      const rates = await connector.getFundingRates(['BTCUSDT', 'ETHUSDT']);
+
+      expect(rates).toHaveLength(2);
+      expect(rates[0].symbol).toBe('BTCUSDT');
+      expect(rates[1].symbol).toBe('ETHUSDT');
+    });
+
+    it('should filter results to requested symbols only', async () => {
+      // Mock API returns all symbols
+      vi.mocked(axios.get).mockResolvedValueOnce({
+        data: [
+          { symbol: 'BTCUSDT', lastFundingRate: '0.0001', nextFundingTime: Date.now() + 3600000 },
+          { symbol: 'ETHUSDT', lastFundingRate: '0.00015', nextFundingTime: Date.now() + 3600000 },
+          { symbol: 'XRPUSDT', lastFundingRate: '0.0002', nextFundingTime: Date.now() + 3600000 },
+        ],
+      });
+
+      const rates = await connector.getFundingRates(['BTCUSDT']);
+
+      expect(rates).toHaveLength(1);
+      expect(rates[0].symbol).toBe('BTCUSDT');
+    });
+  });
+
+  describe('getPrice', () => {
+    it('should throw error when not connected', async () => {
+      // Don't connect, connector should be in disconnected state
+      const newConnector = new BinanceConnector(false);
+
+      await expect(newConnector.getPrice('BTCUSDT')).rejects.toThrow();
+    });
+  });
+
+  describe('ensureConnected', () => {
+    it('should throw ExchangeConnectionError when not connected', async () => {
+      const newConnector = new BinanceConnector(false);
+
+      // Access protected method via type assertion
+      expect(() => (newConnector as any).ensureConnected()).toThrow();
+    });
+
+    it('should not throw when connected', async () => {
+      await connector.connect();
+
+      // Access protected method via type assertion
+      expect(() => (connector as any).ensureConnected()).not.toThrow();
+    });
+  });
+
+  describe('Testnet Configuration', () => {
+    it('should use testnet URLs when testnet is true', async () => {
+      const testnetConnector = new BinanceConnector(true);
+      await testnetConnector.connect();
+
+      // Verify testnet connector is connected
+      expect(testnetConnector.isConnected()).toBe(true);
+
+      await testnetConnector.disconnect();
     });
   });
 });

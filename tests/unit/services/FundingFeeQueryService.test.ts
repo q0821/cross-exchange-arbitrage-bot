@@ -556,4 +556,350 @@ describe('FundingFeeQueryService', () => {
       expect(result.error).toBe('No active API key found for binance');
     });
   });
+
+  // Additional tests for better coverage
+  describe('Symbol Conversion', () => {
+    it('should convert ETHUSDT to ETH/USDT:USDT format', async () => {
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        'ETHUSDT',
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      expect(mockCcxtExchange.fetchFundingHistory).toHaveBeenCalledWith(
+        'ETH/USDT:USDT',
+        expect.any(Number),
+        undefined,
+        expect.any(Object),
+      );
+    });
+
+    it('should convert XRPUSDC to XRP/USDC:USDC format', async () => {
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        'XRPUSDC',
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      expect(mockCcxtExchange.fetchFundingHistory).toHaveBeenCalledWith(
+        'XRP/USDC:USDC',
+        expect.any(Number),
+        undefined,
+        expect.any(Object),
+      );
+    });
+
+    it('should convert SOLUSD to SOL/USD:USD format', async () => {
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        'SOLUSD',
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      expect(mockCcxtExchange.fetchFundingHistory).toHaveBeenCalledWith(
+        'SOL/USD:USD',
+        expect.any(Number),
+        undefined,
+        expect.any(Object),
+      );
+    });
+
+    it('should pass unrecognized symbol format as-is', async () => {
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        'UNKNOWN_FORMAT',
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      expect(mockCcxtExchange.fetchFundingHistory).toHaveBeenCalledWith(
+        'UNKNOWN_FORMAT',
+        expect.any(Number),
+        undefined,
+        expect.any(Object),
+      );
+    });
+  });
+
+  describe('Binance Account Type Detection', () => {
+    it('should detect standard Futures account', async () => {
+      // Arrange: fapiPrivateGetPositionSideDual succeeds
+      mockCcxtExchange.fapiPrivateGetPositionSideDual.mockResolvedValue({ dualSidePosition: true });
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      // Act
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      // Assert: Should succeed with standard account
+      expect(mockCcxtExchange.fapiPrivateGetPositionSideDual).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+    });
+
+    it('should detect Portfolio Margin account when standard API fails', async () => {
+      // Arrange: fapiPrivateGetPositionSideDual fails, papiGetUmPositionSideDual succeeds
+      mockCcxtExchange.fapiPrivateGetPositionSideDual.mockRejectedValue(
+        new Error('Not authorized for Futures API'),
+      );
+      mockCcxtExchange.papiGetUmPositionSideDual.mockResolvedValue({ dualSidePosition: true });
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      const ccxt = await import('ccxt');
+      // Track how many times binance constructor is called
+      let constructorCallCount = 0;
+      (ccxt.binance as Mock).mockImplementation(function() {
+        constructorCallCount++;
+        return mockCcxtExchange;
+      });
+
+      // Act
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      // Assert: Should have recreated exchange with portfolioMargin option
+      expect(mockCcxtExchange.papiGetUmPositionSideDual).toHaveBeenCalled();
+      expect(constructorCallCount).toBe(2); // Created twice (initial + portfolioMargin)
+      expect(result.success).toBe(true);
+    });
+
+    it('should default to standard account when both APIs fail', async () => {
+      // Arrange: Both APIs fail
+      mockCcxtExchange.fapiPrivateGetPositionSideDual.mockRejectedValue(
+        new Error('API Error'),
+      );
+      mockCcxtExchange.papiGetUmPositionSideDual.mockRejectedValue(
+        new Error('API Error'),
+      );
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      // Act
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      // Assert: Should still succeed with default account type
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('OKX Specific Handling', () => {
+    it('should pass instType SWAP parameter for OKX', async () => {
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      await service.queryFundingFees(
+        'okx' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      expect(mockCcxtExchange.fetchFundingHistory).toHaveBeenCalledWith(
+        'BTC/USDT:USDT',
+        expect.any(Number),
+        undefined,
+        { until: mockEndTime.getTime(), instType: 'SWAP' },
+      );
+    });
+  });
+
+  describe('Time Range Filtering', () => {
+    it('should filter out entries outside the time range', async () => {
+      // Arrange: Include entries both inside and outside the range
+      const insideTimestamp = mockStartTime.getTime() + 3600000; // 1 hour after start
+      const beforeRangeTimestamp = mockStartTime.getTime() - 3600000; // 1 hour before start
+      const afterRangeTimestamp = mockEndTime.getTime() + 3600000; // 1 hour after end
+
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([
+        { id: '1', timestamp: beforeRangeTimestamp, datetime: '2023-12-31T23:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.1 },
+        { id: '2', timestamp: insideTimestamp, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.2 },
+        { id: '3', timestamp: afterRangeTimestamp, datetime: '2024-01-01T13:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.3 },
+      ]);
+
+      // Act
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      // Assert: Only the entry inside the range should be included
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].id).toBe('2');
+      expect(result.totalAmount.toNumber()).toBe(0.2);
+    });
+
+    it('should include entries exactly at start and end boundaries', async () => {
+      // Arrange: Entries exactly at boundaries
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([
+        { id: '1', timestamp: mockStartTime.getTime(), datetime: mockStartTime.toISOString(), symbol: 'BTC/USDT:USDT', amount: 0.1 },
+        { id: '2', timestamp: mockEndTime.getTime(), datetime: mockEndTime.toISOString(), symbol: 'BTC/USDT:USDT', amount: 0.2 },
+      ]);
+
+      // Act
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      // Assert: Both boundary entries should be included
+      expect(result.entries).toHaveLength(2);
+      expect(result.totalAmount.toNumber()).toBe(0.3);
+    });
+  });
+
+  describe('Entry Data Parsing', () => {
+    it('should handle missing amount field gracefully', async () => {
+      const validTimestamp = mockStartTime.getTime() + 3600000;
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([
+        { id: '1', timestamp: validTimestamp, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT' },
+      ]);
+
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].amount.toNumber()).toBe(0);
+      expect(result.totalAmount.toNumber()).toBe(0);
+    });
+
+    it('should handle missing id field gracefully', async () => {
+      const validTimestamp = mockStartTime.getTime() + 3600000;
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([
+        { timestamp: validTimestamp, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.5 },
+      ]);
+
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      expect(result.entries).toHaveLength(1);
+      expect(result.entries[0].id).toBe(String(validTimestamp));
+    });
+  });
+
+  describe('API Key with Passphrase', () => {
+    it('should handle API key with passphrase (OKX style)', async () => {
+      // Arrange: API key with passphrase
+      mockPrismaApiKey.findFirst.mockResolvedValue({
+        ...mockApiKey,
+        encryptedPassphrase: 'encrypted_passphrase',
+      });
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      // Act
+      const result = await service.queryFundingFees(
+        'okx' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle testnet environment', async () => {
+      // Arrange: Testnet API key
+      mockPrismaApiKey.findFirst.mockResolvedValue({
+        ...mockApiKey,
+        environment: 'TESTNET',
+      });
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
+
+      // Act
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      // Assert
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('Decimal Precision', () => {
+    it('should maintain Decimal precision for small amounts', async () => {
+      const validTimestamp = mockStartTime.getTime() + 3600000;
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([
+        { id: '1', timestamp: validTimestamp, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.00000001 },
+        { id: '2', timestamp: validTimestamp + 3600000, datetime: '2024-01-01T02:00:00Z', symbol: 'BTC/USDT:USDT', amount: 0.00000002 },
+      ]);
+
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      // Assert: Should handle small decimal values correctly
+      expect(result.totalAmount.toFixed(8)).toBe('0.00000003');
+    });
+
+    it('should handle large amounts correctly', async () => {
+      const validTimestamp = mockStartTime.getTime() + 3600000;
+      mockCcxtExchange.fetchFundingHistory.mockResolvedValue([
+        { id: '1', timestamp: validTimestamp, datetime: '2024-01-01T01:00:00Z', symbol: 'BTC/USDT:USDT', amount: 1000000.12345678 },
+      ]);
+
+      const result = await service.queryFundingFees(
+        'binance' as SupportedExchange,
+        mockSymbol,
+        mockStartTime,
+        mockEndTime,
+        mockUserId,
+      );
+
+      expect(result.totalAmount.toFixed(8)).toBe('1000000.12345678');
+    });
+  });
 });

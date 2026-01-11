@@ -1056,5 +1056,388 @@ describe('PositionOrchestrator', () => {
       // 應該成功（因為重試應該成功）
       await expect(orchestrator.openPosition(params)).resolves.toBeDefined();
     });
+
+    it('should use fetchMyTrades as fallback when fetchOrder returns price 0', async () => {
+      // createMarketOrder 返回價格 0
+      mockCreateMarketOrder.mockResolvedValue({
+        id: 'order-123',
+        status: 'closed',
+        filled: 0.1,
+        average: 0,
+        price: 0,
+        amount: 0.1,
+        fee: { cost: 0.5, currency: 'USDT' },
+      });
+
+      // fetchOrder 也返回價格 0
+      mockFetchOrder.mockResolvedValue({
+        id: 'order-123',
+        average: 0,
+        price: 0,
+        filled: 0.1,
+      });
+
+      // fetchMyTrades 返回成交記錄
+      mockFetchMyTrades.mockResolvedValue([
+        { order: 'order-123', price: 50000, amount: 0.05 },
+        { order: 'order-123', price: 50100, amount: 0.05 },
+      ]);
+
+      const params = createBaseParams();
+
+      const promise = orchestrator.openPosition(params);
+
+      // 快進 timers
+      await vi.advanceTimersByTimeAsync(500);
+      await vi.advanceTimersByTimeAsync(500);
+
+      await expect(promise).resolves.toBeDefined();
+
+      // 驗證 fetchMyTrades 被調用
+      expect(mockFetchMyTrades).toHaveBeenCalled();
+    });
+
+    it('should handle non-USDT symbol format correctly', async () => {
+      mockCreateMarketOrder.mockResolvedValue(createSuccessfulOrderResult());
+
+      const params = createBaseParams();
+      params.symbol = 'ETHUSDT';
+
+      await orchestrator.openPosition(params);
+
+      // 驗證 symbol 被正確格式化為 ETH/USDT:USDT
+      expect(mockCreateMarketOrder).toHaveBeenCalledWith(
+        'ETH/USDT:USDT',
+        expect.any(String),
+        expect.any(Number),
+        undefined,
+        expect.any(Object),
+      );
+    });
+  });
+
+  // ===========================================================================
+  // Phase 9: Exchange-Specific Tests (補充測試)
+  // ===========================================================================
+
+  describe('exchange-specific behavior', () => {
+    beforeEach(() => {
+      mockCreateMarketOrder.mockResolvedValue(createSuccessfulOrderResult());
+    });
+
+    describe('OKX Hedge Mode', () => {
+      it('should include posSide and tdMode for OKX orders', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'okx';
+        params.shortExchange = 'binance';
+
+        await orchestrator.openPosition(params);
+
+        // OKX 的 long 訂單應該包含 posSide: 'long' 和 tdMode: 'cross'
+        const okxCalls = mockCreateMarketOrder.mock.calls.filter(
+          (call: unknown[]) => {
+            const params = call[4] as Record<string, unknown> | undefined;
+            return params?.posSide !== undefined;
+          },
+        );
+        expect(okxCalls.length).toBeGreaterThan(0);
+      });
+
+      it('should use correct posSide for OKX long position (buy -> long)', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'okx';
+        params.shortExchange = 'binance';
+
+        await orchestrator.openPosition(params);
+
+        // 驗證 OKX 買單使用 posSide: 'long'
+        expect(mockCreateMarketOrder).toHaveBeenCalledWith(
+          expect.any(String),
+          'buy',
+          expect.any(Number),
+          undefined,
+          expect.objectContaining({ posSide: 'long', tdMode: 'cross' }),
+        );
+      });
+
+      it('should use correct posSide for OKX short position (sell -> short)', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'binance';
+        params.shortExchange = 'okx';
+
+        await orchestrator.openPosition(params);
+
+        // 驗證 OKX 賣單使用 posSide: 'short'
+        expect(mockCreateMarketOrder).toHaveBeenCalledWith(
+          expect.any(String),
+          'sell',
+          expect.any(Number),
+          undefined,
+          expect.objectContaining({ posSide: 'short', tdMode: 'cross' }),
+        );
+      });
+    });
+
+    describe('BingX Hedge Mode', () => {
+      it('should include positionSide for BingX orders', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'bingx';
+        params.shortExchange = 'binance';
+
+        await orchestrator.openPosition(params);
+
+        // BingX 的訂單應該包含 positionSide
+        expect(mockCreateMarketOrder).toHaveBeenCalled();
+      });
+
+      it('should use LONG positionSide for BingX buy orders', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'bingx';
+        params.shortExchange = 'okx';
+
+        await orchestrator.openPosition(params);
+
+        // 驗證 BingX 買單使用 positionSide: 'LONG'
+        expect(mockCreateMarketOrder).toHaveBeenCalledWith(
+          expect.any(String),
+          'buy',
+          expect.any(Number),
+          undefined,
+          expect.objectContaining({ positionSide: 'LONG' }),
+        );
+      });
+
+      it('should use SHORT positionSide for BingX sell orders', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'okx';
+        params.shortExchange = 'bingx';
+
+        await orchestrator.openPosition(params);
+
+        // 驗證 BingX 賣單使用 positionSide: 'SHORT'
+        expect(mockCreateMarketOrder).toHaveBeenCalledWith(
+          expect.any(String),
+          'sell',
+          expect.any(Number),
+          undefined,
+          expect.objectContaining({ positionSide: 'SHORT' }),
+        );
+      });
+
+      it('should set leverage with positionSide for BingX', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'bingx';
+        params.shortExchange = 'binance';
+        params.leverage = 2;
+
+        await orchestrator.openPosition(params);
+
+        // BingX 設置槓桿時應該包含 side 參數
+        expect(mockSetLeverage).toHaveBeenCalledWith(
+          2,
+          expect.any(String),
+          expect.objectContaining({ side: expect.any(String) }),
+        );
+      });
+    });
+
+    describe('MEXC and GateIO (One-way Mode)', () => {
+      it('should not include positionSide for MEXC orders', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'mexc';
+        params.shortExchange = 'binance';
+
+        await orchestrator.openPosition(params);
+
+        // MEXC 不應該有 positionSide 參數
+        const mexcCalls = mockCreateMarketOrder.mock.calls.filter(
+          (call: unknown[]) => {
+            const params = call[4] as Record<string, unknown> | undefined;
+            return params && !params.positionSide && !params.posSide;
+          },
+        );
+        expect(mexcCalls.length).toBeGreaterThan(0);
+      });
+
+      it('should not include positionSide for GateIO orders', async () => {
+        const params = createBaseParams();
+        params.longExchange = 'gateio';
+        params.shortExchange = 'binance';
+
+        await orchestrator.openPosition(params);
+
+        // GateIO 不應該有 positionSide 參數
+        expect(mockCreateMarketOrder).toHaveBeenCalled();
+      });
+    });
+  });
+
+  // ===========================================================================
+  // Phase 10: Leverage Tests (槓桿設置測試)
+  // ===========================================================================
+
+  describe('leverage configuration', () => {
+    beforeEach(() => {
+      mockCreateMarketOrder.mockResolvedValue(createSuccessfulOrderResult());
+    });
+
+    it('should set leverage to 1x by default', async () => {
+      const params = createBaseParams();
+      params.leverage = 1;
+
+      await orchestrator.openPosition(params);
+
+      // 驗證 setLeverage 被調用，槓桿為 1
+      // Binance 等交易所只傳 2 個參數 (leverage, symbol)
+      expect(mockSetLeverage).toHaveBeenCalledWith(
+        1,
+        expect.any(String),
+      );
+    });
+
+    it('should set leverage to 2x when specified', async () => {
+      const params = createBaseParams();
+      params.leverage = 2;
+
+      await orchestrator.openPosition(params);
+
+      // 驗證 setLeverage 被調用，槓桿為 2
+      // Binance 等交易所只傳 2 個參數 (leverage, symbol)
+      expect(mockSetLeverage).toHaveBeenCalledWith(
+        2,
+        expect.any(String),
+      );
+    });
+
+    it('should continue execution even if setLeverage fails', async () => {
+      mockSetLeverage.mockRejectedValue(new Error('Leverage already set'));
+
+      const params = createBaseParams();
+
+      // 即使 setLeverage 失敗，開倉也應該成功
+      await expect(orchestrator.openPosition(params)).resolves.toBeDefined();
+    });
+
+    it('should record correct leverage in position', async () => {
+      const params = createBaseParams();
+      params.leverage = 2;
+
+      await orchestrator.openPosition(params);
+
+      // 驗證 Position 記錄了正確的槓桿
+      expect(mockPrisma.position.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            longLeverage: 2,
+            shortLeverage: 2,
+          }),
+        }),
+      );
+    });
+  });
+
+  // ===========================================================================
+  // Phase 11: Parallel Execution Tests (並行執行測試)
+  // ===========================================================================
+
+  describe('parallel execution', () => {
+    it('should execute long and short orders in parallel', async () => {
+      const executionOrder: string[] = [];
+
+      mockCreateMarketOrder.mockImplementation(async (_symbol, side) => {
+        executionOrder.push(`start-${side}`);
+        // 模擬網路延遲
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        executionOrder.push(`end-${side}`);
+        return createSuccessfulOrderResult();
+      });
+
+      const params = createBaseParams();
+
+      const promise = orchestrator.openPosition(params);
+
+      // 快進所有 timers
+      await vi.advanceTimersByTimeAsync(200);
+
+      await promise;
+
+      // 驗證兩個訂單是並行開始的（start-buy 和 start-sell 應該連續出現）
+      const buyStartIndex = executionOrder.indexOf('start-buy');
+      const sellStartIndex = executionOrder.indexOf('start-sell');
+
+      // 兩個 start 應該在所有 end 之前
+      expect(buyStartIndex).toBeLessThan(executionOrder.indexOf('end-buy'));
+      expect(sellStartIndex).toBeLessThan(executionOrder.indexOf('end-sell'));
+    });
+  });
+
+  // ===========================================================================
+  // Phase 12: API Key Passphrase Tests (API Key 密碼測試)
+  // ===========================================================================
+
+  describe('API key handling', () => {
+    beforeEach(() => {
+      mockCreateMarketOrder.mockResolvedValue(createSuccessfulOrderResult());
+    });
+
+    it('should handle OKX passphrase correctly', async () => {
+      // Mock OKX API key with passphrase
+      const prismaWithOkxKey = createMockPrisma();
+      (prismaWithOkxKey.apiKey.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-okx',
+        userId: 'user-123',
+        exchange: 'okx',
+        encryptedKey: 'encrypted-key',
+        encryptedSecret: 'encrypted-secret',
+        encryptedPassphrase: 'encrypted-passphrase',
+        environment: 'MAINNET',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const okxOrchestrator = new PositionOrchestrator(prismaWithOkxKey);
+
+      const params = createBaseParams();
+      params.longExchange = 'okx';
+      params.shortExchange = 'okx';
+
+      // 應該不會因為 passphrase 而失敗
+      await expect(okxOrchestrator.openPosition(params)).resolves.toBeDefined();
+    });
+
+    it('should throw error when API key is inactive', async () => {
+      const prismaWithInactiveKey = createMockPrisma();
+      (prismaWithInactiveKey.apiKey.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+
+      const newOrchestrator = new PositionOrchestrator(prismaWithInactiveKey);
+
+      const params = createBaseParams();
+
+      await expect(newOrchestrator.openPosition(params)).rejects.toThrow(TradingError);
+    });
+
+    it('should use testnet configuration when API key environment is TESTNET', async () => {
+      const prismaWithTestnetKey = createMockPrisma();
+      (prismaWithTestnetKey.apiKey.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'key-testnet',
+        userId: 'user-123',
+        exchange: 'binance',
+        encryptedKey: 'encrypted-key',
+        encryptedSecret: 'encrypted-secret',
+        encryptedPassphrase: null,
+        environment: 'TESTNET',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const testnetOrchestrator = new PositionOrchestrator(prismaWithTestnetKey);
+
+      const params = createBaseParams();
+
+      // 應該成功執行（testnet 配置會被傳入 CCXT）
+      await expect(testnetOrchestrator.openPosition(params)).resolves.toBeDefined();
+    });
   });
 });

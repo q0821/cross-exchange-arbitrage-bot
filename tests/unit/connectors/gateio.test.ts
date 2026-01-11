@@ -183,3 +183,232 @@ describe('GateioConnector.getFundingInterval', () => {
     });
   });
 });
+
+describe('GateioConnector Connection Management', () => {
+  let connector: GateioConnector;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    connector = new GateioConnector(false);
+  });
+
+  afterEach(async () => {
+    if (connector && connector.isConnected()) {
+      await connector.disconnect();
+    }
+  });
+
+  describe('connect', () => {
+    it('should connect successfully', async () => {
+      await connector.connect();
+      expect(connector.isConnected()).toBe(true);
+    });
+
+    it('should emit connected event on successful connection', async () => {
+      const connectedHandler = vi.fn();
+      connector.on('connected', connectedHandler);
+
+      await connector.connect();
+
+      expect(connectedHandler).toHaveBeenCalled();
+    });
+
+    it('should have gateio as exchange name', () => {
+      expect(connector['name']).toBe('gateio');
+    });
+  });
+
+  describe('disconnect', () => {
+    it('should disconnect successfully', async () => {
+      await connector.connect();
+      expect(connector.isConnected()).toBe(true);
+
+      await connector.disconnect();
+      expect(connector.isConnected()).toBe(false);
+    });
+
+    it('should emit disconnected event on disconnect', async () => {
+      await connector.connect();
+
+      const disconnectedHandler = vi.fn();
+      connector.on('disconnected', disconnectedHandler);
+
+      await connector.disconnect();
+
+      expect(disconnectedHandler).toHaveBeenCalled();
+    });
+  });
+
+  describe('ensureConnected', () => {
+    it('should throw ExchangeConnectionError when not connected', async () => {
+      const newConnector = new GateioConnector(false);
+      expect(() => (newConnector as any).ensureConnected()).toThrow();
+    });
+
+    it('should not throw when connected', async () => {
+      await connector.connect();
+      expect(() => (connector as any).ensureConnected()).not.toThrow();
+    });
+  });
+});
+
+describe('GateioConnector Symbol Conversion', () => {
+  let connector: GateioConnector;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    connector = new GateioConnector(false);
+    await connector.connect();
+  });
+
+  afterEach(async () => {
+    if (connector && connector.isConnected()) {
+      await connector.disconnect();
+    }
+  });
+
+  it('should convert BTCUSDT to BTC/USDT:USDT format internally', async () => {
+    const mockClient = (connector as any).client;
+
+    mockClient.fetchFundingRate = vi.fn().mockResolvedValue({
+      symbol: 'BTC/USDT:USDT',
+      fundingRate: 0.0001,
+      fundingTimestamp: Date.now(),
+      info: {
+        funding_interval: 28800,
+      },
+    });
+
+    await connector.getFundingRate('BTCUSDT');
+
+    // Check that CCXT was called with the converted format
+    expect(mockClient.fetchFundingRate).toHaveBeenCalledWith('BTC/USDT:USDT');
+  });
+
+  it('should convert ETHUSDT to ETH/USDT:USDT format internally', async () => {
+    const mockClient = (connector as any).client;
+
+    mockClient.fetchFundingRate = vi.fn().mockResolvedValue({
+      symbol: 'ETH/USDT:USDT',
+      fundingRate: 0.0002,
+      fundingTimestamp: Date.now(),
+      info: {
+        funding_interval: 28800,
+      },
+    });
+
+    await connector.getFundingRate('ETHUSDT');
+
+    expect(mockClient.fetchFundingRate).toHaveBeenCalledWith('ETH/USDT:USDT');
+  });
+
+  it('should convert SOLUSDT to SOL/USDT:USDT format internally', async () => {
+    const mockClient = (connector as any).client;
+
+    mockClient.fetchFundingRate = vi.fn().mockResolvedValue({
+      symbol: 'SOL/USDT:USDT',
+      fundingRate: 0.0003,
+      fundingTimestamp: Date.now(),
+      info: {
+        funding_interval: 28800,
+      },
+    });
+
+    await connector.getFundingRate('SOLUSDT');
+
+    expect(mockClient.fetchFundingRate).toHaveBeenCalledWith('SOL/USDT:USDT');
+  });
+});
+
+describe('GateioConnector Testnet Configuration', () => {
+  it('should create connector with testnet configuration', async () => {
+    const testnetConnector = new GateioConnector(true);
+    await testnetConnector.connect();
+
+    expect(testnetConnector.isConnected()).toBe(true);
+    expect(testnetConnector['isTestnet']).toBe(true);
+
+    await testnetConnector.disconnect();
+  });
+
+  it('should create connector with mainnet configuration by default', async () => {
+    const mainnetConnector = new GateioConnector(false);
+    await mainnetConnector.connect();
+
+    expect(mainnetConnector.isConnected()).toBe(true);
+    expect(mainnetConnector['isTestnet']).toBe(false);
+
+    await mainnetConnector.disconnect();
+  });
+});
+
+describe('GateioConnector Error Handling', () => {
+  let connector: GateioConnector;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    connector = new GateioConnector(false);
+    await connector.connect();
+  });
+
+  afterEach(async () => {
+    if (connector && connector.isConnected()) {
+      await connector.disconnect();
+    }
+  });
+
+  it('should handle network errors gracefully in getFundingRate', async () => {
+    const mockClient = (connector as any).client;
+    mockClient.fetchFundingRate = vi.fn().mockRejectedValue(new Error('Network error'));
+
+    // getFundingRate should throw the error
+    await expect(connector.getFundingRate('BTCUSDT')).rejects.toThrow();
+  });
+
+  it('should handle malformed API response in getFundingInterval', async () => {
+    const mockClient = (connector as any).client;
+    mockClient.fetchFundingRate = vi.fn().mockResolvedValue({
+      // Missing required fields
+      info: null,
+    });
+
+    const interval = await connector.getFundingInterval('BTCUSDT');
+
+    // Should fallback to default 8h
+    expect(interval).toBe(8);
+  });
+
+  it('should handle zero funding_interval', async () => {
+    const mockClient = (connector as any).client;
+    mockClient.fetchFundingRate = vi.fn().mockResolvedValue({
+      symbol: 'BTC/USDT:USDT',
+      fundingRate: 0.0001,
+      fundingTimestamp: Date.now(),
+      info: {
+        funding_interval: 0,
+      },
+    });
+
+    const interval = await connector.getFundingInterval('BTCUSDT');
+
+    // Should fallback to default 8h for zero interval
+    expect(interval).toBe(8);
+  });
+
+  it('should handle negative funding_interval', async () => {
+    const mockClient = (connector as any).client;
+    mockClient.fetchFundingRate = vi.fn().mockResolvedValue({
+      symbol: 'BTC/USDT:USDT',
+      fundingRate: 0.0001,
+      fundingTimestamp: Date.now(),
+      info: {
+        funding_interval: -28800,
+      },
+    });
+
+    const interval = await connector.getFundingInterval('BTCUSDT');
+
+    // Should fallback to default 8h for negative interval
+    expect(interval).toBe(8);
+  });
+});

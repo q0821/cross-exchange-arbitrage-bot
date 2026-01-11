@@ -230,3 +230,150 @@ describe('OKXConnector.getFundingInterval', () => {
     });
   });
 });
+
+describe('OKXConnector Connection Management', () => {
+  let connector: OKXConnector;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    connector = new OKXConnector(false);
+  });
+
+  afterEach(async () => {
+    if (connector && connector.isConnected()) {
+      await connector.disconnect();
+    }
+  });
+
+  describe('connect', () => {
+    it('should connect successfully', async () => {
+      await connector.connect();
+      expect(connector.isConnected()).toBe(true);
+    });
+
+    it('should emit connected event on successful connection', async () => {
+      const connectedHandler = vi.fn();
+      connector.on('connected', connectedHandler);
+
+      await connector.connect();
+
+      expect(connectedHandler).toHaveBeenCalled();
+    });
+
+    it('should have okx as exchange name', () => {
+      expect(connector['name']).toBe('okx');
+    });
+  });
+
+  describe('disconnect', () => {
+    it('should disconnect successfully', async () => {
+      await connector.connect();
+      expect(connector.isConnected()).toBe(true);
+
+      await connector.disconnect();
+      expect(connector.isConnected()).toBe(false);
+    });
+
+    it('should emit disconnected event on disconnect', async () => {
+      await connector.connect();
+
+      const disconnectedHandler = vi.fn();
+      connector.on('disconnected', disconnectedHandler);
+
+      await connector.disconnect();
+
+      expect(disconnectedHandler).toHaveBeenCalled();
+    });
+  });
+
+  describe('ensureConnected', () => {
+    it('should throw ExchangeConnectionError when not connected', async () => {
+      const newConnector = new OKXConnector(false);
+      expect(() => (newConnector as any).ensureConnected()).toThrow();
+    });
+
+    it('should not throw when connected', async () => {
+      await connector.connect();
+      expect(() => (connector as any).ensureConnected()).not.toThrow();
+    });
+  });
+});
+
+describe('OKXConnector Symbol Conversion', () => {
+  let connector: OKXConnector;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    connector = new OKXConnector(false);
+    await connector.connect();
+  });
+
+  afterEach(async () => {
+    if (connector && connector.isConnected()) {
+      await connector.disconnect();
+    }
+  });
+
+  it('should convert BTCUSDT to BTC/USDT:USDT format internally', async () => {
+    const mockClient = (connector as any).client;
+    const fundingTime = 1700000000000;
+    const nextFundingTime = fundingTime + (8 * 60 * 60 * 1000);
+
+    mockClient.fetchFundingRate = vi.fn().mockResolvedValue({
+      symbol: 'BTC/USDT:USDT',
+      fundingRate: 0.0001,
+      fundingTimestamp: nextFundingTime,
+      info: {
+        fundingTime: fundingTime.toString(),
+        nextFundingTime: nextFundingTime.toString(),
+      },
+    });
+
+    await connector.getFundingRate('BTCUSDT');
+
+    // Check that CCXT was called with the converted format
+    expect(mockClient.fetchFundingRate).toHaveBeenCalledWith('BTC/USDT:USDT');
+  });
+
+  it('should convert ETHUSDT to ETH/USDT:USDT format internally', async () => {
+    const mockClient = (connector as any).client;
+    const fundingTime = 1700000000000;
+    const nextFundingTime = fundingTime + (8 * 60 * 60 * 1000);
+
+    mockClient.fetchFundingRate = vi.fn().mockResolvedValue({
+      symbol: 'ETH/USDT:USDT',
+      fundingRate: 0.0002,
+      fundingTimestamp: nextFundingTime,
+      info: {
+        fundingTime: fundingTime.toString(),
+        nextFundingTime: nextFundingTime.toString(),
+      },
+    });
+
+    await connector.getFundingRate('ETHUSDT');
+
+    expect(mockClient.fetchFundingRate).toHaveBeenCalledWith('ETH/USDT:USDT');
+  });
+});
+
+describe('OKXConnector Testnet Configuration', () => {
+  it('should create connector with testnet configuration', async () => {
+    const testnetConnector = new OKXConnector(true);
+    await testnetConnector.connect();
+
+    expect(testnetConnector.isConnected()).toBe(true);
+    expect(testnetConnector['isTestnet']).toBe(true);
+
+    await testnetConnector.disconnect();
+  });
+
+  it('should create connector with mainnet configuration by default', async () => {
+    const mainnetConnector = new OKXConnector(false);
+    await mainnetConnector.connect();
+
+    expect(mainnetConnector.isConnected()).toBe(true);
+    expect(mainnetConnector['isTestnet']).toBe(false);
+
+    await mainnetConnector.disconnect();
+  });
+});
