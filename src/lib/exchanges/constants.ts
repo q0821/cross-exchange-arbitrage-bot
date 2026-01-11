@@ -82,7 +82,7 @@ export function getExchangeConfig(
  * 這些交易對在特定交易所的 Futures 市場不存在，
  * 用於過濾以避免產生大量無效的 API 請求和警告日誌。
  *
- * 最後更新：2026-01-05
+ * 最後更新：2026-01-11
  * 來源：backend-log-monitor 自動偵測
  */
 export const EXCHANGE_UNSUPPORTED_SYMBOLS: Record<SupportedExchange, string[]> = {
@@ -108,6 +108,14 @@ export const EXCHANGE_UNSUPPORTED_SYMBOLS: Record<SupportedExchange, string[]> =
     'XPINUSDT',
     'RIVERUSDT',
     'VETUSDT',
+    'HUMAUSDT',
+    'JUPUSDT',
+    'PENGUUSDT',
+    'SOLVUSDT',
+    'TIAUSDT',
+    'FARTCOINUSDT',
+    'ALGOUSDT',
+    'ETHFIUSDT',
   ],
   mexc: [
     'PUMPUSDT',
@@ -117,6 +125,7 @@ export const EXCHANGE_UNSUPPORTED_SYMBOLS: Record<SupportedExchange, string[]> =
     'TONUSDT',
     'ARCUSDT',
     'BTCDOMUSDT',
+    'WIFUSDT',
   ],
   gateio: [
     'BTCDOMUSDT',
