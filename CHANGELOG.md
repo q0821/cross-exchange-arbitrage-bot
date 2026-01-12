@@ -6,6 +6,15 @@
 
 ## [Unreleased]
 
+### 修復
+
+#### Migration 順序修正（2025-01-12）
+- 修正 `add_notification_webhooks` migration 時間戳順序問題
+- 原因：`20241129000000_add_notification_webhooks` 時間戳早於 `20250128000000_init_database_zeabur`，但前者依賴後者建立的 `users` 表
+- 解決：重命名為 `20250128000001_add_notification_webhooks`，確保在 `init_database_zeabur` 之後執行
+- 影響：修復新環境執行 `pnpm db:migrate` 時的 P3006/P1014 錯誤
+- 新增測試：`tests/unit/prisma/migration-order.test.ts` - 驗證 migration 外鍵依賴順序
+
 ### 新增
 
 #### Feature 043: BingX 交易所整合（✅ 已完成 - 2025-12-25）
