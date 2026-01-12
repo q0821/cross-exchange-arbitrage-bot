@@ -40,6 +40,7 @@ export class WebSocketManager extends EventEmitter {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private pingTimer: NodeJS.Timeout | null = null;
   private pongTimer: NodeJS.Timeout | null = null;
+  private resubscribeTimer: NodeJS.Timeout | null = null;
   private lastPingTime: number = 0;
   /** 訂閱追蹤 Map<channel, SubscriptionInfo> */
   private subscriptions: Map<string, SubscriptionInfo> = new Map();
@@ -121,6 +122,12 @@ export class WebSocketManager extends EventEmitter {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+
+    // 清理重新訂閱定時器以防止記憶體泄漏
+    if (this.resubscribeTimer) {
+      clearTimeout(this.resubscribeTimer);
+      this.resubscribeTimer = null;
     }
 
     this.stopPing();
@@ -276,7 +283,8 @@ export class WebSocketManager extends EventEmitter {
     // 斷線重連後自動重新訂閱
     if (wasReconnecting && this.subscriptions.size > 0) {
       // 延遲執行以確保連線穩定
-      setTimeout(() => {
+      this.resubscribeTimer = setTimeout(() => {
+        this.resubscribeTimer = null;
         this.resubscribeAll().catch((error) => {
           logger.error({
             name: this.name,

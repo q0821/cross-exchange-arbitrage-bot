@@ -463,6 +463,34 @@ export class RatesCache {
   size(): number {
     return this.cache.size;
   }
+
+  /**
+   * 銷毀實例並清理 globalThis 引用
+   * 用於防止 Next.js HMR 模式下的記憶體泄漏
+   */
+  destroy(): void {
+    this.cache.clear();
+    this.notificationService = null;
+    this.trackingService = null;
+    this.startTime = null;
+    logger.debug('RatesCache destroyed');
+  }
+
+  /**
+   * 重置單例實例（僅用於測試）
+   * 同時清理 globalThis 引用以防止記憶體泄漏
+   */
+  static resetInstance(): void {
+    if (RatesCache.instance) {
+      RatesCache.instance.destroy();
+      RatesCache.instance = null;
+    }
+    // 清理 globalThis 引用
+    if (globalThis.__ratesCacheInstance) {
+      delete globalThis.__ratesCacheInstance;
+    }
+    logger.debug('RatesCache instance reset');
+  }
 }
 
 /**

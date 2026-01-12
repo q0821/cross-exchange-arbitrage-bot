@@ -77,6 +77,7 @@ export class TriggerDetector extends EventEmitter {
   private processedOrders: Map<string, number> = new Map(); // orderId -> timestamp
   private closingPositions: Set<string> = new Set(); // 正在平倉的持倉 ID
   private options: Required<Omit<TriggerDetectorOptions, 'positionCloser'>> & { positionCloser?: PositionCloser };
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   private constructor(options?: TriggerDetectorOptions) {
     super();
@@ -89,7 +90,7 @@ export class TriggerDetector extends EventEmitter {
     };
 
     // 定期清理過期的處理記錄
-    setInterval(() => this.cleanupProcessedOrders(), 60000);
+    this.cleanupTimer = setInterval(() => this.cleanupProcessedOrders(), 60000);
   }
 
   /**
@@ -601,6 +602,11 @@ export class TriggerDetector extends EventEmitter {
    * 銷毀偵測器
    */
   destroy(): void {
+    // 清理定時器以防止記憶體泄漏
+    if (this.cleanupTimer) {
+      clearInterval(this.cleanupTimer);
+      this.cleanupTimer = null;
+    }
     this.clear();
     this.removeAllListeners();
     logger.debug('TriggerDetector destroyed');
