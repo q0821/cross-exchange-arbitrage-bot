@@ -2,7 +2,7 @@
 
 **Feature Branch**: `061-password-management`
 **Created**: 2026-01-09
-**Status**: Draft
+**Status**: Completed
 **Input**: User description: "用戶變更密碼、忘記密碼的功能"
 
 ## User Scenarios & Testing *(mandatory)*

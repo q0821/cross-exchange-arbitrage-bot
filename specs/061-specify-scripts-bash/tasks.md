@@ -22,12 +22,12 @@
 
 **Goal**: 環境配置與基礎設施準備
 
-- [ ] T001 Add email configuration environment variables to `src/lib/env.ts`
-- [ ] T002 Add SMTP environment variables to `.env.example`
-- [ ] T003 [P] Create Prisma migration for User model password fields in `prisma/migrations/[timestamp]_add_password_management/`
-- [ ] T004 [P] Create PasswordResetToken model in `prisma/schema.prisma`
-- [ ] T005 Run Prisma migration and generate client with `pnpm prisma migrate dev`
-- [ ] T006 Extend auth types in `src/types/auth.ts` with password-related interfaces
+- [x] T001 Add email configuration environment variables to `src/lib/env.ts`
+- [x] T002 Add SMTP environment variables to `.env.example`
+- [x] T003 [P] Create Prisma migration for User model password fields in `prisma/migrations/[timestamp]_add_password_management/`
+- [x] T004 [P] Create PasswordResetToken model in `prisma/schema.prisma`
+- [x] T005 Run Prisma migration and generate client with `pnpm prisma migrate dev`
+- [x] T006 Extend auth types in `src/types/auth.ts` with password-related interfaces
 
 ---
 
@@ -37,20 +37,20 @@
 
 ### Email Service (Shared by US1, US2)
 
-- [ ] T007 Create EmailService class in `src/lib/email/EmailService.ts`
-- [ ] T008 [P] Create password reset email template in `src/lib/email/templates/password-reset.ts`
-- [ ] T009 [P] Create account locked email template in `src/lib/email/templates/account-locked.ts`
+- [x] T007 Create EmailService class in `src/lib/email/EmailService.ts`
+- [x] T008 [P] Create password reset email template in `src/lib/email/templates/password-reset.ts`
+- [x] T009 [P] Create account locked email template in `src/lib/email/templates/account-locked.ts`
 
 ### Repository Layer (Shared by US1, US2)
 
-- [ ] T010 Extend UserRepository with lockout methods in `src/repositories/UserRepository.ts`
-- [ ] T011 [P] Create PasswordResetTokenRepository in `src/repositories/PasswordResetTokenRepository.ts`
+- [x] T010 Extend UserRepository with lockout methods in `src/repositories/UserRepository.ts`
+- [x] T011 [P] Create PasswordResetTokenRepository in `src/repositories/PasswordResetTokenRepository.ts`
 
 ### Validation & Security (Shared by US1, US2, US3)
 
-- [ ] T012 Create password validation schema in `src/lib/validation.ts`
-- [ ] T013 [P] Create password strength calculator in `src/lib/password-strength.ts`
-- [ ] T014 Extend JWT payload with tokenVersion in `src/lib/jwt.ts`
+- [x] T012 Create password validation schema in `src/lib/validation.ts`
+- [x] T013 [P] Create password strength calculator in `src/lib/password-strength.ts`
+- [x] T014 Extend JWT payload with tokenVersion in `src/lib/jwt.ts`
 
 ---
 
@@ -62,24 +62,24 @@
 
 ### Backend
 
-- [ ] T015 [US1] Write failing test for AuthService.changePassword in `tests/unit/services/AuthService.changePassword.test.ts`
-- [ ] T016 [US1] Implement changePassword method in `src/services/auth/AuthService.ts`
-- [ ] T017 [US1] Add tokenVersion increment on password change in `src/services/auth/AuthService.ts`
-- [ ] T018 [US1] Implement session invalidation check in `src/services/auth/SessionManager.ts`
-- [ ] T019 [US1] Write failing test for change-password API in `tests/integration/api/auth/change-password.test.ts`
-- [ ] T020 [US1] Create POST /api/auth/change-password endpoint in `app/api/auth/change-password/route.ts`
-- [ ] T021 [US1] Add audit logging for PASSWORD_CHANGE action in `src/services/auth/AuthService.ts`
+- [x] T015 [US1] Write failing test for AuthService.changePassword in `tests/unit/services/AuthService.changePassword.test.ts`
+- [x] T016 [US1] Implement changePassword method in `src/services/auth/AuthService.ts`
+- [x] T017 [US1] Add tokenVersion increment on password change in `src/services/auth/AuthService.ts`
+- [x] T018 [US1] Implement session invalidation check in `src/services/auth/SessionManager.ts`
+- [x] T019 [US1] Write failing test for change-password API in `tests/integration/api/auth/change-password.test.ts`
+- [x] T020 [US1] Create POST /api/auth/change-password endpoint in `app/api/auth/change-password/route.ts`
+- [x] T021 [US1] Add audit logging for PASSWORD_CHANGE action in `src/services/auth/AuthService.ts`
 
 ### Frontend
 
-- [ ] T022 [US1] Create ChangePasswordForm component in `app/(dashboard)/settings/security/components/ChangePasswordForm.tsx`
-- [ ] T023 [US1] Create useChangePassword hook in `app/(dashboard)/settings/security/hooks/useChangePassword.ts`
-- [ ] T024 [US1] Create security settings page in `app/(dashboard)/settings/security/page.tsx`
-- [ ] T025 [US1] Add security link to settings navigation in `app/(dashboard)/settings/layout.tsx`
+- [x] T022 [US1] Create ChangePasswordForm component in `app/(dashboard)/settings/security/components/ChangePasswordForm.tsx`
+- [x] T023 [US1] Create useChangePassword hook in `app/(dashboard)/settings/security/hooks/useChangePassword.ts`
+- [x] T024 [US1] Create security settings page in `app/(dashboard)/settings/security/page.tsx`
+- [x] T025 [US1] Add security link to settings navigation in `app/(dashboard)/settings/layout.tsx`
 
 ### Integration
 
-- [ ] T026 [US1] End-to-end test: change password flow in `tests/e2e/change-password.test.ts`
+- [x] T026 [US1] End-to-end test: change password flow in `tests/e2e/change-password.test.ts`
 
 ---
 
@@ -91,26 +91,26 @@
 
 ### Backend Services
 
-- [ ] T027 [US2] Write failing test for PasswordResetService in `tests/unit/services/PasswordResetService.test.ts`
-- [ ] T028 [US2] Create PasswordResetService in `src/services/auth/PasswordResetService.ts`
-- [ ] T029 [US2] Implement token generation with crypto.randomBytes in `src/services/auth/PasswordResetService.ts`
-- [ ] T030 [US2] Implement rate limiting (60s per email) in `src/services/auth/PasswordResetService.ts`
-- [ ] T031 [US2] Add audit logging for PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE in `src/services/auth/PasswordResetService.ts`
+- [x] T027 [US2] Write failing test for PasswordResetService in `tests/unit/services/PasswordResetService.test.ts`
+- [x] T028 [US2] Create PasswordResetService in `src/services/auth/PasswordResetService.ts`
+- [x] T029 [US2] Implement token generation with crypto.randomBytes in `src/services/auth/PasswordResetService.ts`
+- [x] T030 [US2] Implement rate limiting (60s per email) in `src/services/auth/PasswordResetService.ts`
+- [x] T031 [US2] Add audit logging for PASSWORD_RESET_REQUEST, PASSWORD_RESET_COMPLETE in `src/services/auth/PasswordResetService.ts`
 
 ### Backend API
 
-- [ ] T032 [US2] Write failing test for forgot-password API in `tests/integration/api/auth/forgot-password.test.ts`
-- [ ] T033 [US2] Create POST /api/auth/forgot-password endpoint in `app/api/auth/forgot-password/route.ts`
-- [ ] T034 [US2] Write failing test for reset-password API in `tests/integration/api/auth/reset-password.test.ts`
-- [ ] T035 [US2] Create POST /api/auth/reset-password endpoint in `app/api/auth/reset-password/route.ts`
-- [ ] T036 [US2] Create GET /api/auth/validate-reset-token endpoint in `app/api/auth/validate-reset-token/route.ts`
+- [x] T032 [US2] Write failing test for forgot-password API in `tests/integration/api/auth/forgot-password.test.ts`
+- [x] T033 [US2] Create POST /api/auth/forgot-password endpoint in `app/api/auth/forgot-password/route.ts`
+- [x] T034 [US2] Write failing test for reset-password API in `tests/integration/api/auth/reset-password.test.ts`
+- [x] T035 [US2] Create POST /api/auth/reset-password endpoint in `app/api/auth/reset-password/route.ts`
+- [x] T036 [US2] Create GET /api/auth/validate-reset-token endpoint in `app/api/auth/validate-reset-token/route.ts`
 
 ### Frontend
 
-- [ ] T037 [US2] Add "Forgot Password" link to login page in `app/(auth)/login/page.tsx`
-- [ ] T038 [US2] Create forgot password page in `app/(auth)/forgot-password/page.tsx`
-- [ ] T039 [US2] Create reset password page in `app/(auth)/reset-password/page.tsx`
-- [ ] T040 [US2] Create usePasswordReset hook in `app/(auth)/reset-password/hooks/usePasswordReset.ts`
+- [x] T037 [US2] Add "Forgot Password" link to login page in `app/(auth)/login/page.tsx`
+- [x] T038 [US2] Create forgot password page in `app/(auth)/forgot-password/page.tsx`
+- [x] T039 [US2] Create reset password page in `app/(auth)/reset-password/page.tsx`
+- [x] T040 [US2] Create usePasswordReset hook in `app/(auth)/reset-password/hooks/usePasswordReset.ts`
 
 ---
 
@@ -122,14 +122,14 @@
 
 ### Backend (Optional API)
 
-- [ ] T041 [US3] Write failing test for password-strength API in `tests/unit/lib/password-strength.test.ts`
-- [ ] T042 [US3] Create POST /api/auth/password-strength endpoint in `app/api/auth/password-strength/route.ts`
+- [x] T041 [US3] Write failing test for password-strength API in `tests/unit/lib/password-strength.test.ts`
+- [x] T042 [US3] Create POST /api/auth/password-strength endpoint in `app/api/auth/password-strength/route.ts`
 
 ### Frontend
 
-- [ ] T043 [US3] Create PasswordStrengthIndicator component in `app/components/PasswordStrengthIndicator.tsx`
-- [ ] T044 [US3] Integrate PasswordStrengthIndicator into ChangePasswordForm in `app/(dashboard)/settings/security/components/ChangePasswordForm.tsx`
-- [ ] T045 [US3] Integrate PasswordStrengthIndicator into reset password page in `app/(auth)/reset-password/page.tsx`
+- [x] T043 [US3] Create PasswordStrengthIndicator component in `app/components/PasswordStrengthIndicator.tsx`
+- [x] T044 [US3] Integrate PasswordStrengthIndicator into ChangePasswordForm in `app/(dashboard)/settings/security/components/ChangePasswordForm.tsx`
+- [x] T045 [US3] Integrate PasswordStrengthIndicator into reset password page in `app/(auth)/reset-password/page.tsx`
 
 ---
 
@@ -139,12 +139,12 @@
 
 ### Brute Force Protection
 
-- [ ] T046 Extend AuthService.login with lockout logic in `src/services/auth/AuthService.ts`
-- [ ] T047 Send account locked email notification in `src/services/auth/AuthService.ts`
+- [x] T046 Extend AuthService.login with lockout logic in `src/services/auth/AuthService.ts`
+- [x] T047 Send account locked email notification in `src/services/auth/AuthService.ts`
 
 ### Documentation
 
-- [ ] T048 Update API documentation with new endpoints in `docs/api/auth.md`
+- [x] T048 Update API documentation with new endpoints in `docs/api/auth.md`
 
 ---
 
