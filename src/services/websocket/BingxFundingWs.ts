@@ -65,6 +65,12 @@ interface BingxListenKeyResponse {
 // =============================================================================
 
 /**
+ * BingX 每連線最大訂閱數量
+ * 超過此限制會導致連接被 BingX 服務器斷開
+ */
+const BINGX_MAX_SUBSCRIPTIONS = 50;
+
+/**
  * BingxFundingWs - BingX 資金費率 WebSocket 客戶端
  *
  * 功能：
@@ -74,7 +80,7 @@ interface BingxListenKeyResponse {
  * - 健康檢查（60 秒無訊息觸發重連）
  * - 自動處理 ping/pong 心跳
  *
- * 注意：BingX 每連線最多 50 個訂閱
+ * 注意：BingX 每連線最多 50 個訂閱，超過會被斷開
  */
 export class BingxFundingWs extends BaseExchangeWs {
   protected readonly exchangeName: ExchangeName = 'bingx';
@@ -140,16 +146,59 @@ export class BingxFundingWs extends BaseExchangeWs {
 
   /**
    * 覆寫訂閱方法以支援批量發送
+   *
+   * 注意：BingX 每連線最多 50 個訂閱，超過會導致連接被斷開
+   * 此方法會自動限制訂閱數量並記錄警告
    */
   override async subscribe(symbols: string[]): Promise<void> {
     if (!this.isConnected || !this.ws) {
       throw new Error('Not connected');
     }
 
-    const messages = this.buildSubscribeMessage(symbols);
+    // 檢查訂閱數量限制
+    const currentCount = this.subscribedSymbols.size;
+    const availableSlots = BINGX_MAX_SUBSCRIPTIONS - currentCount;
+
+    if (availableSlots <= 0) {
+      logger.warn(
+        {
+          service: this.getLogPrefix(),
+          currentSubscriptions: currentCount,
+          maxSubscriptions: BINGX_MAX_SUBSCRIPTIONS,
+          requestedSymbols: symbols.length,
+        },
+        'BingX subscription limit reached, cannot add more symbols'
+      );
+      return;
+    }
+
+    // 限制訂閱數量
+    let symbolsToSubscribe = symbols;
+    if (symbols.length > availableSlots) {
+      symbolsToSubscribe = symbols.slice(0, availableSlots);
+      const skippedSymbols = symbols.slice(availableSlots);
+      logger.warn(
+        {
+          service: this.getLogPrefix(),
+          requested: symbols.length,
+          subscribing: symbolsToSubscribe.length,
+          skipped: skippedSymbols.length,
+          skippedSymbols: skippedSymbols.slice(0, 10), // 只記錄前 10 個
+          maxSubscriptions: BINGX_MAX_SUBSCRIPTIONS,
+        },
+        'BingX subscription limit exceeded, some symbols will be skipped'
+      );
+    }
+
+    const messages = this.buildSubscribeMessage(symbolsToSubscribe);
 
     logger.info(
-      { service: this.getLogPrefix(), symbols, count: messages.length },
+      {
+        service: this.getLogPrefix(),
+        count: messages.length,
+        totalAfterSubscribe: currentCount + symbolsToSubscribe.length,
+        maxSubscriptions: BINGX_MAX_SUBSCRIPTIONS,
+      },
       'Subscribing to symbols'
     );
 
@@ -159,7 +208,7 @@ export class BingxFundingWs extends BaseExchangeWs {
     }
 
     // 記錄已訂閱的交易對
-    symbols.forEach((symbol) => this.subscribedSymbols.add(symbol.toUpperCase()));
+    symbolsToSubscribe.forEach((symbol) => this.subscribedSymbols.add(symbol.toUpperCase()));
   }
 
   /**
@@ -194,10 +243,15 @@ export class BingxFundingWs extends BaseExchangeWs {
       if (Buffer.isBuffer(data)) {
         buffer = data;
       } else if (typeof data === 'string') {
-        // 如果是 string，可能已經是解壓後的 JSON
+        // 如果是 string，可能是純文字 "Ping"/"Pong" 或已解壓的 JSON
+        // 先檢查是否是純文字心跳
+        if (data === 'Ping' || data === 'Pong') {
+          this.processMessage(data);
+          return;
+        }
+        // 嘗試解析為 JSON
         try {
           message = JSON.parse(data);
-          // 如果成功解析，直接處理
           this.processMessage(message);
           return;
         } catch {
@@ -213,22 +267,48 @@ export class BingxFundingWs extends BaseExchangeWs {
       if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
         try {
           const decompressed = gunzipSync(buffer);
-          message = JSON.parse(decompressed.toString('utf8'));
+          const decompressedStr = decompressed.toString('utf8');
+
+          // BingX 心跳是純文字 "Ping"，不是 JSON
+          if (decompressedStr === 'Ping' || decompressedStr === 'Pong') {
+            this.processMessage(decompressedStr);
+            return;
+          }
+
+          // 嘗試解析為 JSON
+          message = JSON.parse(decompressedStr);
         } catch (gzipError) {
-          logger.debug(
-            {
-              service: this.getLogPrefix(),
-              error: gzipError instanceof Error ? gzipError.message : String(gzipError),
-              bufferLength: buffer.length,
-            },
-            'GZIP decompression failed, skipping message'
-          );
+          // 解壓成功但 JSON 解析失敗，可能是其他純文字訊息
+          if (gzipError instanceof SyntaxError) {
+            // JSON 解析失敗，檢查是否是已知的純文字訊息
+            logger.debug(
+              { service: this.getLogPrefix() },
+              'Non-JSON message after decompression'
+            );
+          } else {
+            logger.debug(
+              {
+                service: this.getLogPrefix(),
+                error: gzipError instanceof Error ? gzipError.message : String(gzipError),
+                bufferLength: buffer.length,
+              },
+              'GZIP decompression failed, skipping message'
+            );
+          }
           return;
         }
       } else {
         // 不是 GZIP，嘗試直接解析
+        const rawStr = buffer.toString('utf8');
+
+        // 檢查純文字心跳
+        if (rawStr === 'Ping' || rawStr === 'Pong') {
+          this.processMessage(rawStr);
+          return;
+        }
+
         try {
-          message = JSON.parse(buffer.toString('utf8'));
+          message = JSON.parse(rawStr);
         } catch {
           logger.debug(
             { service: this.getLogPrefix(), bufferLength: buffer.length },
@@ -255,16 +335,28 @@ export class BingxFundingWs extends BaseExchangeWs {
    */
   private processMessage(message: unknown): void {
     try {
-
-      // 處理 ping（BingX 客戶端需要主動發送 ping）
-      if (typeof message === 'object' && message !== null && 'ping' in message) {
-        this.handleBingxPing(message as { ping: number });
+      // BingX 使用純文字 "Ping" 心跳（GZIP 壓縮後）
+      // 回覆 "Pong" 純文字（不需壓縮）
+      if (message === 'Ping') {
+        this.handleBingxPing();
         return;
       }
 
-      // 處理 pong 回應
+      // 處理 Pong 回應（可能是我們主動 ping 的回應）
+      if (message === 'Pong') {
+        logger.debug({ service: this.getLogPrefix() }, 'Received Pong');
+        return;
+      }
+
+      // 兼容舊格式 - 處理 JSON ping（某些情況下可能會收到）
+      if (typeof message === 'object' && message !== null && 'ping' in message) {
+        this.handleJsonPing(message as { ping: number });
+        return;
+      }
+
+      // 兼容舊格式 - 處理 JSON pong 回應
       if (typeof message === 'object' && message !== null && 'pong' in message) {
-        logger.debug({ service: this.getLogPrefix() }, 'Received pong');
+        logger.debug({ service: this.getLogPrefix() }, 'Received JSON pong');
         return;
       }
 
@@ -352,14 +444,26 @@ export class BingxFundingWs extends BaseExchangeWs {
   // =============================================================================
 
   /**
-   * 處理 BingX ping
+   * 處理 BingX 純文字 Ping 心跳
+   *
+   * BingX 服務器每 5 秒發送 GZIP 壓縮的 "Ping"
+   * 客戶端需要回覆純文字 "Pong"（不需壓縮）
    */
-  private handleBingxPing(message: { ping: number }): void {
-    // BingX 要求回覆 pong
+  private handleBingxPing(): void {
+    if (this.ws) {
+      this.ws.send('Pong');
+      logger.debug({ service: this.getLogPrefix() }, 'Sent Pong response');
+    }
+  }
+
+  /**
+   * 處理 BingX JSON 格式 ping（兼容舊格式）
+   */
+  private handleJsonPing(message: { ping: number }): void {
     if (this.ws) {
       const pong = { pong: message.ping };
       this.ws.send(JSON.stringify(pong));
-      logger.debug({ service: this.getLogPrefix() }, 'Sent pong response');
+      logger.debug({ service: this.getLogPrefix() }, 'Sent JSON pong response');
     }
   }
 
@@ -785,14 +889,15 @@ export class BingxFundingWs extends BaseExchangeWs {
   private startHeartbeat(): void {
     this.stopHeartbeat();
 
-    // 每 20 秒發送一次 ping
+    // BingX 服務器每 5 秒發送 Ping，客戶端回覆 Pong
+    // 主動發送 Ping 作為備用心跳機制（每 30 秒）
+    // 使用純文字 "Ping" 格式
     this.heartbeatInterval = setInterval(() => {
       if (this.isConnected && this.ws) {
-        const ping = { ping: Date.now() };
-        this.ws.send(JSON.stringify(ping));
-        logger.debug({ service: this.getLogPrefix() }, 'Sent heartbeat ping');
+        this.ws.send('Ping');
+        logger.debug({ service: this.getLogPrefix() }, 'Sent heartbeat Ping');
       }
-    }, 20000);
+    }, 30000);
   }
 
   private stopHeartbeat(): void {
