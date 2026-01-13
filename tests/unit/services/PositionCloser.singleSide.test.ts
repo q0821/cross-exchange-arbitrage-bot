@@ -44,19 +44,34 @@ vi.mock('ccxt', () => {
     }),
   };
 
+  const binanceClass = vi.fn(function() {
+    return {
+      ...mockExchange,
+      fapiPrivateGetPositionSideDual: vi.fn().mockResolvedValue({ dualSidePosition: true }),
+    };
+  });
+  const okxClass = vi.fn(function() { return mockExchange; });
+  const gateClass = vi.fn(function() { return mockExchange; });
+  const gateioClass = vi.fn(function() { return mockExchange; });
+  const bingxClass = vi.fn(function() { return mockExchange; });
+  const mexcClass = vi.fn(function() { return mockExchange; });
+
+  // default export 需要包含所有交易所類別（CcxtExchangeFactory 使用 default export）
   return {
-    default: {},
-    binance: vi.fn(function() {
-      return {
-        ...mockExchange,
-        fapiPrivateGetPositionSideDual: vi.fn().mockResolvedValue({ dualSidePosition: true }),
-      };
-    }),
-    okx: vi.fn(function() { return mockExchange; }),
-    gate: vi.fn(function() { return mockExchange; }),
-    gateio: vi.fn(function() { return mockExchange; }),
-    bingx: vi.fn(function() { return mockExchange; }),
-    mexc: vi.fn(function() { return mockExchange; }),
+    default: {
+      binance: binanceClass,
+      okx: okxClass,
+      gate: gateClass,
+      gateio: gateioClass,
+      bingx: bingxClass,
+      mexc: mexcClass,
+    },
+    binance: binanceClass,
+    okx: okxClass,
+    gate: gateClass,
+    gateio: gateioClass,
+    bingx: bingxClass,
+    mexc: mexcClass,
   };
 });
 

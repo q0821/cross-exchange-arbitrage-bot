@@ -25,7 +25,16 @@ import type {
   LeverageOption,
 } from '../../types/trading';
 import { ConditionalOrderService } from './ConditionalOrderService';
-import * as ccxt from 'ccxt';
+import { createBinanceAccountDetector } from './BinanceAccountDetector';
+import { createCcxtExchangeFactory } from './CcxtExchangeFactory';
+import { convertToContractsWithExchange } from './ContractQuantityConverter';
+import { createOrderParamsBuilder } from './OrderParamsBuilder';
+import { createOrderPriceFetcher } from './OrderPriceFetcher';
+import type {
+  ICcxtExchangeFactory,
+  IOrderParamsBuilder,
+  IOrderPriceFetcher,
+} from '@/types/trading';
 
 /**
  * 回滾配置
@@ -78,11 +87,20 @@ export class PositionOrchestrator {
   private readonly prisma: PrismaClient;
   private readonly balanceValidator: BalanceValidator;
   private readonly conditionalOrderService: ConditionalOrderService;
+  private readonly exchangeFactory: ICcxtExchangeFactory;
+  private readonly paramsBuilder: IOrderParamsBuilder;
+  private readonly priceFetcher: IOrderPriceFetcher;
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
     this.balanceValidator = new BalanceValidator(prisma);
     this.conditionalOrderService = new ConditionalOrderService();
+
+    // 初始化重構後的交易服務
+    const binanceAccountDetector = createBinanceAccountDetector();
+    this.exchangeFactory = createCcxtExchangeFactory(binanceAccountDetector);
+    this.paramsBuilder = createOrderParamsBuilder();
+    this.priceFetcher = createOrderPriceFetcher();
   }
 
   /**
@@ -727,44 +745,13 @@ export class PositionOrchestrator {
   }
 
   /**
-   * 偵測 Binance 帳戶類型和持倉模式
-   *
-   * @returns { isPortfolioMargin, isHedgeMode }
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async detectBinanceAccountType(ccxtExchange: any): Promise<{
-    isPortfolioMargin: boolean;
-    isHedgeMode: boolean;
-  }> {
-    // 先嘗試標準 Futures API
-    try {
-      const result = await ccxtExchange.fapiPrivateGetPositionSideDual();
-      const isHedgeMode = result?.dualSidePosition === true || result?.dualSidePosition === 'true';
-      logger.info({ isHedgeMode, result }, 'Binance standard Futures account detected');
-      return { isPortfolioMargin: false, isHedgeMode };
-    } catch (fapiError: unknown) {
-      const fapiErrorMsg = fapiError instanceof Error ? fapiError.message : String(fapiError);
-      logger.warn({ error: fapiErrorMsg }, 'Standard Futures API failed, trying Portfolio Margin');
-    }
-
-    // 標準 API 失敗，嘗試 Portfolio Margin API
-    try {
-      const papiResult = await ccxtExchange.papiGetUmPositionSideDual();
-      const isHedgeMode = papiResult?.dualSidePosition === true || papiResult?.dualSidePosition === 'true';
-      logger.info({ isHedgeMode, papiResult }, 'Binance Portfolio Margin account detected');
-      return { isPortfolioMargin: true, isHedgeMode };
-    } catch (papiError: unknown) {
-      const papiErrorMsg = papiError instanceof Error ? papiError.message : String(papiError);
-      logger.warn({ error: papiErrorMsg }, 'Portfolio Margin API also failed');
-    }
-
-    // 無法偵測，預設標準帳戶 + One-way Mode
-    logger.info('Binance account type detection failed, defaulting to standard + One-way Mode');
-    return { isPortfolioMargin: false, isHedgeMode: false };
-  }
-
-  /**
    * 創建 CCXT 交易器
+   *
+   * 使用重構後的服務：
+   * - CcxtExchangeFactory: 創建交易所實例
+   * - OrderParamsBuilder: 建構訂單參數
+   * - OrderPriceFetcher: 獲取成交價格
+   * - ContractQuantityConverter: 合約數量轉換
    */
   private async createCcxtTraderAsync(
     exchange: SupportedExchange,
@@ -773,110 +760,37 @@ export class PositionOrchestrator {
     passphrase?: string,
     isTestnet: boolean = false,
   ): Promise<ExchangeTrader> {
-    const exchangeMap: Record<SupportedExchange, string> = {
-      binance: 'binance',
-      okx: 'okx',
-      mexc: 'mexc',
-      gateio: 'gateio',
-      bingx: 'bingx',
-    };
-
-    const exchangeId = exchangeMap[exchange];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ExchangeClass = (ccxt as any)[exchangeId];
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config: any = {
+    // 使用 CcxtExchangeFactory 創建交易所實例（含帳戶偵測和市場載入）
+    const exchangeInstance = await this.exchangeFactory.create(exchange, {
       apiKey,
-      secret: apiSecret,
-      sandbox: isTestnet,
-      enableRateLimit: true,
-      timeout: 30000, // 30 秒超時
-      options: {
-        defaultType: 'swap',
-      },
-    };
+      apiSecret,
+      passphrase,
+      isTestnet,
+    });
 
-    // Binance 使用 future 類型
-    if (exchange === 'binance') {
-      config.options.defaultType = 'future';
-    }
-
-    if (passphrase && exchange === 'okx') {
-      config.password = passphrase;
-    }
-
-    let ccxtExchange = new ExchangeClass(config);
-
-    // 動態偵測 Binance 帳戶類型和持倉模式
-    let isBinancePortfolioMargin = false;
-    let isBinanceHedgeMode = false;
-
-    if (exchange === 'binance') {
-      const accountType = await this.detectBinanceAccountType(ccxtExchange);
-      isBinancePortfolioMargin = accountType.isPortfolioMargin;
-      isBinanceHedgeMode = accountType.isHedgeMode;
-
-      // 如果是 Portfolio Margin，需要重新創建 exchange 實例並啟用 portfolioMargin 選項
-      if (isBinancePortfolioMargin) {
-        logger.info('Recreating Binance exchange with Portfolio Margin enabled');
-        config.options.portfolioMargin = true;
-        ccxtExchange = new ExchangeClass(config);
-      }
-    }
-
-    // OKX 預設使用 Hedge Mode
-    const isOkxHedgeMode = exchange === 'okx';
-
-    // BingX 預設使用 Hedge Mode（雙向持倉）
-    const isBingxHedgeMode = exchange === 'bingx';
-
-    logger.info(
-      { exchange, isBinancePortfolioMargin, isBinanceHedgeMode, isOkxHedgeMode, isBingxHedgeMode },
-      'Position mode configuration',
-    );
-
-    // 載入市場資料以獲取合約大小（contractSize）
-    await ccxtExchange.loadMarkets();
+    const ccxtExchange = exchangeInstance.ccxt;
+    const { isPortfolioMargin, isHedgeMode } = exchangeInstance;
 
     // 用於追蹤 Binance 實際使用的模式（初始值為偵測結果）
-    let actualBinanceHedgeMode = isBinanceHedgeMode;
+    let actualBinanceHedgeMode = isHedgeMode;
 
-    /**
-     * 將用戶指定的數量轉換為合約數量
-     * OKX 的合約大小不是 1，例如 BEAT 的 contractSize = 10
-     * 所以用戶要買 40 BEAT，實際要下單 4 張合約
-     */
-    const convertToContracts = (symbol: string, amount: number): number => {
-      const market = ccxtExchange.markets[symbol];
-      const contractSize = market?.contractSize || 1;
-
-      if (contractSize !== 1) {
-        const contracts = amount / contractSize;
-        logger.info(
-          { exchange, symbol, originalAmount: amount, contractSize, contracts },
-          'Converting quantity to contracts',
-        );
-        return contracts;
-      }
-      return amount;
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ccxtExchangeAny = ccxtExchange as any;
 
     return {
       createMarketOrder: async (symbol, side, quantity, leverage) => {
-        // 轉換為合約數量
-        const contractQuantity = convertToContracts(symbol, quantity);
-        // 設置槓桿（始終設定，確保使用正確的槓桿倍數）
+        // 使用 ContractQuantityConverter 轉換為合約數量
+        const contractQuantity = convertToContractsWithExchange(ccxtExchange, symbol, quantity, exchange);
+
+        // 設置槓桿
         if (leverage) {
           try {
-            // BingX Hedge Mode 需要指定 positionSide 來設置槓桿
-            // 參考：https://github.com/ccxt/ccxt/issues/22237
-            if (isBingxHedgeMode) {
+            if (exchange === 'bingx') {
               const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-              await ccxtExchange.setLeverage(leverage, symbol, { side: positionSide });
+              await ccxtExchangeAny.setLeverage(leverage, symbol, { side: positionSide });
               logger.info({ exchange, symbol, leverage, positionSide }, 'Leverage set successfully (BingX Hedge Mode)');
             } else {
-              await ccxtExchange.setLeverage(leverage, symbol);
+              await ccxtExchangeAny.setLeverage(leverage, symbol);
               logger.info({ exchange, symbol, leverage }, 'Leverage set successfully');
             }
           } catch (e) {
@@ -884,311 +798,109 @@ export class PositionOrchestrator {
           }
         }
 
-        // 執行市價單
-        // Hedge Mode 需要指定 positionSide/posSide
-        // - 開多倉: side='buy', positionSide='LONG'/posSide='long'
-        // - 開空倉: side='sell', positionSide='SHORT'/posSide='short'
-        const buildOrderParams = (useHedgeMode: boolean): Record<string, unknown> => {
-          if (exchange === 'binance' && useHedgeMode) {
-            const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-            return { positionSide };
-          } else if (isOkxHedgeMode) {
-            const posSide = side === 'buy' ? 'long' : 'short';
-            return { posSide, tdMode: 'cross' };
-          } else if (isBingxHedgeMode) {
-            // BingX Hedge Mode 使用 positionSide 參數
-            const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-            return { positionSide };
-          }
-          return {};
-        };
+        // 使用 OrderParamsBuilder 建構訂單參數
+        const hedgeConfig = { enabled: actualBinanceHedgeMode, isPortfolioMargin };
+        let orderParams = this.paramsBuilder.buildOpenParams(exchange, side, hedgeConfig);
 
-        let orderParams = buildOrderParams(actualBinanceHedgeMode);
-
-        if (exchange === 'binance' && actualBinanceHedgeMode) {
-          logger.info({ exchange, symbol, side, orderParams, quantity, contractQuantity, leverage }, 'Opening position with Binance Hedge Mode params');
-        } else if (isOkxHedgeMode) {
-          logger.info({ exchange, symbol, side, orderParams, quantity, contractQuantity, leverage }, 'Opening position with OKX Hedge Mode params');
-        } else if (isBingxHedgeMode) {
-          logger.info({ exchange, symbol, side, orderParams, quantity, contractQuantity, leverage }, 'Opening position with BingX Hedge Mode params');
-        } else {
-          logger.info({ exchange, symbol, side, quantity, contractQuantity, leverage }, 'Opening position with One-way Mode (no positionSide)');
-        }
+        logger.info(
+          { exchange, symbol, side, orderParams, quantity, contractQuantity, leverage, isHedgeMode },
+          'Opening position',
+        );
 
         try {
-          const order = await ccxtExchange.createMarketOrder(symbol, side, contractQuantity, undefined, orderParams);
+          const order = await ccxtExchangeAny.createMarketOrder(symbol, side, contractQuantity, undefined, orderParams);
 
-          // 獲取成交價格（OKX 市價單需要額外查詢）
-          let price = order.average || order.price;
-          if (!price || price === 0) {
-            logger.info(
-              { exchange, symbol, orderId: order.id },
-              'Price not in order response, fetching order details',
-            );
-            try {
-              // 等待短暫時間讓訂單結算
-              await new Promise(resolve => setTimeout(resolve, 500));
-              const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
-              price = fetchedOrder.average || fetchedOrder.price || 0;
-              logger.info(
-                { exchange, symbol, orderId: order.id, price },
-                'Got price from fetched order',
-              );
-            } catch (fetchError) {
-              logger.warn(
-                { exchange, symbol, orderId: order.id, error: fetchError },
-                'Failed to fetch order details for price',
-              );
-            }
-
-            // 如果 fetchOrder 仍無法取得價格，使用 fetchMyTrades 作為備援（特別是 OKX）
-            if (!price || price === 0) {
-              logger.info(
-                { exchange, symbol, orderId: order.id },
-                'Price still 0 after fetchOrder, trying fetchMyTrades',
-              );
-              try {
-                const trades = await ccxtExchange.fetchMyTrades(symbol, undefined, 10);
-                // 找到與此訂單相關的成交記錄
-                const orderTrades = trades.filter((t: { order?: string }) => t.order === order.id);
-                if (orderTrades.length > 0) {
-                  // 計算加權平均價格
-                  let totalCost = 0;
-                  let totalAmount = 0;
-                  for (const t of orderTrades) {
-                    totalCost += (t.price || 0) * (t.amount || 0);
-                    totalAmount += t.amount || 0;
-                  }
-                  if (totalAmount > 0) {
-                    price = totalCost / totalAmount;
-                    logger.info(
-                      { exchange, symbol, orderId: order.id, price, tradesCount: orderTrades.length },
-                      'Got price from fetchMyTrades',
-                    );
-                  }
-                }
-              } catch (tradesError) {
-                logger.warn(
-                  { exchange, symbol, orderId: order.id, error: tradesError },
-                  'Failed to fetch trades for price, using 0',
-                );
-              }
-            }
-          }
+          // 使用 OrderPriceFetcher 獲取成交價格
+          const priceResult = await this.priceFetcher.fetch(ccxtExchange, order.id, symbol, order.average || order.price);
 
           return {
             orderId: order.id,
-            price: price || 0,
-            quantity: order.filled || order.amount || quantity, // 返回原始數量（非合約數量）
+            price: priceResult.price,
+            quantity: order.filled || order.amount || quantity,
             fee: order.fee?.cost || 0,
           };
         } catch (error: unknown) {
-          // 檢查是否為 Binance 持倉模式不匹配錯誤 (-4061)
+          // 處理 Binance -4061 錯誤（持倉模式不匹配）
           const errorMessage = error instanceof Error ? error.message : String(error);
           const isBinancePositionSideError =
             exchange === 'binance' &&
             (errorMessage.includes('-4061') || errorMessage.includes('position side does not match'));
 
           if (isBinancePositionSideError) {
-            // 嘗試用相反的模式重試
             actualBinanceHedgeMode = !actualBinanceHedgeMode;
-            orderParams = buildOrderParams(actualBinanceHedgeMode);
+            orderParams = this.paramsBuilder.buildOpenParams(exchange, side, { enabled: actualBinanceHedgeMode, isPortfolioMargin });
             logger.warn(
               { exchange, symbol, side, newHedgeMode: actualBinanceHedgeMode, orderParams },
               'Retrying with opposite position mode after -4061 error',
             );
 
-            const order = await ccxtExchange.createMarketOrder(symbol, side, contractQuantity, undefined, orderParams);
-
-            // 獲取成交價格
-            let price = order.average || order.price;
-            if (!price || price === 0) {
-              try {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
-                price = fetchedOrder.average || fetchedOrder.price || 0;
-              } catch {
-                // 忽略
-              }
-
-              // 如果 fetchOrder 仍無法取得價格，使用 fetchMyTrades 作為備援
-              if (!price || price === 0) {
-                try {
-                  const trades = await ccxtExchange.fetchMyTrades(symbol, undefined, 10);
-                  const orderTrades = trades.filter((t: { order?: string }) => t.order === order.id);
-                  if (orderTrades.length > 0) {
-                    let totalCost = 0;
-                    let totalAmount = 0;
-                    for (const t of orderTrades) {
-                      totalCost += (t.price || 0) * (t.amount || 0);
-                      totalAmount += t.amount || 0;
-                    }
-                    if (totalAmount > 0) {
-                      price = totalCost / totalAmount;
-                    }
-                  }
-                } catch {
-                  // 忽略
-                }
-              }
-            }
+            const order = await ccxtExchangeAny.createMarketOrder(symbol, side, contractQuantity, undefined, orderParams);
+            const priceResult = await this.priceFetcher.fetch(ccxtExchange, order.id, symbol, order.average || order.price);
 
             return {
               orderId: order.id,
-              price: price || 0,
+              price: priceResult.price,
               quantity: order.filled || order.amount || quantity,
               fee: order.fee?.cost || 0,
             };
           }
 
-          // 其他錯誤直接拋出
           throw error;
         }
       },
 
       closePosition: async (symbol, side, quantity) => {
-        // 轉換為合約數量
-        const contractQuantity = convertToContracts(symbol, quantity);
-
-        // 執行平倉（與開倉方向相反）
-        // Hedge Mode 需要指定 positionSide/posSide
-        // - 平多倉: closeSide='sell', positionSide='LONG'/posSide='long'
-        // - 平空倉: closeSide='buy', positionSide='SHORT'/posSide='short'
+        // 使用 ContractQuantityConverter 轉換為合約數量
+        const contractQuantity = convertToContractsWithExchange(ccxtExchange, symbol, quantity, exchange);
         const closeSide = side === 'buy' ? 'sell' : 'buy';
 
-        const buildCloseOrderParams = (useHedgeMode: boolean): Record<string, unknown> => {
-          if (exchange === 'binance' && useHedgeMode) {
-            // side='buy' 代表原本是做多，要用 sell 平倉，positionSide='LONG'
-            // side='sell' 代表原本是做空，要用 buy 平倉，positionSide='SHORT'
-            const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-            return { positionSide };
-          } else if (isOkxHedgeMode) {
-            // side='buy' 代表原本是做多，要用 sell 平倉，posSide='long'
-            // side='sell' 代表原本是做空，要用 buy 平倉，posSide='short'
-            const posSide = side === 'buy' ? 'long' : 'short';
-            return { posSide, tdMode: 'cross' };
-          } else if (isBingxHedgeMode) {
-            // BingX Hedge Mode 使用 positionSide 參數
-            const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-            return { positionSide };
-          }
-          return { reduceOnly: true };
-        };
+        // 使用 OrderParamsBuilder 建構平倉參數
+        const hedgeConfig = { enabled: actualBinanceHedgeMode, isPortfolioMargin };
+        let orderParams = this.paramsBuilder.buildCloseParams(exchange, side, hedgeConfig);
 
-        let orderParams = buildCloseOrderParams(actualBinanceHedgeMode);
-
-        if (exchange === 'binance' && actualBinanceHedgeMode) {
-          logger.info({ exchange, symbol, closeSide, orderParams, quantity, contractQuantity }, 'Closing position with Binance Hedge Mode params');
-        } else if (isOkxHedgeMode) {
-          logger.info({ exchange, symbol, closeSide, orderParams, quantity, contractQuantity }, 'Closing position with OKX Hedge Mode params');
-        } else if (isBingxHedgeMode) {
-          logger.info({ exchange, symbol, closeSide, orderParams, quantity, contractQuantity }, 'Closing position with BingX Hedge Mode params');
-        } else {
-          logger.info({ exchange, symbol, closeSide, quantity, contractQuantity }, 'Closing position with One-way Mode (reduceOnly)');
-        }
+        logger.info(
+          { exchange, symbol, closeSide, orderParams, quantity, contractQuantity, isHedgeMode },
+          'Closing position',
+        );
 
         try {
-          const order = await ccxtExchange.createMarketOrder(symbol, closeSide, contractQuantity, undefined, orderParams);
+          const order = await ccxtExchangeAny.createMarketOrder(symbol, closeSide, contractQuantity, undefined, orderParams);
 
-          // 獲取成交價格（市價單可能需要額外查詢）
-          let price = order.average || order.price;
-          if (!price || price === 0) {
-            try {
-              await new Promise(resolve => setTimeout(resolve, 500));
-              const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
-              price = fetchedOrder.average || fetchedOrder.price || 0;
-            } catch {
-              // 忽略
-            }
-
-            // 如果 fetchOrder 仍無法取得價格，使用 fetchMyTrades 作為備援
-            if (!price || price === 0) {
-              try {
-                const trades = await ccxtExchange.fetchMyTrades(symbol, undefined, 10);
-                const orderTrades = trades.filter((t: { order?: string }) => t.order === order.id);
-                if (orderTrades.length > 0) {
-                  let totalCost = 0;
-                  let totalAmount = 0;
-                  for (const t of orderTrades) {
-                    totalCost += (t.price || 0) * (t.amount || 0);
-                    totalAmount += t.amount || 0;
-                  }
-                  if (totalAmount > 0) {
-                    price = totalCost / totalAmount;
-                  }
-                }
-              } catch {
-                // 忽略
-              }
-            }
-          }
+          // 使用 OrderPriceFetcher 獲取成交價格
+          const priceResult = await this.priceFetcher.fetch(ccxtExchange, order.id, symbol, order.average || order.price);
 
           return {
             orderId: order.id,
-            price: price || 0,
+            price: priceResult.price,
             quantity: order.filled || order.amount || quantity,
             fee: order.fee?.cost || 0,
           };
         } catch (error: unknown) {
-          // 檢查是否為 Binance 持倉模式不匹配錯誤 (-4061)
+          // 處理 Binance -4061 錯誤
           const errorMessage = error instanceof Error ? error.message : String(error);
           const isBinancePositionSideError =
             exchange === 'binance' &&
             (errorMessage.includes('-4061') || errorMessage.includes('position side does not match'));
 
           if (isBinancePositionSideError) {
-            // 嘗試用相反的模式重試
             actualBinanceHedgeMode = !actualBinanceHedgeMode;
-            orderParams = buildCloseOrderParams(actualBinanceHedgeMode);
+            orderParams = this.paramsBuilder.buildCloseParams(exchange, side, { enabled: actualBinanceHedgeMode, isPortfolioMargin });
             logger.warn(
               { exchange, symbol, closeSide, newHedgeMode: actualBinanceHedgeMode, orderParams },
               'Retrying close with opposite position mode after -4061 error',
             );
 
-            const order = await ccxtExchange.createMarketOrder(symbol, closeSide, contractQuantity, undefined, orderParams);
-
-            // 獲取成交價格
-            let price = order.average || order.price;
-            if (!price || price === 0) {
-              try {
-                await new Promise(resolve => setTimeout(resolve, 500));
-                const fetchedOrder = await ccxtExchange.fetchOrder(order.id, symbol);
-                price = fetchedOrder.average || fetchedOrder.price || 0;
-              } catch {
-                // 忽略
-              }
-
-              // 如果 fetchOrder 仍無法取得價格，使用 fetchMyTrades 作為備援
-              if (!price || price === 0) {
-                try {
-                  const trades = await ccxtExchange.fetchMyTrades(symbol, undefined, 10);
-                  const orderTrades = trades.filter((t: { order?: string }) => t.order === order.id);
-                  if (orderTrades.length > 0) {
-                    let totalCost = 0;
-                    let totalAmount = 0;
-                    for (const t of orderTrades) {
-                      totalCost += (t.price || 0) * (t.amount || 0);
-                      totalAmount += t.amount || 0;
-                    }
-                    if (totalAmount > 0) {
-                      price = totalCost / totalAmount;
-                    }
-                  }
-                } catch {
-                  // 忽略
-                }
-              }
-            }
+            const order = await ccxtExchangeAny.createMarketOrder(symbol, closeSide, contractQuantity, undefined, orderParams);
+            const priceResult = await this.priceFetcher.fetch(ccxtExchange, order.id, symbol, order.average || order.price);
 
             return {
               orderId: order.id,
-              price: price || 0,
+              price: priceResult.price,
               quantity: order.filled || order.amount || quantity,
               fee: order.fee?.cost || 0,
             };
           }
 
-          // 其他錯誤直接拋出
           throw error;
         }
       },
