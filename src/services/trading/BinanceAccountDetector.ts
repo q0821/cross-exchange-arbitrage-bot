@@ -60,8 +60,8 @@ export class BinanceAccountDetector implements IBinanceAccountDetector {
     }
 
     // 無法偵測，使用預設值（標準帳戶 + One-way Mode）
-    logger.info('Binance account type detection failed, defaulting to standard + One-way Mode');
-    return { isPortfolioMargin: false, isHedgeMode: false };
+    logger.warn('Binance account type detection failed, defaulting to standard + One-way Mode');
+    return { isPortfolioMargin: false, isHedgeMode: false, detectionFailed: true };
   }
 }
 

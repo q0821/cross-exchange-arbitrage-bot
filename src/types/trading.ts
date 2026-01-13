@@ -945,6 +945,8 @@ export interface BinanceAccountInfo {
   isPortfolioMargin: boolean;
   /** 是否為 Hedge Mode（雙向持倉模式） */
   isHedgeMode: boolean;
+  /** 偵測是否失敗（使用預設值） */
+  detectionFailed?: boolean;
 }
 
 // ============================================================================

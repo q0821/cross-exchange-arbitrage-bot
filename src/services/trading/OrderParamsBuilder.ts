@@ -7,12 +7,23 @@
  */
 
 import { logger } from '@/lib/logger';
+import { TradingError } from '@/lib/errors/trading-errors';
 import type {
   HedgeModeConfig,
   IOrderParamsBuilder,
   OrderParams,
   SupportedExchange,
 } from '@/types/trading';
+
+/**
+ * 支援的交易所列表
+ */
+const SUPPORTED_EXCHANGES: SupportedExchange[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
+
+/**
+ * 有效的買賣方向
+ */
+const VALID_SIDES = ['buy', 'sell'] as const;
 
 /**
  * 訂單參數建構器
@@ -45,6 +56,26 @@ export class OrderParamsBuilder implements IOrderParamsBuilder {
     side: 'buy' | 'sell',
     hedgeMode: HedgeModeConfig,
   ): OrderParams {
+    // 驗證交易所
+    if (!SUPPORTED_EXCHANGES.includes(exchange)) {
+      throw new TradingError(
+        `Unsupported exchange: ${exchange}`,
+        'UNSUPPORTED_EXCHANGE',
+        false,
+        { exchange, supportedExchanges: SUPPORTED_EXCHANGES },
+      );
+    }
+
+    // 驗證 side
+    if (!VALID_SIDES.includes(side)) {
+      throw new TradingError(
+        `Invalid side: ${side}. Must be 'buy' or 'sell'`,
+        'INVALID_SIDE',
+        false,
+        { side, validSides: VALID_SIDES },
+      );
+    }
+
     // Binance Hedge Mode
     if (exchange === 'binance' && hedgeMode.enabled) {
       const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
@@ -90,6 +121,26 @@ export class OrderParamsBuilder implements IOrderParamsBuilder {
     positionSide: 'buy' | 'sell',
     hedgeMode: HedgeModeConfig,
   ): OrderParams {
+    // 驗證交易所
+    if (!SUPPORTED_EXCHANGES.includes(exchange)) {
+      throw new TradingError(
+        `Unsupported exchange: ${exchange}`,
+        'UNSUPPORTED_EXCHANGE',
+        false,
+        { exchange, supportedExchanges: SUPPORTED_EXCHANGES },
+      );
+    }
+
+    // 驗證 positionSide
+    if (!VALID_SIDES.includes(positionSide)) {
+      throw new TradingError(
+        `Invalid positionSide: ${positionSide}. Must be 'buy' or 'sell'`,
+        'INVALID_POSITION_SIDE',
+        false,
+        { positionSide, validSides: VALID_SIDES },
+      );
+    }
+
     // Binance Hedge Mode
     // positionSide='buy' 代表原本是做多，要用 sell 平倉，positionSide='LONG'
     // positionSide='sell' 代表原本是做空，要用 buy 平倉，positionSide='SHORT'

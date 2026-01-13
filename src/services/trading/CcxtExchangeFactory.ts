@@ -111,13 +111,33 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       isPortfolioMargin = accountType.isPortfolioMargin;
       isHedgeMode = accountType.isHedgeMode;
 
+      // 如果偵測失敗，記錄警告提示用戶可能需要手動配置
+      if (accountType.detectionFailed) {
+        logger.warn(
+          { exchange, isPortfolioMargin, isHedgeMode },
+          'Binance account type detection failed, using defaults. Consider setting hedge mode manually if needed.',
+        );
+      }
+
       // 如果是 Portfolio Margin，需要重新創建 exchange 實例並啟用 portfolioMargin 選項
       if (isPortfolioMargin) {
         logger.info('Recreating Binance exchange with Portfolio Margin enabled');
         ccxtConfig.options.portfolioMargin = true;
         ccxtExchange = new ExchangeClass(ccxtConfig);
         // 重新載入市場資料
-        await ccxtExchange.loadMarkets();
+        try {
+          await ccxtExchange.loadMarkets();
+        } catch (error) {
+          logger.error({ exchange, error }, 'Failed to load markets for Portfolio Margin');
+          throw new TradingError(
+            `Failed to load ${exchange} markets (Portfolio Margin)`,
+            {
+              exchange,
+              isPortfolioMargin: true,
+              error: error instanceof Error ? error.message : String(error),
+            },
+          );
+        }
       }
     }
 
@@ -137,7 +157,18 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
     );
 
     // 載入市場資料以獲取合約大小（contractSize）
-    await ccxtExchange.loadMarkets();
+    try {
+      await ccxtExchange.loadMarkets();
+    } catch (error) {
+      logger.error({ exchange, error }, 'Failed to load markets');
+      throw new TradingError(
+        `Failed to load ${exchange} markets`,
+        {
+          exchange,
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
+    }
 
     return {
       ccxt: ccxtExchange,
