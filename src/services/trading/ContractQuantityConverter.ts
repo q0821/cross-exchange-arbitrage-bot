@@ -26,9 +26,8 @@ import type {
  *
  * @param ccxtExchange - CCXT 交易所實例（需要已 loadMarkets）
  * @param symbol - 交易對符號（如 'BTC/USDT:USDT'）
- * @param amount - 用戶輸入的數量
- * @param exchange - 交易所名稱（用於日誌）
- * @returns 轉換後的合約數量
+ * @param amount - 用戶輸入的數量（必須 > 0）
+ * @returns 轉換後的合約數量（amount / contractSize）
  * @throws TradingError 當 amount <= 0 時
  */
 export const convertToContracts: ContractQuantityConverterFn = (

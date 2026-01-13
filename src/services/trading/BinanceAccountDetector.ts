@@ -42,7 +42,8 @@ export class BinanceAccountDetector implements IBinanceAccountDetector {
         return { isPortfolioMargin: false, isHedgeMode };
       } catch (fapiError: unknown) {
         const fapiErrorMsg = fapiError instanceof Error ? fapiError.message : String(fapiError);
-        logger.warn({ error: fapiErrorMsg }, 'Standard Futures API failed, trying Portfolio Margin');
+        // 使用 debug 而非 warn，因為 Portfolio Margin 帳戶本來就會在此失敗
+        logger.debug({ error: fapiErrorMsg }, 'Standard Futures API failed, trying Portfolio Margin');
       }
     }
 
@@ -55,7 +56,8 @@ export class BinanceAccountDetector implements IBinanceAccountDetector {
         return { isPortfolioMargin: true, isHedgeMode };
       } catch (papiError: unknown) {
         const papiErrorMsg = papiError instanceof Error ? papiError.message : String(papiError);
-        logger.warn({ error: papiErrorMsg }, 'Portfolio Margin API also failed');
+        // 使用 debug 而非 warn，因為標準帳戶本來就會在此失敗
+        logger.debug({ error: papiErrorMsg }, 'Portfolio Margin API also failed');
       }
     }
 

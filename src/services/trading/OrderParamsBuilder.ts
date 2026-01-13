@@ -106,15 +106,17 @@ export class OrderParamsBuilder implements IOrderParamsBuilder {
    * 建構平倉參數
    *
    * 平倉邏輯（與開倉方向相反）：
-   * - 平多倉: closeSide='sell', positionSide='LONG'/posSide='long'
-   * - 平空倉: closeSide='buy', positionSide='SHORT'/posSide='short'
+   * - 平多倉: side='buy'（原始開倉方向）→ closeSide='sell', positionSide='LONG'/posSide='long'
+   * - 平空倉: side='sell'（原始開倉方向）→ closeSide='buy', positionSide='SHORT'/posSide='short'
    *
-   * 注意：positionSide 參數是原始持倉的方向，不是平倉訂單的方向
+   * 重要：positionSide 參數代表**原始開倉時的方向**，而不是平倉訂單的實際方向。
+   * 例如：要平掉一個做多的倉位，傳入 positionSide='buy'，
+   * 函數會產生 sell 方向的訂單，並帶上 positionSide='LONG' 參數。
    *
-   * @param exchange - 交易所類型
-   * @param positionSide - 原始持倉的買賣方向（buy=多倉, sell=空倉）
+   * @param exchange - 交易所類型（binance, okx, mexc, gateio, bingx）
+   * @param positionSide - **原始開倉時的方向**（buy=多倉, sell=空倉），不是平倉訂單的方向
    * @param hedgeMode - Hedge Mode 配置
-   * @returns 訂單參數
+   * @returns 訂單參數（Binance/BingX: positionSide, OKX: posSide+tdMode, One-way: reduceOnly）
    */
   buildCloseParams(
     exchange: SupportedExchange,
