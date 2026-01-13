@@ -7,7 +7,11 @@
  */
 
 import { logger } from '@/lib/logger';
-import type { ContractQuantityConverterFn, SupportedExchange } from '@/types/trading';
+import type {
+  CcxtExchange,
+  ContractQuantityConverterFn,
+  SupportedExchange,
+} from '@/types/trading';
 
 /**
  * 將用戶指定的數量轉換為合約數量
@@ -26,13 +30,11 @@ import type { ContractQuantityConverterFn, SupportedExchange } from '@/types/tra
  * @returns 轉換後的合約數量
  */
 export const convertToContracts: ContractQuantityConverterFn = (
-  ccxtExchange: unknown,
+  ccxtExchange: CcxtExchange,
   symbol: string,
   amount: number,
 ): number => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exchange = ccxtExchange as any;
-  const market = exchange.markets?.[symbol];
+  const market = ccxtExchange.markets?.[symbol];
   const contractSize = market?.contractSize || 1;
 
   if (contractSize !== 1) {
@@ -59,14 +61,12 @@ export const convertToContracts: ContractQuantityConverterFn = (
  * @returns 轉換後的合約數量
  */
 export function convertToContractsWithExchange(
-  ccxtExchange: unknown,
+  ccxtExchange: CcxtExchange,
   symbol: string,
   amount: number,
   exchangeName: SupportedExchange,
 ): number {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exchange = ccxtExchange as any;
-  const market = exchange.markets?.[symbol];
+  const market = ccxtExchange.markets?.[symbol];
   const contractSize = market?.contractSize || 1;
 
   if (contractSize !== 1) {
@@ -88,9 +88,7 @@ export function convertToContractsWithExchange(
  * @param symbol - 交易對符號
  * @returns 合約大小（預設為 1）
  */
-export function getContractSize(ccxtExchange: unknown, symbol: string): number {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exchange = ccxtExchange as any;
-  const market = exchange.markets?.[symbol];
+export function getContractSize(ccxtExchange: CcxtExchange, symbol: string): number {
+  const market = ccxtExchange.markets?.[symbol];
   return market?.contractSize || 1;
 }
