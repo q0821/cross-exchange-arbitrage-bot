@@ -30,6 +30,38 @@ pnpm test && pnpm lint
 ## Code Style
 TypeScript 5.8+ with strict mode: Follow standard conventions
 
+## Code Quality Guidelines
+
+以下準則來自過往 code review 的經驗，請在撰寫程式碼時遵循：
+
+### 1. 錯誤處理策略
+- **禁止**：回傳預設值（如 `0`, `null`, `undefined`）來隱藏錯誤
+- **應該**：拋出明確的錯誤（如 `TradingError`）讓調用方決定如何處理
+- **範例**：價格獲取失敗時應拋出 `TradingError('PRICE_FETCH_FAILED', ...)` 而非回傳 `{ price: 0 }`
+
+### 2. 邊界條件驗證
+- 數學計算前必須驗證：除數不為 0、輸入值在有效範圍內
+- 陣列操作前檢查索引範圍、物件存在性
+- **範例**：`if (contractSize <= 0) throw new TradingError('INVALID_CONTRACT_SIZE', ...)`
+
+### 3. 狀態初始化完整性
+- 重新創建物件實例後，確保所有必要的初始化步驟都有執行
+- **範例**：CCXT exchange 重建後必須再次呼叫 `loadMarkets()`
+
+### 4. 類型安全
+- **禁止**：使用 `any` 繞過型別檢查
+- **應該**：定義明確的介面（interface）來描述外部 API 回應結構
+- **範例**：為 CCXT 交易所方法定義 `CcxtBinanceExchange` 介面
+
+### 5. 配置可調性
+- **禁止**：在程式碼中寫死魔術數字（magic numbers）
+- **應該**：使用命名常數、類別屬性或建構函數參數
+- **範例**：`private readonly ORDER_SETTLEMENT_DELAY = 500` 取代寫死的 `setTimeout(resolve, 500)`
+
+### 6. 命名清晰度
+- 參數名稱應清楚表達其用途，避免歧義
+- **範例**：平倉時的 `side` 參數容易與訂單方向混淆，應改為 `positionSide` 明確表示「持倉方向」
+
 <!-- MANUAL ADDITIONS START -->
 
 ## Feature 033: Manual Open Position
