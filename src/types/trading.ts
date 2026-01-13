@@ -947,6 +947,106 @@ export interface BinanceAccountInfo {
   isHedgeMode: boolean;
 }
 
+// ============================================================================
+// CCXT Exchange Types (類型安全定義)
+// ============================================================================
+
+/**
+ * CCXT 訂單回應
+ */
+export interface CcxtOrder {
+  id: string;
+  status: string;
+  average?: number;
+  price?: number;
+  filled?: number;
+  amount?: number;
+  cost?: number;
+  fee?: {
+    cost?: number;
+    currency?: string;
+  };
+  info?: unknown;
+  order?: string;
+}
+
+/**
+ * CCXT 成交記錄
+ */
+export interface CcxtTrade {
+  order?: string;
+  price?: number;
+  amount?: number;
+}
+
+/**
+ * CCXT 市場資料
+ */
+export interface CcxtMarket {
+  symbol: string;
+  contractSize?: number;
+  precision?: {
+    amount?: number;
+    price?: number;
+  };
+}
+
+/**
+ * CCXT 交易所基礎介面
+ *
+ * 定義所有交易所共用的方法
+ */
+export interface CcxtExchangeBase {
+  /** 已載入的市場資料 */
+  markets?: Record<string, CcxtMarket>;
+
+  /** 載入市場資料 */
+  loadMarkets(): Promise<Record<string, CcxtMarket>>;
+
+  /** 建立市價單 */
+  createMarketOrder(
+    symbol: string,
+    side: 'buy' | 'sell',
+    amount: number,
+    price?: number,
+    params?: Record<string, unknown>
+  ): Promise<CcxtOrder>;
+
+  /** 查詢訂單 */
+  fetchOrder(orderId: string, symbol: string): Promise<CcxtOrder>;
+
+  /** 查詢我的成交記錄 */
+  fetchMyTrades(symbol: string, since?: number, limit?: number): Promise<CcxtTrade[]>;
+}
+
+/**
+ * Binance 標準合約帳戶 API
+ */
+export interface BinanceFuturesApi {
+  fapiPrivateGetPositionSideDual(): Promise<{ dualSidePosition: boolean | string }>;
+}
+
+/**
+ * Binance Portfolio Margin 帳戶 API
+ */
+export interface BinancePortfolioMarginApi {
+  papiGetUmPositionSideDual(): Promise<{ dualSidePosition: boolean | string }>;
+}
+
+/**
+ * Binance 交易所介面（包含特有 API）
+ */
+export interface CcxtBinanceExchange extends CcxtExchangeBase, Partial<BinanceFuturesApi>, Partial<BinancePortfolioMarginApi> {}
+
+/**
+ * 通用 CCXT 交易所介面
+ */
+export type CcxtExchange = CcxtExchangeBase & Partial<BinanceFuturesApi> & Partial<BinancePortfolioMarginApi>;
+
+// ============================================================================
+// Service Interfaces (服務介面)
+// ============================================================================
+
 /**
  * Binance 帳戶偵測器介面
  *
@@ -961,7 +1061,7 @@ export interface IBinanceAccountDetector {
    * @returns 帳戶資訊（Portfolio Margin 和 Hedge Mode 狀態）
    * @throws 當 API 呼叫失敗時，回傳預設值（標準帳戶 + One-way Mode）
    */
-  detect(ccxtExchange: unknown): Promise<BinanceAccountInfo>;
+  detect(ccxtExchange: CcxtExchange): Promise<BinanceAccountInfo>;
 }
 
 /**
@@ -983,13 +1083,13 @@ export interface ExchangeConfig {
  */
 export interface ExchangeInstance {
   /** CCXT 交易所實例 */
-  ccxt: unknown;
+  ccxt: CcxtExchange;
   /** 是否為 Portfolio Margin 帳戶（Binance 專用） */
   isPortfolioMargin: boolean;
   /** 是否為 Hedge Mode */
   isHedgeMode: boolean;
   /** 已載入的市場資料 */
-  markets: Record<string, unknown>;
+  markets: Record<string, CcxtMarket>;
 }
 
 /**
@@ -1028,7 +1128,7 @@ export interface IContractQuantityConverter {
    * @throws 當 contractSize 為 0 或 undefined 時，使用 1 作為預設值
    */
   convert(
-    ccxtExchange: unknown,
+    ccxtExchange: CcxtExchange,
     symbol: string,
     amount: number
   ): number;
@@ -1038,7 +1138,7 @@ export interface IContractQuantityConverter {
  * 合約數量轉換純函數類型
  */
 export type ContractQuantityConverterFn = (
-  ccxtExchange: unknown,
+  ccxtExchange: CcxtExchange,
   symbol: string,
   amount: number
 ) => number;
@@ -1129,10 +1229,10 @@ export interface IOrderPriceFetcher {
    * @param symbol - 交易對符號
    * @param initialPrice - 初始價格（來自 order.average || order.price）
    * @returns 價格獲取結果（含來源）
-   * @throws 當所有重試都失敗時，記錄警告並使用 0 作為價格
+   * @throws TradingError 當所有重試都失敗時拋出錯誤
    */
   fetch(
-    ccxtExchange: unknown,
+    ccxtExchange: CcxtExchange,
     orderId: string,
     symbol: string,
     initialPrice?: number

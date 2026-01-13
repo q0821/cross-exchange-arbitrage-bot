@@ -7,8 +7,12 @@
  */
 
 import { logger } from '@/lib/logger';
-import { TradingError } from '@/lib/errors';
-import type { ContractQuantityConverterFn, SupportedExchange } from '@/types/trading';
+import { TradingError } from '@/lib/errors/trading-errors';
+import type {
+  CcxtExchange,
+  ContractQuantityConverterFn,
+  SupportedExchange,
+} from '@/types/trading';
 
 /**
  * 將用戶指定的數量轉換為合約數量
@@ -25,9 +29,10 @@ import type { ContractQuantityConverterFn, SupportedExchange } from '@/types/tra
  * @param amount - 用戶輸入的數量
  * @param exchange - 交易所名稱（用於日誌）
  * @returns 轉換後的合約數量
+ * @throws TradingError 當 amount <= 0 時
  */
 export const convertToContracts: ContractQuantityConverterFn = (
-  ccxtExchange: unknown,
+  ccxtExchange: CcxtExchange,
   symbol: string,
   amount: number,
 ): number => {
@@ -35,13 +40,13 @@ export const convertToContracts: ContractQuantityConverterFn = (
   if (amount <= 0) {
     throw new TradingError(
       `Invalid amount: ${amount}. Amount must be greater than 0`,
+      'INVALID_AMOUNT',
+      false,
       { symbol, amount },
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exchange = ccxtExchange as any;
-  const market = exchange.markets?.[symbol];
+  const market = ccxtExchange.markets?.[symbol];
   let contractSize = market?.contractSize || 1;
 
   // 驗證 contractSize
@@ -75,9 +80,10 @@ export const convertToContracts: ContractQuantityConverterFn = (
  * @param amount - 用戶輸入的數量
  * @param exchangeName - 交易所名稱（用於日誌）
  * @returns 轉換後的合約數量
+ * @throws TradingError 當 amount <= 0 時
  */
 export function convertToContractsWithExchange(
-  ccxtExchange: unknown,
+  ccxtExchange: CcxtExchange,
   symbol: string,
   amount: number,
   exchangeName: SupportedExchange,
@@ -86,13 +92,13 @@ export function convertToContractsWithExchange(
   if (amount <= 0) {
     throw new TradingError(
       `Invalid amount: ${amount}. Amount must be greater than 0`,
+      'INVALID_AMOUNT',
+      false,
       { exchange: exchangeName, symbol, amount },
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exchange = ccxtExchange as any;
-  const market = exchange.markets?.[symbol];
+  const market = ccxtExchange.markets?.[symbol];
   let contractSize = market?.contractSize || 1;
 
   // 驗證 contractSize
@@ -123,9 +129,7 @@ export function convertToContractsWithExchange(
  * @param symbol - 交易對符號
  * @returns 合約大小（預設為 1）
  */
-export function getContractSize(ccxtExchange: unknown, symbol: string): number {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const exchange = ccxtExchange as any;
-  const market = exchange.markets?.[symbol];
+export function getContractSize(ccxtExchange: CcxtExchange, symbol: string): number {
+  const market = ccxtExchange.markets?.[symbol];
   return market?.contractSize || 1;
 }
