@@ -7,6 +7,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { TradingError } from '@/lib/errors';
 import type { FetchPriceResult, IOrderPriceFetcher } from '@/types/trading';
 
 /**
@@ -22,6 +23,10 @@ import type { FetchPriceResult, IOrderPriceFetcher } from '@/types/trading';
  * 4. 全部失敗時回傳 price: 0
  */
 export class OrderPriceFetcher implements IOrderPriceFetcher {
+  /**
+   * 訂單結算延遲時間（毫秒）
+   */
+  private readonly ORDER_SETTLEMENT_DELAY = 500;
   /**
    * 獲取訂單成交價格
    *
@@ -62,12 +67,15 @@ export class OrderPriceFetcher implements IOrderPriceFetcher {
       return { price, source: 'fetchMyTrades' };
     }
 
-    // 4. 全部失敗，回傳 0
-    logger.warn(
+    // 4. 全部失敗，拋出錯誤
+    logger.error(
       { symbol, orderId },
-      'All price fetch attempts failed, returning 0',
+      'All price fetch attempts failed',
     );
-    return { price: 0, source: 'order' };
+    throw new TradingError(
+      `Failed to fetch price for order ${orderId} on ${symbol}`,
+      { symbol, orderId },
+    );
   }
 
   /**
@@ -86,7 +94,7 @@ export class OrderPriceFetcher implements IOrderPriceFetcher {
   ): Promise<number> {
     try {
       // 等待短暫時間讓訂單結算
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, this.ORDER_SETTLEMENT_DELAY));
       const fetchedOrder = await exchange.fetchOrder(orderId, symbol);
       const price = fetchedOrder.average || fetchedOrder.price || 0;
 

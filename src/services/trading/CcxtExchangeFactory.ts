@@ -9,6 +9,7 @@
 
 import ccxt from 'ccxt';
 import { logger } from '@/lib/logger';
+import { TradingError } from '@/lib/errors';
 import type {
   ExchangeConfig,
   ExchangeInstance,
@@ -56,8 +57,25 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
     };
 
     const exchangeId = exchangeMap[exchange];
+    
+    // 驗證 exchangeId
+    if (!exchangeId) {
+      throw new TradingError(
+        `Unsupported exchange: ${exchange}`,
+        { exchange },
+      );
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ExchangeClass = (ccxt as any)[exchangeId];
+
+    // 驗證 ExchangeClass
+    if (!ExchangeClass) {
+      throw new TradingError(
+        `Exchange class not found for: ${exchangeId}`,
+        { exchange, exchangeId },
+      );
+    }
 
     // 建立基礎 CCXT 配置
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -98,6 +116,8 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
         logger.info('Recreating Binance exchange with Portfolio Margin enabled');
         ccxtConfig.options.portfolioMargin = true;
         ccxtExchange = new ExchangeClass(ccxtConfig);
+        // 重新載入市場資料
+        await ccxtExchange.loadMarkets();
       }
     }
 

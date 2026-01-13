@@ -11,6 +11,14 @@ import { logger } from '@/lib/logger';
 import type { BinanceAccountInfo, IBinanceAccountDetector } from '@/types/trading';
 
 /**
+ * CCXT Binance Exchange 類型定義
+ */
+interface CcxtBinanceExchange {
+  fapiPrivateGetPositionSideDual: () => Promise<{ dualSidePosition?: boolean | string }>;
+  papiGetUmPositionSideDual: () => Promise<{ dualSidePosition?: boolean | string }>;
+}
+
+/**
  * Binance 帳戶類型偵測服務
  *
  * 從 PositionOrchestrator.detectBinanceAccountType 提取
@@ -29,8 +37,7 @@ export class BinanceAccountDetector implements IBinanceAccountDetector {
    * @returns 帳戶資訊（isPortfolioMargin, isHedgeMode）
    */
   async detect(ccxtExchange: unknown): Promise<BinanceAccountInfo> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const exchange = ccxtExchange as any;
+    const exchange = ccxtExchange as CcxtBinanceExchange;
 
     // 先嘗試標準 Futures API
     try {

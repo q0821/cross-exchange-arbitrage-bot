@@ -7,6 +7,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { TradingError } from '@/lib/errors';
 import type { ContractQuantityConverterFn, SupportedExchange } from '@/types/trading';
 
 /**
@@ -30,10 +31,27 @@ export const convertToContracts: ContractQuantityConverterFn = (
   symbol: string,
   amount: number,
 ): number => {
+  // 驗證數量
+  if (amount <= 0) {
+    throw new TradingError(
+      `Invalid amount: ${amount}. Amount must be greater than 0`,
+      { symbol, amount },
+    );
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const exchange = ccxtExchange as any;
   const market = exchange.markets?.[symbol];
-  const contractSize = market?.contractSize || 1;
+  let contractSize = market?.contractSize || 1;
+
+  // 驗證 contractSize
+  if (contractSize <= 0) {
+    logger.warn(
+      { symbol, contractSize },
+      'Invalid contractSize detected, using default value 1',
+    );
+    contractSize = 1;
+  }
 
   if (contractSize !== 1) {
     const contracts = amount / contractSize;
@@ -64,10 +82,27 @@ export function convertToContractsWithExchange(
   amount: number,
   exchangeName: SupportedExchange,
 ): number {
+  // 驗證數量
+  if (amount <= 0) {
+    throw new TradingError(
+      `Invalid amount: ${amount}. Amount must be greater than 0`,
+      { exchange: exchangeName, symbol, amount },
+    );
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const exchange = ccxtExchange as any;
   const market = exchange.markets?.[symbol];
-  const contractSize = market?.contractSize || 1;
+  let contractSize = market?.contractSize || 1;
+
+  // 驗證 contractSize
+  if (contractSize <= 0) {
+    logger.warn(
+      { exchange: exchangeName, symbol, contractSize },
+      'Invalid contractSize detected, using default value 1',
+    );
+    contractSize = 1;
+  }
 
   if (contractSize !== 1) {
     const contracts = amount / contractSize;

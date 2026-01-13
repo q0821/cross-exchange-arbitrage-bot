@@ -78,45 +78,45 @@ export class OrderParamsBuilder implements IOrderParamsBuilder {
    * - 平多倉: closeSide='sell', positionSide='LONG'/posSide='long'
    * - 平空倉: closeSide='buy', positionSide='SHORT'/posSide='short'
    *
-   * 注意：side 參數是原始持倉的方向，不是平倉訂單的方向
+   * 注意：positionSide 參數是原始持倉的方向，不是平倉訂單的方向
    *
    * @param exchange - 交易所類型
-   * @param side - 原始持倉的買賣方向（buy=多倉, sell=空倉）
+   * @param positionSide - 原始持倉的買賣方向（buy=多倉, sell=空倉）
    * @param hedgeMode - Hedge Mode 配置
    * @returns 訂單參數
    */
   buildCloseParams(
     exchange: SupportedExchange,
-    side: 'buy' | 'sell',
+    positionSide: 'buy' | 'sell',
     hedgeMode: HedgeModeConfig,
   ): OrderParams {
     // Binance Hedge Mode
-    // side='buy' 代表原本是做多，要用 sell 平倉，positionSide='LONG'
-    // side='sell' 代表原本是做空，要用 buy 平倉，positionSide='SHORT'
+    // positionSide='buy' 代表原本是做多，要用 sell 平倉，positionSide='LONG'
+    // positionSide='sell' 代表原本是做空，要用 buy 平倉，positionSide='SHORT'
     if (exchange === 'binance' && hedgeMode.enabled) {
-      const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-      logger.debug({ exchange, side, positionSide }, 'Building Binance Hedge Mode close params');
-      return { positionSide };
+      const positionSideParam = positionSide === 'buy' ? 'LONG' : 'SHORT';
+      logger.debug({ exchange, positionSide, positionSideParam }, 'Building Binance Hedge Mode close params');
+      return { positionSide: positionSideParam };
     }
 
     // OKX Hedge Mode
-    // side='buy' 代表原本是做多，要用 sell 平倉，posSide='long'
-    // side='sell' 代表原本是做空，要用 buy 平倉，posSide='short'
+    // positionSide='buy' 代表原本是做多，要用 sell 平倉，posSide='long'
+    // positionSide='sell' 代表原本是做空，要用 buy 平倉，posSide='short'
     if (exchange === 'okx') {
-      const posSide = side === 'buy' ? 'long' : 'short';
-      logger.debug({ exchange, side, posSide }, 'Building OKX Hedge Mode close params');
+      const posSide = positionSide === 'buy' ? 'long' : 'short';
+      logger.debug({ exchange, positionSide, posSide }, 'Building OKX Hedge Mode close params');
       return { posSide, tdMode: 'cross' };
     }
 
     // BingX Hedge Mode
     if (exchange === 'bingx') {
-      const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-      logger.debug({ exchange, side, positionSide }, 'Building BingX Hedge Mode close params');
-      return { positionSide };
+      const positionSideParam = positionSide === 'buy' ? 'LONG' : 'SHORT';
+      logger.debug({ exchange, positionSide, positionSideParam }, 'Building BingX Hedge Mode close params');
+      return { positionSide: positionSideParam };
     }
 
     // One-way Mode 使用 reduceOnly
-    logger.debug({ exchange, side }, 'Building One-way Mode close params (reduceOnly)');
+    logger.debug({ exchange, positionSide }, 'Building One-way Mode close params (reduceOnly)');
     return { reduceOnly: true };
   }
 }
