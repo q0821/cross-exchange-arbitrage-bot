@@ -11,6 +11,8 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 // Feature 026: 導入 db.ts 以初始化 NotificationService
 import '../lib/db';
+// 記憶體監控
+import { startMemoryMonitor, stopMemoryMonitor } from '../lib/memory-monitor';
 
 interface SymbolsConfig {
   groups: {
@@ -101,6 +103,10 @@ export async function startMonitorService(): Promise<void> {
     // 啟動監控
     await monitorInstance.start();
 
+    // 啟動記憶體監控（每 1 分鐘記錄一次）
+    const memoryMonitorInterval = parseInt(process.env.MEMORY_MONITOR_INTERVAL_MS || '60000', 10);
+    startMemoryMonitor(memoryMonitorInterval);
+
     logger.info('Built-in funding rate monitor started successfully');
   } catch (error) {
     logger.error(
@@ -117,6 +123,9 @@ export async function startMonitorService(): Promise<void> {
  * 停止監控服務
  */
 export async function stopMonitorService(): Promise<void> {
+  // 停止記憶體監控
+  stopMemoryMonitor();
+
   if (!monitorInstance) {
     return;
   }
