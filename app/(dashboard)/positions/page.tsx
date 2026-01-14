@@ -5,25 +5,21 @@
  * Feature 033: Manual Open Position (T018)
  * Feature 035: Close Position (T011)
  * Feature 037: Mark Position Closed (T006)
+ * Feature 063: Frontend Data Caching (T013) - TanStack Query integration
  */
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Briefcase, RefreshCw, AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { PositionCard } from './components/PositionCard';
+import { PositionCardSkeleton } from './components/PositionCardSkeleton';
 import { ClosePositionDialog } from './components/ClosePositionDialog';
 import { CloseProgressOverlay } from './components/CloseProgressOverlay';
 import { useClosePosition } from './hooks/useClosePosition';
-import type { PositionInfo } from '@/src/types/trading';
-
-interface PositionsResponse {
-  success: boolean;
-  data: {
-    positions: PositionInfo[];
-    total: number;
-  };
-}
+import { usePositionsQuery } from '@/hooks/queries/usePositionsQuery';
+import { queryKeys } from '@/lib/query-keys';
 
 /**
  * 格式化持倉時間
@@ -42,44 +38,31 @@ function formatDuration(seconds: number): string {
 }
 
 export default function PositionsPage() {
-  const [positions, setPositions] = useState<PositionInfo[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [markingAsClosedId, setMarkingAsClosedId] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // TanStack Query for positions data
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    error: queryError,
+    refetch,
+  } = usePositionsQuery();
+
+  const queryClient = useQueryClient();
 
   // 平倉功能
   const closePosition = useClosePosition();
 
-  const fetchPositions = useCallback(async () => {
-    try {
-      const response = await fetch('/api/positions');
-      const data: PositionsResponse = await response.json();
-
-      if (data.success) {
-        setPositions(data.data.positions);
-        setTotal(data.data.total);
-        setError(null);
-      } else {
-        setError('無法載入持倉列表');
-      }
-    } catch (err) {
-      console.error('Failed to fetch positions:', err);
-      setError('載入持倉列表時發生錯誤');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPositions();
-  }, [fetchPositions]);
+  const positions = data?.positions ?? [];
+  const total = data?.total ?? 0;
+  const error = localError || (queryError?.message ?? null);
+  const isRefreshing = isRefetching;
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchPositions();
+    setLocalError(null);
+    await refetch();
   };
 
   /**
@@ -96,8 +79,9 @@ export default function PositionsPage() {
   const handleConfirmClose = async () => {
     const success = await closePosition.confirmClose();
     if (success) {
-      // 平倉成功，刷新列表
-      await fetchPositions();
+      // 平倉成功，invalidate 快取讓 TanStack Query 自動刷新
+      queryClient.invalidateQueries({ queryKey: queryKeys.trading.positions() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.assets.all });
     }
   };
 
@@ -113,6 +97,7 @@ export default function PositionsPage() {
    */
   const handleMarkAsClosed = async (positionId: string) => {
     setMarkingAsClosedId(positionId);
+    setLocalError(null);
     try {
       const response = await fetch(`/api/positions/${positionId}`, {
         method: 'PATCH',
@@ -122,18 +107,18 @@ export default function PositionsPage() {
         body: JSON.stringify({ action: 'markAsClosed' }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (data.success) {
-        // 成功，刷新列表
-        await fetchPositions();
+      if (result.success) {
+        // 成功，invalidate 快取
+        queryClient.invalidateQueries({ queryKey: queryKeys.trading.positions() });
       } else {
         // 顯示錯誤
-        setError(data.error?.message || '標記失敗');
+        setLocalError(result.error?.message || '標記失敗');
       }
     } catch (err) {
       console.error('Failed to mark position as closed:', err);
-      setError('標記持倉時發生錯誤');
+      setLocalError('標記持倉時發生錯誤');
     } finally {
       setMarkingAsClosedId(null);
     }
@@ -159,9 +144,20 @@ export default function PositionsPage() {
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <span className="ml-2 text-muted-foreground">載入中...</span>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Briefcase className="w-6 h-6 text-primary" />
+            <h1 className="text-2xl font-bold text-foreground">持倉管理</h1>
+          </div>
+        </div>
+
+        {/* Skeleton Cards */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <PositionCardSkeleton />
+          <PositionCardSkeleton />
+          <PositionCardSkeleton />
+          <PositionCardSkeleton />
         </div>
       </div>
     );
@@ -214,7 +210,7 @@ export default function PositionsPage() {
               {partialPositions.map((position) => (
                 <PositionCard
                   key={position.id}
-                  position={position}
+                  position={position as any}
                   onMarkAsClosed={handleMarkAsClosed}
                   isMarkingAsClosed={markingAsClosedId === position.id}
                 />
@@ -338,7 +334,7 @@ export default function PositionsPage() {
               {openPositions.map((position) => (
                 <PositionCard
                   key={position.id}
-                  position={position}
+                  position={position as any}
                   onClose={handleClosePosition}
                   isClosing={closePosition.closingPositionId === position.id && closePosition.isLoading}
                   onMarkAsClosed={handleMarkAsClosed}
@@ -360,7 +356,7 @@ export default function PositionsPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {pendingPositions.map((position) => (
-                <PositionCard key={position.id} position={position} />
+                <PositionCard key={position.id} position={position as any} />
               ))}
             </div>
           </div>
@@ -379,7 +375,7 @@ export default function PositionsPage() {
               {failedPositions.map((position) => (
                 <PositionCard
                   key={position.id}
-                  position={position}
+                  position={position as any}
                   onMarkAsClosed={handleMarkAsClosed}
                   isMarkingAsClosed={markingAsClosedId === position.id}
                 />
@@ -403,7 +399,7 @@ export default function PositionsPage() {
       {/* Close Position Dialog */}
       {closingPosition && (closePosition.state === 'loading_market_data' || closePosition.state === 'confirming') && (
         <ClosePositionDialog
-          position={closingPosition}
+          position={closingPosition as any}
           marketData={closePosition.marketData}
           isLoading={closePosition.state === 'loading_market_data'}
           isClosing={false}
