@@ -15,6 +15,13 @@
 - 影響：修復新環境執行 `pnpm db:migrate` 時的 P3006/P1014 錯誤
 - 新增測試：`tests/unit/prisma/migration-order.test.ts` - 驗證 migration 外鍵依賴順序
 
+### 文件
+
+#### Gate.io API 環境變數設定（2025-01-14）
+- 新增 `GATEIO_API_KEY`、`GATEIO_API_SECRET`、`GATEIO_TESTNET` 到 `.env.example`
+- 說明 Gate.io 連線需要 API Key（與 Binance/OKX 不同，即使只獲取公開數據也需要）
+- 提供 API Key 申請步驟說明
+
 ### 新增
 
 #### Feature 043: BingX 交易所整合（✅ 已完成 - 2025-12-25）
