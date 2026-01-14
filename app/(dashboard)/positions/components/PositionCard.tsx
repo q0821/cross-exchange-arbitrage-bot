@@ -5,6 +5,7 @@
  * Feature 033: Manual Open Position (T019)
  * Feature 037: Mark Position Closed (T005)
  * Feature 045: Position Details View
+ * Feature 063: Frontend Data Caching (T014) - TanStack Query integration
  */
 
 'use client';
@@ -27,7 +28,7 @@ import {
 import type { PositionInfo, PositionStatus, ConditionalOrderStatus } from '@/src/types/trading';
 import type { ExchangeName } from '@/app/(dashboard)/market-monitor/types';
 import { getExchangeTradingUrl } from '@/app/(dashboard)/market-monitor/utils/formatArbitrageMessage';
-import { usePositionDetails } from '../hooks/usePositionDetails';
+import { usePositionDetailsQuery } from '@/hooks/queries/usePositionDetailsQuery';
 import { PositionDetailsPanel } from './PositionDetailsPanel';
 
 interface PositionCardProps {
@@ -142,25 +143,32 @@ export function PositionCard({
   const timeAgo = getTimeAgo(createdDate);
 
   // Feature 045: Position Details View
+  // Feature 063: Now using TanStack Query for caching
   const [isExpanded, setIsExpanded] = useState(false);
-  const { details, isLoading, error, fetchDetails, reset } = usePositionDetails();
 
   // 只有 OPEN 狀態才能查看詳情
   const canViewDetails = position.status === 'OPEN';
 
+  // TanStack Query - enabled only when expanded and can view details
+  const {
+    data: details,
+    isLoading,
+    error: queryError,
+    refetch,
+  } = usePositionDetailsQuery({
+    positionId: position.id,
+    enabled: isExpanded && canViewDetails,
+  });
+
+  const error = queryError?.message ?? null;
+
   const handleToggleDetails = useCallback(() => {
-    if (isExpanded) {
-      setIsExpanded(false);
-      reset();
-    } else {
-      setIsExpanded(true);
-      fetchDetails(position.id);
-    }
-  }, [isExpanded, position.id, fetchDetails, reset]);
+    setIsExpanded((prev) => !prev);
+  }, []);
 
   const handleRetry = useCallback(() => {
-    fetchDetails(position.id);
-  }, [position.id, fetchDetails]);
+    refetch();
+  }, [refetch]);
 
   return (
     <div className="glass-card border border-border shadow-xs hover:shadow-md transition-shadow">
@@ -330,7 +338,7 @@ export function PositionCard({
         {/* Position Details Panel (Feature 045) */}
         {isExpanded && canViewDetails && (
           <PositionDetailsPanel
-            details={details}
+            details={details ?? null}
             isLoading={isLoading}
             error={error}
             onRetry={handleRetry}

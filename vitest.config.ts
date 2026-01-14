@@ -32,7 +32,13 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      // Root-level directories (must be defined before @/)
       '@/app': path.resolve(__dirname, './app'),
+      '@/tests': path.resolve(__dirname, './tests'),
+      '@/lib': path.resolve(__dirname, './lib'),
+      '@/hooks': path.resolve(__dirname, './hooks'),
+      '@/components': path.resolve(__dirname, './components'),
+      // src/ directory aliases
       '@': path.resolve(__dirname, './src'),
       '@lib': path.resolve(__dirname, './src/lib'),
       '@models': path.resolve(__dirname, './src/models'),

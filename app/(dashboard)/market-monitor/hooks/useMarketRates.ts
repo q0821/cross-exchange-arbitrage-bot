@@ -6,12 +6,14 @@
  * Feature: 012-specify-scripts-bash (User Story 1 - T018)
  * Feature: 019-fix-time-basis-switching - 支援前端動態重新計算費率差
  * Feature: 036-opportunity-threshold-settings - 可配置年化收益門檻
+ * Feature: 063-frontend-data-caching (T025c) - TanStack Query 整合
  */
 
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { useMarketRatesQuery } from '@/hooks/queries/useMarketRatesQuery';
 import type { MarketRate, MarketRatesUpdatePayload, MarketStatsPayload } from '../types';
 import type { MarketStats } from '../components/StatsCard';
 import type { TimeBasis } from '../utils/preferences';
@@ -53,17 +55,27 @@ interface UseMarketRatesReturn {
  *
  * Feature 012: 支援標準化費率時間基準選擇
  * Feature 036: 支援可配置年化收益門檻
+ * Feature 063: TanStack Query 整合 - 初始資料使用快取
  */
 export function useMarketRates(): UseMarketRatesReturn {
   const [ratesMap, setRatesMap] = useState<Map<string, MarketRate>>(new Map());
   const [stats, setStats] = useState<MarketStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const [timeBasis, setTimeBasisState] = useState<TimeBasis>(() => getTimeBasisPreference());
   // Feature 036: 年化收益門檻狀態
   const [opportunityThreshold, setOpportunityThresholdState] = useState<number>(
     () => getOpportunityThresholdPreference()
   );
+
+  // Feature 063: TanStack Query 用於初始載入和跨頁面快取
+  const {
+    data: queryData,
+    isLoading: isQueryLoading,
+    error: queryError,
+    refetch: queryRefetch,
+  } = useMarketRatesQuery({ threshold: opportunityThreshold });
+
+  // WebSocket 錯誤狀態
+  const [wsError, setWsError] = useState<Error | null>(null);
 
   // WebSocket 連線
   const { isConnected, on, off, emit } = useWebSocket({
@@ -71,13 +83,14 @@ export function useMarketRates(): UseMarketRatesReturn {
       console.log('[useMarketRates] WebSocket connected');
       // 訂閱市場費率更新
       emit('subscribe:market-rates');
+      setWsError(null);
     },
     onDisconnect: () => {
       console.log('[useMarketRates] WebSocket disconnected');
     },
     onError: (err) => {
       console.error('[useMarketRates] WebSocket error:', err);
-      setError(err);
+      setWsError(err);
     },
   });
 
@@ -124,8 +137,6 @@ export function useMarketRates(): UseMarketRatesReturn {
       });
       return next;
     });
-    setIsLoading(false);
-    setError(null);
   }, [timeBasis, opportunityThreshold]);
 
   // 處理統計更新
@@ -189,42 +200,60 @@ export function useMarketRates(): UseMarketRatesReturn {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // 手動重新載入（從 REST API）
-  const reload = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/market-rates');
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.success) {
-        // Convert array to Map
-        const newMap = new Map<string, MarketRate>();
-        data.data.rates.forEach((rate: MarketRate) => {
-          newMap.set(rate.symbol, rate);
-        });
-        setRatesMap(newMap);
-        setStats(data.data.stats);
-      } else {
-        throw new Error(data.error?.message || 'Failed to fetch rates');
-      }
-    } catch (err) {
-      console.error('[useMarketRates] Failed to reload:', err);
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // 初始載入（從 REST API）
+  // Feature 063: 從 TanStack Query 初始化資料
   useEffect(() => {
-    reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 只在組件掛載時執行一次
+    if (queryData && ratesMap.size === 0) {
+      console.log('[useMarketRates] Initializing from TanStack Query cache');
+      const newMap = new Map<string, MarketRate>();
+      queryData.rates.forEach((rate) => {
+        // 轉換 SymbolRate 為 MarketRate 並重新計算 bestPair
+        const marketRate: MarketRate = {
+          symbol: rate.symbol,
+          exchanges: rate.exchanges as unknown as Record<string, import('../types').ExchangeRateData>,
+          bestPair: rate.bestPair ? {
+            longExchange: rate.bestPair.longExchange as import('../types').ExchangeName,
+            shortExchange: rate.bestPair.shortExchange as import('../types').ExchangeName,
+            spread: parseFloat(rate.bestPair.spreadPercent),
+            spreadPercent: parseFloat(rate.bestPair.spreadPercent),
+            annualizedReturn: parseFloat(rate.bestPair.annualizedReturn),
+            priceDiffPercent: rate.bestPair.priceDiffPercent ? parseFloat(rate.bestPair.priceDiffPercent) : null,
+          } : null,
+          status: rate.status,
+          timestamp: rate.timestamp,
+        };
+        // 根據當前 timeBasis 和 threshold 重新計算
+        const recalculatedRate = recalculateBestPair(marketRate, timeBasis, opportunityThreshold);
+        newMap.set(rate.symbol, recalculatedRate);
+      });
+      setRatesMap(newMap);
+      if (queryData.stats) {
+        setStats({
+          totalSymbols: queryData.stats.totalSymbols,
+          opportunityCount: queryData.stats.opportunityCount,
+          approachingCount: queryData.stats.approachingCount,
+          maxSpread: queryData.stats.maxSpread ? {
+            symbol: queryData.stats.maxSpread.symbol,
+            spread: parseFloat(queryData.stats.maxSpread.spread),
+          } : null,
+          uptime: queryData.stats.uptime,
+          lastUpdate: queryData.stats.lastUpdate,
+        });
+      }
+    }
+  }, [queryData, ratesMap.size, timeBasis, opportunityThreshold]);
+
+  // 手動重新載入（使用 TanStack Query refetch）
+  const reload = useCallback(async () => {
+    console.log('[useMarketRates] Manual reload via TanStack Query');
+    await queryRefetch();
+  }, [queryRefetch]);
+
+  // 計算 loading 和 error 狀態
+  const isLoading = isQueryLoading && ratesMap.size === 0;
+  // 合併 query error 和 WebSocket error，優先顯示 query error
+  const error = queryError
+    ? (queryError instanceof Error ? queryError : new Error(String(queryError)))
+    : wsError;
 
   return {
     ratesMap,
