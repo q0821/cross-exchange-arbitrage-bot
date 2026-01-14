@@ -466,22 +466,40 @@ export abstract class BaseExchangeWs extends EventEmitter {
     }
 
     // 嘗試解析訊息時間戳以計算延遲
-    try {
-      const message =
-        typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString());
+    // 注意：跳過 GZIP 壓縮的訊息（如 BingX），避免對二進制數據呼叫 toString() 產生記憶體垃圾
+    if (!this.isGzipCompressed(data)) {
+      try {
+        const message =
+          typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString());
 
-      // 嘗試從訊息中提取時間戳
-      const messageTime = this.extractMessageTimestamp(message);
-      if (messageTime) {
-        const latency = receiveTime - messageTime;
-        this.recordLatency(latency);
+        // 嘗試從訊息中提取時間戳
+        const messageTime = this.extractMessageTimestamp(message);
+        if (messageTime) {
+          const latency = receiveTime - messageTime;
+          this.recordLatency(latency);
+        }
+      } catch {
+        // 忽略解析錯誤，讓子類別處理
       }
-    } catch {
-      // 忽略解析錯誤，讓子類別處理
     }
 
     // 呼叫子類別的訊息處理器
     this.handleMessage(data);
+  }
+
+  /**
+   * 檢測數據是否為 GZIP 壓縮格式
+   * GZIP 的 magic number 是 0x1f 0x8b
+   *
+   * @param data 原始數據
+   * @returns 是否為 GZIP 壓縮
+   */
+  private isGzipCompressed(data: Buffer | string): boolean {
+    if (typeof data === 'string') {
+      return false; // 字串不可能是 GZIP
+    }
+    // Buffer: 檢查 magic number
+    return data.length >= 2 && data[0] === 0x1f && data[1] === 0x8b;
   }
 
   /**
