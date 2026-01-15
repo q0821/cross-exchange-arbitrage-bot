@@ -8,6 +8,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { AuthenticatedSocket } from '../SocketServer';
 import { ratesCache } from '../../services/monitor/RatesCache';
+import { getMonitorInstance } from '../../services/MonitorService';
 import { logger } from '@lib/logger';
 import { prisma } from '../../lib/db';
 import {
@@ -70,11 +71,16 @@ export class MarketRatesHandler {
         'Client subscribed to market rates',
       );
 
-      // 發送訂閱確認並附帶用戶偏好
+      // 獲取當前啟用的交易所列表
+      const monitorInstance = getMonitorInstance();
+      const activeExchanges = monitorInstance?.getStatus().connectedExchanges || [];
+
+      // 發送訂閱確認並附帶用戶偏好和啟用交易所
       socket.emit('subscribed:market-rates', {
         success: true,
         message: 'Subscribed to market rates updates',
         timeBasis: userTimeBasis,
+        activeExchanges,
       });
 
       // 立即發送一次當前數據

@@ -13,11 +13,23 @@ import * as Tooltip from '@radix-ui/react-tooltip';
 import { RateRow } from './RateRow';
 import { OpportunityStatus } from './StatusBadge';
 import { stableSortComparator } from '../utils/sortComparator';
-import type { SortField, SortDirection, MarketRate, TimeBasis } from '../types';
+import type { SortField, SortDirection, MarketRate, TimeBasis, ExchangeName } from '../types';
+
+/**
+ * 交易所顯示名稱對照表
+ */
+const EXCHANGE_DISPLAY_NAMES: Record<ExchangeName, string> = {
+  binance: 'Binance',
+  okx: 'OKX',
+  mexc: 'MEXC',
+  gateio: 'Gate.io',
+  bingx: 'BingX',
+};
 
 interface RatesTableProps {
   ratesMap: Map<string, MarketRate>;
   timeBasis: TimeBasis; // Feature 012: 用戶選擇的時間基準
+  activeExchanges: ExchangeName[]; // 後端啟用的交易所列表
   sortBy?: SortField;
   sortDirection?: SortDirection;
   filterStatus?: OpportunityStatus | 'all';
@@ -41,6 +53,7 @@ interface RatesTableProps {
 export function RatesTable({
   ratesMap,
   timeBasis,
+  activeExchanges,
   sortBy = 'symbol',
   sortDirection = 'asc',
   filterStatus = 'all',
@@ -146,31 +159,15 @@ export function RatesTable({
                 </div>
               </th>
 
-              {/* Binance 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Binance 費率
-              </th>
-
-              {/* OKX 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                OKX 費率
-              </th>
-
-              {/* MEXC 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                MEXC 費率
-              </th>
-
-              {/* Gate.io 費率 */}
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Gate.io 費率
-              </th>
-
-              {/* BingX 費率 - 暫時停用，資金費率數據不正確
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                BingX 費率
-              </th>
-              */}
+              {/* 動態渲染啟用的交易所費率表頭 */}
+              {activeExchanges.map((exchange) => (
+                <th
+                  key={exchange}
+                  className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                >
+                  {EXCHANGE_DISPLAY_NAMES[exchange]} 費率
+                </th>
+              ))}
 
               {/* 費率差異 */}
               <th
@@ -273,6 +270,7 @@ export function RatesTable({
                   key={rate.symbol}
                   rate={rate}
                   timeBasis={timeBasis}
+                  activeExchanges={activeExchanges}
                   onSymbolClick={onSymbolClick}
                   onQuickOpen={onQuickOpen}
                   isTracking={isTracking}

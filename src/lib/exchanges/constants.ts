@@ -12,18 +12,17 @@ import type {
 } from '@/types/exchange-links';
 
 /**
- * 目前啟用的交易所列表
+ * 預設啟用的交易所列表
  *
- * BingX 暫時停用 - 資金費率數據不正確
- * 停用日期：2026-01-15
- * 恢復方式：取消 'bingx' 的註解
+ * 實際啟用的交易所由 MONITORED_EXCHANGES 環境變數控制
+ * 若未設定環境變數，則使用此列表作為預設值
  */
 export const ACTIVE_EXCHANGES: SupportedExchange[] = [
   'binance',
   'okx',
   'mexc',
   'gateio',
-  // 'bingx', // 暫時停用 - 資金費率數據不正確
+  'bingx', // 由 MONITORED_EXCHANGES 環境變數控制
 ];
 
 /**

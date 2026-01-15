@@ -22,16 +22,12 @@ import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
 import { calculatePaybackPeriods } from '../utils/rateCalculations';
 import { getPriceRiskLevel, PRICE_DIFF_WARNING_THRESHOLD } from '@/lib/priceRisk';
 import { isArbitragePairRestricted } from '@/lib/trading-restrictions';
-import {
-  ACTIVE_EXCHANGE_LIST,
-  type ExchangeName,
-  type MarketRate,
-  type TimeBasis,
-} from '../types';
+import type { ExchangeName, MarketRate, TimeBasis } from '../types';
 
 interface RateRowProps {
   rate: MarketRate;
   timeBasis: TimeBasis; // Feature 012: 用戶選擇的時間基準
+  activeExchanges: ExchangeName[]; // 後端啟用的交易所列表
   onSymbolClick?: (symbol: string) => void;
   onQuickOpen?: (rate: MarketRate) => void;
   // Feature 029: 追蹤功能
@@ -48,6 +44,7 @@ interface RateRowProps {
 export const RateRow = memo(function RateRow({
   rate,
   timeBasis,
+  activeExchanges,
   onSymbolClick,
   onQuickOpen,
   isTracking = false,
@@ -136,8 +133,8 @@ export const RateRow = memo(function RateRow({
     }
   };
 
-  // 交易所列表（使用啟用的交易所）
-  const exchangeList: ExchangeName[] = ACTIVE_EXCHANGE_LIST;
+  // 交易所列表（使用後端啟用的交易所）
+  const exchangeList: ExchangeName[] = activeExchanges;
 
   // 渲染交易所費率單元格
   const renderExchangeCell = (exchangeName: ExchangeName) => {

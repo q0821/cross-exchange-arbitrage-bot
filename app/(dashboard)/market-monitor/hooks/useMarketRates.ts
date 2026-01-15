@@ -14,7 +14,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useMarketRatesQuery } from '@/hooks/queries/useMarketRatesQuery';
-import type { MarketRate, MarketRatesUpdatePayload, MarketStatsPayload } from '../types';
+import { DEFAULT_EXCHANGE_LIST } from '../types';
+import type { MarketRate, MarketRatesUpdatePayload, MarketStatsPayload, ExchangeName } from '../types';
 import type { MarketStats } from '../components/StatsCard';
 import type { TimeBasis } from '../utils/preferences';
 import {
@@ -47,6 +48,8 @@ interface UseMarketRatesReturn {
   opportunityThreshold: number;
   /** 設置年化收益門檻 (Feature 036) */
   setOpportunityThreshold: (threshold: number) => void;
+  /** 後端啟用的交易所列表 */
+  activeExchanges: ExchangeName[];
 }
 
 /**
@@ -65,6 +68,8 @@ export function useMarketRates(): UseMarketRatesReturn {
   const [opportunityThreshold, setOpportunityThresholdState] = useState<number>(
     () => getOpportunityThresholdPreference()
   );
+  // 後端啟用的交易所列表（從 WebSocket 訂閱響應獲取）
+  const [activeExchanges, setActiveExchanges] = useState<ExchangeName[]>(DEFAULT_EXCHANGE_LIST);
 
   // Feature 063: TanStack Query 用於初始載入和跨頁面快取
   const {
@@ -94,8 +99,8 @@ export function useMarketRates(): UseMarketRatesReturn {
     },
   });
 
-  // 處理訂閱確認（包含伺服器端的 timeBasis 偏好）
-  const handleSubscribed = useCallback((data: { success: boolean; timeBasis?: number }) => {
+  // 處理訂閱確認（包含伺服器端的 timeBasis 偏好和啟用交易所列表）
+  const handleSubscribed = useCallback((data: { success: boolean; timeBasis?: number; activeExchanges?: string[] }) => {
     console.log('[useMarketRates] Subscribed to market rates:', data);
     if (data.success && data.timeBasis && [1, 4, 8, 24].includes(data.timeBasis)) {
       // 使用伺服器端儲存的用戶偏好
@@ -103,6 +108,11 @@ export function useMarketRates(): UseMarketRatesReturn {
       setTimeBasisState(serverTimeBasis);
       setTimeBasisPreference(serverTimeBasis); // 同步更新 localStorage
       console.log('[useMarketRates] Using server-side timeBasis preference:', serverTimeBasis);
+    }
+    // 更新啟用的交易所列表
+    if (data.success && data.activeExchanges && data.activeExchanges.length > 0) {
+      setActiveExchanges(data.activeExchanges as ExchangeName[]);
+      console.log('[useMarketRates] Active exchanges from server:', data.activeExchanges);
     }
   }, []);
 
@@ -266,5 +276,6 @@ export function useMarketRates(): UseMarketRatesReturn {
     setTimeBasis: handleSetTimeBasis,
     opportunityThreshold,
     setOpportunityThreshold: handleSetOpportunityThreshold,
+    activeExchanges,
   };
 }
