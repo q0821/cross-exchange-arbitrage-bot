@@ -13,6 +13,7 @@ import { join } from 'path';
 import '../lib/db';
 // 記憶體監控
 import { startMemoryMonitor, stopMemoryMonitor } from '../lib/memory-monitor';
+import { ACTIVE_EXCHANGES } from '../lib/exchanges/constants';
 
 interface SymbolsConfig {
   groups: {
@@ -72,9 +73,11 @@ export async function startMonitorService(): Promise<void> {
     const updateInterval = parseInt(process.env.FUNDING_RATE_CHECK_INTERVAL_MS || '300000', 10);
     const minSpreadThreshold = parseFloat(process.env.MIN_SPREAD_THRESHOLD || '0.005');
 
-    // 從環境變數讀取要監控的交易所列表（逗號分隔），預設為所有 5 個交易所
-    const exchangesEnv = process.env.MONITORED_EXCHANGES || 'binance,okx,mexc,gateio,bingx';
-    const exchanges = exchangesEnv.split(',').map((e) => e.trim()) as ('binance' | 'okx' | 'mexc' | 'gateio' | 'bingx')[];
+    // 從環境變數讀取要監控的交易所列表（逗號分隔），預設為 ACTIVE_EXCHANGES
+    const exchangesEnv = process.env.MONITORED_EXCHANGES;
+    const exchanges = exchangesEnv
+      ? exchangesEnv.split(',').map((e) => e.trim()) as ('binance' | 'okx' | 'mexc' | 'gateio' | 'bingx')[]
+      : [...ACTIVE_EXCHANGES];
 
     // 從環境變數讀取是否啟用 WebSocket 價格監控
     const enablePriceMonitor = process.env.ENABLE_PRICE_MONITOR !== 'false'; // 預設啟用
