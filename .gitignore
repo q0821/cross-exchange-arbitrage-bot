@@ -75,3 +75,8 @@ test-results/
 playwright-report/
 playwright/.cache/
 .claude/settings.local.json
+
+# Development notes
+b2e-dev.md
+f2e-dev.md
+code-review.md
