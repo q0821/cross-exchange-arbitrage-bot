@@ -12,6 +12,28 @@ import type {
 } from '@/types/exchange-links';
 
 /**
+ * 目前啟用的交易所列表
+ *
+ * BingX 暫時停用 - 資金費率數據不正確
+ * 停用日期：2026-01-15
+ * 恢復方式：取消 'bingx' 的註解
+ */
+export const ACTIVE_EXCHANGES: SupportedExchange[] = [
+  'binance',
+  'okx',
+  'mexc',
+  'gateio',
+  // 'bingx', // 暫時停用 - 資金費率數據不正確
+];
+
+/**
+ * 檢查交易所是否目前啟用
+ */
+export function isExchangeActive(exchange: SupportedExchange): boolean {
+  return ACTIVE_EXCHANGES.includes(exchange);
+}
+
+/**
  * Exchange URL configurations
  *
  * Defines URL templates and symbol formatting logic for each supported exchange
@@ -186,7 +208,7 @@ export function filterSupportedSymbols(
  */
 export function getUniversallySupportedSymbols(
   symbols: string[],
-  exchanges: SupportedExchange[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx']
+  exchanges: SupportedExchange[] = ACTIVE_EXCHANGES
 ): string[] {
   return symbols.filter((symbol) =>
     exchanges.every((exchange) => isSymbolSupported(exchange, symbol))

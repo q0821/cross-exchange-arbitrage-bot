@@ -17,7 +17,7 @@ import { PriceMonitor } from './PriceMonitor.js';
 import { ArbitrageAssessor, type ArbitrageConfig, type ArbitrageAssessment } from '../assessment/ArbitrageAssessor.js';
 import type { TimeBasis } from '../../lib/validation/fundingRateSchemas';
 import { FundingRateNormalizer } from './FundingRateNormalizer';
-import { isSymbolSupported } from '../../lib/exchanges/constants';
+import { isSymbolSupported, ACTIVE_EXCHANGES } from '../../lib/exchanges/constants';
 import type { SupportedExchange } from '../../types/exchange-links';
 
 /**
@@ -102,8 +102,8 @@ export class FundingRateMonitor extends EventEmitter {
     this.symbols = symbols;
     this.updateInterval = updateInterval;
 
-    // 從選項中獲取交易所列表，預設為 binance, okx, mexc, gateio, bingx
-    this.exchangeNames = options?.exchanges || ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
+    // 從選項中獲取交易所列表，預設為 ACTIVE_EXCHANGES
+    this.exchangeNames = options?.exchanges || [...ACTIVE_EXCHANGES];
 
     // 創建所有交易所的連接器
     for (const exchangeName of this.exchangeNames) {

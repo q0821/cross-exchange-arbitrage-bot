@@ -22,10 +22,11 @@ import { formatArbitrageMessage } from '../utils/formatArbitrageMessage';
 import { calculatePaybackPeriods } from '../utils/rateCalculations';
 import { getPriceRiskLevel, PRICE_DIFF_WARNING_THRESHOLD } from '@/lib/priceRisk';
 import { isArbitragePairRestricted } from '@/lib/trading-restrictions';
-import type {
-  ExchangeName,
-  MarketRate,
-  TimeBasis,
+import {
+  ACTIVE_EXCHANGE_LIST,
+  type ExchangeName,
+  type MarketRate,
+  type TimeBasis,
 } from '../types';
 
 interface RateRowProps {
@@ -135,8 +136,8 @@ export const RateRow = memo(function RateRow({
     }
   };
 
-  // 交易所列表（固定順序）
-  const exchangeList: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
+  // 交易所列表（使用啟用的交易所）
+  const exchangeList: ExchangeName[] = ACTIVE_EXCHANGE_LIST;
 
   // 渲染交易所費率單元格
   const renderExchangeCell = (exchangeName: ExchangeName) => {

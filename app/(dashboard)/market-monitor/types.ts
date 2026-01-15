@@ -5,6 +5,20 @@
  */
 
 export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
+
+/**
+ * 目前啟用的交易所列表（前端顯示用）
+ * BingX 暫時停用 - 資金費率數據不正確
+ * 停用日期：2026-01-15
+ */
+export const ACTIVE_EXCHANGE_LIST: ExchangeName[] = [
+  'binance',
+  'okx',
+  'mexc',
+  'gateio',
+  // 'bingx', // 暫時停用 - 資金費率數據不正確
+];
+
 export type TimeBasis = 1 | 4 | 8 | 24;
 
 export interface ExchangeRateData {

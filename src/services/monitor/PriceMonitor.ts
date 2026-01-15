@@ -20,6 +20,7 @@ import { OkxFundingWs } from '../websocket/OkxFundingWs.js';
 import { GateioFundingWs } from '../websocket/GateioFundingWs.js';
 import { BingxFundingWs } from '../websocket/BingxFundingWs.js';
 import { DataSourceManager } from './DataSourceManager.js';
+import { isExchangeActive } from '../../lib/exchanges/constants.js';
 
 /**
  * 價格監控配置
@@ -446,7 +447,11 @@ export class PriceMonitor extends EventEmitter {
     await this.startGateioWebSocket();
 
     // 啟動 BingX WebSocket (Feature 054: 原生客戶端)
-    await this.startBingxWebSocket();
+    if (isExchangeActive('bingx')) {
+      await this.startBingxWebSocket();
+    } else {
+      logger.info({ exchange: 'bingx' }, 'BingX WebSocket skipped (exchange not active)');
+    }
 
     // 啟動 MEXC WebSocket (Feature 052: T019 - 仍使用 CCXT)
     await this.startMexcWebSocket();

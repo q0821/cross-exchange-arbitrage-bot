@@ -166,10 +166,11 @@ export function RatesTable({
                 Gate.io 費率
               </th>
 
-              {/* BingX 費率 */}
+              {/* BingX 費率 - 暫時停用，資金費率數據不正確
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 BingX 費率
               </th>
+              */}
 
               {/* 費率差異 */}
               <th
