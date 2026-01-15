@@ -83,8 +83,11 @@ async function fetchPositions(options: UsePositionsQueryOptions): Promise<Positi
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `Failed to fetch positions: ${response.status}`);
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    // API 回傳格式為 { error: { code, message, details } } 或 { error: string }
+    const errorMessage =
+      typeof errorData.error === 'object' ? errorData.error?.message : errorData.error;
+    throw new Error(errorMessage || `Failed to fetch positions: ${response.status}`);
   }
 
   const result = await response.json();

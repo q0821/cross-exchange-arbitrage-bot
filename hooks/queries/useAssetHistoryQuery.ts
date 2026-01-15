@@ -51,8 +51,11 @@ async function fetchAssetHistory(days: number): Promise<AssetHistoryData> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `Failed to fetch asset history: ${response.status}`);
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    // API 回傳格式為 { error: { code, message, details } } 或 { error: string }
+    const errorMessage =
+      typeof errorData.error === 'object' ? errorData.error?.message : errorData.error;
+    throw new Error(errorMessage || `Failed to fetch asset history: ${response.status}`);
   }
 
   const result = await response.json();
