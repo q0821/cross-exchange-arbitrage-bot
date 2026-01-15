@@ -4,54 +4,45 @@
  *
  * Feature 031: Asset Tracking History (T014)
  * Feature 052: WebSocket 即時餘額更新 (T073)
+ * Feature 063: Frontend Data Caching (T022) - TanStack Query integration
  */
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Wallet, RefreshCw, AlertCircle, TrendingUp, ArrowUp, ArrowDown, Layers, ChevronDown, ChevronUp, Radio } from 'lucide-react';
 import { TotalAssetCard } from './components/TotalAssetCard';
 import { AssetSummaryCard } from './components/AssetSummaryCard';
 import { TimeRangeSelector } from './components/TimeRangeSelector';
-import { AssetHistoryChart, HistoryDataPoint } from './components/AssetHistoryChart';
+import { AssetHistoryChart, type HistoryDataPoint } from './components/AssetHistoryChart';
 import { PositionTable } from './components/PositionTable';
-import { useBalanceSocket, BalanceUpdate } from './hooks/useBalanceSocket';
+import { useAssetsQuery } from '@/hooks/queries/useAssetsQuery';
+import { useAssetHistoryQuery, type HistorySnapshot } from '@/hooks/queries/useAssetHistoryQuery';
+import { useSocket } from '@/hooks/useSocket';
+
+type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
+type ConnectionStatus = 'success' | 'no_api_key' | 'api_error' | 'rate_limited';
 
 /**
- * 單一交易所餘額資料
+ * 將 API 回傳的 status 映射為 AssetSummaryCard 需要的格式
  */
-interface ExchangeBalance {
-  exchange: 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
-  status: 'success' | 'no_api_key' | 'api_error' | 'rate_limited';
-  balanceUSD: number | null;
-  errorMessage?: string;
+function mapApiStatus(status: string): ConnectionStatus {
+  if (status === 'error') return 'api_error';
+  return status as ConnectionStatus;
 }
 
 /**
- * API 回應資料
+ * 將 HistorySnapshot 轉換為 HistoryDataPoint 格式
  */
-interface AssetsData {
-  exchanges: ExchangeBalance[];
-  totalBalanceUSD: number;
-  lastUpdated: string;
-}
-
-/**
- * 歷史曲線資料
- */
-interface HistoryData {
-  snapshots: HistoryDataPoint[];
-  period: {
-    days: number;
-    from: string;
-    to: string;
-  };
-  summary: {
-    startTotal: number | null;
-    endTotal: number | null;
-    changeUSD: number | null;
-    changePercent: number | null;
-  };
+function transformHistoryData(snapshots: HistorySnapshot[]): HistoryDataPoint[] {
+  return snapshots.map((snapshot) => ({
+    timestamp: snapshot.timestamp,
+    binance: snapshot.binanceBalanceUSD ?? null,
+    okx: snapshot.okxBalanceUSD ?? null,
+    mexc: snapshot.mexcBalanceUSD ?? null,
+    gate: snapshot.gateioBalanceUSD ?? null,
+    total: snapshot.totalBalanceUSD,
+  }));
 }
 
 type TimeRange = 7 | 14 | 30;
@@ -86,131 +77,42 @@ interface PositionsData {
 }
 
 export default function AssetsPage() {
-  const [assetsData, setAssetsData] = useState<AssetsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // 歷史曲線狀態
-  const [historyData, setHistoryData] = useState<HistoryData | null>(null);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  // 時間範圍狀態
   const [timeRange, setTimeRange] = useState<TimeRange>(7);
 
-  // 持倉狀態
-  const [positionsData, setPositionsData] = useState<PositionsData | null>(null);
-  const [isLoadingPositions, setIsLoadingPositions] = useState(true);
+  // 持倉展開狀態
   const [isPositionsExpanded, setIsPositionsExpanded] = useState(false);
 
-  // WebSocket 連線狀態
-  const [isWsConnected, setIsWsConnected] = useState(false);
+  // 持倉資料狀態 (保持現有邏輯，後續可改為 TanStack Query)
+  const [positionsData, setPositionsData] = useState<PositionsData | null>(null);
+  const [isLoadingPositions, setIsLoadingPositions] = useState(true);
+
+  // WebSocket 連線狀態 (來自 useAssetsQuery 內部的 useSocket)
+  const { isConnected: isWsConnected } = useSocket();
   const [lastWsUpdate, setLastWsUpdate] = useState<Date | null>(null);
 
-  // 處理 WebSocket 餘額更新
-  const handleBalanceUpdate = useCallback((data: BalanceUpdate) => {
-    setLastWsUpdate(new Date());
+  // TanStack Query for assets (includes WebSocket integration)
+  const {
+    data: assetsData,
+    isLoading: isLoadingAssets,
+    isRefetching: isRefreshingAssets,
+    error: assetsError,
+    refetch: refetchAssets,
+  } = useAssetsQuery();
 
-    // 更新對應交易所的餘額
-    setAssetsData((prev) => {
-      if (!prev) return prev;
+  // TanStack Query for history
+  const {
+    data: historyData,
+    isLoading: isLoadingHistory,
+  } = useAssetHistoryQuery({ days: timeRange });
 
-      // 只更新 USDT 餘額（主要計算貨幣）
-      if (data.asset !== 'USDT') return prev;
+  // 將 historyData 轉換為 Chart 需要的格式
+  const chartData = useMemo<HistoryDataPoint[]>(() => {
+    if (!historyData?.snapshots) return [];
+    return transformHistoryData(historyData.snapshots);
+  }, [historyData?.snapshots]);
 
-      const exchangeName = data.exchange as ExchangeBalance['exchange'];
-      const newBalance = parseFloat(data.balance);
-
-      const updatedExchanges = prev.exchanges.map((ex) => {
-        if (ex.exchange === exchangeName && ex.status === 'success') {
-          return { ...ex, balanceUSD: newBalance };
-        }
-        return ex;
-      });
-
-      const newTotal = updatedExchanges.reduce(
-        (sum, ex) => sum + (ex.balanceUSD ?? 0),
-        0
-      );
-
-      return {
-        ...prev,
-        exchanges: updatedExchanges,
-        totalBalanceUSD: newTotal,
-        lastUpdated: new Date().toISOString(),
-      };
-    });
-  }, []);
-
-  // WebSocket 連線
-  useBalanceSocket({
-    enabled: true,
-    onBalanceUpdate: handleBalanceUpdate,
-    onConnectionChange: setIsWsConnected,
-  });
-
-  // 獲取資產資料
-  const fetchAssets = useCallback(async (refresh = false) => {
-    try {
-      setError(null);
-      if (refresh) {
-        setIsRefreshing(true);
-      }
-
-      const url = refresh ? '/api/assets?refresh=true' : '/api/assets';
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          setError('請先登入');
-          return;
-        }
-        if (response.status === 429) {
-          setError('請求過於頻繁，請稍後再試');
-          return;
-        }
-        throw new Error('Failed to fetch assets');
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        setAssetsData(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch assets:', err);
-      setError('無法載入資產資料');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  // 獲取歷史曲線資料
-  const fetchHistory = useCallback(async (days: TimeRange) => {
-    try {
-      setIsLoadingHistory(true);
-
-      const response = await fetch(`/api/assets/history?days=${days}`);
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          return;
-        }
-        throw new Error('Failed to fetch history');
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.data) {
-        setHistoryData(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch history:', err);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  }, []);
-
-  // 獲取持倉資料
+  // 獲取持倉資料 (保持現有邏輯)
   const fetchPositions = useCallback(async () => {
     try {
       setIsLoadingPositions(true);
@@ -236,19 +138,27 @@ export default function AssetsPage() {
     }
   }, []);
 
-  // 初始載入
+  // 初始載入持倉
   useEffect(() => {
-    fetchAssets();
-    fetchHistory(timeRange);
     fetchPositions();
-  }, [fetchAssets, fetchHistory, fetchPositions, timeRange]);
+  }, [fetchPositions]);
+
+  // 追蹤 WebSocket 更新時間
+  useEffect(() => {
+    if (assetsData?.lastUpdated) {
+      setLastWsUpdate(new Date(assetsData.lastUpdated));
+    }
+  }, [assetsData?.lastUpdated]);
 
   // 手動刷新
-  const handleRefresh = () => {
-    if (!isRefreshing) {
-      fetchAssets(true);
-    }
+  const handleRefresh = async () => {
+    await refetchAssets();
   };
+
+  // 狀態映射
+  const isLoading = isLoadingAssets;
+  const isRefreshing = isRefreshingAssets;
+  const error = assetsError?.message ?? null;
 
   // 檢查是否有任何 API Key 設定
   const hasAnyApiKey =
@@ -276,7 +186,7 @@ export default function AssetsPage() {
             <AlertCircle className="w-12 h-12 text-loss mb-4" />
             <p className="text-loss text-lg">{error}</p>
             <button
-              onClick={() => fetchAssets()}
+              onClick={() => refetchAssets()}
               className="mt-4 px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors"
             >
               重試
@@ -360,8 +270,8 @@ export default function AssetsPage() {
             {assetsData.exchanges.map((exchange) => (
               <AssetSummaryCard
                 key={exchange.exchange}
-                exchange={exchange.exchange}
-                status={exchange.status}
+                exchange={exchange.exchange as ExchangeName}
+                status={mapApiStatus(exchange.status)}
                 balanceUSD={exchange.balanceUSD}
               />
             ))}
@@ -445,7 +355,7 @@ export default function AssetsPage() {
 
           {/* 曲線圖表 */}
           <AssetHistoryChart
-            data={historyData?.snapshots ?? []}
+            data={chartData}
             isLoading={isLoadingHistory}
           />
         </div>

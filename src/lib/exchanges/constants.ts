@@ -12,6 +12,27 @@ import type {
 } from '@/types/exchange-links';
 
 /**
+ * 預設啟用的交易所列表
+ *
+ * 實際啟用的交易所由 MONITORED_EXCHANGES 環境變數控制
+ * 若未設定環境變數，則使用此列表作為預設值
+ */
+export const ACTIVE_EXCHANGES: SupportedExchange[] = [
+  'binance',
+  'okx',
+  'mexc',
+  'gateio',
+  'bingx', // 由 MONITORED_EXCHANGES 環境變數控制
+];
+
+/**
+ * 檢查交易所是否目前啟用
+ */
+export function isExchangeActive(exchange: SupportedExchange): boolean {
+  return ACTIVE_EXCHANGES.includes(exchange);
+}
+
+/**
  * Exchange URL configurations
  *
  * Defines URL templates and symbol formatting logic for each supported exchange
@@ -186,7 +207,7 @@ export function filterSupportedSymbols(
  */
 export function getUniversallySupportedSymbols(
   symbols: string[],
-  exchanges: SupportedExchange[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx']
+  exchanges: SupportedExchange[] = ACTIVE_EXCHANGES
 ): string[] {
   return symbols.filter((symbol) =>
     exchanges.every((exchange) => isSymbolSupported(exchange, symbol))

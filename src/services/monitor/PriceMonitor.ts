@@ -446,7 +446,10 @@ export class PriceMonitor extends EventEmitter {
     await this.startGateioWebSocket();
 
     // 啟動 BingX WebSocket (Feature 054: 原生客戶端)
-    await this.startBingxWebSocket();
+    // 只有當 bingx 在 connectors 中時才啟動
+    if (this.connectors.has('bingx')) {
+      await this.startBingxWebSocket();
+    }
 
     // 啟動 MEXC WebSocket (Feature 052: T019 - 仍使用 CCXT)
     await this.startMexcWebSocket();

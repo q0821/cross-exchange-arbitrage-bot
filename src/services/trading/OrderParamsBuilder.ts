@@ -7,12 +7,23 @@
  */
 
 import { logger } from '@/lib/logger';
+import { TradingError } from '@/lib/errors/trading-errors';
 import type {
   HedgeModeConfig,
   IOrderParamsBuilder,
   OrderParams,
   SupportedExchange,
 } from '@/types/trading';
+
+/**
+ * 支援的交易所列表
+ */
+const SUPPORTED_EXCHANGES: SupportedExchange[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
+
+/**
+ * 有效的買賣方向
+ */
+const VALID_SIDES = ['buy', 'sell'] as const;
 
 /**
  * 訂單參數建構器
@@ -45,6 +56,26 @@ export class OrderParamsBuilder implements IOrderParamsBuilder {
     side: 'buy' | 'sell',
     hedgeMode: HedgeModeConfig,
   ): OrderParams {
+    // 驗證交易所
+    if (!SUPPORTED_EXCHANGES.includes(exchange)) {
+      throw new TradingError(
+        `Unsupported exchange: ${exchange}`,
+        'UNSUPPORTED_EXCHANGE',
+        false,
+        { exchange, supportedExchanges: SUPPORTED_EXCHANGES },
+      );
+    }
+
+    // 驗證 side
+    if (!VALID_SIDES.includes(side)) {
+      throw new TradingError(
+        `Invalid side: ${side}. Must be 'buy' or 'sell'`,
+        'INVALID_SIDE',
+        false,
+        { side, validSides: VALID_SIDES },
+      );
+    }
+
     // Binance Hedge Mode
     if (exchange === 'binance' && hedgeMode.enabled) {
       const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
@@ -75,21 +106,43 @@ export class OrderParamsBuilder implements IOrderParamsBuilder {
    * 建構平倉參數
    *
    * 平倉邏輯（與開倉方向相反）：
-   * - 平多倉: closeSide='sell', positionSide='LONG'/posSide='long'
-   * - 平空倉: closeSide='buy', positionSide='SHORT'/posSide='short'
+   * - 平多倉: side='buy'（原始開倉方向）→ closeSide='sell', positionSide='LONG'/posSide='long'
+   * - 平空倉: side='sell'（原始開倉方向）→ closeSide='buy', positionSide='SHORT'/posSide='short'
    *
-   * 注意：positionSide 參數是原始持倉的方向，不是平倉訂單的方向
+   * 重要：positionSide 參數代表**原始開倉時的方向**，而不是平倉訂單的實際方向。
+   * 例如：要平掉一個做多的倉位，傳入 positionSide='buy'，
+   * 函數會產生 sell 方向的訂單，並帶上 positionSide='LONG' 參數。
    *
-   * @param exchange - 交易所類型
-   * @param positionSide - 原始持倉的買賣方向（buy=多倉, sell=空倉）
+   * @param exchange - 交易所類型（binance, okx, mexc, gateio, bingx）
+   * @param positionSide - **原始開倉時的方向**（buy=多倉, sell=空倉），不是平倉訂單的方向
    * @param hedgeMode - Hedge Mode 配置
-   * @returns 訂單參數
+   * @returns 訂單參數（Binance/BingX: positionSide, OKX: posSide+tdMode, One-way: reduceOnly）
    */
   buildCloseParams(
     exchange: SupportedExchange,
     positionSide: 'buy' | 'sell',
     hedgeMode: HedgeModeConfig,
   ): OrderParams {
+    // 驗證交易所
+    if (!SUPPORTED_EXCHANGES.includes(exchange)) {
+      throw new TradingError(
+        `Unsupported exchange: ${exchange}`,
+        'UNSUPPORTED_EXCHANGE',
+        false,
+        { exchange, supportedExchanges: SUPPORTED_EXCHANGES },
+      );
+    }
+
+    // 驗證 positionSide
+    if (!VALID_SIDES.includes(positionSide)) {
+      throw new TradingError(
+        `Invalid positionSide: ${positionSide}. Must be 'buy' or 'sell'`,
+        'INVALID_POSITION_SIDE',
+        false,
+        { positionSide, validSides: VALID_SIDES },
+      );
+    }
+
     // Binance Hedge Mode
     // positionSide='buy' 代表原本是做多，要用 sell 平倉，positionSide='LONG'
     // positionSide='sell' 代表原本是做空，要用 buy 平倉，positionSide='SHORT'

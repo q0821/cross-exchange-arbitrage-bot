@@ -8,15 +8,11 @@
  */
 
 import { logger } from '@/lib/logger';
-import type { BinanceAccountInfo, IBinanceAccountDetector } from '@/types/trading';
-
-/**
- * CCXT Binance Exchange 類型定義
- */
-interface CcxtBinanceExchange {
-  fapiPrivateGetPositionSideDual: () => Promise<{ dualSidePosition?: boolean | string }>;
-  papiGetUmPositionSideDual: () => Promise<{ dualSidePosition?: boolean | string }>;
-}
+import type {
+  BinanceAccountInfo,
+  CcxtExchange,
+  IBinanceAccountDetector,
+} from '@/types/trading';
 
 /**
  * Binance 帳戶類型偵測服務
@@ -36,34 +32,38 @@ export class BinanceAccountDetector implements IBinanceAccountDetector {
    * @param ccxtExchange - CCXT Binance 交易所實例
    * @returns 帳戶資訊（isPortfolioMargin, isHedgeMode）
    */
-  async detect(ccxtExchange: unknown): Promise<BinanceAccountInfo> {
-    const exchange = ccxtExchange as CcxtBinanceExchange;
-
+  async detect(ccxtExchange: CcxtExchange): Promise<BinanceAccountInfo> {
     // 先嘗試標準 Futures API
-    try {
-      const result = await exchange.fapiPrivateGetPositionSideDual();
-      const isHedgeMode = result?.dualSidePosition === true || result?.dualSidePosition === 'true';
-      logger.info({ isHedgeMode, result }, 'Binance standard Futures account detected');
-      return { isPortfolioMargin: false, isHedgeMode };
-    } catch (fapiError: unknown) {
-      const fapiErrorMsg = fapiError instanceof Error ? fapiError.message : String(fapiError);
-      logger.warn({ error: fapiErrorMsg }, 'Standard Futures API failed, trying Portfolio Margin');
+    if (typeof ccxtExchange.fapiPrivateGetPositionSideDual === 'function') {
+      try {
+        const result = await ccxtExchange.fapiPrivateGetPositionSideDual();
+        const isHedgeMode = result?.dualSidePosition === true || result?.dualSidePosition === 'true';
+        logger.info({ isHedgeMode, result }, 'Binance standard Futures account detected');
+        return { isPortfolioMargin: false, isHedgeMode };
+      } catch (fapiError: unknown) {
+        const fapiErrorMsg = fapiError instanceof Error ? fapiError.message : String(fapiError);
+        // 使用 debug 而非 warn，因為 Portfolio Margin 帳戶本來就會在此失敗
+        logger.debug({ error: fapiErrorMsg }, 'Standard Futures API failed, trying Portfolio Margin');
+      }
     }
 
-    // 標準 API 失敗，嘗試 Portfolio Margin API
-    try {
-      const papiResult = await exchange.papiGetUmPositionSideDual();
-      const isHedgeMode = papiResult?.dualSidePosition === true || papiResult?.dualSidePosition === 'true';
-      logger.info({ isHedgeMode, papiResult }, 'Binance Portfolio Margin account detected');
-      return { isPortfolioMargin: true, isHedgeMode };
-    } catch (papiError: unknown) {
-      const papiErrorMsg = papiError instanceof Error ? papiError.message : String(papiError);
-      logger.warn({ error: papiErrorMsg }, 'Portfolio Margin API also failed');
+    // 標準 API 失敗或不存在，嘗試 Portfolio Margin API
+    if (typeof ccxtExchange.papiGetUmPositionSideDual === 'function') {
+      try {
+        const papiResult = await ccxtExchange.papiGetUmPositionSideDual();
+        const isHedgeMode = papiResult?.dualSidePosition === true || papiResult?.dualSidePosition === 'true';
+        logger.info({ isHedgeMode, papiResult }, 'Binance Portfolio Margin account detected');
+        return { isPortfolioMargin: true, isHedgeMode };
+      } catch (papiError: unknown) {
+        const papiErrorMsg = papiError instanceof Error ? papiError.message : String(papiError);
+        // 使用 debug 而非 warn，因為標準帳戶本來就會在此失敗
+        logger.debug({ error: papiErrorMsg }, 'Portfolio Margin API also failed');
+      }
     }
 
     // 無法偵測，使用預設值（標準帳戶 + One-way Mode）
-    logger.info('Binance account type detection failed, defaulting to standard + One-way Mode');
-    return { isPortfolioMargin: false, isHedgeMode: false };
+    logger.warn('Binance account type detection failed, defaulting to standard + One-way Mode');
+    return { isPortfolioMargin: false, isHedgeMode: false, detectionFailed: true };
   }
 }
 

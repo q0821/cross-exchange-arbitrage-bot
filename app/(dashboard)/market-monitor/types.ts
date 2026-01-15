@@ -5,6 +5,21 @@
  */
 
 export type ExchangeName = 'binance' | 'okx' | 'mexc' | 'gateio' | 'bingx';
+
+/**
+ * 預設交易所列表（前端 fallback 用）
+ *
+ * 實際啟用的交易所由後端 WebSocket 訂閱響應的 activeExchanges 決定
+ * 此列表僅作為後端尚未回應前的預設值
+ */
+export const DEFAULT_EXCHANGE_LIST: ExchangeName[] = [
+  'binance',
+  'okx',
+  'mexc',
+  'gateio',
+  'bingx',
+];
+
 export type TimeBasis = 1 | 4 | 8 | 24;
 
 export interface ExchangeRateData {

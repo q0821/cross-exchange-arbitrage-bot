@@ -3,59 +3,33 @@
  *
  * 顯示用戶的所有已平倉交易記錄
  * Feature: 035-close-position (T017)
+ * Feature 063: Frontend Data Caching (T015c) - TanStack Query integration
  */
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
 import { History, RefreshCw, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { TradeCard } from './components/TradeCard';
 import { TradeCardSkeletonList } from './components/TradeCardSkeleton';
-import type { TradePerformanceInfo } from '@/src/types/trading';
-
-interface TradesResponse {
-  success: boolean;
-  data: {
-    trades: TradePerformanceInfo[];
-    total: number;
-  };
-}
+import { useTradesQuery } from '@/hooks/queries/useTradesQuery';
 
 export default function TradesPage() {
-  const [trades, setTrades] = useState<TradePerformanceInfo[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // TanStack Query for trades data
+  const {
+    data,
+    isLoading,
+    isRefetching,
+    error: queryError,
+    refetch,
+  } = useTradesQuery({ limit: 50 });
 
-  const fetchTrades = useCallback(async () => {
-    try {
-      const response = await fetch('/api/trades?limit=50');
-      const data: TradesResponse = await response.json();
-
-      if (data.success) {
-        setTrades(data.data.trades);
-        setTotal(data.data.total);
-        setError(null);
-      } else {
-        setError('無法載入交易歷史');
-      }
-    } catch (err) {
-      console.error('Failed to fetch trades:', err);
-      setError('載入交易歷史時發生錯誤');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchTrades();
-  }, [fetchTrades]);
+  const trades = data?.trades ?? [];
+  const total = data?.total ?? 0;
+  const error = queryError?.message ?? null;
+  const isRefreshing = isRefetching;
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchTrades();
+    await refetch();
   };
 
   // 計算總績效

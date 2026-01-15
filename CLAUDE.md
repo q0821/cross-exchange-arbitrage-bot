@@ -17,6 +17,10 @@ Auto-generated from all feature plans. Last updated: 2025-12-30
 - PostgreSQL 15 + TimescaleDB (existing `NotificationWebhook` table) (057-notification-price-filter)
 - TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, axios (Discord/Slack webhook) (058-notification-open-link)
 - N/A (無新增資料儲存需求) (058-notification-open-link)
+- TypeScript 5.8 + Node.js 20.x LTS + CCXT 4.x (交易所抽象), Prisma 7.x (ORM), Next.js 15 (Web), Pino (logging) (062-refactor-trading-srp)
+- PostgreSQL 15+ with TimescaleDB (無 schema 變更) (062-refactor-trading-srp)
+- TypeScript 5.8 + Node.js 20.x LTS + TanStack Query 5.x (新增), React 19, Next.js 15, Socket.io-client 4.x (063-frontend-data-caching)
+- N/A (客戶端記憶體快取，無持久化儲存) (063-frontend-data-caching)
 
 ## Project Structure
 ```

@@ -34,7 +34,8 @@ import type { MarketRate } from './types';
 export default function MarketMonitorPage() {
   // 數據訂閱 (Feature 009: 使用 Map 而非 array)
   // Feature 012: 增加 timeBasis 和 setTimeBasis
-  const { ratesMap, stats, isConnected, isLoading, error, timeBasis, setTimeBasis } = useMarketRates();
+  // 動態交易所配置：從 WebSocket 訂閱響應獲取 activeExchanges
+  const { ratesMap, stats, isConnected, isLoading, error, timeBasis, setTimeBasis, activeExchanges } = useMarketRates();
 
   // 交易對群組管理
   const {
@@ -306,6 +307,7 @@ export default function MarketMonitorPage() {
         <RatesTable
           ratesMap={filteredRatesMap}
           timeBasis={timeBasis}
+          activeExchanges={activeExchanges}
           sortBy={sortBy}
           sortDirection={sortDirection}
           filterStatus={filterStatus}
