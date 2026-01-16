@@ -12,9 +12,22 @@ function handleQueryError(error: unknown, query?: unknown) {
     console.error('[TanStack Query] Error:', errorMessage, { query, error });
   }
 
-  // Handle specific error types
-  if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-    // Auth errors are handled silently - user will be redirected to login
+  // Handle 401 authentication errors - redirect to login page
+  if (
+    errorMessage.includes('401') ||
+    errorMessage.includes('Unauthorized') ||
+    errorMessage.includes('Token has expired') ||
+    errorMessage.includes('INVALID_TOKEN')
+  ) {
+    // Only redirect on client-side
+    if (!isServer) {
+      // Avoid redirect loops on auth-related pages
+      const currentPath = window.location.pathname;
+      const authPaths = ['/login', '/register', '/forgot-password', '/reset-password'];
+      if (!authPaths.some((path) => currentPath.startsWith(path))) {
+        window.location.href = '/login';
+      }
+    }
     return;
   }
 
