@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useClosePositionMutation } from '@/hooks/mutations/useClosePositionMutation';
-import { queryKeys } from '@/lib/query-keys';
+import { queryKeys } from '@root/lib/query-keys';
 import type { ReactNode } from 'react';
 
 // Mock fetch globally

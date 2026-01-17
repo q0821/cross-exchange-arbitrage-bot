@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createWrapper, mockFetchResponse } from '@/tests/utils/query-test-utils';
-import { queryKeys } from '@/lib/query-keys';
+import { queryKeys } from '@root/lib/query-keys';
 
 describe('Caching Behavior', () => {
   beforeEach(() => {
