@@ -81,7 +81,7 @@ export function usePasswordReset(): UsePasswordResetReturn {
         expiresAt: data.data?.expiresAt ? new Date(data.data.expiresAt) : null,
         error: null,
       });
-    } catch (error) {
+    } catch (_error) {
       setTokenState({
         isValidating: false,
         isValid: false,

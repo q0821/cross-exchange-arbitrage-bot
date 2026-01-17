@@ -51,7 +51,7 @@ export function useTableSort(): UseTableSortReturn {
       if (saved && ['symbol', 'spread', 'annualizedReturn', 'priceDiff'].includes(saved)) {
         return saved as SortField;
       }
-    } catch (err) {
+    } catch (_err) {
       console.warn('[useTableSort] Failed to load sortBy from localStorage:', err);
     }
     return DEFAULT_SORT_BY;
@@ -64,7 +64,7 @@ export function useTableSort(): UseTableSortReturn {
       if (saved && ['asc', 'desc'].includes(saved)) {
         return saved as SortDirection;
       }
-    } catch (err) {
+    } catch (_err) {
       console.warn('[useTableSort] Failed to load sortDirection from localStorage:', err);
     }
     return DEFAULT_SORT_DIRECTION;
@@ -77,7 +77,7 @@ export function useTableSort(): UseTableSortReturn {
       if (saved && ['all', 'opportunity', 'approaching', 'normal'].includes(saved)) {
         return saved as OpportunityStatus | 'all';
       }
-    } catch (err) {
+    } catch (_err) {
       console.warn('[useTableSort] Failed to load filterStatus from localStorage:', err);
     }
     return DEFAULT_FILTER_STATUS;
@@ -98,7 +98,7 @@ export function useTableSort(): UseTableSortReturn {
         setSortDirection(newDirection);
         try {
           localStorage.setItem(STORAGE_KEY_SORT_DIR, newDirection);
-        } catch (err) {
+        } catch (_err) {
           console.warn('[useTableSort] Failed to save sortDirection:', err);
         }
       } else {
@@ -108,7 +108,7 @@ export function useTableSort(): UseTableSortReturn {
         try {
           localStorage.setItem(STORAGE_KEY_SORT_BY, field);
           localStorage.setItem(STORAGE_KEY_SORT_DIR, 'desc');
-        } catch (err) {
+        } catch (_err) {
           console.warn('[useTableSort] Failed to save sort settings:', err);
         }
       }
@@ -121,7 +121,7 @@ export function useTableSort(): UseTableSortReturn {
     setFilterStatusState(status);
     try {
       localStorage.setItem(STORAGE_KEY_FILTER, status);
-    } catch (err) {
+    } catch (_err) {
       console.warn('[useTableSort] Failed to save filterStatus:', err);
     }
   }, []);
@@ -135,7 +135,7 @@ export function useTableSort(): UseTableSortReturn {
       localStorage.removeItem(STORAGE_KEY_SORT_BY);
       localStorage.removeItem(STORAGE_KEY_SORT_DIR);
       localStorage.removeItem(STORAGE_KEY_FILTER);
-    } catch (err) {
+    } catch (_err) {
       console.warn('[useTableSort] Failed to clear localStorage:', err);
     }
   }, []);

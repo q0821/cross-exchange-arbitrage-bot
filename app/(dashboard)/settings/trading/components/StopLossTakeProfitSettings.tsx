@@ -67,7 +67,7 @@ export function StopLossTakeProfitSettings() {
         setTakeProfitEnabled(s.defaultTakeProfitEnabled);
         setTakeProfitPercent(s.defaultTakeProfitPercent.toString());
       }
-    } catch (err) {
+    } catch (_err) {
       setError(err instanceof Error ? err.message : '載入設定失敗');
     } finally {
       setIsLoading(false);
@@ -120,7 +120,7 @@ export function StopLossTakeProfitSettings() {
         setSuccessMessage('設定已儲存');
         setTimeout(() => setSuccessMessage(null), 3000);
       }
-    } catch (err) {
+    } catch (_err) {
       setError(err instanceof Error ? err.message : '儲存設定失敗');
     } finally {
       setIsSaving(false);

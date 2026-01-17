@@ -53,7 +53,7 @@ export interface MarketStats {
 
 // 使用 globalThis 確保在 Next.js 開發模式下單例跨模組上下文共享
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __ratesCacheInstance: RatesCache | undefined;
 }
 

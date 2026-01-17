@@ -751,7 +751,7 @@ class OkxUserConnector implements IExchangeConnector {
 
   async connect(): Promise<void> {
     this.ccxt = await import('ccxt');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     this.exchange = new this.ccxt.okx({
       apiKey: this.apiKey,
       secret: this.apiSecret,

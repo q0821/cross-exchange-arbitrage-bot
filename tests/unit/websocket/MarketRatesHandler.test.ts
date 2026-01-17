@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { Socket } from 'socket.io';
+import type { Socket as _Socket } from 'socket.io';
 
 /**
  * T005: 驗證 timeBasis = 4 被接受

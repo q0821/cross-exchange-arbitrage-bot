@@ -53,7 +53,7 @@ export function RollbackFailedAlert({
       await navigator.clipboard.writeText(orderId);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch (_err) {
       console.error('Failed to copy:', err);
     }
   };

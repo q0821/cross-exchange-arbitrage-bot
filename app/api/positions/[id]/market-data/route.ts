@@ -166,7 +166,7 @@ export async function GET(
  */
 async function getCurrentPrice(symbol: string, exchange: SupportedExchange): Promise<number> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+     
     const ccxt = require('ccxt');
 
     const exchangeMap: Record<SupportedExchange, string> = {

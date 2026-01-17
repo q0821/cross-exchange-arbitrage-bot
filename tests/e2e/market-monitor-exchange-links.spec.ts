@@ -36,7 +36,7 @@ async function findExchangeLink(
 
   // Find the link in the specific exchange column
   const cell = row.locator(`td:nth-child(${columnIndex + 1})`);
-  const link = cell.locator('a[target="_blank"]');
+  const _link = cell.locator('a[target="_blank"]');
 
   return link;
 }
@@ -48,7 +48,7 @@ test.describe('Market Monitor - Exchange Links', () => {
 
   test.describe('Binance Links', () => {
     test('should display Binance link for BTC/USDT', async ({ page }) => {
-      const link = await findExchangeLink(page, 'BTC/USDT', 'binance');
+      const _link = await findExchangeLink(page, 'BTC/USDT', 'binance');
       await expect(link).toBeVisible();
     });
 
@@ -56,7 +56,7 @@ test.describe('Market Monitor - Exchange Links', () => {
       page,
       context,
     }) => {
-      const link = await findExchangeLink(page, 'BTC/USDT', 'binance');
+      const _link = await findExchangeLink(page, 'BTC/USDT', 'binance');
 
       // Listen for new page (new tab)
       const pagePromise = context.waitForEvent('page');
@@ -77,7 +77,7 @@ test.describe('Market Monitor - Exchange Links', () => {
     test('should have correct aria-label for Binance link', async ({
       page,
     }) => {
-      const link = await findExchangeLink(page, 'BTC/USDT', 'binance');
+      const _link = await findExchangeLink(page, 'BTC/USDT', 'binance');
       const ariaLabel = await link.getAttribute('aria-label');
 
       expect(ariaLabel).toContain('Binance');
@@ -87,7 +87,7 @@ test.describe('Market Monitor - Exchange Links', () => {
     test('should have security attributes (noopener noreferrer)', async ({
       page,
     }) => {
-      const link = await findExchangeLink(page, 'BTC/USDT', 'binance');
+      const _link = await findExchangeLink(page, 'BTC/USDT', 'binance');
 
       await expect(link).toHaveAttribute('target', '_blank');
       await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
@@ -96,7 +96,7 @@ test.describe('Market Monitor - Exchange Links', () => {
 
   test.describe('OKX Links', () => {
     test('should display OKX link for ETH/USDT', async ({ page }) => {
-      const link = await findExchangeLink(page, 'ETH/USDT', 'okx');
+      const _link = await findExchangeLink(page, 'ETH/USDT', 'okx');
       await expect(link).toBeVisible();
     });
 
@@ -104,7 +104,7 @@ test.describe('Market Monitor - Exchange Links', () => {
       page,
       context,
     }) => {
-      const link = await findExchangeLink(page, 'ETH/USDT', 'okx');
+      const _link = await findExchangeLink(page, 'ETH/USDT', 'okx');
 
       const pagePromise = context.waitForEvent('page');
       await link.click();
@@ -119,7 +119,7 @@ test.describe('Market Monitor - Exchange Links', () => {
     });
 
     test('should have correct aria-label for OKX link', async ({ page }) => {
-      const link = await findExchangeLink(page, 'ETH/USDT', 'okx');
+      const _link = await findExchangeLink(page, 'ETH/USDT', 'okx');
       const ariaLabel = await link.getAttribute('aria-label');
 
       expect(ariaLabel).toContain('OKX');
@@ -129,7 +129,7 @@ test.describe('Market Monitor - Exchange Links', () => {
 
   test.describe('MEXC Links', () => {
     test('should display MEXC link for SOL/USDT', async ({ page }) => {
-      const link = await findExchangeLink(page, 'SOL/USDT', 'mexc');
+      const _link = await findExchangeLink(page, 'SOL/USDT', 'mexc');
       await expect(link).toBeVisible();
     });
 
@@ -137,7 +137,7 @@ test.describe('Market Monitor - Exchange Links', () => {
       page,
       context,
     }) => {
-      const link = await findExchangeLink(page, 'SOL/USDT', 'mexc');
+      const _link = await findExchangeLink(page, 'SOL/USDT', 'mexc');
 
       const pagePromise = context.waitForEvent('page');
       await link.click();
@@ -152,7 +152,7 @@ test.describe('Market Monitor - Exchange Links', () => {
     });
 
     test('should have correct aria-label for MEXC link', async ({ page }) => {
-      const link = await findExchangeLink(page, 'SOL/USDT', 'mexc');
+      const _link = await findExchangeLink(page, 'SOL/USDT', 'mexc');
       const ariaLabel = await link.getAttribute('aria-label');
 
       expect(ariaLabel).toContain('MEXC');
@@ -162,7 +162,7 @@ test.describe('Market Monitor - Exchange Links', () => {
 
   test.describe('Gate.io Links', () => {
     test('should display Gate.io link for BNB/USDT', async ({ page }) => {
-      const link = await findExchangeLink(page, 'BNB/USDT', 'gateio');
+      const _link = await findExchangeLink(page, 'BNB/USDT', 'gateio');
       await expect(link).toBeVisible();
     });
 
@@ -170,7 +170,7 @@ test.describe('Market Monitor - Exchange Links', () => {
       page,
       context,
     }) => {
-      const link = await findExchangeLink(page, 'BNB/USDT', 'gateio');
+      const _link = await findExchangeLink(page, 'BNB/USDT', 'gateio');
 
       const pagePromise = context.waitForEvent('page');
       await link.click();
@@ -187,7 +187,7 @@ test.describe('Market Monitor - Exchange Links', () => {
     test('should have correct aria-label for Gate.io link', async ({
       page,
     }) => {
-      const link = await findExchangeLink(page, 'BNB/USDT', 'gateio');
+      const _link = await findExchangeLink(page, 'BNB/USDT', 'gateio');
       const ariaLabel = await link.getAttribute('aria-label');
 
       expect(ariaLabel).toContain('Gate.io');
@@ -197,7 +197,7 @@ test.describe('Market Monitor - Exchange Links', () => {
 
   test.describe('Tooltip Behavior', () => {
     test('should display tooltip on hover', async ({ page }) => {
-      const link = await findExchangeLink(page, 'BTC/USDT', 'binance');
+      const _link = await findExchangeLink(page, 'BTC/USDT', 'binance');
 
       // Hover over the link
       await link.hover();
@@ -216,7 +216,7 @@ test.describe('Market Monitor - Exchange Links', () => {
     });
 
     test('should hide tooltip when mouse leaves', async ({ page }) => {
-      const link = await findExchangeLink(page, 'BTC/USDT', 'binance');
+      const _link = await findExchangeLink(page, 'BTC/USDT', 'binance');
 
       // Hover to show tooltip
       await link.hover();
@@ -235,7 +235,7 @@ test.describe('Market Monitor - Exchange Links', () => {
   test.describe('Keyboard Navigation', () => {
     test('should be accessible via Tab key', async ({ page }) => {
       // Find a link
-      const link = await findExchangeLink(page, 'BTC/USDT', 'binance');
+      const _link = await findExchangeLink(page, 'BTC/USDT', 'binance');
 
       // Focus the link using keyboard
       await page.keyboard.press('Tab');
@@ -251,7 +251,7 @@ test.describe('Market Monitor - Exchange Links', () => {
     });
 
     test('should open link with Enter key', async ({ page, context }) => {
-      const link = await findExchangeLink(page, 'BTC/USDT', 'binance');
+      const _link = await findExchangeLink(page, 'BTC/USDT', 'binance');
 
       // Focus the link
       await link.focus();

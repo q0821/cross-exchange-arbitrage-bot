@@ -32,7 +32,7 @@ describe('NetProfitCalculator', () => {
       // Rate difference: 0.01% - (-0.05%) = 0.06%
       // Total fees: 0.05% × 4 = 0.2%
       // Net profit: 0.06% - 0.2% = -0.14%
-      const result = calculator.calculate(
+      const result =calculator.calculate(
         'BTCUSDT',
         'binance',
         'okx',
@@ -58,7 +58,7 @@ describe('NetProfitCalculator', () => {
       // Rate difference: -0.03% - 0.05% = -0.08% (負值表示做多有利)
       // 實際收益 = |shortRate| + longRate (if longRate < 0)
       // 這裡用另一種組合：做空高費率交易所，做多低費率交易所
-      const result = calculator.calculate(
+      const result =calculator.calculate(
         'ETHUSDT',
         'okx',
         'binance',
@@ -76,7 +76,7 @@ describe('NetProfitCalculator', () => {
     });
 
     it('should use default taker fee rate when not provided', () => {
-      const result = calculator.calculate(
+      const result =calculator.calculate(
         'BTCUSDT',
         'binance',
         'okx',
@@ -154,7 +154,7 @@ describe('NetProfitCalculator', () => {
     });
 
     it('should handle zero rates', () => {
-      const result = calculator.calculate(
+      const result =calculator.calculate(
         'BTCUSDT',
         'binance',
         'okx',
@@ -168,7 +168,7 @@ describe('NetProfitCalculator', () => {
     });
 
     it('should handle very small rates with precision', () => {
-      const result = calculator.calculate(
+      const result =calculator.calculate(
         'BTCUSDT',
         'binance',
         'okx',
@@ -191,7 +191,7 @@ describe('NetProfitCalculator', () => {
         ['gateio', '0.0002'],
       ]);
 
-      const result = calculator.findBestArbitragePair('BTCUSDT', rates, '0.0001');
+      const result =calculator.findBestArbitragePair('BTCUSDT', rates, '0.0001');
 
       expect(result).not.toBeNull();
       // Best pair should have highest net profit
@@ -204,7 +204,7 @@ describe('NetProfitCalculator', () => {
     it('should return null when less than 2 exchanges', () => {
       const rates = new Map([['binance', '0.0001']]);
 
-      const result = calculator.findBestArbitragePair('BTCUSDT', rates);
+      const result =calculator.findBestArbitragePair('BTCUSDT', rates);
 
       expect(result).toBeNull();
     });
@@ -212,7 +212,7 @@ describe('NetProfitCalculator', () => {
     it('should return null when rates map is empty', () => {
       const rates = new Map<string, string>();
 
-      const result = calculator.findBestArbitragePair('BTCUSDT', rates);
+      const result =calculator.findBestArbitragePair('BTCUSDT', rates);
 
       expect(result).toBeNull();
     });
@@ -259,7 +259,7 @@ describe('NetProfitCalculator', () => {
       ]);
 
       // Should not throw, but log error and continue
-      const result = calculator.findBestArbitragePair('BTCUSDT', rates);
+      const _result =calculator.findBestArbitragePair('BTCUSDT', rates);
 
       expect(logger.error).toHaveBeenCalled();
       // Result could be null or a valid pair depending on which calculations succeed
@@ -273,7 +273,7 @@ describe('NetProfitCalculator', () => {
         ['mexc', '-0.0003'],     // Medium negative
       ]);
 
-      const result = calculator.findBestArbitragePair('BTCUSDT', rates, '0.0001');
+      const result =calculator.findBestArbitragePair('BTCUSDT', rates, '0.0001');
 
       expect(result).not.toBeNull();
       // Best should be binance (long) → okx (short) = 0.0010 - (-0.0005) = 0.0015
@@ -291,7 +291,7 @@ describe('NetProfitCalculator', () => {
         ['gateio', '0.0001'],
       ]);
 
-      const result = calculator.findAllOpportunities('BTCUSDT', rates, '0.0001');
+      const result =calculator.findAllOpportunities('BTCUSDT', rates, '0.0001');
 
       expect(result.symbol).toBe('BTCUSDT');
       expect(result.opportunities.length).toBeGreaterThan(0);
@@ -312,7 +312,7 @@ describe('NetProfitCalculator', () => {
       ]);
 
       const minProfit = new Decimal('0.0005');
-      const result = calculator.findAllOpportunities('BTCUSDT', rates, '0.0001', minProfit);
+      const result =calculator.findAllOpportunities('BTCUSDT', rates, '0.0001', minProfit);
 
       // All opportunities should have net profit >= minProfit
       result.opportunities.forEach((opp) => {
@@ -327,7 +327,7 @@ describe('NetProfitCalculator', () => {
       ]);
 
       const minProfit = new Decimal('0.01'); // Very high threshold
-      const result = calculator.findAllOpportunities('BTCUSDT', rates, '0.0001', minProfit);
+      const result =calculator.findAllOpportunities('BTCUSDT', rates, '0.0001', minProfit);
 
       expect(result.opportunities.length).toBe(0);
     });
@@ -335,7 +335,7 @@ describe('NetProfitCalculator', () => {
     it('should handle empty rates map', () => {
       const rates = new Map<string, string>();
 
-      const result = calculator.findAllOpportunities('BTCUSDT', rates);
+      const result =calculator.findAllOpportunities('BTCUSDT', rates);
 
       expect(result.symbol).toBe('BTCUSDT');
       expect(result.opportunities.length).toBe(0);
@@ -348,7 +348,7 @@ describe('NetProfitCalculator', () => {
         ['gateio', '0.0003'],
       ]);
 
-      const result = calculator.findAllOpportunities('BTCUSDT', rates, '0.0001');
+      const result =calculator.findAllOpportunities('BTCUSDT', rates, '0.0001');
 
       // 3 exchanges → 3 × 2 = 6 combinations (each can be long or short)
       expect(result.opportunities.length).toBe(6);
@@ -363,7 +363,7 @@ describe('NetProfitCalculator', () => {
         ['gateio', '0.0002'],
       ]);
 
-      const result = calculator.findAllOpportunities('BTCUSDT', rates, '0.0001');
+      const result =calculator.findAllOpportunities('BTCUSDT', rates, '0.0001');
 
       // Should still return valid opportunities
       expect(result.opportunities.length).toBeGreaterThan(0);
@@ -399,7 +399,7 @@ describe('NetProfitCalculator', () => {
 
   describe('Edge Cases', () => {
     it('should handle large rate differences', () => {
-      const result = calculator.calculate(
+      const result =calculator.calculate(
         'BTCUSDT',
         'binance',
         'okx',
@@ -413,7 +413,7 @@ describe('NetProfitCalculator', () => {
     });
 
     it('should handle negative rate difference', () => {
-      const result = calculator.calculate(
+      const result =calculator.calculate(
         'BTCUSDT',
         'binance',
         'okx',
@@ -427,7 +427,7 @@ describe('NetProfitCalculator', () => {
     });
 
     it('should preserve Decimal precision', () => {
-      const result = calculator.calculate(
+      const result =calculator.calculate(
         'BTCUSDT',
         'binance',
         'okx',

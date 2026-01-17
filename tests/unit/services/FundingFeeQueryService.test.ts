@@ -6,7 +6,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { Decimal } from 'decimal.js';
 import type { SupportedExchange } from '@/types/trading';
 import { FundingFeeQueryService } from '@/services/trading/FundingFeeQueryService';
 

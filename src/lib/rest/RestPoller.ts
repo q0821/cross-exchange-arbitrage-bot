@@ -95,7 +95,7 @@ export class RestPoller extends EventEmitter {
           errorMessage.includes('rate limit') ||
           errorMessage.includes('429') ||
           errorMessage.includes('Too Many') ||
-          errorMessage.includes('code\":510');
+          errorMessage.includes('code":510');
 
         if (isSymbolNotFound) {
           logger.debug({ error: errorMessage }, 'Initial poll - symbol not available');
@@ -119,7 +119,7 @@ export class RestPoller extends EventEmitter {
           errorMessage.includes('rate limit') ||
           errorMessage.includes('429') ||
           errorMessage.includes('Too Many') ||
-          errorMessage.includes('code\":510');
+          errorMessage.includes('code":510');
 
         if (isSymbolNotFound) {
           logger.debug({ error: errorMessage }, 'Poll - symbol not available');
@@ -186,7 +186,7 @@ export class RestPoller extends EventEmitter {
         errorMessage.includes('rate limit') ||
         errorMessage.includes('429') ||
         errorMessage.includes('Too Many') ||
-        errorMessage.includes('code\":510');
+        errorMessage.includes('code":510');
 
       if (isSymbolNotFound) {
         logger.debug({

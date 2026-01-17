@@ -5,7 +5,6 @@
 
 import { FundingRateMonitor } from '../services/monitor/FundingRateMonitor';
 import { ratesCache } from '../services/monitor/RatesCache';
-import { logger } from '../lib/logger';
 
 async function main() {
   console.log('=== FundingRateMonitor BingX 診斷 ===\n');

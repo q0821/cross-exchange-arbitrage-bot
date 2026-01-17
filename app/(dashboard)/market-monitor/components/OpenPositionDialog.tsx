@@ -230,7 +230,7 @@ export function OpenPositionDialog({
     try {
       await onRefreshMarketData();
       setLastUpdated(new Date());
-    } catch (err) {
+    } catch (_err) {
       console.error('Failed to refresh market data:', err);
     } finally {
       setIsRefreshing(false);

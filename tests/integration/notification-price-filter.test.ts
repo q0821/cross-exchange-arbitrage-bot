@@ -25,7 +25,7 @@ describe.skipIf(!shouldRunIntegrationTests)('Feature 057: Notification Price Fil
   let prisma: PrismaClient;
   let repository: NotificationWebhookRepository;
   let testUserId: string;
-  let createdWebhookIds: string[] = [];
+  const createdWebhookIds: string[] = [];
 
   beforeAll(async () => {
     prisma = createPrismaClient();

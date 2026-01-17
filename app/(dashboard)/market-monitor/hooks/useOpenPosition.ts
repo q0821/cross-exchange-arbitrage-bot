@@ -133,7 +133,7 @@ export function useOpenPosition(): UseOpenPositionReturn {
         console.error('[useOpenPosition] Failed to fetch balances:', data.error);
         setError('無法獲取餘額資訊');
       }
-    } catch (err) {
+    } catch (_err) {
       console.error('[useOpenPosition] Error fetching balances:', err);
       setError('獲取餘額時發生錯誤');
     } finally {
@@ -353,7 +353,7 @@ export function useOpenPosition(): UseOpenPositionReturn {
             description: `已建立 ${completedCount}/${positionCount} 個持倉，其餘失敗`,
           });
         }
-      } catch (err) {
+      } catch (_err) {
         console.error('[useOpenPosition] Split open error:', err);
         if (completedCount > 0) {
           setError(
@@ -424,7 +424,7 @@ export function useOpenPosition(): UseOpenPositionReturn {
           };
         });
       }
-    } catch (err) {
+    } catch (_err) {
       console.error('[useOpenPosition] Failed to refresh market data:', err);
     }
   }, [selectedRate]);

@@ -9,7 +9,6 @@ import type {
   ValidationSummary,
   ValidationStatus,
 } from './types';
-import { formatPrice } from './utils';
 
 /**
  * ANSI 顏色碼
@@ -219,7 +218,7 @@ export class ValidationReporter {
 
     const allPassed = summary.failed === 0 && summary.warned === 0;
     const statusIcon = allPassed ? '✅' : '❌';
-    const statusText = allPassed
+    const _statusText = allPassed
       ? color('成功', COLORS.green)
       : color('失敗', COLORS.red);
     const resultText = `結果: ${parts.join(' │ ')} ${statusIcon}`;

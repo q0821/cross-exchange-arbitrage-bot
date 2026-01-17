@@ -160,7 +160,7 @@ export class ExchangeQueryService {
             this.isPortfolioMargin = true;
             await this.recreateWithPortfolioMargin();
           }
-        } catch (papiError) {
+        } catch (_papiError) {
           throw error;
         }
       } else {

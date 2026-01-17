@@ -85,7 +85,7 @@ export default function ApiKeysPage() {
       }
 
       setApiKeys(data.data.apiKeys);
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
@@ -228,7 +228,7 @@ export default function ApiKeysPage() {
 
       // 重新載入列表
       await loadApiKeys();
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
@@ -254,7 +254,7 @@ export default function ApiKeysPage() {
 
       // 重新載入列表
       await loadApiKeys();
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
     }
   };
@@ -278,7 +278,7 @@ export default function ApiKeysPage() {
 
       // 重新載入列表
       await loadApiKeys();
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
     }
   };
@@ -394,7 +394,7 @@ export default function ApiKeysPage() {
       setShowEditModal(false);
       setEditingKey(null);
       await loadApiKeys();
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
     } finally {
       setIsEditSubmitting(false);

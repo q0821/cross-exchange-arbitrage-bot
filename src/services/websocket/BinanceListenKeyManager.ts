@@ -297,7 +297,7 @@ export class BinanceListenKeyManager extends EventEmitter {
 
       try {
         await this.renew();
-      } catch (error) {
+      } catch (_error) {
         // renewalFailed 事件已在 renew() 中發出
         // 嘗試重建 listenKey
         try {

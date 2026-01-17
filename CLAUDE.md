@@ -28,6 +28,14 @@ src/
 tests/
 ```
 
+## Key Files
+| 檔案 | 用途 |
+|:-----|:-----|
+| `CHANGELOG.md` | 專案變更日誌（版本歷史、修復記錄） |
+| `package.json` | 專案配置與腳本 |
+| `prisma/schema.prisma` | 資料庫 Schema 定義 |
+| `config/symbols.json` | 交易對監控清單 |
+
 ## Commands
 
 ### 開發

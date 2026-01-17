@@ -27,7 +27,7 @@ app.prepare().then(() => {
     try {
       const parsedUrl = parse(req.url!, true);
       await handle(req, res, parsedUrl);
-    } catch (err) {
+    } catch (_err) {
       logger.error({ error: err }, 'Error handling request');
       res.statusCode = 500;
       res.end('Internal Server Error');

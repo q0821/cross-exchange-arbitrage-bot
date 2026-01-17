@@ -179,16 +179,18 @@ class MockBinanceUserDataWs extends EventEmitter {
     const msg = data as { e?: string };
 
     switch (msg.e) {
-      case 'ACCOUNT_UPDATE':
+      case 'ACCOUNT_UPDATE': {
         const accountResult = this.parseAccountUpdate(data as BinanceAccountUpdate);
         accountResult.balances.forEach((b) => this.emit('balanceChanged', b));
         accountResult.positions.forEach((p) => this.emit('positionChanged', p));
         break;
+      }
 
-      case 'ORDER_TRADE_UPDATE':
+      case 'ORDER_TRADE_UPDATE': {
         const orderResult = this.parseOrderTradeUpdate(data as BinanceOrderTradeUpdate);
         this.emit('orderStatusChanged', orderResult);
         break;
+      }
 
       default:
         // Unknown event type - ignore

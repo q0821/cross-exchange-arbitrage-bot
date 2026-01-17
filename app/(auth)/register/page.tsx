@@ -55,7 +55,7 @@ export default function RegisterPage() {
 
       // 註冊成功，跳轉到登入頁面
       router.push('/login');
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
       setIsLoading(false);
     }

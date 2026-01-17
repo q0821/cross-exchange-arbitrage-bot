@@ -23,7 +23,7 @@ vi.mock('ccxt', () => {
 });
 
 // 在 mock 之後才 import GateioConnector
-const ccxt = await import('ccxt');
+const _ccxt = await import('ccxt');
 
 describe('GateioConnector.getFundingInterval - String Type Fix', () => {
   let mockClient: any;

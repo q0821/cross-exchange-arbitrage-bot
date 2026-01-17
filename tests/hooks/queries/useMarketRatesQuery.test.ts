@@ -9,11 +9,11 @@
  * 2. staleTime: 0 (always stale, updates via WebSocket)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { createWrapper, mockFetchResponse, mockFetchError } from '@/tests/utils/query-test-utils';
 
 // Mock the hook module (will be implemented)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let useMarketRatesQuery: any;
 
 describe('useMarketRatesQuery', () => {

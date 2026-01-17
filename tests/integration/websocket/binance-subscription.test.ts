@@ -32,7 +32,7 @@ describe('Binance WebSocket Subscription', () => {
   describe('subscribeWS', () => {
     it('should accept WSSubscription interface', async () => {
       // 驗證介面簽名
-      const subscription: WSSubscription = {
+      const _subscription: WSSubscription = {
         type: 'fundingRate',
         symbol: 'BTCUSDT',
         callback: vi.fn() as FundingRateCallback,

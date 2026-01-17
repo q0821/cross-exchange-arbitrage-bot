@@ -66,7 +66,7 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
   describe('validate() - Real API Integration', () => {
     it('應該成功驗證 BTC-USDT-SWAP 資金費率', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const symbol ='BTC-USDT-SWAP';
 
       // Act
       const result = await validator.validate(symbol);
@@ -95,7 +95,7 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
 
     it('應該成功驗證 ETH-USDT-SWAP 資金費率', async () => {
       // Arrange
-      const symbol = 'ETH-USDT-SWAP';
+      const symbol ='ETH-USDT-SWAP';
 
       // Act
       const result = await validator.validate(symbol);
@@ -109,10 +109,10 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
 
     it.skip('應該處理不存在的交易對（跳過此測試避免 API 錯誤）', async () => {
       // Arrange
-      const symbol = 'INVALID-USDT-SWAP';
+      const _symbol ='INVALID-USDT-SWAP';
 
       // Act & Assert
-      // await expect(validator.validate(symbol)).rejects.toThrow();
+      // await expect(validator.validate(_symbol)).rejects.toThrow();
 
       // TODO: 實作後決定是否啟用
     });
@@ -159,7 +159,7 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
   describe('Data Validation', () => {
     it('驗證結果應符合 schema 定義', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const symbol ='BTC-USDT-SWAP';
 
       // Act
       const result = await validator.validate(symbol);

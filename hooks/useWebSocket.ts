@@ -170,7 +170,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
         setIsConnected(false);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoConnect]);
 
   return {

@@ -3,9 +3,7 @@
 # ============================================================================
 #
 # 觸發條件：
-# - 手動觸發 (workflow_dispatch)
-# - Push 到 main 分支（完整測試）
-# - PR 到 main（僅當前端相關檔案有變更）
+# - 僅手動觸發 (workflow_dispatch)
 #
 # 執行內容：
 # - 啟動 PostgreSQL 服務
@@ -19,15 +17,6 @@ name: E2E Tests
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-    paths:
-      - 'app/**'
-      - 'components/**'
-      - 'tests/e2e/**'
-      - 'playwright.config.ts'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

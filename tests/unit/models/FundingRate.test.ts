@@ -10,7 +10,6 @@
 import { describe, it, expect } from 'vitest';
 import type { ExchangeRateData, TimeBasis, ExchangeName } from '@/models/FundingRate';
 import { createMultiExchangeFundingRatePair, FundingRateRecord } from '@/models/FundingRate';
-import { MAX_ACCEPTABLE_ADVERSE_PRICE_DIFF } from '@/lib/cost-constants';
 
 /**
  * T020: 驗證不同時間基準下的費率差計算正確性
@@ -331,7 +330,7 @@ describe('FundingRate - Annualized Return Calculation', () => {
 
     // All annualized returns should be approximately equal
     const expectedReturn = 657.876;
-    annualizedReturns.forEach((annualized, index) => {
+    annualizedReturns.forEach((annualized, _index) => {
       expect(annualized).toBeCloseTo(expectedReturn, 1); // Allow 0.1% tolerance
     });
 

@@ -316,7 +316,7 @@ export function useClosePosition() {
       } else {
         throw new Error('無法獲取市場數據');
       }
-    } catch (err) {
+    } catch (_err) {
       const errorMessage = err instanceof Error ? err.message : '獲取市場數據失敗';
       setError(errorMessage);
       setState('error');
@@ -393,7 +393,7 @@ export function useClosePosition() {
         // 平倉失敗
         throw new Error(data.message || data.error || '平倉失敗');
       }
-    } catch (err) {
+    } catch (_err) {
       const errorMessage = err instanceof Error ? err.message : '平倉操作失敗';
       setError(errorMessage);
       setState('error');

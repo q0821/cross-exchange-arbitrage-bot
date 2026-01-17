@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { KeyRound, Eye, EyeOff, Loader2, CheckCircle2, AlertCircle, ArrowLeft } from 'lucide-react';
@@ -26,8 +26,13 @@ function ResetPasswordContent() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // 密碼強度
-  const [strengthResult, setStrengthResult] = useState<PasswordStrengthResult | null>(null);
+  // 密碼強度（使用 useMemo 計算衍生狀態，避免 effect 中的 setState）
+  const strengthResult = useMemo<PasswordStrengthResult | null>(() => {
+    if (newPassword) {
+      return calculatePasswordStrength(newPassword);
+    }
+    return null;
+  }, [newPassword]);
 
   // 表單驗證錯誤
   const [validationErrors, setValidationErrors] = useState<{
@@ -46,15 +51,6 @@ function ResetPasswordContent() {
       validateToken(token);
     }
   }, [token, validateToken]);
-
-  // 計算密碼強度
-  useEffect(() => {
-    if (newPassword) {
-      setStrengthResult(calculatePasswordStrength(newPassword));
-    } else {
-      setStrengthResult(null);
-    }
-  }, [newPassword]);
 
   // 驗證表單
   const validateForm = (): boolean => {

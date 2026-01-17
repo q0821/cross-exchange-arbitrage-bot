@@ -37,7 +37,7 @@ describe('formatArbitrageMessage', () => {
   describe('User Story 1: 年化收益顯示', () => {
     it('T011: should format annualized return with ±10% range for normal values', () => {
       // Test case: 800% annualized return should show "約 720-880%"
-      const rate = createMockRate({
+      const _rate = createMockRate({
         bestPair: {
           longExchange: 'binance',
           shortExchange: 'okx',
@@ -55,7 +55,7 @@ describe('formatArbitrageMessage', () => {
     });
 
     it('T012: should format zero annualized return as "約 0%"', () => {
-      const rate = createMockRate({
+      const _rate = createMockRate({
         bestPair: {
           longExchange: 'binance',
           shortExchange: 'okx',
@@ -71,7 +71,7 @@ describe('formatArbitrageMessage', () => {
     });
 
     it('T013: should include correct annualized return in complete message', () => {
-      const rate = createMockRate();
+      const _rate = createMockRate();
 
       // Complete message should include:
       // - "預估年化收益：約 720-880%（資金費率價差）"
@@ -109,7 +109,7 @@ describe('formatArbitrageMessage', () => {
 
     it('T028: should handle null price diff', () => {
       // null -> "N/A（無價格數據）"
-      const rate = createMockRate({
+      const _rate = createMockRate({
         bestPair: {
           longExchange: 'binance',
           shortExchange: 'okx',
@@ -148,7 +148,7 @@ describe('formatArbitrageMessage', () => {
 
   describe('Error handling', () => {
     it('should throw error when bestPair is null', () => {
-      const rate = createMockRate({ bestPair: null });
+      const _rate = createMockRate({ bestPair: null });
 
       // Should throw error
       expect(true).toBe(true); // Placeholder

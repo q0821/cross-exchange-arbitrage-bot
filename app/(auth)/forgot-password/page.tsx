@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
       // 成功
       setSuccess(true);
       setIsLoading(false);
-    } catch (err) {
+    } catch (_err) {
       setError('發生未知錯誤，請稍後再試');
       setIsLoading(false);
     }

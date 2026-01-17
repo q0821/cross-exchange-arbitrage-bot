@@ -73,7 +73,7 @@ async function getBatchOpenInterest(symbols: string[]): Promise<Map<string, numb
       try {
         const oi = await getOpenInterestForSymbol(symbol);
         oiMap.set(symbol, oi);
-      } catch (error) {
+      } catch (_error) {
         // Skip failed symbols
       }
     }),
