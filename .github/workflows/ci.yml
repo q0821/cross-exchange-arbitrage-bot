@@ -35,6 +35,10 @@ jobs:
     name: Lint & Type Check
     runs-on: ubuntu-latest
 
+    env:
+      # Prisma 需要 DATABASE_URL 來產生 client（不需要真實連線）
+      DATABASE_URL: postgresql://user:pass@localhost:5432/db?schema=public
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -68,6 +72,10 @@ jobs:
   unit-test:
     name: Unit Tests
     runs-on: ubuntu-latest
+
+    env:
+      # Prisma 需要 DATABASE_URL 來產生 client（不需要真實連線）
+      DATABASE_URL: postgresql://user:pass@localhost:5432/db?schema=public
 
     steps:
       - name: Checkout
@@ -111,6 +119,10 @@ jobs:
     name: Test Coverage
     runs-on: ubuntu-latest
     needs: [lint, unit-test]
+
+    env:
+      # Prisma 需要 DATABASE_URL 來產生 client（不需要真實連線）
+      DATABASE_URL: postgresql://user:pass@localhost:5432/db?schema=public
 
     steps:
       - name: Checkout
