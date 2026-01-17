@@ -95,6 +95,10 @@ TypeScript 5.8+ with strict mode: Follow standard conventions
 - 參數名稱應清楚表達其用途，避免歧義
 - **範例**：平倉時的 `side` 參數容易與訂單方向混淆，應改為 `positionSide` 明確表示「持倉方向」
 
+### 7. 提交前驗證
+- 提交到 main 之前必須通過 ESLint 和 TypeScript check
+- 指令：`pnpm lint` + `pnpm exec tsc --noEmit`
+
 <!-- MANUAL ADDITIONS START -->
 
 ## Feature 033: Manual Open Position
