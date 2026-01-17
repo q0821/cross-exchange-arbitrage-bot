@@ -1,0 +1,149 @@
+# ============================================================================
+# CI 工作流程 - 單元測試與程式碼品質檢查
+# ============================================================================
+#
+# 觸發條件：
+# - Push 到 main 分支
+# - 所有 Pull Request
+#
+# 執行內容：
+# - Lint 檢查
+# - TypeScript 型別檢查
+# - 單元測試（不含整合測試）
+# - 測試覆蓋率報告
+#
+# ============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# 取消同一 PR 的舊工作流程
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Lint 與型別檢查
+  # ============================================================================
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run ESLint
+        run: pnpm lint
+
+      - name: TypeScript Type Check
+        run: pnpm exec tsc --noEmit
+
+  # ============================================================================
+  # 單元測試
+  # ============================================================================
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Unit Tests
+        run: pnpm test run tests/unit --reporter=verbose
+        env:
+          # 測試環境變數
+          NODE_ENV: test
+          OUTPUT_FORMAT: TABLE
+          NEXT_PUBLIC_BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_WS_URL: http://localhost:3000
+
+      - name: Run Hooks Tests
+        run: pnpm test run tests/hooks --reporter=verbose
+        env:
+          NODE_ENV: test
+
+  # ============================================================================
+  # 測試覆蓋率
+  # ============================================================================
+  coverage:
+    name: Test Coverage
+    runs-on: ubuntu-latest
+    needs: [lint, unit-test]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Tests with Coverage
+        run: pnpm test:coverage -- --reporter=verbose
+        env:
+          NODE_ENV: test
+          OUTPUT_FORMAT: TABLE
+          NEXT_PUBLIC_BASE_URL: http://localhost:3000
+          NEXT_PUBLIC_WS_URL: http://localhost:3000
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7

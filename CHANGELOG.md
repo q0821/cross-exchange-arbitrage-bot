@@ -6,6 +6,56 @@
 
 ## [Unreleased]
 
+### 新增
+
+#### GitHub Actions CI 整合（2025-01-17）
+- 新增 `.github/workflows/ci.yml` - 單元測試與程式碼品質檢查
+  - ESLint 檢查
+  - TypeScript 型別檢查
+  - 單元測試（1,886 個測試案例）
+  - Hooks 測試（33 個測試案例）
+  - 測試覆蓋率報告
+- 新增 `.github/workflows/integration.yml` - 整合測試
+  - PostgreSQL 15 服務容器
+  - 資料庫遷移
+  - 整合測試（103 個測試案例）
+- 新增 `.github/workflows/e2e.yml` - E2E 測試
+  - PostgreSQL 15 服務容器
+  - Next.js 應用建置
+  - Playwright 瀏覽器測試（23 個測試案例）
+- **觸發策略**：
+  - Push to main：執行所有測試（完整測試）
+  - PR to main：CI 必跑，Integration/E2E 依檔案變更觸發
+  - 手動觸發：所有工作流程支援 workflow_dispatch
+
+#### 測試環境變數分離（2025-01-17）
+- 新增 `.env.test.example` - 測試環境變數範本
+- 新增 `.env.test` - 本地測試環境變數（已加入 .gitignore）
+- 更新 `.gitignore` - 排除 `.env.test`，保留 `.env.test.example`
+- **包含的環境變數**：
+  - `RUN_INTEGRATION_TESTS` - 啟用整合測試
+  - `PERFORMANCE_TEST` - 啟用效能測試
+  - 交易所 API 憑證（Binance, OKX, Gate.io, BingX）
+  - 前端測試設定（`NEXT_PUBLIC_BASE_URL`, `NEXT_PUBLIC_WS_URL`）
+  - 測試資料庫連線字串
+
+### 文件
+
+#### 測試分析報告（2025-01-17）
+- 新增 `docs/test/test.md` - 測試統計摘要
+  - 2,056 個測試案例、115 個測試檔案、812 個 describe 區塊
+  - 測試金字塔分析（Unit 91.7%, Integration 6.6%, E2E 1.1%）
+- 新增 `docs/test/integration-test.md` - 整合測試詳細分析
+  - 104 個測試案例（INT-001 ~ INT-104）
+  - 涵蓋 WebSocket 訂閱、資料庫驗證、API 端點
+- 新增 `docs/test/e2e-test.md` - E2E 測試詳細分析
+  - 23 個測試案例（E2E-001 ~ E2E-023）
+  - 涵蓋市場監控連結、用戶註冊流程、無障礙測試
+- 新增 `docs/test/performance-test.md` - 效能測試詳細分析
+  - 11 個測試案例（PERF-001 ~ PERF-010）
+  - 延遲目標：資金費率 < 1 秒、觸發偵測 < 1 秒
+  - WebSocket vs REST 對比：5x ~ 30x 改善
+
 ### 修復
 
 #### Migration 順序修正（2025-01-12）

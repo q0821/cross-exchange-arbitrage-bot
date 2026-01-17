@@ -1,0 +1,117 @@
+# ============================================================================
+# E2E 測試工作流程 - Playwright 瀏覽器測試
+# ============================================================================
+#
+# 觸發條件：
+# - 手動觸發 (workflow_dispatch)
+# - Push 到 main 分支（完整測試）
+# - PR 到 main（僅當前端相關檔案有變更）
+#
+# 執行內容：
+# - 啟動 PostgreSQL 服務
+# - 執行資料庫遷移
+# - 建置 Next.js 應用
+# - 執行 Playwright E2E 測試
+#
+# ============================================================================
+
+name: E2E Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'tests/e2e/**'
+      - 'playwright.config.ts'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-test:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: arbitrage_user
+          POSTGRES_PASSWORD: arbitrage_pass
+          POSTGRES_DB: arbitrage_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://arbitrage_user:arbitrage_pass@localhost:5432/arbitrage_test?schema=public
+      NODE_ENV: test
+      CI: true
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api
+      # 測試用安全金鑰（僅用於 CI）
+      JWT_SECRET: ci-test-jwt-secret-key-at-least-32-characters-long
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Database Migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build Application
+        run: pnpm build
+
+      - name: Run E2E Tests
+        run: pnpm test:e2e --project=chromium
+        env:
+          PLAYWRIGHT_TEST_BASE_URL: http://localhost:3000
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results/
+          retention-days: 7
