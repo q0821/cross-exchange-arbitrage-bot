@@ -30,7 +30,7 @@ describe.skipIf(!runPerformanceTests)('Funding Rate WebSocket Latency', () => {
 
     afterAll(async () => {
       if (wsClient) {
-        await wsClient.stop();
+        wsClient.destroy();
       }
     });
 
@@ -80,8 +80,10 @@ describe.skipIf(!runPerformanceTests)('Funding Rate WebSocket Latency', () => {
             reject(error);
           });
 
-          // Start connection
-          wsClient.start(['BTCUSDT', 'ETHUSDT']).catch(reject);
+          // Start connection and subscribe
+          wsClient.connect()
+            .then(() => wsClient.subscribe(['BTCUSDT', 'ETHUSDT']))
+            .catch(reject);
         });
       },
       TEST_TIMEOUT + 5000

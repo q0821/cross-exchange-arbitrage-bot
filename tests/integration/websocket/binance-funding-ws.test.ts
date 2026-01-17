@@ -59,6 +59,12 @@ describe.skipIf(!RUN_INTEGRATION)('Binance Funding WebSocket Integration', () =>
         enableHealthCheck: false,
       });
 
+      // 添加錯誤處理器以避免 uncaught exception
+      // DNS 解析錯誤可能在 WebSocket 建立前發生，需要預先捕獲
+      badClient.on('error', () => {
+        // 忽略預期的錯誤
+      });
+
       await expect(badClient.connect()).rejects.toThrow();
 
       badClient.destroy();

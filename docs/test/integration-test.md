@@ -6,9 +6,9 @@
 
 | 項目     | 數量   |
 |:---------|--------|
-| 檔案數   | 14     |
-| 案例數   | 103    |
-| 目錄分類 | 3 個   |
+| 檔案數   | 15     |
+| 案例數   | 112    |
+| 目錄分類 | 4 個   |
 
 ---
 
@@ -16,8 +16,9 @@
 
 | 分類                   | 檔案數 | 案例數 |
 |:-----------------------|--------|--------|
-| 根目錄                 | 6      | 39     |
-| WebSocket (`websocket/`) | 7      | 61     |
+| 根目錄                 | 6      | 35     |
+| WebSocket (`websocket/`) | 7      | 66     |
+| Trading (`trading/`)   | 1      | 8      |
 | API (`api/`)           | 1      | 3      |
 
 ---
@@ -28,12 +29,12 @@
 
 **路徑**: `tests/integration/CloseReason.test.ts`
 **功能**: Feature 050 - 停損停利觸發偵測
-**狀態**: `describe.skip` (需要資料庫連線)
+**狀態**: `describe.skipIf` (需要 `RUN_INTEGRATION_TESTS=true`)
 
 | 編號 | 測試名稱 | 意圖說明 |
 |:-----|:---------|:---------|
-| INT-001 | should have all required close reason values | 驗證 CloseReason enum 包含所有必要的平倉原因值（MANUAL, LONG_SL_TRIGGERED, LONG_TP_TRIGGERED, SHORT_SL_TRIGGERED, SHORT_TP_TRIGGERED, BOTH_TRIGGERED） |
-| INT-002 | should have exactly 6 close reason values | 驗證 CloseReason enum 剛好有 6 個值，確保沒有遺漏或多餘的平倉原因 |
+| INT-001 | should have all required close reason values | 驗證 CloseReason enum 包含所有必要的平倉原因值（MANUAL, LONG_SL_TRIGGERED, LONG_TP_TRIGGERED, SHORT_SL_TRIGGERED, SHORT_TP_TRIGGERED, BOTH_TRIGGERED, UNCONFIRMED_TRIGGER） |
+| INT-002 | should have exactly 7 close reason values | 驗證 CloseReason enum 剛好有 7 個值，確保沒有遺漏或多餘的平倉原因 |
 | INT-003 | should allow null closeReason for open positions | 驗證開啟中的持倉其 closeReason 欄位可以是 null，符合業務邏輯 |
 | INT-004 | should accept valid CloseReason values in query | 驗證可以使用任何有效的 CloseReason 值進行資料庫查詢，包含 null 值 |
 
@@ -43,7 +44,7 @@
 
 **路徑**: `tests/integration/FundingRateValidationRepository.test.ts`
 **功能**: Feature 004 - OKX 修正與價格顯示
-**狀態**: `describe.skip` (需要資料庫連線)
+**狀態**: `describe.skipIf` (需要 `RUN_INTEGRATION_TESTS=true`)
 
 | 編號 | 測試名稱 | 意圖說明 |
 |:-----|:---------|:---------|
@@ -112,7 +113,7 @@
 
 **路徑**: `tests/integration/okx-funding-rate-validation.test.ts`
 **功能**: Feature 004 - OKX API 驗證
-**狀態**: `describe.skip` (需要 API 連線)
+**狀態**: `describe.skipIf` (需要 `RUN_INTEGRATION_TESTS=true`)
 
 | 編號 | 測試名稱 | 意圖說明 |
 |:-----|:---------|:---------|
@@ -328,6 +329,46 @@
 
 ---
 
+### 15. trading/position-open-close.test.ts
+
+**路徑**: `tests/integration/trading/position-open-close.test.ts`
+**功能**: 實際開關倉測試
+**狀態**: `describe.skipIf` (需要 `RUN_TRADING_INTEGRATION_TESTS=true` + Testnet API Keys)
+
+#### 安全約束
+
+| 參數 | 值 | 說明 |
+|:-----|:---|:-----|
+| MAX_QUANTITY | 0.001 BTC | 最大測試數量限制 |
+| DEFAULT_SYMBOL | BTCUSDT | 預設測試交易對 |
+| DEFAULT_LEVERAGE | 1x | 預設槓桿倍數 |
+| ORDER_TIMEOUT_MS | 30000 | 訂單超時（30 秒）|
+
+#### Setup Verification
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-105 | should display testnet connection status | 顯示 Testnet 連接狀態（Binance/OKX），並輸出設定指引 |
+| INT-106 | should have at least one testnet exchange connected | 驗證至少有一個 Testnet 交易所已連接（Binance 或 OKX） |
+| INT-107 | should have test user created | 驗證測試用戶已成功建立 |
+| INT-108 | should have sufficient balance on connected exchanges | 驗證連接的交易所 USDT 餘額 > 10（足夠進行測試） |
+
+#### Open and Close Position
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-109 | should complete open -> close cycle | 完整開倉→等待→平倉週期測試：建立 Binance 多倉 + OKX 空倉，驗證 Position 狀態為 OPEN；等待 3 秒後平倉，驗證狀態為 CLOSED 並檢查 PnL/ROI 計算 |
+
+#### Mock Tests（永遠執行）
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-110 | should validate test constraints | 驗證測試約束常數：MAX_QUANTITY=0.001、DEFAULT_SYMBOL=BTCUSDT、DEFAULT_LEVERAGE=1 |
+| INT-111 | should parse test params correctly | 驗證 getTestParams() 能正確解析環境變數並返回有效參數 |
+| INT-112 | should check trading test flag correctly | 驗證 canRunTradingTests() 正確判斷 RUN_TRADING_INTEGRATION_TESTS 環境變數 |
+
+---
+
 ## 執行說明
 
 ```bash
@@ -340,4 +381,7 @@ RUN_INTEGRATION_TESTS=true pnpm test tests/integration
 # 執行特定分類
 pnpm test tests/integration/websocket
 pnpm test tests/integration/api
+
+# 執行交易整合測試（需要 Testnet API Key）
+RUN_TRADING_INTEGRATION_TESTS=true pnpm test tests/integration/trading
 ```

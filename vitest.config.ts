@@ -18,6 +18,8 @@ export default defineConfig({
     environment: 'jsdom',
     // Setup files to run before each test file
     setupFiles: ['./tests/setup.ts'],
+    // Global setup: 執行資料庫遷移（僅執行一次）
+    globalSetup: ['./tests/global-setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

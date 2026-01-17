@@ -18,13 +18,16 @@ vi.mock('ccxt', () => {
     },
   };
 });
-import { PrismaClient } from '@/generated/prisma/client';
+import type { PrismaClient } from '@/generated/prisma/client';
+import { createPrismaClient } from '@/lib/prisma-factory';
 import { FundingRateValidator } from '../../src/services/validation/FundingRateValidator';
 import { FundingRateValidationRepository } from '../../src/repositories/FundingRateValidationRepository';
 import { OKXConnector } from '../../src/connectors/okx';
 import { OkxConnectorAdapter } from '../../src/adapters/OkxConnectorAdapter';
 
-describe.skip('OKX Funding Rate Validation Integration Tests', () => {
+const RUN_INTEGRATION = process.env.RUN_INTEGRATION_TESTS === 'true';
+
+describe.skipIf(!RUN_INTEGRATION)('OKX Funding Rate Validation Integration Tests', () => {
   let prisma: PrismaClient;
   let validator: FundingRateValidator;
   let repository: FundingRateValidationRepository;
@@ -33,7 +36,7 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
 
   beforeAll(() => {
     // 初始化依賴
-    prisma = new PrismaClient();
+    prisma = createPrismaClient();
     repository = new FundingRateValidationRepository(prisma);
 
     // 初始化 OKX connector（使用 testnet）

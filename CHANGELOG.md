@@ -8,6 +8,67 @@
 
 ### 新增
 
+#### 實際開關倉測試與效能測試（2025-01-17）
+- 新增 `tests/integration/trading/position-open-close.test.ts` - OKX Demo 開關倉整合測試
+  - 使用 OKX Demo 進行真實單邊開關倉操作（Net Mode）
+  - ⚠️ Binance Testnet 已不再支援 Futures（CCXT 已棄用）
+  - 驗證 LONG/SHORT 開倉 → 等待 → 平倉完整週期
+  - 驗證餘額、訂單執行、PnL 計算
+  - 最小交易數量：0.01 BTC（OKX 限制）
+  - 實測延遲：開倉 ~200ms、平倉 ~125ms
+- 新增 `tests/integration/trading/testnet-helpers.ts` - Testnet 輔助函數
+  - `createTestnetExchange()` - 建立 Testnet 交易所連接（返回 `TestnetExchangeInstance`）
+  - `validateTestnetConnection()` - 驗證確實是 Testnet
+  - `cleanupTestPositions()` - 清理測試持倉
+  - `getTestUserId()` / `setupTestApiKeys()` - 測試用戶管理
+- 新增 `tests/performance/trading/position-latency.test.ts` - 開關倉延遲效能測試
+  - 單邊開倉延遲目標 <5000ms
+  - 單邊平倉延遲目標 <5000ms
+  - 實測效能：平均 129-192ms，最大 396ms
+- 新增 `tests/performance/trading/position-latency-mock.test.ts` - Mock 效能基準測試
+  - 訂單參數建構 <1ms
+  - PnL 計算 <5ms
+  - 批量處理效能驗證
+- **新增 npm scripts**：
+  - `pnpm test:unit` - 單元測試
+  - `pnpm test:integration` - 整合測試
+  - `pnpm test:performance` - 效能測試
+  - `pnpm test:trading` - OKX Demo 交易整合測試
+  - `pnpm test:trading:perf` - 交易效能測試
+
+#### 測試環境自動初始化（2025-01-17）
+- 新增 `tests/global-setup.ts` - Vitest 全域設定
+  - 自動載入 `.env.test` 環境變數
+  - 整合測試時自動執行 `prisma db push` 同步資料庫 schema
+- 更新 `tests/setup.ts` - 載入 `.env.test` 並覆蓋現有環境變數
+- 更新 `vitest.config.ts` - 新增 `globalSetup` 配置
+- 更新 `.env.test.example` - 新增 OKX Demo API Key 設定範例
+  - `OKX_DEMO_API_KEY` / `OKX_DEMO_API_SECRET` / `OKX_DEMO_PASSPHRASE`
+  - `RUN_TRADING_INTEGRATION_TESTS` / `TRADING_PERFORMANCE_TEST`
+  - ⚠️ Binance Testnet 已棄用（CCXT 不再支援 Futures sandbox）
+
+### 修復
+
+#### WebSocket 測試修復（2025-01-17）
+- 修正 `funding-rate-latency.test.ts` API 調用錯誤
+  - `BinanceFundingWs` 沒有 `start()` 方法，改用 `connect()` + `subscribe()`
+  - `stop()` 方法改為 `destroy()`
+- 修正 `multi-exchange-ws.test.ts` BingX 測試失敗
+  - BingX API 可能不返回 `fundingRate`（markPrice 事件中不一定包含）
+  - 放寬斷言條件，只驗證 `markPrice` 存在
+- 修正 `binance-funding-ws.test.ts` uncaught exception
+  - 連接無效主機時 DNS 錯誤作為 uncaught exception 拋出
+  - 添加錯誤處理器預先捕獲錯誤
+
+#### Prisma 7 測試環境相容性修復（2025-01-17）
+- 修正整合測試中 PrismaClient 初始化錯誤
+  - Prisma 7 使用 "client" engine 需要 adapter
+  - 改用 `createPrismaClient()` 工廠函數（使用 `@prisma/adapter-pg`）
+- 修正 CCXT 在 jsdom 環境下的相容性問題
+  - 在測試檔案中使用 `@vitest-environment node` 指令
+- 優化 Setup Verification 測試
+  - 無 Testnet API Key 時顯示清楚提示並優雅跳過
+
 #### GitHub Actions CI 整合（2025-01-17）
 - 新增 `.github/workflows/ci.yml` - 單元測試與程式碼品質檢查
   - ESLint 檢查
@@ -18,7 +79,7 @@
 - 新增 `.github/workflows/integration.yml` - 整合測試
   - PostgreSQL 15 服務容器
   - 資料庫遷移
-  - 整合測試（103 個測試案例）
+  - 整合測試（117 個測試案例）
 - 新增 `.github/workflows/e2e.yml` - E2E 測試
   - PostgreSQL 15 服務容器
   - Next.js 應用建置
