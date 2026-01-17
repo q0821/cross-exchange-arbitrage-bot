@@ -76,7 +76,7 @@ export const RateRow = memo(function RateRow({
       const message = formatArbitrageMessage(rate, timeBasis);
       await navigator.clipboard.writeText(message);
       setCopyStatus('success');
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to copy to clipboard:', err);
       setCopyStatus('error');
     }

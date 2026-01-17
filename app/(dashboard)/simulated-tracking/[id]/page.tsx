@@ -106,7 +106,7 @@ export default function TrackingDetailPage() {
       if (data.success && data.data?.tracking) {
         setTracking(data.data.tracking);
       }
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to fetch tracking:', err);
       setError('無法載入追蹤詳情');
     } finally {
@@ -130,7 +130,7 @@ export default function TrackingDetailPage() {
       if (data.success && data.data?.snapshots) {
         setSnapshots(data.data.snapshots);
       }
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to fetch snapshots:', err);
     } finally {
       setIsSnapshotsLoading(false);
@@ -188,7 +188,7 @@ export default function TrackingDetailPage() {
             : null
         );
       }
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to stop tracking:', err);
       setError(err instanceof Error ? err.message : 'Failed to stop tracking');
     } finally {

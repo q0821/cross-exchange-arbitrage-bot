@@ -65,7 +65,7 @@ export default function SimulatedTrackingPage() {
       if (data.success && data.data?.trackings) {
         setTrackings(data.data.trackings);
       }
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to fetch trackings:', err);
       setError('無法載入追蹤記錄');
     } finally {
@@ -98,7 +98,7 @@ export default function SimulatedTrackingPage() {
           t.id === id ? { ...t, status: 'STOPPED', stoppedAt: new Date().toISOString() } : t
         )
       );
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to stop tracking:', err);
       setError(err instanceof Error ? err.message : 'Failed to stop tracking');
     } finally {
@@ -126,7 +126,7 @@ export default function SimulatedTrackingPage() {
 
       // 從本地狀態中移除
       setTrackings((prev) => prev.filter((t) => t.id !== id));
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to delete tracking:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete tracking');
     } finally {

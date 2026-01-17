@@ -67,7 +67,7 @@ export default function NotificationsSettingsPage() {
       } else {
         setError(data.message || 'Failed to load webhooks');
       }
-    } catch (_err) {
+    } catch (err) {
       setError('Failed to load webhooks');
       console.error(err);
     } finally {
@@ -101,7 +101,7 @@ export default function NotificationsSettingsPage() {
       } else {
         setError(data.message || 'Failed to create webhook');
       }
-    } catch (_err) {
+    } catch (err) {
       setError('Failed to create webhook');
       console.error(err);
     } finally {
@@ -125,7 +125,7 @@ export default function NotificationsSettingsPage() {
         success: data.success,
         message: data.message || (data.success ? '測試成功' : '測試失敗'),
       });
-    } catch (_err) {
+    } catch (err) {
       setTestResult({
         id: webhookId,
         success: false,
@@ -153,7 +153,7 @@ export default function NotificationsSettingsPage() {
       } else {
         setError(data.message || 'Failed to update webhook');
       }
-    } catch (_err) {
+    } catch (err) {
       setError('Failed to update webhook');
       console.error(err);
     }
@@ -177,7 +177,7 @@ export default function NotificationsSettingsPage() {
       } else {
         setError(data.message || 'Failed to delete webhook');
       }
-    } catch (_err) {
+    } catch (err) {
       setError('Failed to delete webhook');
       console.error(err);
     }
@@ -214,7 +214,7 @@ export default function NotificationsSettingsPage() {
       } else {
         setError(data.message || 'Failed to update webhook');
       }
-    } catch (_err) {
+    } catch (err) {
       setError('Failed to update webhook');
       console.error(err);
     } finally {

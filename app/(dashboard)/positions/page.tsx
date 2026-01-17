@@ -116,7 +116,7 @@ export default function PositionsPage() {
         // 顯示錯誤
         setLocalError(result.error?.message || '標記失敗');
       }
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to mark position as closed:', err);
       setLocalError('標記持倉時發生錯誤');
     } finally {

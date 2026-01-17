@@ -45,7 +45,7 @@ export function useSymbolGroups(): UseSymbolGroupsReturn {
       if (saved) {
         setSelectedGroupState(saved);
       }
-    } catch (_err) {
+    } catch (err) {
       console.warn('[useSymbolGroups] Failed to load from localStorage:', err);
     }
   }, []);
@@ -86,7 +86,7 @@ export function useSymbolGroups(): UseSymbolGroupsReturn {
         } else {
           throw new Error(data.error?.message || 'Failed to fetch groups');
         }
-      } catch (_err) {
+      } catch (err) {
         console.error('[useSymbolGroups] Failed to load groups:', err);
         setError(err instanceof Error ? err : new Error(String(err)));
       } finally {
@@ -102,7 +102,7 @@ export function useSymbolGroups(): UseSymbolGroupsReturn {
     setSelectedGroupState(groupId);
     try {
       localStorage.setItem(STORAGE_KEY, groupId);
-    } catch (_err) {
+    } catch (err) {
       console.warn('[useSymbolGroups] Failed to save to localStorage:', err);
     }
   }, []);

@@ -131,7 +131,7 @@ export default function AssetsPage() {
       if (data.success && data.data) {
         setPositionsData(data.data);
       }
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to fetch positions:', err);
     } finally {
       setIsLoadingPositions(false);

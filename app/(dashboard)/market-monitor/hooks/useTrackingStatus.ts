@@ -85,7 +85,7 @@ export function useTrackingStatus(): UseTrackingStatusReturn {
           }))
         );
       }
-    } catch (_err) {
+    } catch (err) {
       console.error('Failed to fetch trackings:', err);
       // 不設置錯誤狀態，避免干擾主頁面
     }
@@ -141,7 +141,7 @@ export function useTrackingStatus(): UseTrackingStatusReturn {
         }
 
         throw new Error('Unexpected response format');
-      } catch (_err) {
+      } catch (err) {
         const message =
           err instanceof Error ? err.message : 'Failed to start tracking';
         setError(message);

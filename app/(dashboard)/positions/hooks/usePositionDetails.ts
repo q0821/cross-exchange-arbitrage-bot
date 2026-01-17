@@ -53,7 +53,7 @@ export function usePositionDetails(): UsePositionDetailsReturn {
       if (data.data) {
         setDetails(data.data);
       }
-    } catch (_err) {
+    } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '查詢失敗';
       setError(errorMessage);
     } finally {
