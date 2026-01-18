@@ -172,6 +172,11 @@ describe.skipIf(!INTEGRATION_ENABLED)('GET /api/public/opportunities', () => {
   });
 
   describe('參數驗證', () => {
+    // 避免觸發速率限制
+    beforeEach(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2100)); // 等待速率限制窗口重置
+    });
+
     it('應拒絕無效的 page 參數', async () => {
       const response = await fetch(`${baseUrl}/api/public/opportunities?page=0`);
 
