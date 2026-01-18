@@ -114,6 +114,22 @@ TypeScript 5.8+ with strict mode: Follow standard conventions
 - 提交到 main 之前必須通過 ESLint 和 TypeScript check
 - 指令：`pnpm lint` + `pnpm exec tsc --noEmit`
 
+### 8. Prisma 7 測試相容性
+- **禁止**：在測試中直接使用 `new PrismaClient()` 初始化
+- **應該**：使用專案提供的 `createPrismaClient()` 工廠函數
+- **原因**：Prisma 7 使用 "client" engine 需要 adapter（`@prisma/adapter-pg`）
+- **範例**：
+  ```typescript
+  // ❌ 錯誤 - Prisma 7 會報錯
+  import { PrismaClient } from '@prisma/client'
+  const prisma = new PrismaClient()
+
+  // ✅ 正確 - 使用工廠函數
+  import { createPrismaClient } from '@/src/lib/db'
+  const prisma = createPrismaClient()
+  ```
+- **注意**：整合測試需要在測試檔案中加上 `// @vitest-environment node` 避免 jsdom 環境與 CCXT 的相容性問題
+
 ## ⚠️ Speckit 工作流程強制要求 (NON-NEGOTIABLE)
 
 ### TDD 與 Constitution 合規性檢查

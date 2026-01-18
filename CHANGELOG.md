@@ -47,24 +47,41 @@
 - ✅ `src/types/public-opportunity.ts` - 型別定義
 - ✅ `src/models/PublicOpportunity.ts` - 資料模型
 
-**5. 測試覆蓋**（完成 ✅）
+**5. User Story 3 (P2) - 分頁與時間篩選**（完成 ✅）
+- ✅ `Pagination.tsx` - 分頁元件（支援首頁/末頁快捷鍵）
+- ✅ `TimeRangeFilter.tsx` - 時間範圍篩選元件
+- ✅ `usePublicOpportunities.ts` - 公開機會查詢 Hook（TanStack Query）
+- ✅ `OpportunityListClient.tsx` - 客戶端列表元件（整合分頁與篩選）
+
+**6. User Story 4 (P3) - 品牌區塊與 SEO**（完成 ✅）
+- ✅ `HeroSection.tsx` - Hero Section 品牌區塊
+- ✅ SEO 優化（meta tags、Open Graph）
+- ✅ `format-duration.ts` - 持續時間格式化工具
+
+**7. 測試覆蓋**（完成 ✅）
 - ✅ `tests/unit/lib/rate-limiter.test.ts` - 速率限制器單元測試
 - ✅ `tests/unit/middleware/rateLimitMiddleware.test.ts` - 中介軟體單元測試
 - ✅ `tests/unit/repositories/OpportunityEndHistoryRepository.public.test.ts` - Repository 測試
+- ✅ `tests/unit/components/HeroSection.test.tsx` - Hero Section 測試
+- ✅ `tests/unit/components/Pagination.test.tsx` - 分頁元件測試
+- ✅ `tests/unit/components/TimeRangeFilter.test.tsx` - 時間篩選測試
+- ✅ `tests/unit/components/OpportunityCard.test.tsx` - 機會卡片測試
+- ✅ `tests/unit/lib/format-duration.test.ts` - 時間格式化測試
+- ✅ `tests/hooks/usePublicOpportunities.test.ts` - Hook 測試
 - ✅ `tests/integration/api/public-opportunities.test.ts` - API 整合測試
-- ✅ `tests/integration/pages/home.test.ts` - 首頁整合測試
-- ✅ `tests/integration/pages/home-redirect.test.ts` - 重導向測試
+- ✅ `tests/integration/database-connection.test.ts` - 資料庫連線測試
 
 **技術實作**：
 - SSR 渲染支援 SEO
 - IP 速率限制（30 req/min，滑動視窗算法）
 - 響應式設計（Tailwind CSS）
 - 去識別化保護用戶隱私
+- TanStack Query 客戶端快取
 
 **統計**：
-- 新增程式碼：約 3,180 行 TypeScript
-- 新增檔案：21 個（元件、API、測試、規格文件）
-- 測試覆蓋：6 個測試檔案
+- 新增程式碼：約 5,500 行 TypeScript
+- 新增檔案：33 個（元件、API、測試、規格文件）
+- 測試覆蓋：13 個測試檔案
 
 ---
 
@@ -73,6 +90,22 @@
   - 強制 TDD 與 Constitution 合規性檢查
   - `/speckit.implement` 前必須確保測試任務存在
   - Red-Green-Refactor 流程標示要求
+
+#### 腳本整理與清理（2026-01-18）
+- **診斷腳本重組**：移動至 `scripts/diagnostics/` 目錄
+  - `test-binance-api.ts` - Binance API 連線測試
+  - `test-gateio-api.ts` - Gate.io API 連線測試
+  - `test-mexc-api.ts` - MEXC API 連線測試
+  - `test-okx-position.ts` - OKX 持倉查詢測試
+  - 新增 `scripts/diagnostics/README.md` - 診斷工具使用說明
+- **刪除過時腳本**（11 個）：
+  - `test-balance-api.ts`, `test-balance-user1.ts`
+  - `test-funding-rate-validation.ts`, `test-gateio-connector.ts`
+  - `test-okx-funding-interval.mjs`, `test-open-position.ts`
+  - `test-user-connector.ts`, `test-binance-funding-interval.js`
+  - `test-binance-interval-fix.mjs`, `test-db-connection.ts`
+  - `test-gateio-funding-interval.mjs`, `test-mexc-okx-intervals.mjs`
+- 新增 `test-scripts-analysis.md` - 腳本清理分析報告
 
 #### 實際開關倉測試與效能測試（2025-01-17）
 - 新增 `tests/integration/trading/position-open-close.test.ts` - OKX Demo 開關倉整合測試
