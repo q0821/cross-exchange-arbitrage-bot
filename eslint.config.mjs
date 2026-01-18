@@ -148,6 +148,8 @@ export default tseslint.config(
   {
     files: ['**/*.test.ts', '**/*.test.tsx', '**/tests/**/*.ts', '**/tests/**/*.tsx', '**/*.spec.ts'],
     rules: {
+      // 測試檔案允許使用 console（用於測試輸出）
+      'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
       // 放寬測試文件中的未使用變數檢查
       '@typescript-eslint/no-unused-vars': ['error', {
