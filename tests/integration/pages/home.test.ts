@@ -3,6 +3,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client';
 
 const INTEGRATION_ENABLED = process.env.RUN_INTEGRATION_TESTS === 'true';
+// 需要 Next.js 伺服器運行，CI 環境中預設為 false
+const SERVER_AVAILABLE = process.env.NEXT_SERVER_AVAILABLE === 'true';
 
 /**
  * T013: 首頁 SSR 測試
@@ -11,8 +13,11 @@ const INTEGRATION_ENABLED = process.env.RUN_INTEGRATION_TESTS === 'true';
  * - Server Component 正確渲染
  * - HTML 包含套利機會列表資料
  * - 無需認證即可訪問
+ *
+ * 注意：此測試需要 Next.js 伺服器運行
+ * 設定環境變數 NEXT_SERVER_AVAILABLE=true 以啟用
  */
-describe.skipIf(!INTEGRATION_ENABLED)('首頁 SSR', () => {
+describe.skipIf(!INTEGRATION_ENABLED || !SERVER_AVAILABLE)('首頁 SSR', () => {
   let prisma: PrismaClient;
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 

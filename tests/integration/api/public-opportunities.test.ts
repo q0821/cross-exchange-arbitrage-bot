@@ -1,10 +1,18 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client';
 
 const INTEGRATION_ENABLED = process.env.RUN_INTEGRATION_TESTS === 'true';
+// 需要 Next.js 伺服器運行，CI 環境中預設為 false
+const SERVER_AVAILABLE = process.env.NEXT_SERVER_AVAILABLE === 'true';
 
-describe.skipIf(!INTEGRATION_ENABLED)('GET /api/public/opportunities', () => {
+/**
+ * 公開 API 整合測試
+ *
+ * 注意：此測試需要 Next.js 伺服器運行
+ * 設定環境變數 NEXT_SERVER_AVAILABLE=true 以啟用
+ */
+describe.skipIf(!INTEGRATION_ENABLED || !SERVER_AVAILABLE)('GET /api/public/opportunities', () => {
   let prisma: PrismaClient;
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 

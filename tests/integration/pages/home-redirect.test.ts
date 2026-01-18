@@ -1,14 +1,19 @@
 import { describe, it, expect } from 'vitest';
 
 const INTEGRATION_ENABLED = process.env.RUN_INTEGRATION_TESTS === 'true';
+// 需要 Next.js 伺服器運行，CI 環境中預設為 false
+const SERVER_AVAILABLE = process.env.NEXT_SERVER_AVAILABLE === 'true';
 
 /**
  * T014: 已登入用戶重導向測試
  *
  * 測試目標：
  * - 已登入用戶訪問 `/` 重導向到 `/market-monitor`
+ *
+ * 注意：此測試需要 Next.js 伺服器運行
+ * 設定環境變數 NEXT_SERVER_AVAILABLE=true 以啟用
  */
-describe.skipIf(!INTEGRATION_ENABLED)('已登入用戶重導向', () => {
+describe.skipIf(!INTEGRATION_ENABLED || !SERVER_AVAILABLE)('已登入用戶重導向', () => {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   it('應將已登入用戶重導向到 /market-monitor', async () => {
