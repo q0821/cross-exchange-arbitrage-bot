@@ -88,13 +88,13 @@ function calculatePerformanceStats(latencies: number[]): {
 describe.skipIf(!runPerformanceTests)('Position Trading Latency (Testnet)', () => {
   const TEST_TIMEOUT = 180000; // 3 分鐘超時
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let deps: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let prisma: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let binanceInstance: any = null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let okxInstance: any = null;
   let testUserId: string;
   let createdPositionIds: string[] = [];
