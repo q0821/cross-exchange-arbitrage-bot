@@ -119,3 +119,8 @@ export type AssetSnapshot = Prisma.AssetSnapshotModel
  * 
  */
 export type TradingSettings = Prisma.TradingSettingsModel
+/**
+ * Model ArbitrageOpportunity
+ * 
+ */
+export type ArbitrageOpportunity = Prisma.ArbitrageOpportunityModel
