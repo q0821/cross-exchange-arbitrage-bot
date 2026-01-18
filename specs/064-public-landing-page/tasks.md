@@ -19,9 +19,9 @@
 
 **Purpose**: 專案結構和基礎設定
 
-- [ ] T001 建立 `app/(public)/components/` 目錄結構
-- [ ] T002 [P] 建立型別定義檔 `src/types/public-opportunity.ts`
-- [ ] T003 [P] 建立查詢參數 Schema `src/models/PublicOpportunity.ts`
+- [x] T001 建立 `app/(public)/components/` 目錄結構
+- [x] T002 [P] 建立型別定義檔 `src/types/public-opportunity.ts`
+- [x] T003 [P] 建立查詢參數 Schema `src/models/PublicOpportunity.ts`
 
 ---
 
