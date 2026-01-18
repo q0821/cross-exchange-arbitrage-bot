@@ -11,6 +11,8 @@ import type { PrismaClient } from '@/generated/prisma/client';
 import { createPrismaClient } from '@/lib/prisma-factory';
 
 const RUN_INTEGRATION = process.env.RUN_INTEGRATION_TESTS === 'true';
+// TimescaleDB 可能未安裝在 CI 環境中
+const TIMESCALEDB_AVAILABLE = process.env.TIMESCALEDB_AVAILABLE === 'true';
 
 describe.skipIf(!RUN_INTEGRATION)('Database Connection Integration Tests', () => {
   let prisma: PrismaClient;
@@ -44,7 +46,7 @@ describe.skipIf(!RUN_INTEGRATION)('Database Connection Integration Tests', () =>
     });
   });
 
-  describe('TimescaleDB Extension', () => {
+  describe.skipIf(!TIMESCALEDB_AVAILABLE)('TimescaleDB Extension', () => {
     it('應該已安裝 TimescaleDB 擴展', async () => {
       // Act
       const timescaleCheck = await prisma.$queryRaw<
