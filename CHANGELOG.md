@@ -8,6 +8,65 @@
 
 ### 新增
 
+#### Feature 065: 套利機會追蹤系統（✅ 已完成 - 2026-01-18）
+
+**規劃文件**：
+- 新增 `specs/065-arbitrage-opportunity-tracking/` - 完整功能規劃文件
+  - `spec.md` - 功能規格
+  - `plan.md` - 實作計畫
+  - `tasks.md` - 實作任務清單（23 個任務，含 TDD 測試任務）
+
+**已完成功能**：
+
+**1. 資料模型（Phase 1）**
+- ✅ `prisma/schema.prisma` - 新增 `ArbitrageOpportunity` model
+- ✅ `prisma/migrations/` - 資料庫遷移檔案
+- ✅ `src/models/ArbitrageOpportunity.ts` - 型別定義與 DTO
+
+**2. Repository 層（Phase 2）**
+- ✅ `src/repositories/ArbitrageOpportunityRepository.ts`
+  - `create()` - 建立新機會記錄
+  - `findActiveByKey()` - 依唯一鍵查詢進行中機會
+  - `update()` - 更新機會狀態
+  - `markAsEnded()` - 標記機會結束
+  - `upsert()` - 建立或更新機會（便捷方法）
+  - `getPublicOpportunities()` - 公開 API 查詢（支援時間與狀態篩選）
+  - `findAllActiveBySymbol()` - 查詢指定交易對的所有進行中機會
+
+**3. 事件追蹤服務（Phase 3-4）**
+- ✅ `src/services/ArbitrageOpportunityTracker.ts`
+  - EventEmitter 架構監聽 `opportunity-detected` 和 `opportunity-disappeared` 事件
+  - 自動追蹤機會生命週期（發現 → 更新 → 結束）
+  - 計算持續時間（durationMs）
+  - 追蹤最大利差（maxSpread）和最大 APY（maxAPY）
+
+**4. 公開 API 整合（Phase 5-6）**
+- ✅ 更新 `app/api/public/opportunities/route.ts` - 使用新 Repository
+- ✅ 更新 `src/lib/get-public-opportunities.ts` - SSR 查詢服務
+- ✅ 更新 `src/models/PublicOpportunity.ts` - 新增 `status` 參數
+- ✅ `PublicOpportunityDTO` 欄位映射：
+  - `detectedAt` → `appearedAt`
+  - `endedAt` → `disappearedAt`
+  - `currentSpread` → `finalSpread`
+
+**5. 測試覆蓋（Phase 7）**
+- ✅ `tests/unit/repositories/ArbitrageOpportunityRepository.test.ts` - 16 個測試案例
+- ✅ `tests/unit/services/ArbitrageOpportunityTracker.test.ts` - 9 個測試案例
+- ✅ `tests/integration/ArbitrageOpportunityFlow.test.ts` - 5 個整合測試案例
+
+**技術實作**：
+- 複合唯一鍵：`symbol + longExchange + shortExchange + status`
+- 支援同一交易對在多個交易所組合的追蹤
+- 自動計算持續時間和最大利差
+- 向後相容既有的公開 API 格式
+
+**統計**：
+- 新增程式碼：約 1,200 行 TypeScript
+- 新增檔案：8 個（model、repository、service、測試）
+- 測試覆蓋：30 個測試案例
+
+---
+
 #### Feature 064: 公開套利機會歷史首頁（✅ 已完成 - 2026-01-18）
 
 **規劃文件**：
