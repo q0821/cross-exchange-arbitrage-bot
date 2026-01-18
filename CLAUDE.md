@@ -21,6 +21,8 @@ Auto-generated from all feature plans. Last updated: 2025-01-17
 - PostgreSQL 15+ with TimescaleDB (無 schema 變更) (062-refactor-trading-srp)
 - TypeScript 5.8 + Node.js 20.x LTS + TanStack Query 5.x (新增), React 19, Next.js 15, Socket.io-client 4.x (063-frontend-data-caching)
 - N/A (客戶端記憶體快取，無持久化儲存) (063-frontend-data-caching)
+- TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Prisma 7.x, Tailwind CSS, Radix UI (064-public-landing-page)
+- PostgreSQL 15 + TimescaleDB（現有 `OpportunityEndHistory` 模型） (064-public-landing-page)
 
 ## Project Structure
 ```
@@ -98,6 +100,58 @@ TypeScript 5.8+ with strict mode: Follow standard conventions
 ### 7. 提交前驗證
 - 提交到 main 之前必須通過 ESLint 和 TypeScript check
 - 指令：`pnpm lint` + `pnpm exec tsc --noEmit`
+
+## ⚠️ Speckit 工作流程強制要求 (NON-NEGOTIABLE)
+
+### TDD 與 Constitution 合規性檢查
+
+**在執行 `/speckit.implement` 之前，必須嚴格遵守以下規則：**
+
+1. **Constitution 合規性檢查**
+   - 所有 7 項 Constitution 原則必須通過審查
+   - 參考：`.specify/memory/constitution.md`
+   - 特別注意 NON-NEGOTIABLE 原則：
+     - Principle I: Trading Safety First（交易安全）
+     - Principle IV: Data Integrity（資料完整性 + Migration 檔案）
+     - Principle VII: TDD Discipline（測試驅動開發）
+
+2. **TDD 強制執行（Principle VII）**
+   - tasks.md 必須包含 `[TEST]` 標記的測試任務
+   - 每個 Implementation 任務之前必須有對應的測試任務
+   - 測試必須先寫、先執行、先驗證 FAIL（Red Phase）
+   - 實作只寫最小程式碼讓測試通過（Green Phase）
+   - 重構階段確保所有測試仍然 PASS（Refactor Phase）
+
+3. **tasks.md 必要結構**
+   ```
+   每個 Phase 必須包含：
+
+   ### Tests for [Phase Name] (RED Phase) 🔴
+   - [ ] Txxx [TEST] 測試描述
+     - **執行測試，驗證 FAIL**
+
+   ### Implementation for [Phase Name] (GREEN Phase) 🟢
+   - [ ] Txxx 實作描述
+     - **執行 Txxx 測試，驗證 PASS**
+
+   ### Refactor for [Phase Name] 🔵
+   - [ ] Txxx 重構描述
+     - **執行所有測試，驗證全部 PASS**
+   ```
+
+4. **禁止事項**
+   - ❌ 跳過測試直接實作
+   - ❌ tasks.md 中沒有 `[TEST]` 任務
+   - ❌ 違反 Constitution 任一 NON-NEGOTIABLE 原則
+   - ❌ schema.prisma 變更沒有對應的 migration 檔案
+
+5. **執行 `/speckit.implement` 前的檢查清單**
+   - [ ] Constitution 7 項原則全部 ✅ Pass
+   - [ ] tasks.md 包含測試任務（[TEST] 標記）
+   - [ ] 測試任務排在對應實作任務之前
+   - [ ] 有明確的 Red-Green-Refactor 流程標示
+
+**違反這些規則的 implement 將導致程式碼品質下降和潛在的生產環境問題。**
 
 <!-- MANUAL ADDITIONS START -->
 

@@ -8,6 +8,27 @@
 
 ### 新增
 
+#### Feature 064: 公開套利機會歷史首頁規劃（2026-01-18）
+- 新增 `specs/064-public-landing-page/` - 完整功能規劃文件
+  - `spec.md` - 功能規格（4 User Stories、11 功能需求、5 非功能需求）
+  - `plan.md` - 實作計畫（Constitution Check 全部通過）
+  - `research.md` - 技術研究與決策
+  - `data-model.md` - 資料模型（PublicOpportunityDTO）
+  - `contracts/api.md` - API 契約（GET /api/public/opportunities）
+  - `quickstart.md` - 快速驗證指南
+  - `tasks.md` - 實作任務清單（49 個任務，含 14 個 TDD 測試任務）
+  - `checklists/requirements.md` - 需求驗證清單（35 項）
+- 功能摘要：
+  - 公開首頁展示歷史套利機會列表（無需登入）
+  - 支援 7/30/90 天時間範圍篩選
+  - IP 速率限制（30 req/min）
+  - SSR 渲染支援 SEO
+  - 去識別化 DTO（不洩漏 userId、notificationCount）
+- 更新 `CLAUDE.md` - 新增「Speckit 工作流程強制要求」章節
+  - 強制 TDD 與 Constitution 合規性檢查
+  - `/speckit.implement` 前必須確保測試任務存在
+  - Red-Green-Refactor 流程標示要求
+
 #### 實際開關倉測試與效能測試（2025-01-17）
 - 新增 `tests/integration/trading/position-open-close.test.ts` - OKX Demo 開關倉整合測試
   - 使用 OKX Demo 進行真實單邊開關倉操作（Net Mode）
