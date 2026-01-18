@@ -33,15 +33,16 @@ function mapApiStatus(status: string): ConnectionStatus {
 
 /**
  * 將 HistorySnapshot 轉換為 HistoryDataPoint 格式
+ * 注意：API 回傳的欄位名稱已經是 binance, okx 等，不是 binanceBalanceUSD
  */
 function transformHistoryData(snapshots: HistorySnapshot[]): HistoryDataPoint[] {
   return snapshots.map((snapshot) => ({
     timestamp: snapshot.timestamp,
-    binance: snapshot.binanceBalanceUSD ?? null,
-    okx: snapshot.okxBalanceUSD ?? null,
-    mexc: snapshot.mexcBalanceUSD ?? null,
-    gate: snapshot.gateioBalanceUSD ?? null,
-    total: snapshot.totalBalanceUSD,
+    binance: snapshot.binance ?? null,
+    okx: snapshot.okx ?? null,
+    mexc: snapshot.mexc ?? null,
+    gate: snapshot.gate ?? null,
+    total: snapshot.total,
   }));
 }
 
@@ -104,6 +105,7 @@ export default function AssetsPage() {
   const {
     data: historyData,
     isLoading: isLoadingHistory,
+    error: historyError,
   } = useAssetHistoryQuery({ days: timeRange });
 
   // 將 historyData 轉換為 Chart 需要的格式
@@ -354,10 +356,17 @@ export default function AssetsPage() {
           )}
 
           {/* 曲線圖表 */}
-          <AssetHistoryChart
-            data={chartData}
-            isLoading={isLoadingHistory}
-          />
+          {historyError ? (
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+              <AlertCircle className="w-8 h-8 text-loss mb-2" />
+              <p className="text-loss">{historyError.message}</p>
+            </div>
+          ) : (
+            <AssetHistoryChart
+              data={chartData}
+              isLoading={isLoadingHistory}
+            />
+          )}
         </div>
 
         {/* 持倉列表區塊（可收合） */}

@@ -5,16 +5,16 @@ import { queryKeys } from '@/lib/query-keys';
 
 /**
  * History snapshot data point
+ * 注意：API 回傳的是已轉換的格式（binance 而非 binanceBalanceUSD）
  */
 export interface HistorySnapshot {
-  id: string;
   timestamp: string;
-  totalBalanceUSD: number;
-  binanceBalanceUSD?: number | null;
-  okxBalanceUSD?: number | null;
-  mexcBalanceUSD?: number | null;
-  gateioBalanceUSD?: number | null;
-  bingxBalanceUSD?: number | null;
+  binance: number | null;
+  okx: number | null;
+  mexc: number | null;
+  gate: number | null;
+  bingx: number | null;
+  total: number;
 }
 
 /**
