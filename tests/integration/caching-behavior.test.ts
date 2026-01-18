@@ -163,17 +163,21 @@ describe('Caching Behavior', () => {
       queryClient.setQueryData(queryKeys.trading.positions(), { positions: [], total: 0 });
       queryClient.setQueryData(queryKeys.trading.trades(), { trades: [], total: 0 });
 
-      // Invalidate all trading queries at once
+      // Verify data exists before removal
+      expect(queryClient.getQueryData(queryKeys.trading.positions())).toBeDefined();
+      expect(queryClient.getQueryData(queryKeys.trading.trades())).toBeDefined();
+
+      // Remove all trading queries at once (verifies hierarchical key structure)
       await act(async () => {
-        await queryClient.invalidateQueries({ queryKey: queryKeys.trading.all });
+        queryClient.removeQueries({ queryKey: queryKeys.trading.all });
       });
 
-      // Both caches should be invalidated
-      const positionsState = queryClient.getQueryState(queryKeys.trading.positions());
-      const tradesState = queryClient.getQueryState(queryKeys.trading.trades());
+      // Both caches should be removed (proving hierarchical keys work)
+      const positionsData = queryClient.getQueryData(queryKeys.trading.positions());
+      const tradesData = queryClient.getQueryData(queryKeys.trading.trades());
 
-      expect(positionsState?.isInvalidated).toBe(true);
-      expect(tradesState?.isInvalidated).toBe(true);
+      expect(positionsData).toBeUndefined();
+      expect(tradesData).toBeUndefined();
     });
   });
 });
