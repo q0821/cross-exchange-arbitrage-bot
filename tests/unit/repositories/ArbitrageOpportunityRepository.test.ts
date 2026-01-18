@@ -261,15 +261,28 @@ describe('ArbitrageOpportunityRepository', () => {
         status: 'ENDED',
       };
 
-      const opportunities = [mockOpportunity];
-      mockFindMany.mockResolvedValue(opportunities);
+      // 模擬完整的 ArbitrageOpportunity 記錄（含 endedAt）
+      const endedOpportunity = {
+        ...mockOpportunity,
+        status: 'ENDED' as const,
+        endedAt: new Date('2026-01-18T12:00:00.000Z'),
+        durationMs: BigInt(7200000), // 2 hours
+      };
+
+      mockFindMany.mockResolvedValue([endedOpportunity]);
       mockCount.mockResolvedValue(1);
 
       const result = await repository.getPublicOpportunities(options);
 
       expect(mockFindMany).toHaveBeenCalled();
       expect(mockCount).toHaveBeenCalled();
-      expect(result.opportunities).toEqual(opportunities);
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]).toMatchObject({
+        id: 'opp-123',
+        symbol: 'BTCUSDT',
+        longExchange: 'binance',
+        shortExchange: 'okx',
+      });
       expect(result.total).toBe(1);
     });
 
@@ -279,8 +292,90 @@ describe('ArbitrageOpportunityRepository', () => {
 
       const result = await repository.getPublicOpportunities({});
 
-      expect(result.opportunities).toEqual([]);
+      expect(result.data).toEqual([]);
       expect(result.total).toBe(0);
+    });
+
+    // T019: 時間篩選測試
+    it('應該正確篩選 7 天內的記錄', async () => {
+      mockFindMany.mockResolvedValue([]);
+      mockCount.mockResolvedValue(0);
+
+      await repository.getPublicOpportunities({ days: 7, status: 'ENDED' });
+
+      // 驗證 where 條件包含 endedAt 時間範圍
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'ENDED',
+            endedAt: expect.objectContaining({
+              gte: expect.any(Date),
+            }),
+          }),
+        })
+      );
+    });
+
+    it('應該正確篩選 30 天內的記錄', async () => {
+      mockFindMany.mockResolvedValue([]);
+      mockCount.mockResolvedValue(0);
+
+      await repository.getPublicOpportunities({ days: 30, status: 'ENDED' });
+
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'ENDED',
+            endedAt: expect.objectContaining({
+              gte: expect.any(Date),
+            }),
+          }),
+        })
+      );
+    });
+
+    it('應該正確篩選 90 天內的記錄', async () => {
+      mockFindMany.mockResolvedValue([]);
+      mockCount.mockResolvedValue(0);
+
+      await repository.getPublicOpportunities({ days: 90, status: 'ENDED' });
+
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'ENDED',
+          }),
+        })
+      );
+    });
+
+    it('status=ACTIVE 時應該用 detectedAt 篩選', async () => {
+      mockFindMany.mockResolvedValue([]);
+      mockCount.mockResolvedValue(0);
+
+      await repository.getPublicOpportunities({ days: 7, status: 'ACTIVE' });
+
+      expect(mockFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: 'ACTIVE',
+            detectedAt: expect.objectContaining({
+              gte: expect.any(Date),
+            }),
+          }),
+          orderBy: { detectedAt: 'desc' },
+        })
+      );
+    });
+
+    it('status=all 時不應篩選狀態', async () => {
+      mockFindMany.mockResolvedValue([]);
+      mockCount.mockResolvedValue(0);
+
+      await repository.getPublicOpportunities({ days: 7, status: 'all' });
+
+      const callArgs = mockFindMany.mock.calls[0][0];
+      expect(callArgs.where.status).toBeUndefined();
     });
   });
 

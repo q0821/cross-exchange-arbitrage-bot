@@ -15,11 +15,32 @@ import type {
   UpsertOpportunityInput,
   PublicOpportunitiesOptions,
 } from '@/models/ArbitrageOpportunity';
+import type { PublicOpportunityDTO } from '@/types/public-opportunity';
 
 /**
  * 套利機會 Repository
  */
 export class ArbitrageOpportunityRepository {
+  /**
+   * 將 ArbitrageOpportunity 轉換為公開 DTO（去識別化）
+   *
+   * @param opp - ArbitrageOpportunity 記錄
+   * @returns PublicOpportunityDTO
+   */
+  private toPublicDTO(opp: ArbitrageOpportunity): PublicOpportunityDTO {
+    return {
+      id: opp.id,
+      symbol: opp.symbol,
+      longExchange: opp.longExchange,
+      shortExchange: opp.shortExchange,
+      maxSpread: Number(opp.maxSpread),
+      finalSpread: Number(opp.currentSpread),
+      realizedAPY: Number(opp.currentAPY),
+      durationMs: opp.durationMs ? Number(opp.durationMs) : 0,
+      appearedAt: opp.detectedAt,
+      disappearedAt: opp.endedAt ?? opp.detectedAt,
+    };
+  }
   /**
    * 建立新的套利機會記錄
    *
@@ -180,12 +201,12 @@ export class ArbitrageOpportunityRepository {
    * 查詢公開機會列表（用於 API）
    *
    * @param options - 查詢選項
-   * @returns 機會列表和總數
+   * @returns 機會列表（PublicOpportunityDTO）和總數
    */
   async getPublicOpportunities(
     options: PublicOpportunitiesOptions
   ): Promise<{
-    opportunities: ArbitrageOpportunity[];
+    data: PublicOpportunityDTO[];
     total: number;
   }> {
     const {
@@ -231,7 +252,10 @@ export class ArbitrageOpportunityRepository {
       prisma.arbitrageOpportunity.count({ where }),
     ]);
 
-    return { opportunities, total };
+    return {
+      data: opportunities.map((opp) => this.toPublicDTO(opp)),
+      total,
+    };
   }
 
   /**

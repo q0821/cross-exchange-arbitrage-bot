@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/src/lib/db';
-import { OpportunityEndHistoryRepository } from '@/src/repositories/OpportunityEndHistoryRepository';
+import { ArbitrageOpportunityRepository } from '@/src/repositories/ArbitrageOpportunityRepository';
 import { PublicOpportunityQuerySchema } from '@/src/models/PublicOpportunity';
 import { rateLimitMiddleware } from '@/src/middleware/rateLimitMiddleware';
 import { logger } from '@/src/lib/logger';
@@ -38,6 +37,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       page: url.searchParams.get('page') || undefined,
       limit: url.searchParams.get('limit') || undefined,
       days: url.searchParams.get('days') || undefined,
+      status: url.searchParams.get('status') || undefined,
     });
 
     if (!params.success) {
@@ -59,15 +59,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { page, limit, days } = params.data;
+    const { page, limit, days, status } = params.data;
 
     // 3. 獲取資料
-    const repository = new OpportunityEndHistoryRepository(prisma);
+    const repository = new ArbitrageOpportunityRepository();
 
-    const { data, total } = await repository.findAllPublic({
+    const { data, total } = await repository.getPublicOpportunities({
       days,
       page,
       limit,
+      status,
     });
 
     // 4. 計算分頁資訊

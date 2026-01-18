@@ -25,6 +25,10 @@ export const PublicOpportunityQuerySchema = z.object({
     .pipe(z.number().refine((val) => [7, 30, 90].includes(val), {
       message: 'days must be 7, 30, or 90',
     })),
+  status: z
+    .enum(['ACTIVE', 'ENDED', 'all'])
+    .optional()
+    .default('ENDED'),
 });
 
 export type PublicOpportunityQuery = z.infer<typeof PublicOpportunityQuerySchema>;
