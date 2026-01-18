@@ -8,7 +8,9 @@
 
 ### 新增
 
-#### Feature 064: 公開套利機會歷史首頁規劃（2026-01-18）
+#### Feature 064: 公開套利機會歷史首頁（✅ 已完成 - 2026-01-18）
+
+**規劃文件**：
 - 新增 `specs/064-public-landing-page/` - 完整功能規劃文件
   - `spec.md` - 功能規格（4 User Stories、11 功能需求、5 非功能需求）
   - `plan.md` - 實作計畫（Constitution Check 全部通過）
@@ -18,12 +20,55 @@
   - `quickstart.md` - 快速驗證指南
   - `tasks.md` - 實作任務清單（49 個任務，含 14 個 TDD 測試任務）
   - `checklists/requirements.md` - 需求驗證清單（35 項）
-- 功能摘要：
-  - 公開首頁展示歷史套利機會列表（無需登入）
-  - 支援 7/30/90 天時間範圍篩選
-  - IP 速率限制（30 req/min）
-  - SSR 渲染支援 SEO
-  - 去識別化 DTO（不洩漏 userId、notificationCount）
+
+**已完成功能**：
+
+**1. User Story 1 (P1) - 公開首頁展示歷史套利機會**（完成 ✅）
+- ✅ 公開首頁 `app/page.tsx` - 無需登入即可查看
+- ✅ `OpportunityCard.tsx` - 套利機會卡片元件
+- ✅ `OpportunityList.tsx` - 機會列表元件
+- ✅ `OpportunityListSkeleton.tsx` - 載入骨架屏
+- ✅ `PublicNav.tsx` - 公開導覽列
+
+**2. User Story 2 (P1) - 時間範圍篩選**（完成 ✅）
+- ✅ 支援 7/30/90 天時間範圍篩選
+- ✅ URL 參數支援（`?days=7`）
+- ✅ 預設顯示最近 7 天
+
+**3. User Story 3 (P2) - API 與速率限制**（完成 ✅）
+- ✅ `GET /api/public/opportunities` - 公開 API 端點
+- ✅ `src/lib/rate-limiter.ts` - IP 速率限制器（30 req/min）
+- ✅ `src/middleware/rateLimitMiddleware.ts` - 速率限制中介軟體
+- ✅ 去識別化 DTO（不洩漏 userId、notificationCount）
+
+**4. 資料層**（完成 ✅）
+- ✅ `OpportunityEndHistoryRepository.ts` - 公開機會查詢 Repository
+- ✅ `src/lib/get-public-opportunities.ts` - 公開機會查詢服務
+- ✅ `src/types/public-opportunity.ts` - 型別定義
+- ✅ `src/models/PublicOpportunity.ts` - 資料模型
+
+**5. 測試覆蓋**（完成 ✅）
+- ✅ `tests/unit/lib/rate-limiter.test.ts` - 速率限制器單元測試
+- ✅ `tests/unit/middleware/rateLimitMiddleware.test.ts` - 中介軟體單元測試
+- ✅ `tests/unit/repositories/OpportunityEndHistoryRepository.public.test.ts` - Repository 測試
+- ✅ `tests/integration/api/public-opportunities.test.ts` - API 整合測試
+- ✅ `tests/integration/pages/home.test.ts` - 首頁整合測試
+- ✅ `tests/integration/pages/home-redirect.test.ts` - 重導向測試
+
+**技術實作**：
+- SSR 渲染支援 SEO
+- IP 速率限制（30 req/min，滑動視窗算法）
+- 響應式設計（Tailwind CSS）
+- 去識別化保護用戶隱私
+
+**統計**：
+- 新增程式碼：約 3,180 行 TypeScript
+- 新增檔案：21 個（元件、API、測試、規格文件）
+- 測試覆蓋：6 個測試檔案
+
+---
+
+**其他更新（2026-01-18）**：
 - 更新 `CLAUDE.md` - 新增「Speckit 工作流程強制要求」章節
   - 強制 TDD 與 Constitution 合規性檢查
   - `/speckit.implement` 前必須確保測試任務存在
@@ -944,4 +989,4 @@
 
 **維護者**: Claude Code
 **專案啟動日期**: 2025-10-17
-**最後更新**: 2025-01-17
+**最後更新**: 2026-01-18
