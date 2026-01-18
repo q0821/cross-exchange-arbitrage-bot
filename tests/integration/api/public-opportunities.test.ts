@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client';
 
 const INTEGRATION_ENABLED = process.env.RUN_INTEGRATION_TESTS === 'true';
@@ -8,12 +9,24 @@ describe.skipIf(!INTEGRATION_ENABLED)('GET /api/public/opportunities', () => {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+    prisma = new PrismaClient({ adapter });
 
     // 清理測試資料
     await prisma.opportunityEndHistory.deleteMany({
       where: {
-        symbol: { startsWith: 'TEST' },
+        symbol: { startsWith: 'TESTAPI' },
+      },
+    });
+
+    // 建立測試用戶（如果不存在）
+    await prisma.user.upsert({
+      where: { id: 'test-api-user' },
+      update: {},
+      create: {
+        id: 'test-api-user',
+        email: 'api-test@example.com',
+        password: 'hashed-password',
       },
     });
 
@@ -22,8 +35,8 @@ describe.skipIf(!INTEGRATION_ENABLED)('GET /api/public/opportunities', () => {
     await prisma.opportunityEndHistory.createMany({
       data: [
         {
-          id: 'test-hist-1',
-          symbol: 'TESTBTC',
+          id: 'test-api-hist-1',
+          symbol: 'TESTAPIBTC',
           longExchange: 'binance',
           shortExchange: 'okx',
           detectedAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000), // 2 天前
@@ -43,11 +56,11 @@ describe.skipIf(!INTEGRATION_ENABLED)('GET /api/public/opportunities', () => {
           netProfit: 4.4,
           realizedAPY: 12.5,
           notificationCount: 3,
-          userId: 'test-user-1',
+          userId: 'test-api-user',
         },
         {
-          id: 'test-hist-2',
-          symbol: 'TESTETH',
+          id: 'test-api-hist-2',
+          symbol: 'TESTAPIETH',
           longExchange: 'gateio',
           shortExchange: 'mexc',
           detectedAt: new Date(now.getTime() - 50 * 24 * 60 * 60 * 1000), // 50 天前
@@ -67,7 +80,7 @@ describe.skipIf(!INTEGRATION_ENABLED)('GET /api/public/opportunities', () => {
           netProfit: 2.6,
           realizedAPY: 8.3,
           notificationCount: 1,
-          userId: 'test-user-2',
+          userId: 'test-api-user',
         },
       ],
     });
@@ -77,7 +90,7 @@ describe.skipIf(!INTEGRATION_ENABLED)('GET /api/public/opportunities', () => {
     // 清理測試資料
     await prisma.opportunityEndHistory.deleteMany({
       where: {
-        symbol: { startsWith: 'TEST' },
+        symbol: { startsWith: 'TESTAPI' },
       },
     });
 
