@@ -48,11 +48,11 @@ function canRunTradingTests(): boolean {
 describe.skipIf(!runTradingTests)('Position Open/Close Integration Tests (OKX Demo)', () => {
   const TEST_TIMEOUT = 120000; // 2 分鐘超時
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let deps: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let prisma: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let okxInstance: any = null;
   let testUserId: string;
 

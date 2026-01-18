@@ -57,7 +57,7 @@ export interface TestnetConfig {
 
 export interface TestnetExchangeInstance {
   exchange: TestnetExchange;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   ccxt: any; // 使用 any 避免 ccxt 類型在解析階段被載入
   isTestnet: boolean;
 }
@@ -143,7 +143,7 @@ export async function createTestnetExchange(
   // 動態載入 CCXT
   const ccxt = await loadCcxt();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   let ccxtExchange: any;
 
   if (exchange === 'binance') {

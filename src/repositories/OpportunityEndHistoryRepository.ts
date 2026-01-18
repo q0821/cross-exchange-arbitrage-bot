@@ -2,6 +2,7 @@ import { PrismaClient, OpportunityEndHistory as PrismaHistory } from '@/generate
 import { logger } from '@lib/logger';
 import { DatabaseError } from '@lib/errors';
 import type { CreateOpportunityHistoryInput } from '../models/OpportunityEndHistory';
+import type { PublicOpportunityDTO } from '@/types/public-opportunity';
 
 /**
  * 歷史記錄 DTO
@@ -213,5 +214,79 @@ export class OpportunityEndHistoryRepository {
       logger.error({ error, historyId: id }, 'Failed to find opportunity history');
       throw new DatabaseError('Failed to find opportunity history', { historyId: id });
     }
+  }
+
+  /**
+   * 查詢所有公開記錄（去識別化）
+   * 用於公開首頁展示
+   */
+  async findAllPublic(options: {
+    days: number;
+    page: number;
+    limit: number;
+  }): Promise<{ data: PublicOpportunityDTO[]; total: number }> {
+    const { days, page, limit } = options;
+
+    try {
+      // 計算時間範圍
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      const where = {
+        disappearedAt: { gte: startDate },
+      };
+
+      // 分頁參數
+      const skip = (page - 1) * limit;
+      const take = limit;
+
+      // 並行查詢資料和總數
+      const [histories, total] = await Promise.all([
+        this.prisma.opportunityEndHistory.findMany({
+          where,
+          orderBy: { disappearedAt: 'desc' },
+          skip,
+          take,
+        }),
+        this.prisma.opportunityEndHistory.count({ where }),
+      ]);
+
+      logger.info(
+        {
+          days,
+          page,
+          limit,
+          total,
+          count: histories.length,
+        },
+        'Public opportunities fetched successfully'
+      );
+
+      return {
+        data: histories.map((h) => this.toPublicDTO(h)),
+        total,
+      };
+    } catch (error) {
+      logger.error({ error, days, page, limit }, 'Failed to fetch public opportunities');
+      throw new DatabaseError('Failed to fetch public opportunities', { days, page, limit });
+    }
+  }
+
+  /**
+   * 將 Prisma 模型轉換為公開 DTO（去識別化）
+   * 排除 userId, notificationCount, settlementRecords 等敏感欄位
+   */
+  toPublicDTO(history: PrismaHistory): PublicOpportunityDTO {
+    return {
+      id: history.id,
+      symbol: history.symbol,
+      longExchange: history.longExchange,
+      shortExchange: history.shortExchange,
+      maxSpread: Number(history.maxSpread),
+      finalSpread: Number(history.finalSpread),
+      realizedAPY: Number(history.realizedAPY),
+      durationMs: Number(history.durationMs),
+      appearedAt: history.detectedAt,
+      disappearedAt: history.disappearedAt,
+    };
   }
 }
