@@ -1,6 +1,6 @@
 # cross-exchange-arbitrage-bot Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-01-17
+Auto-generated from all feature plans. Last updated: 2026-01-18
 
 ## Active Technologies
 - TypeScript 5.8 + Node.js 20.x LTS
@@ -60,6 +60,19 @@ pnpm lint             # ESLint 檢查
 pnpm docker:up        # 啟動 PostgreSQL + Redis（Docker）
 pnpm db:migrate       # 執行資料庫遷移
 pnpm db:generate      # 產生 Prisma Client
+```
+
+### 診斷工具
+```bash
+# 測試交易所 API 連線
+pnpm tsx scripts/diagnostics/test-binance-api.ts
+pnpm tsx scripts/diagnostics/test-gateio-api.ts
+pnpm tsx scripts/diagnostics/test-mexc-api.ts
+
+# 查詢持倉狀態
+pnpm tsx scripts/diagnostics/test-okx-position.ts
+
+# 詳細說明請參考：scripts/diagnostics/README.md
 ```
 
 ## Code Style

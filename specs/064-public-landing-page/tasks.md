@@ -143,35 +143,36 @@
 
 ### Tests for User Story 2 (RED Phase) 🔴
 
-- [ ] T022 [TEST] [US2] 持續時間格式化工具測試 `tests/unit/lib/format-duration.test.ts`
+- [x] T022 [TEST] [US2] 持續時間格式化工具測試 `tests/unit/lib/format-duration.test.ts`
   - 測試：毫秒轉換為「X 小時 Y 分鐘」
   - 測試：邊界案例（0ms, 超過 24 小時）
-  - **執行測試，驗證 FAIL**
-- [ ] T023 [TEST] [US2] OpportunityCard 顯示欄位測試 `tests/unit/components/OpportunityCard.test.tsx`
+  - ✅ **執行測試，驗證 FAIL**
+- [x] T023 [TEST] [US2] OpportunityCard 顯示欄位測試 `tests/unit/components/OpportunityCard.test.tsx`
   - 測試：顯示所有必要欄位（symbol, exchanges, spreads, APY, duration）
-  - **執行測試，驗證 FAIL**
+  - ✅ **執行測試，驗證 FAIL（5 failed）**
 
 ### Implementation for User Story 2 (GREEN Phase) 🟢
 
-- [ ] T024 [US2] 實作持續時間格式化工具 `src/lib/format-duration.ts`
+- [x] T024 [US2] 實作持續時間格式化工具 `src/lib/format-duration.ts`
   - 將 `durationMs` 轉換為 "X 小時 Y 分鐘" 格式
-  - **執行 T022 測試，驗證 PASS**
-- [ ] T025 [US2] 擴展 OpportunityCard 元件顯示完整欄位
+  - ✅ **執行 T022 測試，8 passed**
+- [x] T025 [US2] 擴展 OpportunityCard 元件顯示完整欄位
   - 交易對 (`symbol`)
   - 多方/空方交易所 (`longExchange`, `shortExchange`)
   - 最大/最終費差 (`maxSpread`, `finalSpread`)
   - 年化報酬率 (`realizedAPY`)
   - 持續時間（人類可讀格式）
   - 機會消失時間 (`disappearedAt`)
-  - **執行 T023 測試，驗證 PASS**
-- [ ] T026 [US2] 實作費率/百分比格式化顯示
+  - ✅ **執行 T023 測試，14 passed**
+- [x] T026 [US2] 實作費率/百分比格式化顯示
   - spread 顯示 4 位小數
   - APY 顯示 2 位小數 + %
+  - ✅ **已整合至 T025**
 
 ### Refactor for User Story 2 🔵
 
-- [ ] T027 [US2] 重構：檢視 US2 程式碼品質
-  - **執行所有 US2 測試，驗證全部 PASS**
+- [x] T027 [US2] 重構：檢視 US2 程式碼品質
+  - ✅ **執行所有 US2 測試，22 passed**
 
 **Checkpoint**: User Story 1 + 2 功能完整
 
@@ -185,42 +186,43 @@
 
 ### Tests for User Story 3 (RED Phase) 🔴
 
-- [ ] T028 [P] [TEST] [US3] 分頁元件測試 `tests/unit/components/Pagination.test.tsx`
+- [x] T028 [P] [TEST] [US3] 分頁元件測試 `tests/unit/components/Pagination.test.tsx`
   - 測試：正確顯示頁碼
   - 測試：上下頁按鈕狀態
-  - **執行測試，驗證 FAIL**
-- [ ] T029 [P] [TEST] [US3] 時間範圍篩選元件測試 `tests/unit/components/TimeRangeFilter.test.tsx`
+  - ✅ **執行測試，驗證 FAIL**
+- [x] T029 [P] [TEST] [US3] 時間範圍篩選元件測試 `tests/unit/components/TimeRangeFilter.test.tsx`
   - 測試：7/30/90 天切換
   - 測試：預設選中 90 天
-  - **執行測試，驗證 FAIL**
-- [ ] T030 [TEST] [US3] 公開 API Hook 測試 `tests/hooks/usePublicOpportunities.test.ts`
+  - ✅ **執行測試，驗證 FAIL**
+- [x] T030 [TEST] [US3] 公開 API Hook 測試 `tests/hooks/usePublicOpportunities.test.ts`
   - 測試：正確呼叫 API 並處理回應
   - 測試：loading/error 狀態處理
-  - **執行測試，驗證 FAIL**
+  - ✅ **執行測試，驗證 FAIL**
 
 ### Implementation for User Story 3 (GREEN Phase) 🟢
 
-- [ ] T031 [US3] 建立分頁元件 `app/(public)/components/Pagination.tsx`
+- [x] T031 [US3] 建立分頁元件 `app/(public)/components/Pagination.tsx`
   - 顯示當前頁/總頁數
   - 上一頁/下一頁按鈕
   - 頁碼快捷連結
-  - **執行 T028 測試，驗證 PASS**
-- [ ] T032 [US3] 建立時間範圍篩選元件 `app/(public)/components/TimeRangeFilter.tsx` (Client Component)
+  - ✅ **執行 T028 測試，15 passed**
+- [x] T032 [US3] 建立時間範圍篩選元件 `app/(public)/components/TimeRangeFilter.tsx` (Client Component)
   - 7/30/90 天切換按鈕
   - 預設選中 90 天
-  - **執行 T029 測試，驗證 PASS**
-- [ ] T033 [US3] 實作客戶端資料獲取 Hook `app/(public)/hooks/usePublicOpportunities.ts`
+  - ✅ **執行 T029 測試，12 passed**
+- [x] T033 [US3] 實作客戶端資料獲取 Hook `app/(public)/hooks/usePublicOpportunities.ts`
   - 呼叫 `/api/public/opportunities`
   - 處理 loading、error 狀態
   - 支援分頁和篩選參數
-  - **執行 T030 測試，驗證 PASS**
-- [ ] T034 [US3] 整合分頁和篩選到首頁
+  - ✅ **執行 T030 測試，12 passed**
+- [x] T034 [US3] 整合分頁和篩選到首頁
   - URL query params 同步 (`?page=2&days=30`)
   - 切換時顯示載入指示器
+  - ✅ **已實作 OpportunityListClient 元件**
 
 ### Refactor for User Story 3 🔵
 
-- [ ] T035 [US3] 重構：檢視 US3 程式碼品質
+- [x] T035 [US3] 重構：檢視 US3 程式碼品質
   - **執行所有 US3 測試，驗證全部 PASS**
 
 **Checkpoint**: User Story 1 + 2 + 3 功能完整

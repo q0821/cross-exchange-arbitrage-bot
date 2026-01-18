@@ -159,7 +159,8 @@
       "mcp__plugin_serena_serena__find_symbol",
       "Bash(gh run list:*)",
       "Bash(pkill -f \"tsx watch server.ts\")",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "mcp__plugin_serena_serena__replace_content"
     ],
     "deny": [],
     "ask": []
