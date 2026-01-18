@@ -30,14 +30,15 @@ describe('Pagination', () => {
     it('應使用省略號當頁數過多（> 7）', () => {
       render(<Pagination {...defaultProps} currentPage={5} totalPages={20} />);
 
-      // 應該有省略號
-      expect(screen.getByText('...')).toBeInTheDocument();
+      // 應該有省略號（可能有多個）
+      const ellipses = screen.getAllByText('...');
+      expect(ellipses.length).toBeGreaterThan(0);
     });
 
     it('應高亮當前頁碼', () => {
       render(<Pagination {...defaultProps} currentPage={3} />);
 
-      const currentPageButton = screen.getByRole('button', { name: /^3$/ });
+      const currentPageButton = screen.getByRole('button', { name: /第 3 頁/ });
       expect(currentPageButton).toHaveAttribute('aria-current', 'page');
     });
   });
@@ -99,7 +100,7 @@ describe('Pagination', () => {
 
       render(<Pagination {...defaultProps} currentPage={1} onPageChange={onPageChange} />);
 
-      const page4Button = screen.getByRole('button', { name: /^4$/ });
+      const page4Button = screen.getByRole('button', { name: /第 4 頁/ });
       await user.click(page4Button);
 
       expect(onPageChange).toHaveBeenCalledWith(4);
@@ -111,7 +112,7 @@ describe('Pagination', () => {
 
       render(<Pagination {...defaultProps} currentPage={3} onPageChange={onPageChange} />);
 
-      const currentPageButton = screen.getByRole('button', { name: /^3$/ });
+      const currentPageButton = screen.getByRole('button', { name: /第 3 頁/ });
       await user.click(currentPageButton);
 
       expect(onPageChange).not.toHaveBeenCalled();

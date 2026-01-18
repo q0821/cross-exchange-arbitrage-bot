@@ -2,8 +2,7 @@ import { Metadata } from 'next/headers';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { PublicNav } from './(public)/components/PublicNav';
-import { OpportunityList } from './(public)/components/OpportunityList';
-import { getPublicOpportunities } from '@/src/lib/get-public-opportunities';
+import { OpportunityListClient } from './(public)/components/OpportunityListClient';
 
 export const metadata: Metadata = {
   title: 'Cross-Exchange Arbitrage Bot - 跨交易所套利機會監測',
@@ -27,13 +26,6 @@ export default async function HomePage() {
     redirect('/market-monitor');
   }
 
-  // 獲取公開套利機會資料（SSR）
-  const opportunities = await getPublicOpportunities({
-    days: 90,
-    page: 1,
-    limit: 20,
-  });
-
   return (
     <div className="min-h-screen bg-background">
       {/* 公開導覽列 */}
@@ -51,12 +43,12 @@ export default async function HomePage() {
           </p>
         </div>
 
-        {/* 套利機會列表 */}
+        {/* 套利機會列表（客戶端互動） */}
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-semibold text-foreground mb-6">
             歷史套利機會記錄
           </h2>
-          <OpportunityList data={opportunities.data} />
+          <OpportunityListClient />
         </div>
       </main>
     </div>

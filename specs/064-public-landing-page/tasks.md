@@ -186,42 +186,43 @@
 
 ### Tests for User Story 3 (RED Phase) 🔴
 
-- [ ] T028 [P] [TEST] [US3] 分頁元件測試 `tests/unit/components/Pagination.test.tsx`
+- [x] T028 [P] [TEST] [US3] 分頁元件測試 `tests/unit/components/Pagination.test.tsx`
   - 測試：正確顯示頁碼
   - 測試：上下頁按鈕狀態
-  - **執行測試，驗證 FAIL**
-- [ ] T029 [P] [TEST] [US3] 時間範圍篩選元件測試 `tests/unit/components/TimeRangeFilter.test.tsx`
+  - ✅ **執行測試，驗證 FAIL**
+- [x] T029 [P] [TEST] [US3] 時間範圍篩選元件測試 `tests/unit/components/TimeRangeFilter.test.tsx`
   - 測試：7/30/90 天切換
   - 測試：預設選中 90 天
-  - **執行測試，驗證 FAIL**
-- [ ] T030 [TEST] [US3] 公開 API Hook 測試 `tests/hooks/usePublicOpportunities.test.ts`
+  - ✅ **執行測試，驗證 FAIL**
+- [x] T030 [TEST] [US3] 公開 API Hook 測試 `tests/hooks/usePublicOpportunities.test.ts`
   - 測試：正確呼叫 API 並處理回應
   - 測試：loading/error 狀態處理
-  - **執行測試，驗證 FAIL**
+  - ✅ **執行測試，驗證 FAIL**
 
 ### Implementation for User Story 3 (GREEN Phase) 🟢
 
-- [ ] T031 [US3] 建立分頁元件 `app/(public)/components/Pagination.tsx`
+- [x] T031 [US3] 建立分頁元件 `app/(public)/components/Pagination.tsx`
   - 顯示當前頁/總頁數
   - 上一頁/下一頁按鈕
   - 頁碼快捷連結
-  - **執行 T028 測試，驗證 PASS**
-- [ ] T032 [US3] 建立時間範圍篩選元件 `app/(public)/components/TimeRangeFilter.tsx` (Client Component)
+  - ✅ **執行 T028 測試，15 passed**
+- [x] T032 [US3] 建立時間範圍篩選元件 `app/(public)/components/TimeRangeFilter.tsx` (Client Component)
   - 7/30/90 天切換按鈕
   - 預設選中 90 天
-  - **執行 T029 測試，驗證 PASS**
-- [ ] T033 [US3] 實作客戶端資料獲取 Hook `app/(public)/hooks/usePublicOpportunities.ts`
+  - ✅ **執行 T029 測試，12 passed**
+- [x] T033 [US3] 實作客戶端資料獲取 Hook `app/(public)/hooks/usePublicOpportunities.ts`
   - 呼叫 `/api/public/opportunities`
   - 處理 loading、error 狀態
   - 支援分頁和篩選參數
-  - **執行 T030 測試，驗證 PASS**
-- [ ] T034 [US3] 整合分頁和篩選到首頁
+  - ✅ **執行 T030 測試，12 passed**
+- [x] T034 [US3] 整合分頁和篩選到首頁
   - URL query params 同步 (`?page=2&days=30`)
   - 切換時顯示載入指示器
+  - ✅ **已實作 OpportunityListClient 元件**
 
 ### Refactor for User Story 3 🔵
 
-- [ ] T035 [US3] 重構：檢視 US3 程式碼品質
+- [x] T035 [US3] 重構：檢視 US3 程式碼品質
   - **執行所有 US3 測試，驗證全部 PASS**
 
 **Checkpoint**: User Story 1 + 2 + 3 功能完整
