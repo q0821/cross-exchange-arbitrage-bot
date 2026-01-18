@@ -1,4 +1,5 @@
 import type { PublicOpportunityDTO } from '@/src/types/public-opportunity';
+import { formatDuration } from '@/lib/format-duration';
 
 interface OpportunityCardProps {
   opportunity: PublicOpportunityDTO;
@@ -21,59 +22,67 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
     });
   };
 
-  // 格式化持續時間
-  const formatDuration = (ms: number) => {
-    const hours = Math.floor(ms / (1000 * 60 * 60));
-    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
-    if (hours > 0) {
-      return `${hours} 小時 ${minutes} 分鐘`;
-    }
-    return `${minutes} 分鐘`;
+  // 格式化百分比（4 位小數）
+  const formatSpread = (value: number) => {
+    return `${(value * 100).toFixed(4)}%`;
+  };
+
+  // 格式化 APY（2 位小數）
+  const formatAPY = (value: number) => {
+    return `${value.toFixed(2)}%`;
   };
 
   return (
     <div className="rounded-lg border border-border bg-card p-6 shadow-xs hover:shadow-sm transition-shadow">
-      {/* 交易對和交易所 */}
-      <div className="flex items-start justify-between mb-4">
+      {/* 標題：交易對 */}
+      <div className="mb-2">
+        <div className="text-xs text-muted-foreground">交易對 (Symbol)</div>
+        <h3 className="text-lg font-semibold text-foreground">{opportunity.symbol}</h3>
+      </div>
+
+      {/* 交易所資訊 */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">{opportunity.symbol}</h3>
-          <div className="mt-1 flex items-center space-x-2 text-sm text-muted-foreground">
-            <span className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-              {opportunity.longExchange}
-            </span>
-            <span>→</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-              {opportunity.shortExchange}
-            </span>
-          </div>
+          <div className="text-xs text-muted-foreground">多方 (Long)</div>
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-sm">
+            {opportunity.longExchange}
+          </span>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-primary">{opportunity.realizedAPY.toFixed(2)}%</div>
-          <div className="text-xs text-muted-foreground">年化報酬率</div>
+        <div>
+          <div className="text-xs text-muted-foreground">空方 (Short)</div>
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 text-sm">
+            {opportunity.shortExchange}
+          </span>
         </div>
       </div>
 
       {/* 費差資訊 */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <div className="text-xs text-muted-foreground">最大費差</div>
-          <div className="text-lg font-semibold text-foreground">{opportunity.maxSpread.toFixed(4)}</div>
+          <div className="text-xs text-muted-foreground">最大費差 (Max Spread)</div>
+          <div className="text-lg font-semibold text-foreground">{formatSpread(opportunity.maxSpread)}</div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">最終費差</div>
-          <div className="text-lg font-semibold text-foreground">{opportunity.finalSpread.toFixed(4)}</div>
+          <div className="text-xs text-muted-foreground">最終費差 (Final Spread)</div>
+          <div className="text-lg font-semibold text-foreground">{formatSpread(opportunity.finalSpread)}</div>
         </div>
       </div>
 
+      {/* 年化報酬率 */}
+      <div className="mb-4">
+        <div className="text-xs text-muted-foreground">年化報酬率 (APY)</div>
+        <div className="text-2xl font-bold text-primary">{formatAPY(opportunity.realizedAPY)}</div>
+      </div>
+
       {/* 時間資訊 */}
-      <div className="border-t border-border pt-4 space-y-1 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">持續時間</span>
-          <span className="text-foreground font-medium">{formatDuration(opportunity.durationMs)}</span>
+      <div className="border-t border-border pt-4 space-y-2 text-sm">
+        <div>
+          <div className="text-xs text-muted-foreground">持續時間 (Duration)</div>
+          <div className="text-foreground font-medium">{formatDuration(opportunity.durationMs)}</div>
         </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">結束時間</span>
-          <span className="text-foreground">{formatDate(opportunity.disappearedAt)}</span>
+        <div>
+          <div className="text-xs text-muted-foreground">消失時間 (Disappeared At)</div>
+          <div className="text-foreground">{formatDate(opportunity.disappearedAt)}</div>
         </div>
       </div>
     </div>

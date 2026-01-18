@@ -143,35 +143,36 @@
 
 ### Tests for User Story 2 (RED Phase) 🔴
 
-- [ ] T022 [TEST] [US2] 持續時間格式化工具測試 `tests/unit/lib/format-duration.test.ts`
+- [x] T022 [TEST] [US2] 持續時間格式化工具測試 `tests/unit/lib/format-duration.test.ts`
   - 測試：毫秒轉換為「X 小時 Y 分鐘」
   - 測試：邊界案例（0ms, 超過 24 小時）
-  - **執行測試，驗證 FAIL**
-- [ ] T023 [TEST] [US2] OpportunityCard 顯示欄位測試 `tests/unit/components/OpportunityCard.test.tsx`
+  - ✅ **執行測試，驗證 FAIL**
+- [x] T023 [TEST] [US2] OpportunityCard 顯示欄位測試 `tests/unit/components/OpportunityCard.test.tsx`
   - 測試：顯示所有必要欄位（symbol, exchanges, spreads, APY, duration）
-  - **執行測試，驗證 FAIL**
+  - ✅ **執行測試，驗證 FAIL（5 failed）**
 
 ### Implementation for User Story 2 (GREEN Phase) 🟢
 
-- [ ] T024 [US2] 實作持續時間格式化工具 `src/lib/format-duration.ts`
+- [x] T024 [US2] 實作持續時間格式化工具 `src/lib/format-duration.ts`
   - 將 `durationMs` 轉換為 "X 小時 Y 分鐘" 格式
-  - **執行 T022 測試，驗證 PASS**
-- [ ] T025 [US2] 擴展 OpportunityCard 元件顯示完整欄位
+  - ✅ **執行 T022 測試，8 passed**
+- [x] T025 [US2] 擴展 OpportunityCard 元件顯示完整欄位
   - 交易對 (`symbol`)
   - 多方/空方交易所 (`longExchange`, `shortExchange`)
   - 最大/最終費差 (`maxSpread`, `finalSpread`)
   - 年化報酬率 (`realizedAPY`)
   - 持續時間（人類可讀格式）
   - 機會消失時間 (`disappearedAt`)
-  - **執行 T023 測試，驗證 PASS**
-- [ ] T026 [US2] 實作費率/百分比格式化顯示
+  - ✅ **執行 T023 測試，14 passed**
+- [x] T026 [US2] 實作費率/百分比格式化顯示
   - spread 顯示 4 位小數
   - APY 顯示 2 位小數 + %
+  - ✅ **已整合至 T025**
 
 ### Refactor for User Story 2 🔵
 
-- [ ] T027 [US2] 重構：檢視 US2 程式碼品質
-  - **執行所有 US2 測試，驗證全部 PASS**
+- [x] T027 [US2] 重構：檢視 US2 程式碼品質
+  - ✅ **執行所有 US2 測試，22 passed**
 
 **Checkpoint**: User Story 1 + 2 功能完整
 
