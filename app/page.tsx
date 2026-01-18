@@ -1,4 +1,4 @@
-import { Metadata } from 'next/headers';
+import { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { PublicNav } from './(public)/components/PublicNav';
