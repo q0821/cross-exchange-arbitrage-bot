@@ -22,7 +22,9 @@ export const PublicOpportunityQuerySchema = z.object({
     .optional()
     .default('90')
     .transform((val) => parseInt(val, 10))
-    .pipe(z.enum([7, 30, 90])),
+    .pipe(z.number().refine((val) => [7, 30, 90].includes(val), {
+      message: 'days must be 7, 30, or 90',
+    })),
 });
 
 export type PublicOpportunityQuery = z.infer<typeof PublicOpportunityQuerySchema>;

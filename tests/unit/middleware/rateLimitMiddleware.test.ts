@@ -1,27 +1,19 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { NextRequest, NextResponse } from 'next/server';
-import { rateLimitMiddleware } from '@/middleware/rateLimitMiddleware';
-
-// Mock RateLimiter
-vi.mock('@/lib/rate-limiter', () => {
-  let mockCheckResult = true;
-  return {
-    RateLimiter: vi.fn().mockImplementation(() => ({
-      check: vi.fn(() => mockCheckResult),
-    })),
-    __setMockCheckResult: (value: boolean) => {
-      mockCheckResult = value;
-    },
-  };
-});
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
 describe('rateLimitMiddleware', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('正常請求', () => {
-    it('應允許未超限的請求通過', () => {
+    it('應允許未超限的請求通過', async () => {
+      const { rateLimitMiddleware } = await import('@/middleware/rateLimitMiddleware');
+
       const request = new NextRequest('http://localhost:3000/api/public/opportunities', {
         headers: { 'x-forwarded-for': '1.2.3.4' },
       });
@@ -30,31 +22,23 @@ describe('rateLimitMiddleware', () => {
 
       expect(result).toBeNull(); // null 表示請求通過
     });
-
-    it('應正確設定 X-RateLimit-* headers', () => {
-      const request = new NextRequest('http://localhost:3000/api/public/opportunities', {
-        headers: { 'x-forwarded-for': '1.2.3.4' },
-      });
-
-      // 透過修改實作來設定 headers（實作時會處理）
-      rateLimitMiddleware(request);
-
-      // 實際測試會在整合測試驗證 headers
-    });
   });
 
   describe('超限請求', () => {
     it('應拒絕超限的請求並回傳 429', async () => {
-      // 設定 mock 為拒絕狀態
-      const { __setMockCheckResult } = await import('@/lib/rate-limiter');
-      __setMockCheckResult(false);
+      const { rateLimitMiddleware } = await import('@/middleware/rateLimitMiddleware');
 
       const request = new NextRequest('http://localhost:3000/api/public/opportunities', {
-        headers: { 'x-forwarded-for': '1.2.3.4' },
+        headers: { 'x-forwarded-for': '1.2.3.5' },
       });
 
-      const result = rateLimitMiddleware(request);
+      // 發送 31 次請求（超過 30 的限制）
+      let result = null;
+      for (let i = 0; i < 31; i++) {
+        result = rateLimitMiddleware(request);
+      }
 
+      // 最後一次應該被拒絕
       expect(result).not.toBeNull();
       expect(result?.status).toBe(429);
 
@@ -64,30 +48,39 @@ describe('rateLimitMiddleware', () => {
     });
 
     it('應設定正確的 Retry-After header', async () => {
-      const { __setMockCheckResult } = await import('@/lib/rate-limiter');
-      __setMockCheckResult(false);
+      const { rateLimitMiddleware } = await import('@/middleware/rateLimitMiddleware');
 
       const request = new NextRequest('http://localhost:3000/api/public/opportunities', {
-        headers: { 'x-forwarded-for': '1.2.3.4' },
+        headers: { 'x-forwarded-for': '1.2.3.6' },
       });
 
-      const result = rateLimitMiddleware(request);
+      // 發送 31 次請求
+      let result = null;
+      for (let i = 0; i < 31; i++) {
+        result = rateLimitMiddleware(request);
+      }
 
-      expect(result?.headers.get('Retry-After')).toBeTruthy();
+      expect(result?.headers.get('Retry-After')).toBe('60');
+      expect(result?.headers.get('X-RateLimit-Limit')).toBe('30');
+      expect(result?.headers.get('X-RateLimit-Remaining')).toBe('0');
     });
   });
 
   describe('IP 獲取', () => {
-    it('應從 x-forwarded-for header 獲取 IP', () => {
+    it('應從 x-forwarded-for header 獲取 IP', async () => {
+      const { rateLimitMiddleware } = await import('@/middleware/rateLimitMiddleware');
+
       const request = new NextRequest('http://localhost:3000/api/public/opportunities', {
-        headers: { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' },
+        headers: { 'x-forwarded-for': '1.2.3.7, 5.6.7.8' },
       });
 
-      rateLimitMiddleware(request);
-      // 應使用第一個 IP (1.2.3.4)
+      const result = rateLimitMiddleware(request);
+      expect(result).toBeNull(); // 正常通過
     });
 
-    it('應在缺少 x-forwarded-for 時使用備用 IP', () => {
+    it('應在缺少 x-forwarded-for 時使用備用 IP', async () => {
+      const { rateLimitMiddleware } = await import('@/middleware/rateLimitMiddleware');
+
       const request = new NextRequest('http://localhost:3000/api/public/opportunities');
 
       const result = rateLimitMiddleware(request);
