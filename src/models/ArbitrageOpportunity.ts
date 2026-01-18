@@ -6,7 +6,10 @@
  * Task: T005 - Domain Model 定義
  */
 
-import type { ArbitrageOpportunity as PrismaArbitrageOpportunity } from '@/generated/prisma';
+import type { ArbitrageOpportunityModel as ArbitrageOpportunity } from '@/generated/prisma/models/ArbitrageOpportunity';
+
+// Re-export Prisma type for convenience
+export type { ArbitrageOpportunity };
 
 /**
  * 建立套利機會的輸入資料
@@ -84,7 +87,4 @@ export interface PublicOpportunity {
   shortIntervalHours: number;
 }
 
-/**
- * ArbitrageOpportunity Domain Model
- */
-export type ArbitrageOpportunity = PrismaArbitrageOpportunity;
+// ArbitrageOpportunity type is already re-exported at the top of this file

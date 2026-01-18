@@ -8,8 +8,8 @@
  */
 
 import { prisma } from '@/lib/db';
-import type { ArbitrageOpportunity } from '@/generated/prisma';
 import type {
+  ArbitrageOpportunity,
   CreateOpportunityInput,
   UpdateOpportunityInput,
   UpsertOpportunityInput,
