@@ -7,11 +7,18 @@ import { OpportunityListClient } from './(public)/components/OpportunityListClie
 
 export const metadata: Metadata = {
   title: 'Cross-Exchange Arbitrage Bot - 跨交易所套利機會監測',
-  description: '即時監測多交易所資金費率套利機會，提供歷史套利機會記錄與年化報酬率分析',
+  description: '即時監測多交易所資金費率套利機會，自動計算年化報酬率，24/7 不間斷追蹤 Binance、OKX、Gate.io、MEXC、BingX 等交易所，幫助您發現最佳套利時機',
+  keywords: ['套利', '資金費率', '跨交易所', '加密貨幣', 'arbitrage', 'funding rate', 'crypto trading'],
   openGraph: {
     title: 'Cross-Exchange Arbitrage Bot - 跨交易所套利機會監測',
-    description: '即時監測多交易所資金費率套利機會',
+    description: '即時監測多交易所資金費率套利機會，自動計算年化報酬率',
     type: 'website',
+    locale: 'zh_TW',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Cross-Exchange Arbitrage Bot - 跨交易所套利機會監測',
+    description: '即時監測多交易所資金費率套利機會，自動計算年化報酬率',
   },
 };
 
