@@ -49,6 +49,10 @@ jobs:
     name: Mock Performance Tests
     runs-on: ubuntu-latest
 
+    env:
+      # Prisma 需要 DATABASE_URL 來產生 client（不需要真實連線）
+      DATABASE_URL: postgresql://user:pass@localhost:5432/db?schema=public
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
