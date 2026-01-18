@@ -1,38 +1,38 @@
 # 測試分析報告
 
-> 最後更新：2026-01-17
+> 最後更新：2026-01-18
 
 ## 統計摘要
 
 ### 最新測試執行結果
 
 ```
-Test Files: 118 passed, 1 skipped (119)
-Tests:      2,099 passed, 17 skipped, 11 todo (2,127)
+Test Files: 119 passed, 1 skipped (120)
+Tests:      2,106 passed, 17 skipped, 11 todo (2,134)
 ```
 
 ### 測試案例數量（Test Cases）
 
 | 測試類型          |   案例數 |   百分比 |
 |:------------------|----------|----------|
-| Unit Tests        |    1,886 |    88.7% |
-| Integration Tests |      117 |     5.5% |
-| Hooks Tests       |       33 |     1.6% |
+| Unit Tests        |    1,886 |    88.4% |
+| Integration Tests |      124 |     5.8% |
+| Hooks Tests       |       33 |     1.5% |
 | E2E Tests         |       23 |     1.1% |
 | Performance Tests |       17 |     0.8% |
 | **其他**          |       51 |     2.4% |
-| **總計**          |**2,127** | **100%** |
+| **總計**          |**2,134** | **100%** |
 
 ### 測試檔案數量（Test Files）
 
 | 測試類型          |   檔案數 |   百分比 |
 |:------------------|----------|----------|
-| Unit Tests        |       91 |    77.1% |
-| Integration Tests |       15 |    12.7% |
-| Hooks Tests       |        6 |     5.1% |
+| Unit Tests        |       91 |    76.5% |
+| Integration Tests |       16 |    13.4% |
+| Hooks Tests       |        6 |     5.0% |
 | Performance Tests |        4 |     3.4% |
 | E2E Tests         |        2 |     1.7% |
-| **總計**          |  **118** | **100%** |
+| **總計**          |  **119** | **100%** |
 
 ### 跳過的測試（17 Skipped）
 

@@ -1,13 +1,13 @@
 # 整合測試分析報告
 
-> 最後更新：2026-01-17
+> 最後更新：2026-01-18
 
 ## 統計摘要
 
 | 項目     | 數量   |
 |:---------|--------|
-| 檔案數   | 15     |
-| 案例數   | 112    |
+| 檔案數   | 16     |
+| 案例數   | 119    |
 | 目錄分類 | 4 個   |
 
 ---
@@ -16,7 +16,7 @@
 
 | 分類                   | 檔案數 | 案例數 |
 |:-----------------------|--------|--------|
-| 根目錄                 | 6      | 35     |
+| 根目錄                 | 7      | 42     |
 | WebSocket (`websocket/`) | 7      | 66     |
 | Trading (`trading/`)   | 1      | 8      |
 | API (`api/`)           | 1      | 3      |
@@ -25,7 +25,26 @@
 
 ## 詳細測試清單
 
-### 1. CloseReason.test.ts
+### 1. database-connection.test.ts
+
+**路徑**: `tests/integration/database-connection.test.ts`
+**功能**: 資料庫連線與 Schema 完整性測試
+**狀態**: `describe.skipIf` (需要 `RUN_INTEGRATION_TESTS=true`)
+**整合自**: `test-db-connection.ts`
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-105 | 應該成功連接到資料庫 | 驗證 Prisma Client 能正常連接到 PostgreSQL 資料庫 |
+| INT-106 | 應該成功執行查詢並回傳當前時間和版本 | 驗證基本 SQL 查詢功能，確認資料庫可正常執行 SELECT 語句 |
+| INT-107 | 應該已安裝 TimescaleDB 擴展 | 驗證 TimescaleDB 擴展已正確安裝並啟用 |
+| INT-108 | 應該包含所有必要的資料表 | 驗證資料庫 Schema 包含所有核心表格（users, api_keys, positions, trades 等 14 個表） |
+| INT-109 | 應該能夠查詢 _prisma_migrations 表確認遷移已執行 | 驗證 Prisma migrations 已正確執行，且記錄完整 |
+| INT-110 | 連線響應時間應小於 100ms | 驗證資料庫連線效能符合預期 |
+| INT-111 | 應該支援交易回滾 | 驗證 PostgreSQL 交易機制正常運作，rollback 能正確回復資料 |
+
+---
+
+### 2. CloseReason.test.ts
 
 **路徑**: `tests/integration/CloseReason.test.ts`
 **功能**: Feature 050 - 停損停利觸發偵測
