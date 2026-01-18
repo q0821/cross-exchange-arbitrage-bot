@@ -147,7 +147,7 @@ export class FundingRateMonitor extends EventEmitter {
           error.message.includes('rate limit') ||
           error.message.includes('429') ||
           error.message.includes('Too Many') ||
-          error.message.includes('code\":510');
+          error.message.includes('code":510');
 
         if (isSymbolNotFound) {
           logger.debug({ error: error.message }, 'Symbol not available on exchange');

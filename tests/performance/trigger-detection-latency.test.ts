@@ -65,7 +65,7 @@ describe('Trigger Detection Latency', () => {
       const startTime = performance.now();
 
       // Process the event
-      const result = triggerDetector.handleOrderStatusChanged(mockOrderStatusChanged);
+      const _result = triggerDetector.handleOrderStatusChanged(mockOrderStatusChanged);
 
       const processingTime = performance.now() - startTime;
 
@@ -188,7 +188,7 @@ describe('Trigger Detection Latency', () => {
 
       // Stage 3: Trigger detection
       const detectStart = performance.now();
-      const isTrigger = parsedEvent.orderType === 'STOP_MARKET';
+      const _isTrigger = parsedEvent.orderType === 'STOP_MARKET';
       stages.push({ name: 'Trigger detection', duration: performance.now() - detectStart });
 
       // Stage 4: Database lookup (mocked)

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { MonitorStatsTracker } from '../../../src/services/monitor/MonitorStats.js'
-import type { MonitorStats } from '../../../src/services/monitor/MonitorStats.js'
+import type { MonitorStats as _MonitorStats } from '../../../src/services/monitor/MonitorStats.js'
 
 describe('MonitorStatsTracker', () => {
   let tracker: MonitorStatsTracker

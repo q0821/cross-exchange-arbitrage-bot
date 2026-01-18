@@ -223,7 +223,7 @@ export class PriceMonitor extends EventEmitter {
           }
           break;
 
-        case 'mexc':
+        case 'mexc': {
           // MEXC 仍使用 CCXT connector
           const connector = this.connectors.get('mexc');
           if (!connector) {
@@ -245,6 +245,7 @@ export class PriceMonitor extends EventEmitter {
           }
           logger.info({ exchange }, '[PriceMonitor] MEXC WebSocket recovered');
           break;
+        }
 
         default:
           logger.warn({ exchange }, '[PriceMonitor] Unknown exchange for WebSocket recovery');
@@ -345,7 +346,7 @@ export class PriceMonitor extends EventEmitter {
             error.message.includes('rate limit') ||
             error.message.includes('429') ||
             error.message.includes('Too Many') ||
-            error.message.includes('code\":510');
+            error.message.includes('code":510');
 
           if (isSymbolNotFound) {
             logger.debug({

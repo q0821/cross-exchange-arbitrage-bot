@@ -1,0 +1,95 @@
+# ============================================================================
+# 整合測試工作流程 - 需要 PostgreSQL 資料庫
+# ============================================================================
+#
+# 觸發條件：
+# - 手動觸發 (workflow_dispatch)
+# - Push 到 main 分支（完整測試）
+# - PR 到 main（僅當 tests/integration、src、prisma 有變更）
+#
+# 執行內容：
+# - 啟動 PostgreSQL 服務
+# - 執行資料庫遷移
+# - 執行整合測試
+#
+# ============================================================================
+
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/integration/**'
+      - 'src/**'
+      - 'prisma/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: arbitrage_user
+          POSTGRES_PASSWORD: arbitrage_pass
+          POSTGRES_DB: arbitrage_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://arbitrage_user:arbitrage_pass@localhost:5432/arbitrage_test?schema=public
+      NODE_ENV: test
+      RUN_INTEGRATION_TESTS: true
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      NEXT_PUBLIC_WS_URL: http://localhost:3000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Database Migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Run Integration Tests
+        run: pnpm test run tests/integration --reporter=verbose
+
+      - name: Upload Test Results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: |
+            tests/integration/**/*.log
+          retention-days: 7

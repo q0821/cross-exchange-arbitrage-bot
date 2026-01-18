@@ -8,7 +8,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { createWrapper, mockFetchResponse } from '@/tests/utils/query-test-utils';
-import { queryKeys } from '@/lib/query-keys';
+import { queryKeys } from '@root/lib/query-keys';
 
 describe('Caching Behavior', () => {
   beforeEach(() => {
@@ -34,7 +34,7 @@ describe('Caching Behavior', () => {
 
       vi.mocked(global.fetch).mockResolvedValue(mockFetchResponse(mockPositions));
 
-      const { wrapper, queryClient } = createWrapper();
+      const { wrapper, queryClient: _queryClient } = createWrapper();
 
       // First render - should fetch
       const { result: result1 } = renderHook(() => usePositionsQuery(), { wrapper });
@@ -157,7 +157,7 @@ describe('Caching Behavior', () => {
     });
 
     it('should support bulk invalidation via parent keys', async () => {
-      const { wrapper, queryClient } = createWrapper();
+      const { wrapper: _wrapper, queryClient } = createWrapper();
 
       // Set some cache data
       queryClient.setQueryData(queryKeys.trading.positions(), { positions: [], total: 0 });

@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import Decimal from 'decimal.js';
 import {
   parseBinanceMarkPriceUpdate,
-  BinanceMarkPriceUpdateSchema,
+  BinanceMarkPriceUpdateSchema as _BinanceMarkPriceUpdateSchema,
 } from '@/lib/schemas/websocket-messages';
 import type { BinanceMarkPriceUpdate } from '@/types/websocket-events';
 

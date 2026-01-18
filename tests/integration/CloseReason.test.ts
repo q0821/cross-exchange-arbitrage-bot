@@ -5,13 +5,17 @@
  * TDD: 驗證 Prisma schema 的 CloseReason enum 和 Position.closeReason 欄位
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { PrismaClient, CloseReason } from '@/generated/prisma/client';
+import type { PrismaClient } from '@/generated/prisma/client';
+import { CloseReason } from '@/generated/prisma/client';
+import { createPrismaClient } from '@/lib/prisma-factory';
 
-describe.skip('CloseReason Integration', () => {
+const RUN_INTEGRATION = process.env.RUN_INTEGRATION_TESTS === 'true';
+
+describe.skipIf(!RUN_INTEGRATION)('CloseReason Integration', () => {
   let prisma: PrismaClient;
 
   beforeAll(async () => {
-    prisma = new PrismaClient();
+    prisma = createPrismaClient();
     await prisma.$connect();
   });
 
@@ -28,11 +32,12 @@ describe.skip('CloseReason Integration', () => {
       expect(CloseReason.SHORT_SL_TRIGGERED).toBe('SHORT_SL_TRIGGERED');
       expect(CloseReason.SHORT_TP_TRIGGERED).toBe('SHORT_TP_TRIGGERED');
       expect(CloseReason.BOTH_TRIGGERED).toBe('BOTH_TRIGGERED');
+      expect(CloseReason.UNCONFIRMED_TRIGGER).toBe('UNCONFIRMED_TRIGGER');
     });
 
-    it('should have exactly 6 close reason values', () => {
+    it('should have exactly 7 close reason values', () => {
       const values = Object.values(CloseReason);
-      expect(values).toHaveLength(6);
+      expect(values).toHaveLength(7);
     });
   });
 

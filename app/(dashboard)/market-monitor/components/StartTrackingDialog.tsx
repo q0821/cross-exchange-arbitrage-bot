@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Target, AlertCircle, Loader2, Layers } from 'lucide-react';
 import type { MarketRate } from '../types';
@@ -40,6 +40,7 @@ export function StartTrackingDialog({
   const [quantity, setQuantity] = useState<number>(0);
   const [autoStopOnExpire, setAutoStopOnExpire] = useState<boolean>(true);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const initializedRef = useRef<boolean>(false);
 
   // 計算價格
   const longPrice = rate?.bestPair
@@ -51,13 +52,19 @@ export function StartTrackingDialog({
   const avgPrice = longPrice && shortPrice ? (longPrice + shortPrice) / 2 : null;
 
   // 當對話框開啟且有價格時，設定預設顆數（約 1000 USDT）
+  // 使用 ref 追蹤初始化狀態，避免重複初始化
   useEffect(() => {
-    if (isOpen && avgPrice && quantity === 0) {
+    if (isOpen && avgPrice && !initializedRef.current) {
       const defaultCapital = 1000;
       const defaultQuantity = defaultCapital / avgPrice;
       setQuantity(Number(defaultQuantity.toFixed(4)));
+      initializedRef.current = true;
     }
-  }, [isOpen, avgPrice, quantity]);
+    // 對話框關閉時重置初始化狀態
+    if (!isOpen) {
+      initializedRef.current = false;
+    }
+  }, [isOpen, avgPrice]);
 
   // 計算資金金額
   const simulatedCapital = avgPrice ? quantity * avgPrice : 0;

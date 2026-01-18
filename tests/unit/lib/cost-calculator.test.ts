@@ -13,7 +13,6 @@ import {
   isValidOpportunity,
   getBreakEvenRate,
   formatPercentage,
-  type CostBreakdown,
 } from '@/lib/cost-calculator';
 import {
   TRADING_FEES_RATE,

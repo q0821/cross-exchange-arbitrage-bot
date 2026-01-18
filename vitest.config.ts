@@ -18,6 +18,8 @@ export default defineConfig({
     environment: 'jsdom',
     // Setup files to run before each test file
     setupFiles: ['./tests/setup.ts'],
+    // Global setup: 執行資料庫遷移（僅執行一次）
+    globalSetup: ['./tests/global-setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -35,11 +37,14 @@ export default defineConfig({
       // Root-level directories (must be defined before @/)
       '@/app': path.resolve(__dirname, './app'),
       '@/tests': path.resolve(__dirname, './tests'),
-      '@/lib': path.resolve(__dirname, './lib'),
       '@/hooks': path.resolve(__dirname, './hooks'),
-      '@/components': path.resolve(__dirname, './components'),
+      // 根目錄 lib/ 和 components/ 使用 @root/ 別名（用於 Next.js 共享工具）
+      '@root/lib': path.resolve(__dirname, './lib'),
+      '@root/components': path.resolve(__dirname, './components'),
+      // @/components/xxx 現在解析到 ./src/components/xxx
       // src/ directory aliases
       '@': path.resolve(__dirname, './src'),
+      // @/lib/xxx 現在解析到 ./src/lib/xxx
       '@lib': path.resolve(__dirname, './src/lib'),
       '@models': path.resolve(__dirname, './src/models'),
       '@services': path.resolve(__dirname, './src/services'),

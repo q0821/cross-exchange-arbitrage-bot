@@ -8,8 +8,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { FundingRateValidator } from '../../../src/services/validation/FundingRateValidator';
-import { FundingRateValidationRepository } from '../../../src/repositories/FundingRateValidationRepository';
-import type { FundingRateValidatorConfig } from '../../../src/types/service-interfaces';
 
 // Mock dependencies
 vi.mock('../../../src/repositories/FundingRateValidationRepository');
@@ -51,7 +49,7 @@ describe('FundingRateValidator Unit Tests', () => {
   describe('validate()', () => {
     it('應該成功驗證並返回 PASS 狀態（OKX 和 CCXT 數據一致）', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const symbol ='BTC-USDT-SWAP';
       const okxRate = 0.0001;
       const ccxtRate = 0.0001; // 完全一致
 
@@ -79,7 +77,7 @@ describe('FundingRateValidator Unit Tests', () => {
 
     it('應該返回 FAIL 狀態（OKX 和 CCXT 數據差異超過閾值）', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const symbol ='BTC-USDT-SWAP';
       const okxRate = 0.0001;
       const ccxtRate = 0.0002; // 差異 100%，遠超閾值
 
@@ -102,7 +100,7 @@ describe('FundingRateValidator Unit Tests', () => {
 
     it('應該返回 N/A 狀態（僅有 OKX 數據，CCXT 無數據）', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const _symbol ='BTC-USDT-SWAP';
 
       mockOkxConnector.getFundingRateNative.mockResolvedValue({
         fundingRate: 0.0001,
@@ -111,7 +109,7 @@ describe('FundingRateValidator Unit Tests', () => {
       mockCCXT.fetchFundingRate.mockResolvedValue(null); // CCXT 無數據
 
       // Act
-      // const result = await validator.validate(symbol);
+      // const result = await validator.validate(_symbol);
 
       // Assert
       // expect(result.validationStatus).toBe('N/A');
@@ -125,14 +123,14 @@ describe('FundingRateValidator Unit Tests', () => {
 
     it('應該返回 ERROR 狀態（OKX API 調用失敗）', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const _symbol ='BTC-USDT-SWAP';
 
       mockOkxConnector.getFundingRateNative.mockRejectedValue(
         new Error('OKX API timeout')
       );
 
       // Act
-      // const result = await validator.validate(symbol);
+      // const result = await validator.validate(_symbol);
 
       // Assert
       // expect(result.validationStatus).toBe('ERROR');
@@ -145,7 +143,7 @@ describe('FundingRateValidator Unit Tests', () => {
 
     it('應該在 CCXT 失敗時仍能返回 N/A 狀態（優雅降級）', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const _symbol ='BTC-USDT-SWAP';
 
       mockOkxConnector.getFundingRateNative.mockResolvedValue({
         fundingRate: 0.0001,
@@ -154,7 +152,7 @@ describe('FundingRateValidator Unit Tests', () => {
       mockCCXT.fetchFundingRate.mockRejectedValue(new Error('CCXT error'));
 
       // Act
-      // const result = await validator.validate(symbol);
+      // const result = await validator.validate(_symbol);
 
       // Assert
       // expect(result.validationStatus).toBe('N/A');
@@ -171,7 +169,7 @@ describe('FundingRateValidator Unit Tests', () => {
   describe('validateBatch()', () => {
     it('應該批量驗證多個交易對', async () => {
       // Arrange
-      const symbols = ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'];
+      const _symbols = ['BTC-USDT-SWAP', 'ETH-USDT-SWAP'];
 
       mockOkxConnector.getFundingRateNative
         .mockResolvedValueOnce({ fundingRate: 0.0001 })
@@ -198,7 +196,7 @@ describe('FundingRateValidator Unit Tests', () => {
   describe('getRecentFailures()', () => {
     it('應該查詢最近的驗證失敗記錄', async () => {
       // Arrange
-      const limit = 10;
+      const _limit = 10;
       mockRepository.findFailures = vi.fn().mockResolvedValue([
         {
           symbol: 'BTC-USDT-SWAP',
@@ -222,16 +220,16 @@ describe('FundingRateValidator Unit Tests', () => {
   describe('getPassRate()', () => {
     it('應該計算指定交易對的驗證通過率', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
-      const daysBack = 7;
+      const _symbol ='BTC-USDT-SWAP';
+      const _daysBack = 7;
       mockRepository.calculatePassRate = vi.fn().mockResolvedValue(95.5);
 
       // Act
-      // const passRate = await validator.getPassRate(symbol, daysBack);
+      // const passRate = await validator.getPassRate(_symbol, _daysBack);
 
       // Assert
       // expect(passRate).toBe(95.5);
-      // expect(mockRepository.calculatePassRate).toHaveBeenCalledWith(symbol, daysBack);
+      // expect(mockRepository.calculatePassRate).toHaveBeenCalledWith(_symbol, _daysBack);
 
       // TODO: 實作後啟用
       expect(true).toBe(true);

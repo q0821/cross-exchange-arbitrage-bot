@@ -469,7 +469,7 @@ export class ExchangeQueryService {
       // 我們需要根據 posSide 和觸發價格的相對位置判斷
       // 這裡簡化處理：如果有兩個訂單，較低價為一個類型，較高價為另一類型
       // 實際區分需要知道開倉價格
-      let type: 'stop_loss' | 'take_profit' = 'stop_loss';
+      const type: 'stop_loss' | 'take_profit' = 'stop_loss';
 
       // 先收集所有訂單，稍後會根據價格排序來區分
       conditionalOrders.push({

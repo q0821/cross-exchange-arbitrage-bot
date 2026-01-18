@@ -18,13 +18,16 @@ vi.mock('ccxt', () => {
     },
   };
 });
-import { PrismaClient } from '@/generated/prisma/client';
+import type { PrismaClient } from '@/generated/prisma/client';
+import { createPrismaClient } from '@/lib/prisma-factory';
 import { FundingRateValidator } from '../../src/services/validation/FundingRateValidator';
 import { FundingRateValidationRepository } from '../../src/repositories/FundingRateValidationRepository';
 import { OKXConnector } from '../../src/connectors/okx';
 import { OkxConnectorAdapter } from '../../src/adapters/OkxConnectorAdapter';
 
-describe.skip('OKX Funding Rate Validation Integration Tests', () => {
+const RUN_INTEGRATION = process.env.RUN_INTEGRATION_TESTS === 'true';
+
+describe.skipIf(!RUN_INTEGRATION)('OKX Funding Rate Validation Integration Tests', () => {
   let prisma: PrismaClient;
   let validator: FundingRateValidator;
   let repository: FundingRateValidationRepository;
@@ -33,7 +36,7 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
 
   beforeAll(() => {
     // 初始化依賴
-    prisma = new PrismaClient();
+    prisma = createPrismaClient();
     repository = new FundingRateValidationRepository(prisma);
 
     // 初始化 OKX connector（使用 testnet）
@@ -66,7 +69,7 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
   describe('validate() - Real API Integration', () => {
     it('應該成功驗證 BTC-USDT-SWAP 資金費率', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const symbol ='BTC-USDT-SWAP';
 
       // Act
       const result = await validator.validate(symbol);
@@ -95,7 +98,7 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
 
     it('應該成功驗證 ETH-USDT-SWAP 資金費率', async () => {
       // Arrange
-      const symbol = 'ETH-USDT-SWAP';
+      const symbol ='ETH-USDT-SWAP';
 
       // Act
       const result = await validator.validate(symbol);
@@ -109,10 +112,10 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
 
     it.skip('應該處理不存在的交易對（跳過此測試避免 API 錯誤）', async () => {
       // Arrange
-      const symbol = 'INVALID-USDT-SWAP';
+      const _symbol ='INVALID-USDT-SWAP';
 
       // Act & Assert
-      // await expect(validator.validate(symbol)).rejects.toThrow();
+      // await expect(validator.validate(_symbol)).rejects.toThrow();
 
       // TODO: 實作後決定是否啟用
     });
@@ -159,7 +162,7 @@ describe.skip('OKX Funding Rate Validation Integration Tests', () => {
   describe('Data Validation', () => {
     it('驗證結果應符合 schema 定義', async () => {
       // Arrange
-      const symbol = 'BTC-USDT-SWAP';
+      const symbol ='BTC-USDT-SWAP';
 
       // Act
       const result = await validator.validate(symbol);

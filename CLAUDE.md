@@ -1,6 +1,6 @@
 # cross-exchange-arbitrage-bot Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2025-12-30
+Auto-generated from all feature plans. Last updated: 2025-01-17
 
 ## Active Technologies
 - TypeScript 5.8 + Node.js 20.x LTS
@@ -28,8 +28,37 @@ src/
 tests/
 ```
 
+## Key Files
+| 檔案 | 用途 |
+|:-----|:-----|
+| `CHANGELOG.md` | 專案變更日誌（版本歷史、修復記錄） |
+| `package.json` | 專案配置與腳本 |
+| `prisma/schema.prisma` | 資料庫 Schema 定義 |
+| `config/symbols.json` | 交易對監控清單 |
+
 ## Commands
-pnpm test && pnpm lint
+
+### 開發
+```bash
+pnpm dev              # 啟動開發伺服器
+pnpm dev:pretty       # 啟動開發伺服器（美化日誌）
+pnpm build            # 建置生產版本
+```
+
+### 測試
+```bash
+pnpm test             # 執行所有測試（單元 + Hooks）
+pnpm test:coverage    # 執行測試並產生覆蓋率報告
+pnpm test:e2e         # 執行 Playwright E2E 測試
+pnpm lint             # ESLint 檢查
+```
+
+### 資料庫
+```bash
+pnpm docker:up        # 啟動 PostgreSQL + Redis（Docker）
+pnpm db:migrate       # 執行資料庫遷移
+pnpm db:generate      # 產生 Prisma Client
+```
 
 ## Code Style
 TypeScript 5.8+ with strict mode: Follow standard conventions
@@ -65,6 +94,10 @@ TypeScript 5.8+ with strict mode: Follow standard conventions
 ### 6. 命名清晰度
 - 參數名稱應清楚表達其用途，避免歧義
 - **範例**：平倉時的 `side` 參數容易與訂單方向混淆，應改為 `positionSide` 明確表示「持倉方向」
+
+### 7. 提交前驗證
+- 提交到 main 之前必須通過 ESLint 和 TypeScript check
+- 指令：`pnpm lint` + `pnpm exec tsc --noEmit`
 
 <!-- MANUAL ADDITIONS START -->
 
@@ -303,5 +336,48 @@ type: 'markPrice' | 'fundingRate' | 'ticker' | 'balanceUpdate'
 - 每組數量不得小於 MIN_QUANTITY (0.0001)
 - 串行執行，失敗時立即停止後續開倉
 - 已成功的持倉保持完整
+
+## Testing
+
+### 測試架構
+```
+tests/
+├── unit/           # 單元測試 (1,886 案例)
+├── integration/    # 整合測試 (103 案例) - 需要 PostgreSQL
+├── hooks/          # React Query Hooks 測試 (33 案例)
+├── e2e/            # Playwright E2E 測試 (23 案例)
+├── performance/    # 效能測試 (11 案例)
+└── setup.ts        # 測試設定
+```
+
+### 測試環境變數
+- `.env.test.example` - 測試環境變數範本（已提交 Git）
+- `.env.test` - 本地測試環境變數（不提交）
+
+**關鍵環境變數**：
+| 變數 | 用途 |
+|:-----|:-----|
+| `RUN_INTEGRATION_TESTS=true` | 啟用整合測試 |
+| `PERFORMANCE_TEST=true` | 啟用效能測試（需真實 WebSocket） |
+
+### 測試文件
+- `docs/test/test.md` - 測試統計摘要
+- `docs/test/integration-test.md` - 整合測試詳細分析（INT-001 ~ INT-104）
+- `docs/test/e2e-test.md` - E2E 測試詳細分析（E2E-001 ~ E2E-023）
+- `docs/test/performance-test.md` - 效能測試詳細分析（PERF-001 ~ PERF-010）
+
+## CI/CD
+
+### GitHub Actions 工作流程
+| 檔案 | 用途 | 觸發條件 |
+|:-----|:-----|:---------|
+| `.github/workflows/ci.yml` | Lint + 型別檢查 + 單元測試 | 每次 push/PR |
+| `.github/workflows/integration.yml` | 整合測試（PostgreSQL） | push to main |
+| `.github/workflows/e2e.yml` | Playwright E2E 測試 | push to main |
+
+### 觸發策略
+- **Push to main**：執行所有測試（完整測試）
+- **PR to main**：CI 必跑，Integration/E2E 依檔案變更觸發
+- **手動觸發**：所有工作流程支援 `workflow_dispatch`
 
 <!-- MANUAL ADDITIONS END -->

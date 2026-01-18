@@ -221,7 +221,7 @@ function formatSymbolForCcxt(symbol: string): string {
 /**
  * 獲取資金費率
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 async function fetchFundingRate(
   exchange: any,
   symbol: string,

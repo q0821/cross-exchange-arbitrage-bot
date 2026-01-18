@@ -54,7 +54,7 @@ async function seedSnapshots(userId: string, days: number) {
   const now = new Date();
 
   // 追蹤當前餘額
-  let currentBalances = { ...INITIAL_BALANCES };
+  const currentBalances = { ...INITIAL_BALANCES };
 
   // 從過去開始建立
   const snapshots = [];

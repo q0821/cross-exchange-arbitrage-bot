@@ -1,0 +1,271 @@
+# ============================================================================
+# 交易測試工作流程 - Testnet 開關倉測試
+# ============================================================================
+#
+# 觸發條件：
+# - 僅限手動觸發 (workflow_dispatch)
+#
+# 執行內容：
+# - Mock 效能測試（永遠執行）
+# - 實際交易整合測試（需提供 Testnet API Key）
+# - 實際交易效能測試（需提供 Testnet API Key）
+#
+# ⚠️ 注意：
+# - 需要在 GitHub Secrets 設定 Testnet API Key
+# - 實際測試會在 Testnet 創建真實倉位
+#
+# ============================================================================
+
+name: Trading Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_mock_only:
+        description: '僅執行 Mock 測試（不需要 API Key）'
+        required: false
+        default: 'true'
+        type: boolean
+      run_integration:
+        description: '執行實際交易整合測試'
+        required: false
+        default: 'false'
+        type: boolean
+      run_performance:
+        description: '執行實際交易效能測試'
+        required: false
+        default: 'false'
+        type: boolean
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # Mock 效能測試（永遠執行）
+  # ============================================================================
+  mock-performance:
+    name: Mock Performance Tests
+    runs-on: ubuntu-latest
+
+    env:
+      # Prisma 需要 DATABASE_URL 來產生 client（不需要真實連線）
+      DATABASE_URL: postgresql://user:pass@localhost:5432/db?schema=public
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Mock Performance Tests
+        run: pnpm test run tests/performance/trading/position-latency-mock.test.ts --reporter=verbose
+
+  # ============================================================================
+  # 實際交易整合測試（需要 Testnet API Key）
+  # ============================================================================
+  trading-integration:
+    name: Trading Integration Tests (Testnet)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.run_integration == 'true' }}
+    needs: mock-performance
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: arbitrage_user
+          POSTGRES_PASSWORD: arbitrage_pass
+          POSTGRES_DB: arbitrage_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://arbitrage_user:arbitrage_pass@localhost:5432/arbitrage_test?schema=public
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
+      RUN_TRADING_INTEGRATION_TESTS: true
+      BINANCE_TESTNET_API_KEY: ${{ secrets.BINANCE_TESTNET_API_KEY }}
+      BINANCE_TESTNET_API_SECRET: ${{ secrets.BINANCE_TESTNET_API_SECRET }}
+      OKX_DEMO_API_KEY: ${{ secrets.OKX_DEMO_API_KEY }}
+      OKX_DEMO_API_SECRET: ${{ secrets.OKX_DEMO_API_SECRET }}
+      OKX_DEMO_PASSPHRASE: ${{ secrets.OKX_DEMO_PASSPHRASE }}
+      TEST_SYMBOL: BTCUSDT
+      TEST_MAX_QUANTITY: '0.001'
+      TEST_LEVERAGE: '1'
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'test-encryption-key-32-chars!!' }}
+
+    steps:
+      - name: Check API Keys
+        run: |
+          if [ -z "$BINANCE_TESTNET_API_KEY" ] && [ -z "$OKX_DEMO_API_KEY" ]; then
+            echo "❌ Error: No Testnet API keys configured"
+            echo "Please configure at least one of:"
+            echo "  - BINANCE_TESTNET_API_KEY + BINANCE_TESTNET_API_SECRET"
+            echo "  - OKX_DEMO_API_KEY + OKX_DEMO_API_SECRET + OKX_DEMO_PASSPHRASE"
+            exit 1
+          fi
+          echo "✅ API keys configured"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Database Migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Run Trading Integration Tests
+        run: pnpm test run tests/integration/trading --reporter=verbose
+        timeout-minutes: 10
+
+      - name: Upload Test Results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trading-integration-test-results
+          path: |
+            tests/integration/trading/**/*.log
+          retention-days: 7
+
+  # ============================================================================
+  # 實際交易效能測試（需要 Testnet API Key）
+  # ============================================================================
+  trading-performance:
+    name: Trading Performance Tests (Testnet)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.run_performance == 'true' }}
+    needs: mock-performance
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: arbitrage_user
+          POSTGRES_PASSWORD: arbitrage_pass
+          POSTGRES_DB: arbitrage_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://arbitrage_user:arbitrage_pass@localhost:5432/arbitrage_test?schema=public
+      REDIS_URL: redis://localhost:6379
+      NODE_ENV: test
+      TRADING_PERFORMANCE_TEST: true
+      BINANCE_TESTNET_API_KEY: ${{ secrets.BINANCE_TESTNET_API_KEY }}
+      BINANCE_TESTNET_API_SECRET: ${{ secrets.BINANCE_TESTNET_API_SECRET }}
+      OKX_DEMO_API_KEY: ${{ secrets.OKX_DEMO_API_KEY }}
+      OKX_DEMO_API_SECRET: ${{ secrets.OKX_DEMO_API_SECRET }}
+      OKX_DEMO_PASSPHRASE: ${{ secrets.OKX_DEMO_PASSPHRASE }}
+      TEST_SYMBOL: BTCUSDT
+      TEST_MAX_QUANTITY: '0.001'
+      TEST_LEVERAGE: '1'
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
+      ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY || 'test-encryption-key-32-chars!!' }}
+
+    steps:
+      - name: Check API Keys
+        run: |
+          if [ -z "$BINANCE_TESTNET_API_KEY" ] && [ -z "$OKX_DEMO_API_KEY" ]; then
+            echo "❌ Error: No Testnet API keys configured"
+            exit 1
+          fi
+          echo "✅ API keys configured"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Run Database Migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Run Trading Performance Tests
+        run: pnpm test run tests/performance/trading/position-latency.test.ts --reporter=verbose
+        timeout-minutes: 15
+
+      - name: Upload Performance Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trading-performance-report
+          path: |
+            tests/performance/trading/**/*.log
+          retention-days: 30

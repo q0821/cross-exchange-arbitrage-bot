@@ -40,7 +40,7 @@ function findProjectRoot(): string {
  * @internal 保留作為備用選項
  */
 // @ts-expect-error - Kept for potential future use
-async function fetchAvailableSymbols(
+async function _fetchAvailableSymbols(
   isTestnet: boolean,
   minVolume: number
 ): Promise<string[]> {

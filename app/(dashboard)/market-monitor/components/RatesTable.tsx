@@ -66,6 +66,8 @@ export function RatesTable({
   onTrackClick,
 }: RatesTableProps) {
   // 快照排序：只在排序條件改變時重新計算順序
+  // 這是刻意的設計決策：避免因價格更新而頻繁重新排序，提升使用者體驗
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/preserve-manual-memoization
   const sortedSymbols = useMemo(() => {
     const symbols = Array.from(ratesMap.keys());
 
@@ -89,7 +91,7 @@ export function RatesTable({
 
       return stableSortComparator(rateA, rateB, sortBy, sortDirection);
     });
-  }, [sortBy, sortDirection, filterStatus]); // ✅ 不依賴 ratesMap
+  }, [sortBy, sortDirection, filterStatus]);
 
   // 根據固定順序提取最新資料進行渲染
   const displayRates = useMemo(() => {

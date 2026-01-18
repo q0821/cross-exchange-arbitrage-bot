@@ -110,7 +110,7 @@ async function testMexcDirectApi() {
         const errorData = JSON.parse(error.message);
         console.log(`   錯誤碼: ${errorData.code}`);
         console.log(`   錯誤訊息: ${errorData.msg}`);
-      } catch {}
+      } catch { /* JSON 解析失敗時忽略 */ }
     }
   }
 

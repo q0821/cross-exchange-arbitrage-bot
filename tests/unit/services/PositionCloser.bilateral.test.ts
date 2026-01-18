@@ -63,7 +63,7 @@ vi.mock('ccxt', () => {
     // Binance 專用
     fapiPrivateGetPositionSideDual = vi.fn().mockResolvedValue({ dualSidePosition: true });
     papiGetUmPositionSideDual = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     constructor(_config?: unknown) {}
   }
 
@@ -88,7 +88,7 @@ vi.mock('ccxt', () => {
 vi.mock('@/services/trading/FundingFeeQueryService', () => ({
   FundingFeeQueryService: class MockFundingFeeQueryService {
     queryBilateralFundingFees = (...args: unknown[]) => mockServiceStore.queryBilateralFundingFees(...args);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     constructor(_prisma?: unknown) {}
   },
 }));
@@ -99,7 +99,7 @@ vi.mock('@/services/trading/ConditionalOrderAdapterFactory', () => ({
     getAdapter = vi.fn().mockResolvedValue({
       cancelConditionalOrder: (...args: unknown[]) => mockServiceStore.cancelConditionalOrder(...args),
     });
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     constructor(_prisma?: unknown) {}
   },
 }));

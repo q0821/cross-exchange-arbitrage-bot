@@ -5,7 +5,6 @@
 
 import { PrismaClient } from '@/generated/prisma/client';
 import { Decimal } from 'decimal.js';
-import { logger } from '../../lib/logger';
 import { ExchangeQueryService } from './ExchangeQueryService';
 import { ValidationReporter } from './ValidationReporter';
 import { PositionOrchestrator } from '../../services/trading/PositionOrchestrator';
@@ -17,7 +16,6 @@ import {
   getUserIdByEmail,
   convertToCcxtSymbol,
   isQuantityValid,
-  isPriceValid,
   formatNumber,
   formatPrice,
   cleanup,
@@ -25,11 +23,7 @@ import {
 import type {
   RunParams,
   VerifyParams,
-  ValidationItem,
   ExchangeName,
-  ExchangePosition,
-  ExchangeConditionalOrder,
-  VALIDATION_ITEMS,
 } from './types';
 
 const prisma = new PrismaClient();
@@ -66,10 +60,10 @@ export class TradingValidator {
    * 執行完整驗證流程（run 模式）
    */
   async runFullValidation(params: RunParams): Promise<void> {
-    const { longExchange, shortExchange, symbol, quantity, leverage, stopLossPercent, takeProfitPercent, email, json } = params;
+    const { longExchange, shortExchange, symbol, quantity, leverage: _leverage, stopLossPercent, takeProfitPercent, email, json } = params;
 
     this.reporter.initialize(`${longExchange}/${shortExchange}`, symbol, 'run');
-    const startTime = Date.now();
+    const _startTime = Date.now();
 
     try {
       // 0. 根據 email 查詢 userId
@@ -301,7 +295,7 @@ export class TradingValidator {
   private async validatePositionOpen(
     exchange: ExchangeName,
     symbol: string,
-    expectedQuantity: number,
+    _expectedQuantity: number,
   ): Promise<void> {
     const queryService = new ExchangeQueryService(exchange);
 

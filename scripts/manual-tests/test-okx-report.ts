@@ -144,7 +144,7 @@ async function generateFundingRateReport() {
         const timeStr = nextTime.padEnd(16)
 
         console.log(`│  ${symbolStr} │ ${rateStr} │ ${annStr} │ ${timeStr} │`)
-      } catch (error) {
+      } catch (_error) {
         const symbolStr = symbol.replace('/USDT:USDT', '').padEnd(12)
         console.log(`│  ${symbolStr} │ ${'ERROR'.padStart(16)} │ ${'N/A'.padStart(16)} │ ${'N/A'.padEnd(16)} │`)
       }

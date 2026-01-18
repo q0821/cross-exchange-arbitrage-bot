@@ -37,7 +37,7 @@ export interface MonitorStatus {
 
 // T041: Singleton instance - 使用 globalThis 避免 Next.js hot reload 問題
 declare global {
-  // eslint-disable-next-line no-var
+   
   var conditionalOrderMonitor: ConditionalOrderMonitor | undefined;
 }
 

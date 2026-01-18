@@ -9,7 +9,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { createWrapper, mockFetchResponse, mockFetchError } from '@/tests/utils/query-test-utils';
 
 // Mock the hook module (will be implemented)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 let useAssetsQuery: any;
 
 describe('useAssetsQuery', () => {

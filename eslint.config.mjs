@@ -18,11 +18,70 @@ export default tseslint.config(
       '*.config.mjs',
       'prisma.config.ts',
       'src/generated/**',
+      'next-env.d.ts', // Next.js 自動生成的類型宣告
     ],
   },
 
   // Base JavaScript config
   js.configs.recommended,
+
+  // Global variables for Node.js and browser environments
+  {
+    languageOptions: {
+      globals: {
+        // Node.js globals
+        console: 'readonly',
+        process: 'readonly',
+        Buffer: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        exports: 'readonly',
+        global: 'readonly',
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        fetch: 'readonly',
+        localStorage: 'readonly',
+        sessionStorage: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearInterval: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        FormData: 'readonly',
+        Blob: 'readonly',
+        File: 'readonly',
+        FileReader: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+        Headers: 'readonly',
+        AbortController: 'readonly',
+        AbortSignal: 'readonly',
+        WebSocket: 'readonly',
+        Event: 'readonly',
+        CustomEvent: 'readonly',
+        EventTarget: 'readonly',
+        MessageChannel: 'readonly',
+        MessagePort: 'readonly',
+        structuredClone: 'readonly',
+        // Common test globals
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        vi: 'readonly',
+        jest: 'readonly',
+      },
+    },
+  },
 
   // TypeScript files configuration
   ...tseslint.configs.recommended,
@@ -51,6 +110,8 @@ export default tseslint.config(
       ...pluginReactHooks.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
+      // 降級為警告：許多情況下 effect 中的 setState 是必要的（初始化、localStorage 讀取等）
+      'react-hooks/set-state-in-effect': 'warn',
     },
   },
 
@@ -62,7 +123,11 @@ export default tseslint.config(
       'no-console': 'warn',
 
       // TypeScript specific
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -81,9 +146,23 @@ export default tseslint.config(
 
   // Test files
   {
-    files: ['**/*.test.ts', '**/*.test.tsx', '**/tests/**/*.ts'],
+    files: ['**/*.test.ts', '**/*.test.tsx', '**/tests/**/*.ts', '**/tests/**/*.tsx', '**/*.spec.ts'],
     rules: {
+      // 測試檔案允許使用 console（用於測試輸出）
+      'no-console': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      // 放寬測試文件中的未使用變數檢查
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^(_|vi|beforeEach|afterEach|beforeAll|afterAll|expect|describe|it|test)',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+      // 允許測試中使用控制字符正則表達式（用於 ANSI 顏色測試）
+      'no-control-regex': 'off',
+      // 允許測試中的無意義轉義（某些測試可能需要）
+      'no-useless-escape': 'off',
+      // 允許測試中的匿名組件（如 wrapper 函數）
+      'react/display-name': 'off',
     },
   },
 );

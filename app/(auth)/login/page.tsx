@@ -42,7 +42,7 @@ export default function LoginPage() {
 
       // 登入成功，跳轉到市場監控頁面
       router.push('/market-monitor');
-    } catch (err) {
+    } catch (_err) {
       setError('An unexpected error occurred');
       setIsLoading(false);
     }

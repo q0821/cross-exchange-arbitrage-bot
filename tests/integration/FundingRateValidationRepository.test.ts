@@ -7,17 +7,20 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { PrismaClient } from '@/generated/prisma/client';
+import type { PrismaClient } from '@/generated/prisma/client';
+import { createPrismaClient } from '@/lib/prisma-factory';
 import { FundingRateValidationRepository } from '../../src/repositories/FundingRateValidationRepository';
 import { createValidationResult, createValidationError } from '../../src/models/FundingRateValidation';
 
-describe.skip('FundingRateValidationRepository Integration Tests', () => {
+const RUN_INTEGRATION = process.env.RUN_INTEGRATION_TESTS === 'true';
+
+describe.skipIf(!RUN_INTEGRATION)('FundingRateValidationRepository Integration Tests', () => {
   let prisma: PrismaClient;
   let repository: FundingRateValidationRepository;
 
   beforeAll(() => {
     // 初始化 Prisma Client
-    prisma = new PrismaClient();
+    prisma = createPrismaClient();
     repository = new FundingRateValidationRepository(prisma);
   });
 

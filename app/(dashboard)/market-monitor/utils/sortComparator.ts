@@ -36,23 +36,26 @@ export function stableSortComparator(
       result = a.symbol.localeCompare(b.symbol);
       break;
 
-    case 'spread':
+    case 'spread': {
       const spreadA = a.bestPair?.spreadPercent ?? 0;
       const spreadB = b.bestPair?.spreadPercent ?? 0;
       result = spreadA - spreadB;
       break;
+    }
 
-    case 'annualizedReturn':
+    case 'annualizedReturn': {
       const returnA = a.bestPair?.annualizedReturn ?? 0;
       const returnB = b.bestPair?.annualizedReturn ?? 0;
       result = returnA - returnB;
       break;
+    }
 
-    case 'priceDiff':
+    case 'priceDiff': {
       const priceDiffA = a.bestPair?.priceDiffPercent ?? 0;
       const priceDiffB = b.bestPair?.priceDiffPercent ?? 0;
       result = priceDiffA - priceDiffB;
       break;
+    }
 
     // case 'netReturn' removed - Feature 014: 移除淨收益欄位
 

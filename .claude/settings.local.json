@@ -149,7 +149,10 @@
       "Bash(cut:*)",
       "WebFetch(domain:docs.gateio.ai)",
       "WebFetch(domain:binance-docs.github.io)",
-      "Skill(speckit.implement)"
+      "Skill(speckit.implement)",
+      "Bash(gh api:*)",
+      "Bash(gh run view:*)",
+      "Bash(pnpm exec tsc:*)"
     ],
     "deny": [],
     "ask": []

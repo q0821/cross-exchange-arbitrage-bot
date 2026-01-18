@@ -2,6 +2,7 @@
 
 跨交易所資金費率套利平台 - 自動偵測幣安和 OKX 的資金費率差異並執行套利交易
 
+[![CI](https://github.com/shingo0620/cross-exchange-arbitrage-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/shingo0620/cross-exchange-arbitrage-bot/actions/workflows/ci.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

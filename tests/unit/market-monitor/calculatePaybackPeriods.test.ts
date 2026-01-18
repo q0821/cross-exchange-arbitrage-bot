@@ -8,7 +8,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { calculatePaybackPeriods } from '../../../app/(dashboard)/market-monitor/utils/rateCalculations';
-import type { PaybackResult } from '../../../app/(dashboard)/market-monitor/types/payback';
 
 describe('calculatePaybackPeriods', () => {
   // ============================================================================

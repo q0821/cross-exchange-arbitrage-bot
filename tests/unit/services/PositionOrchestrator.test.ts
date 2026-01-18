@@ -62,7 +62,7 @@ vi.mock('ccxt', () => {
     markets = { 'BTC/USDT:USDT': { contractSize: 1 } };
     fapiPrivateGetPositionSideDual = vi.fn().mockResolvedValue({ dualSidePosition: false });
     papiGetUmPositionSideDual = vi.fn();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     constructor(_config?: unknown) {
       // 配置在這裡被忽略，使用預設 mock
     }
@@ -89,7 +89,7 @@ vi.mock('../../../src/services/trading/BalanceValidator', () => {
   return {
     BalanceValidator: class MockBalanceValidator {
       validateBalance = (...args: unknown[]) => mockBalanceValidatorStore.validateBalance(...args);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+       
       constructor(_prisma?: unknown) {}
     },
   };
