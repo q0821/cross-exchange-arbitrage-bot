@@ -3,7 +3,11 @@
  *
  * Feature: 065-arbitrage-opportunity-tracking
  * Phase: 3 - User Story 2
- * Task: T008 - Tracker 單元測試 (RED Phase)
+ *
+ * 獨立生命週期邏輯測試：
+ * - 監聽 rate-updated 事件
+ * - 發現閾值: 800% (TRACKER_OPPORTUNITY_THRESHOLD)
+ * - 結束閾值: 0% (TRACKER_OPPORTUNITY_END_THRESHOLD)
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -17,12 +21,35 @@ describe('ArbitrageOpportunityTracker', () => {
   let mockRepository: vi.Mocked<ArbitrageOpportunityRepository>;
   let mockMonitor: EventEmitter;
 
+  // 建立測試用的 FundingRatePair
+  const createPair = (apy: number, spread = 0.01): FundingRatePair => ({
+    symbol: 'BTCUSDT',
+    recordedAt: new Date(),
+    exchanges: new Map([
+      ['binance', { rate: {} as any, originalFundingInterval: 8 }],
+      ['okx', { rate: {} as any, originalFundingInterval: 8 }],
+    ]),
+    bestPair: {
+      longExchange: 'binance',
+      shortExchange: 'okx',
+      spreadPercent: spread,
+      spreadAnnualized: apy,
+      priceDiffPercent: 0.1,
+    },
+  } as any);
+
   beforeEach(() => {
     // 建立 mock repository
     mockRepository = {
-      upsert: vi.fn(),
+      upsert: vi.fn().mockResolvedValue({
+        id: 'test-id',
+        symbol: 'BTCUSDT',
+        longExchange: 'binance',
+        shortExchange: 'okx',
+        status: 'ACTIVE',
+      } as any),
       findAllActiveBySymbol: vi.fn(),
-      markAsEnded: vi.fn(),
+      markAsEnded: vi.fn().mockResolvedValue({} as any),
     } as any;
 
     // 建立 mock monitor (EventEmitter)
@@ -34,195 +61,197 @@ describe('ArbitrageOpportunityTracker', () => {
   });
 
   describe('attach()', () => {
-    it('應該正確綁定 opportunity-detected 事件', () => {
+    it('應該正確綁定 rate-updated 事件（獨立生命週期）', () => {
       tracker.attach(mockMonitor);
 
-      // 驗證監聽器已添加
-      const listeners = mockMonitor.listeners('opportunity-detected');
+      // 驗證監聽器已添加到 rate-updated
+      const listeners = mockMonitor.listeners('rate-updated');
       expect(listeners).toHaveLength(1);
     });
 
-    it('應該正確綁定 opportunity-disappeared 事件', () => {
+    it('不應該綁定 opportunity-detected 事件', () => {
       tracker.attach(mockMonitor);
 
-      // 驗證監聽器已添加
-      const listeners = mockMonitor.listeners('opportunity-disappeared');
-      expect(listeners).toHaveLength(1);
+      // 驗證沒有綁定到舊事件
+      const listeners = mockMonitor.listeners('opportunity-detected');
+      expect(listeners).toHaveLength(0);
     });
   });
 
-  describe('handleOpportunityDetected()', () => {
-    it('應該正常記錄新的套利機會', async () => {
-      const pair: FundingRatePair = {
-        symbol: 'BTCUSDT',
-        recordedAt: new Date(),
-        exchanges: new Map([
-          ['binance', {
-            rate: {} as any,
-            originalFundingInterval: 8,
-          }],
-          ['okx', {
-            rate: {} as any,
-            originalFundingInterval: 8,
-          }],
-        ]),
-        bestPair: {
+  describe('handleRateUpdated() - 獨立生命週期邏輯', () => {
+    describe('新機會發現（APY >= 800%）', () => {
+      it('APY >= 800% 且未追蹤時應該記錄新機會', async () => {
+        const pair = createPair(850); // 850% APY
+
+        await tracker.handleRateUpdated(pair);
+
+        // 驗證 repository.upsert 被正確呼叫
+        expect(mockRepository.upsert).toHaveBeenCalledWith({
+          symbol: 'BTCUSDT',
           longExchange: 'binance',
           shortExchange: 'okx',
-          spreadPercent: 0.75,
-          spreadAnnualized: 219.0,
-          priceDiffPercent: 0.1,
-        },
-      } as any;
+          spread: 0.01,
+          apy: 850,
+          longIntervalHours: 8,
+          shortIntervalHours: 8,
+        });
 
-      mockRepository.upsert.mockResolvedValue({
-        id: 'test-id',
-        symbol: 'BTCUSDT',
-        longExchange: 'binance',
-        shortExchange: 'okx',
-        status: 'ACTIVE',
-      } as any);
-
-      await tracker.handleOpportunityDetected(pair);
-
-      // 驗證 repository.upsert 被正確呼叫
-      expect(mockRepository.upsert).toHaveBeenCalledWith({
-        symbol: 'BTCUSDT',
-        longExchange: 'binance',
-        shortExchange: 'okx',
-        spread: 0.75,
-        apy: 219.0,
-        longIntervalHours: 8,
-        shortIntervalHours: 8,
+        // 驗證統計數字更新
+        const stats = tracker.getStats();
+        expect(stats.opportunitiesRecorded).toBe(1);
+        expect(stats.lastRecordedAt).toBeInstanceOf(Date);
       });
 
-      // 驗證統計數字更新
-      const stats = tracker.getStats();
-      expect(stats.opportunitiesRecorded).toBe(1);
-      expect(stats.lastRecordedAt).toBeInstanceOf(Date);
+      it('APY 剛好 800% 時應該記錄新機會', async () => {
+        const pair = createPair(800); // 剛好 800% APY
+
+        await tracker.handleRateUpdated(pair);
+
+        expect(mockRepository.upsert).toHaveBeenCalled();
+        expect(tracker.getActiveOpportunitiesCount()).toBe(1);
+      });
     });
 
-    it('當 bestPair 不存在時應該跳過記錄', async () => {
-      const pair: FundingRatePair = {
-        symbol: 'BTCUSDT',
-        recordedAt: new Date(),
-        exchanges: new Map(),
-        // bestPair 未定義
-      } as any;
+    describe('機會更新（已追蹤 且 APY >= 0%）', () => {
+      it('APY 從 850% 降到 500% 時應該繼續追蹤（更新機會）', async () => {
+        // 第一次：建立追蹤
+        await tracker.handleRateUpdated(createPair(850));
+        expect(tracker.getActiveOpportunitiesCount()).toBe(1);
 
-      await tracker.handleOpportunityDetected(pair);
+        // 第二次：APY 降到 500%，應該繼續追蹤
+        await tracker.handleRateUpdated(createPair(500));
 
-      // 驗證 repository.upsert 不被呼叫
-      expect(mockRepository.upsert).not.toHaveBeenCalled();
+        expect(tracker.getActiveOpportunitiesCount()).toBe(1);
+        expect(mockRepository.upsert).toHaveBeenCalledTimes(2);
+        expect(mockRepository.markAsEnded).not.toHaveBeenCalled();
+      });
+
+      it('APY 從 850% 降到 100% 時應該繼續追蹤', async () => {
+        await tracker.handleRateUpdated(createPair(850));
+        await tracker.handleRateUpdated(createPair(100));
+
+        expect(tracker.getActiveOpportunitiesCount()).toBe(1);
+        expect(mockRepository.markAsEnded).not.toHaveBeenCalled();
+      });
+
+      it('APY 剛好 0% 時應該繼續追蹤（不結束）', async () => {
+        await tracker.handleRateUpdated(createPair(850));
+        await tracker.handleRateUpdated(createPair(0));
+
+        expect(tracker.getActiveOpportunitiesCount()).toBe(1);
+        expect(mockRepository.markAsEnded).not.toHaveBeenCalled();
+      });
     });
 
-    it('資料庫錯誤時應該記錄錯誤但不中斷監測', async () => {
-      const pair: FundingRatePair = {
-        symbol: 'BTCUSDT',
-        recordedAt: new Date(),
-        exchanges: new Map([
-          ['binance', {
-            rate: {} as any,
-            originalFundingInterval: 8,
-          }],
-          ['okx', {
-            rate: {} as any,
-            originalFundingInterval: 8,
-          }],
-        ]),
-        bestPair: {
-          longExchange: 'binance',
-          shortExchange: 'okx',
-          spreadPercent: 0.75,
-          spreadAnnualized: 219.0,
-          priceDiffPercent: 0.1,
-        },
-      } as any;
+    describe('機會結束（已追蹤 且 APY < 0%）', () => {
+      it('APY 降到負值時應該結束機會', async () => {
+        // 第一次：建立追蹤
+        await tracker.handleRateUpdated(createPair(850));
+        expect(tracker.getActiveOpportunitiesCount()).toBe(1);
 
-      // Mock 資料庫錯誤
-      mockRepository.upsert.mockRejectedValue(new Error('Database connection failed'));
+        // 第二次：APY 變成負值，應該結束
+        await tracker.handleRateUpdated(createPair(-10));
 
-      // 應該不拋出錯誤
-      await expect(tracker.handleOpportunityDetected(pair)).resolves.toBeUndefined();
+        expect(tracker.getActiveOpportunitiesCount()).toBe(0);
+        expect(mockRepository.markAsEnded).toHaveBeenCalled();
 
-      // 驗證錯誤計數增加
-      const stats = tracker.getStats();
-      expect(stats.errors).toBe(1);
+        const stats = tracker.getStats();
+        expect(stats.opportunitiesEnded).toBe(1);
+      });
+
+      it('APY 剛好 -0.01% 時應該結束機會', async () => {
+        await tracker.handleRateUpdated(createPair(850));
+        await tracker.handleRateUpdated(createPair(-0.01));
+
+        expect(tracker.getActiveOpportunitiesCount()).toBe(0);
+        expect(mockRepository.markAsEnded).toHaveBeenCalled();
+      });
+    });
+
+    describe('不觸發（APY 在 0% ~ 800% 且未追蹤）', () => {
+      it('APY 在 500% 且未追蹤時不應該記錄', async () => {
+        const pair = createPair(500); // 500% APY，低於 800% 發現閾值
+
+        await tracker.handleRateUpdated(pair);
+
+        expect(mockRepository.upsert).not.toHaveBeenCalled();
+        expect(tracker.getActiveOpportunitiesCount()).toBe(0);
+      });
+
+      it('APY 在 799% 時不應該記錄', async () => {
+        await tracker.handleRateUpdated(createPair(799));
+
+        expect(mockRepository.upsert).not.toHaveBeenCalled();
+        expect(tracker.getActiveOpportunitiesCount()).toBe(0);
+      });
+    });
+
+    describe('邊界情況', () => {
+      it('當 bestPair 不存在時應該跳過', async () => {
+        const pair: FundingRatePair = {
+          symbol: 'BTCUSDT',
+          recordedAt: new Date(),
+          exchanges: new Map(),
+          // bestPair 未定義
+        } as any;
+
+        await tracker.handleRateUpdated(pair);
+
+        expect(mockRepository.upsert).not.toHaveBeenCalled();
+      });
+
+      it('資料庫錯誤時應該記錄錯誤但不中斷監測', async () => {
+        mockRepository.upsert.mockRejectedValue(new Error('Database connection failed'));
+
+        const pair = createPair(850);
+
+        // 應該不拋出錯誤
+        await expect(tracker.handleRateUpdated(pair)).resolves.toBeUndefined();
+
+        // 驗證錯誤計數增加
+        const stats = tracker.getStats();
+        expect(stats.errors).toBe(1);
+      });
     });
   });
 
-  describe('handleOpportunityDisappeared()', () => {
-    it('應該正常結束單一機會', async () => {
-      const symbol = 'BTCUSDT';
-      const mockOpportunity = {
-        id: 'test-id',
-        symbol,
-        longExchange: 'binance',
-        shortExchange: 'okx',
-        status: 'ACTIVE',
-        detectedAt: new Date(Date.now() - 3600000), // 1小時前
-        currentSpread: { toNumber: () => 0.5 },
-        currentAPY: { toNumber: () => 146.0 },
-      } as any;
+  describe('handleOpportunityDetected() (Deprecated)', () => {
+    it('應該轉發到 handleRateUpdated（只有 APY >= 800% 才會記錄）', async () => {
+      const pair = createPair(850);
 
-      mockRepository.findAllActiveBySymbol.mockResolvedValue([mockOpportunity]);
-      mockRepository.markAsEnded.mockResolvedValue({
-        ...mockOpportunity,
-        status: 'ENDED',
-      } as any);
+      await tracker.handleOpportunityDetected(pair);
 
-      await tracker.handleOpportunityDisappeared(symbol);
-
-      // 驗證 markAsEnded 被正確呼叫
-      expect(mockRepository.markAsEnded).toHaveBeenCalledWith(
-        symbol,
-        'binance',
-        'okx',
-        0.5,
-        146.0
-      );
-
-      // 驗證統計數字更新
-      const stats = tracker.getStats();
-      expect(stats.opportunitiesEnded).toBe(1);
+      // 驗證 repository.upsert 被呼叫（因為 APY >= 800%）
+      expect(mockRepository.upsert).toHaveBeenCalled();
     });
 
-    it('應該正常結束多個機會（不同交易所組合）', async () => {
-      const symbol = 'BTCUSDT';
-      const mockOpportunities = [
-        {
-          id: 'test-id-1',
-          symbol,
-          longExchange: 'binance',
-          shortExchange: 'okx',
-          status: 'ACTIVE',
-          detectedAt: new Date(),
-          currentSpread: { toNumber: () => 0.5 },
-          currentAPY: { toNumber: () => 146.0 },
-        },
-        {
-          id: 'test-id-2',
-          symbol,
-          longExchange: 'gateio',
-          shortExchange: 'mexc',
-          status: 'ACTIVE',
-          detectedAt: new Date(),
-          currentSpread: { toNumber: () => 0.6 },
-          currentAPY: { toNumber: () => 175.0 },
-        },
-      ] as any;
+    it('APY < 800% 時不應該記錄（即使是透過舊 API）', async () => {
+      const pair = createPair(500);
 
-      mockRepository.findAllActiveBySymbol.mockResolvedValue(mockOpportunities);
-      mockRepository.markAsEnded.mockResolvedValue({} as any);
+      await tracker.handleOpportunityDetected(pair);
 
-      await tracker.handleOpportunityDisappeared(symbol);
+      expect(mockRepository.upsert).not.toHaveBeenCalled();
+    });
+  });
 
-      // 驗證 markAsEnded 被呼叫兩次
-      expect(mockRepository.markAsEnded).toHaveBeenCalledTimes(2);
+  describe('handleOpportunityDisappeared() (Deprecated)', () => {
+    it('應該結束該 symbol 所有內部追蹤的機會', async () => {
+      // 先建立追蹤
+      await tracker.handleRateUpdated(createPair(850));
+      expect(tracker.getActiveOpportunitiesCount()).toBe(1);
 
-      // 驗證統計數字更新
-      const stats = tracker.getStats();
-      expect(stats.opportunitiesEnded).toBe(2);
+      // 呼叫舊的 API
+      await tracker.handleOpportunityDisappeared('BTCUSDT');
+
+      // 驗證機會被結束
+      expect(tracker.getActiveOpportunitiesCount()).toBe(0);
+      expect(mockRepository.markAsEnded).toHaveBeenCalled();
+    });
+
+    it('沒有追蹤的機會時不應該呼叫 markAsEnded', async () => {
+      await tracker.handleOpportunityDisappeared('ETHUSDT');
+
+      expect(mockRepository.markAsEnded).not.toHaveBeenCalled();
     });
   });
 
@@ -240,19 +269,38 @@ describe('ArbitrageOpportunityTracker', () => {
     });
   });
 
+  describe('getActiveOpportunitiesCount()', () => {
+    it('應該回傳正確的活躍機會數量', async () => {
+      expect(tracker.getActiveOpportunitiesCount()).toBe(0);
+
+      await tracker.handleRateUpdated(createPair(850));
+      expect(tracker.getActiveOpportunitiesCount()).toBe(1);
+    });
+  });
+
+  describe('getThreshold()', () => {
+    it('應該回傳發現閾值 800', () => {
+      expect(tracker.getThreshold()).toBe(800);
+    });
+  });
+
+  describe('getEndThreshold()', () => {
+    it('應該回傳結束閾值 0', () => {
+      expect(tracker.getEndThreshold()).toBe(0);
+    });
+  });
+
   describe('detach()', () => {
-    it('應該正確解除事件綁定', () => {
+    it('應該正確解除 rate-updated 事件綁定', () => {
       tracker.attach(mockMonitor);
 
       // 驗證監聽器已添加
-      expect(mockMonitor.listeners('opportunity-detected')).toHaveLength(1);
-      expect(mockMonitor.listeners('opportunity-disappeared')).toHaveLength(1);
+      expect(mockMonitor.listeners('rate-updated')).toHaveLength(1);
 
       tracker.detach();
 
-      // 驗證事件監聽器已移除
-      expect(mockMonitor.listeners('opportunity-detected')).toHaveLength(0);
-      expect(mockMonitor.listeners('opportunity-disappeared')).toHaveLength(0);
+      // 驗證事件監聯器已移除
+      expect(mockMonitor.listeners('rate-updated')).toHaveLength(0);
     });
   });
 });

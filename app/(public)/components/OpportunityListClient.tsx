@@ -114,7 +114,7 @@ function OpportunityListClientInner() {
       <div className="flex justify-between items-center">
         <TimeRangeFilter selectedDays={currentDays} onDaysChange={handleDaysChange} />
         <div className="text-sm text-muted-foreground">
-          共 {data.pagination.totalItems} 筆記錄
+          共 {data.pagination.total} 筆記錄
         </div>
       </div>
 
@@ -125,7 +125,7 @@ function OpportunityListClientInner() {
       {data.pagination.totalPages > 1 && (
         <div className="mt-8">
           <Pagination
-            currentPage={data.pagination.currentPage}
+            currentPage={data.pagination.page}
             totalPages={data.pagination.totalPages}
             onPageChange={handlePageChange}
           />

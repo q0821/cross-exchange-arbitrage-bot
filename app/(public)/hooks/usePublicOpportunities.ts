@@ -1,17 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { PublicOpportunityDTO } from '@/types/public-opportunity';
-
-interface PaginationInfo {
-  currentPage: number;
-  pageSize: number;
-  totalPages: number;
-  totalItems: number;
-}
-
-interface PublicOpportunitiesResponse {
-  data: PublicOpportunityDTO[];
-  pagination: PaginationInfo;
-}
+import type { PublicOpportunitiesResponse } from '@/src/types/public-opportunity';
 
 interface UsePublicOpportunitiesOptions {
   page?: number;
