@@ -189,6 +189,15 @@ CREATE TABLE IF NOT EXISTS "my_table" (...);
 CREATE INDEX IF NOT EXISTS "my_index" ON "my_table"(...);
 ```
 
+### 10. 修改現有程式碼的影響評估
+- **必須**：修改已存在的程式碼前，仔細檢查是否會對舊有的 spec/feature 產生影響
+- **必須**：清楚向開發者說明可能的影響範圍，包括：
+  - 哪些現有功能可能受影響
+  - 是否需要同步更新相關的測試
+  - 是否需要更新相關的文件或 spec
+- **範例**：修改 `FundingRateMonitor` 的事件發送邏輯時，需檢查所有監聽該事件的服務（如 Feature 022, 026, 027, 029, 065）是否會受影響
+- **建議**：若影響範圍較大，考慮採用獨立的邏輯（如 Feature 065 的獨立生命週期設計）避免耦合
+
 ## ⚠️ Speckit 工作流程強制要求 (NON-NEGOTIABLE)
 
 ### TDD 與 Constitution 合規性檢查
