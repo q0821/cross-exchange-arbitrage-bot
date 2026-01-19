@@ -399,7 +399,8 @@ export const ModelName = {
   SimulatedTracking: 'SimulatedTracking',
   TrackingSnapshot: 'TrackingSnapshot',
   AssetSnapshot: 'AssetSnapshot',
-  TradingSettings: 'TradingSettings'
+  TradingSettings: 'TradingSettings',
+  ArbitrageOpportunity: 'ArbitrageOpportunity'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -415,7 +416,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "fundingRate" | "riskParameters" | "fundingRateValidation" | "systemEvent" | "user" | "passwordResetToken" | "apiKey" | "position" | "trade" | "auditLog" | "notificationWebhook" | "opportunityEndHistory" | "simulatedTracking" | "trackingSnapshot" | "assetSnapshot" | "tradingSettings"
+    modelProps: "fundingRate" | "riskParameters" | "fundingRateValidation" | "systemEvent" | "user" | "passwordResetToken" | "apiKey" | "position" | "trade" | "auditLog" | "notificationWebhook" | "opportunityEndHistory" | "simulatedTracking" | "trackingSnapshot" | "assetSnapshot" | "tradingSettings" | "arbitrageOpportunity"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1603,6 +1604,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ArbitrageOpportunity: {
+      payload: Prisma.$ArbitrageOpportunityPayload<ExtArgs>
+      fields: Prisma.ArbitrageOpportunityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ArbitrageOpportunityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ArbitrageOpportunityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>
+        }
+        findFirst: {
+          args: Prisma.ArbitrageOpportunityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ArbitrageOpportunityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>
+        }
+        findMany: {
+          args: Prisma.ArbitrageOpportunityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>[]
+        }
+        create: {
+          args: Prisma.ArbitrageOpportunityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>
+        }
+        createMany: {
+          args: Prisma.ArbitrageOpportunityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ArbitrageOpportunityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>[]
+        }
+        delete: {
+          args: Prisma.ArbitrageOpportunityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>
+        }
+        update: {
+          args: Prisma.ArbitrageOpportunityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>
+        }
+        deleteMany: {
+          args: Prisma.ArbitrageOpportunityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ArbitrageOpportunityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ArbitrageOpportunityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>[]
+        }
+        upsert: {
+          args: Prisma.ArbitrageOpportunityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ArbitrageOpportunityPayload>
+        }
+        aggregate: {
+          args: Prisma.ArbitrageOpportunityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateArbitrageOpportunity>
+        }
+        groupBy: {
+          args: Prisma.ArbitrageOpportunityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ArbitrageOpportunityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ArbitrageOpportunityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ArbitrageOpportunityCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -1993,6 +2068,31 @@ export const TradingSettingsScalarFieldEnum = {
 export type TradingSettingsScalarFieldEnum = (typeof TradingSettingsScalarFieldEnum)[keyof typeof TradingSettingsScalarFieldEnum]
 
 
+export const ArbitrageOpportunityScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  longExchange: 'longExchange',
+  shortExchange: 'shortExchange',
+  status: 'status',
+  detectedAt: 'detectedAt',
+  endedAt: 'endedAt',
+  durationMs: 'durationMs',
+  initialSpread: 'initialSpread',
+  maxSpread: 'maxSpread',
+  maxSpreadAt: 'maxSpreadAt',
+  currentSpread: 'currentSpread',
+  initialAPY: 'initialAPY',
+  maxAPY: 'maxAPY',
+  currentAPY: 'currentAPY',
+  longIntervalHours: 'longIntervalHours',
+  shortIntervalHours: 'shortIntervalHours',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ArbitrageOpportunityScalarFieldEnum = (typeof ArbitrageOpportunityScalarFieldEnum)[keyof typeof ArbitrageOpportunityScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -2265,6 +2365,20 @@ export type ListEnumSettlementSideFieldRefInput<$PrismaModel> = FieldRefInputTyp
 
 
 /**
+ * Reference to a field of type 'OpportunityStatus'
+ */
+export type EnumOpportunityStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OpportunityStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'OpportunityStatus[]'
+ */
+export type ListEnumOpportunityStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OpportunityStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -2388,6 +2502,7 @@ export type GlobalOmitConfig = {
   trackingSnapshot?: Prisma.TrackingSnapshotOmit
   assetSnapshot?: Prisma.AssetSnapshotOmit
   tradingSettings?: Prisma.TradingSettingsOmit
+  arbitrageOpportunity?: Prisma.ArbitrageOpportunityOmit
 }
 
 /* Types for Logging */

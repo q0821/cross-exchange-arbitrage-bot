@@ -31,6 +31,30 @@ export const APPROACHING_THRESHOLD_RATIO = 0.75;
 export const ENV_OPPORTUNITY_THRESHOLD_ANNUALIZED = 'OPPORTUNITY_THRESHOLD_ANNUALIZED';
 
 // ============================================================================
+// Feature 065: ArbitrageOpportunityTracker 專用常數
+// ============================================================================
+
+/**
+ * ArbitrageOpportunityTracker 機會發現門檻（百分比）
+ *
+ * Feature 065 獨立的生命週期邏輯，不依賴其他服務的閾值設定
+ * 當年化收益 >= 此值時，判定為套利機會並記錄
+ *
+ * 預設值: 800% 年化收益
+ */
+export const TRACKER_OPPORTUNITY_THRESHOLD = 800;
+
+/**
+ * ArbitrageOpportunityTracker 機會結束門檻（百分比）
+ *
+ * Feature 065 獨立的生命週期邏輯
+ * 當年化收益 < 此值時，判定機會結束
+ *
+ * 預設值: 0%（只有當 APY 變為負值時才結束）
+ */
+export const TRACKER_OPPORTUNITY_END_THRESHOLD = 0;
+
+// ============================================================================
 // 時間基準相關常數
 // ============================================================================
 

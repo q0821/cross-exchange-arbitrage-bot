@@ -1,5 +1,5 @@
 import type { PublicOpportunityDTO } from '@/src/types/public-opportunity';
-import { OpportunityCard } from './OpportunityCard';
+import { OpportunityTable } from './OpportunityTable';
 
 interface OpportunityListProps {
   data: PublicOpportunityDTO[];
@@ -8,7 +8,7 @@ interface OpportunityListProps {
 /**
  * 套利機會列表元件
  *
- * 顯示套利機會列表或空狀態
+ * 以表格形式顯示套利機會列表或空狀態
  */
 export function OpportunityList({ data }: OpportunityListProps) {
   // 空狀態
@@ -38,12 +38,6 @@ export function OpportunityList({ data }: OpportunityListProps) {
     );
   }
 
-  // 列表顯示
-  return (
-    <div className="space-y-4">
-      {data.map((opportunity) => (
-        <OpportunityCard key={opportunity.id} opportunity={opportunity} />
-      ))}
-    </div>
-  );
+  // 表格顯示
+  return <OpportunityTable data={data} />;
 }

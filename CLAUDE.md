@@ -130,6 +130,65 @@ TypeScript 5.8+ with strict mode: Follow standard conventions
   ```
 - **注意**：整合測試需要在測試檔案中加上 `// @vitest-environment node` 避免 jsdom 環境與 CCXT 的相容性問題
 
+### 9. Prisma Migration 安全準則
+
+此準則來自 Feature 065 開發過程中遇到的 migration drift 問題分析。
+
+#### 問題根源
+- **Checksum 不符**：migration 檔案在執行後被修改，導致 Prisma 驗證失敗
+- **孤兒 migration**：本地執行 `prisma migrate dev` 但未提交，造成其他開發者無法同步
+- **Schema 與 migration 不同步**：從 schema.prisma 移除 model 但沒有產生對應的 DROP migration
+
+#### 禁止事項
+- ❌ **永遠不要修改已執行的 migration 檔案**（包括格式化、空白調整）
+- ❌ **不要在本地執行 `prisma migrate dev` 後忘記提交**
+- ❌ **不要直接從 schema.prisma 移除 model 而不產生 migration**
+- ❌ **不要手動編輯 `_prisma_migrations` 表**（除非修復問題）
+
+#### 正確做法
+- ✅ **Schema 變更後立即執行 `prisma migrate dev`** 產生 migration 檔案
+- ✅ **migration 檔案必須與 schema.prisma 一起 commit**（Constitution Principle IV）
+- ✅ **刪除 model 也需要 migration**：使用 `DROP TABLE IF EXISTS` 確保冪等性
+- ✅ **使用 IF EXISTS / IF NOT EXISTS** 讓 migration 可重複執行
+- ✅ **PR 前檢查**：確認 `prisma/migrations/` 資料夾有對應的變更
+
+#### 修復 Migration Drift 的標準流程
+```bash
+# 1. 查看 drift 狀態
+pnpm prisma migrate status
+
+# 2. 如果有 checksum 不符，更新資料庫中的 checksum
+UPDATE _prisma_migrations
+SET checksum = '<new_checksum>'
+WHERE migration_name = '<migration_name>';
+
+# 3. 如果有孤兒 migration，刪除資料庫記錄
+DELETE FROM _prisma_migrations
+WHERE migration_name = '<orphan_migration>';
+
+# 4. 手動建立清理 migration（如果需要 DROP TABLE）
+# 使用 IF EXISTS 確保冪等性
+```
+
+#### Migration 檔案範例（冪等設計）
+```sql
+-- 移除表（冪等）
+DROP TABLE IF EXISTS "old_table" CASCADE;
+
+-- 建立枚舉（冪等）
+DO $$ BEGIN
+    CREATE TYPE "my_status" AS ENUM ('ACTIVE', 'ENDED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+-- 建立表（冪等）
+CREATE TABLE IF NOT EXISTS "my_table" (...);
+
+-- 建立索引（冪等）
+CREATE INDEX IF NOT EXISTS "my_index" ON "my_table"(...);
+```
+
 ## ⚠️ Speckit 工作流程強制要求 (NON-NEGOTIABLE)
 
 ### TDD 與 Constitution 合規性檢查
@@ -419,6 +478,41 @@ type: 'markPrice' | 'fundingRate' | 'ticker' | 'balanceUpdate'
 - 每組數量不得小於 MIN_QUANTITY (0.0001)
 - 串行執行，失敗時立即停止後續開倉
 - 已成功的持倉保持完整
+
+## Feature 065: ArbitrageOpportunity 即時追蹤記錄
+
+### Key Paths
+- **Domain Model**: `src/models/ArbitrageOpportunity.ts` - 套利機會類型定義
+- **Repository**: `src/repositories/ArbitrageOpportunityRepository.ts` - 套利機會資料存取層
+- **Tracker**: `src/services/monitor/ArbitrageOpportunityTracker.ts` - 監聽事件並記錄機會
+- **MonitorService**: `src/services/MonitorService.ts` - 整合 Tracker 到監測服務
+
+### API Endpoints
+- `GET /api/public/opportunities` - 公開 API 查詢歷史套利機會
+  - Query Parameters: `page`, `limit`, `days` (7/30/90), `status` (ACTIVE/ENDED/all)
+
+### Data Model (Prisma)
+- `ArbitrageOpportunity` - 套利機會記錄
+  - `symbol`: 交易對符號
+  - `longExchange`, `shortExchange`: 做多/做空交易所
+  - `status`: ACTIVE | ENDED
+  - `detectedAt`, `endedAt`, `durationMs`: 時間資訊
+  - `initialSpread`, `maxSpread`, `currentSpread`: 費差統計
+  - `initialAPY`, `maxAPY`, `currentAPY`: 年化報酬
+  - `longIntervalHours`, `shortIntervalHours`: 費率結算週期
+
+### EventEmitter Events
+- `opportunity-detected` - 機會偵測（觸發 upsert）
+- `opportunity-disappeared` - 機會消失（觸發 markAsEnded）
+
+### Frontend Integration
+- Server-Side Helper: `src/lib/get-public-opportunities.ts`
+- 公開首頁顯示歷史套利機會列表
+
+### Tests
+- Unit: `tests/unit/repositories/ArbitrageOpportunityRepository.test.ts` (16 案例)
+- Unit: `tests/unit/services/ArbitrageOpportunityTracker.test.ts` (9 案例)
+- Integration: `tests/integration/ArbitrageOpportunityFlow.test.ts` (5 案例)
 
 ## Testing
 

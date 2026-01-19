@@ -14,6 +14,9 @@ import '../lib/db';
 // 記憶體監控
 import { startMemoryMonitor, stopMemoryMonitor } from '../lib/memory-monitor';
 import { ACTIVE_EXCHANGES } from '../lib/exchanges/constants';
+// Feature 065: 套利機會追蹤
+import { ArbitrageOpportunityTracker } from './monitor/ArbitrageOpportunityTracker';
+import { ArbitrageOpportunityRepository } from '../repositories/ArbitrageOpportunityRepository';
 
 interface SymbolsConfig {
   groups: {
@@ -25,6 +28,7 @@ interface SymbolsConfig {
 }
 
 let monitorInstance: FundingRateMonitor | null = null;
+let trackerInstance: ArbitrageOpportunityTracker | null = null;
 
 /**
  * 啟動內建的資金費率監控服務
@@ -106,6 +110,12 @@ export async function startMonitorService(): Promise<void> {
     // 啟動監控
     await monitorInstance.start();
 
+    // Feature 065: 初始化套利機會追蹤器
+    const repository = new ArbitrageOpportunityRepository();
+    trackerInstance = new ArbitrageOpportunityTracker(repository);
+    trackerInstance.attach(monitorInstance);
+    logger.info('ArbitrageOpportunityTracker initialized and attached');
+
     // 啟動記憶體監控（每 1 分鐘記錄一次）
     const memoryMonitorInterval = parseInt(process.env.MEMORY_MONITOR_INTERVAL_MS || '60000', 10);
     startMemoryMonitor(memoryMonitorInterval);
@@ -128,6 +138,13 @@ export async function startMonitorService(): Promise<void> {
 export async function stopMonitorService(): Promise<void> {
   // 停止記憶體監控
   stopMemoryMonitor();
+
+  // Feature 065: 解除追蹤器綁定
+  if (trackerInstance) {
+    trackerInstance.detach();
+    trackerInstance = null;
+    logger.info('ArbitrageOpportunityTracker detached');
+  }
 
   if (!monitorInstance) {
     return;

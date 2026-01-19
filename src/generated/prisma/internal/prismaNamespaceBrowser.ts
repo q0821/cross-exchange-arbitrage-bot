@@ -66,7 +66,8 @@ export const ModelName = {
   SimulatedTracking: 'SimulatedTracking',
   TrackingSnapshot: 'TrackingSnapshot',
   AssetSnapshot: 'AssetSnapshot',
-  TradingSettings: 'TradingSettings'
+  TradingSettings: 'TradingSettings',
+  ArbitrageOpportunity: 'ArbitrageOpportunity'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -434,6 +435,31 @@ export const TradingSettingsScalarFieldEnum = {
 } as const
 
 export type TradingSettingsScalarFieldEnum = (typeof TradingSettingsScalarFieldEnum)[keyof typeof TradingSettingsScalarFieldEnum]
+
+
+export const ArbitrageOpportunityScalarFieldEnum = {
+  id: 'id',
+  symbol: 'symbol',
+  longExchange: 'longExchange',
+  shortExchange: 'shortExchange',
+  status: 'status',
+  detectedAt: 'detectedAt',
+  endedAt: 'endedAt',
+  durationMs: 'durationMs',
+  initialSpread: 'initialSpread',
+  maxSpread: 'maxSpread',
+  maxSpreadAt: 'maxSpreadAt',
+  currentSpread: 'currentSpread',
+  initialAPY: 'initialAPY',
+  maxAPY: 'maxAPY',
+  currentAPY: 'currentAPY',
+  longIntervalHours: 'longIntervalHours',
+  shortIntervalHours: 'shortIntervalHours',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ArbitrageOpportunityScalarFieldEnum = (typeof ArbitrageOpportunityScalarFieldEnum)[keyof typeof ArbitrageOpportunityScalarFieldEnum]
 
 
 export const SortOrder = {
