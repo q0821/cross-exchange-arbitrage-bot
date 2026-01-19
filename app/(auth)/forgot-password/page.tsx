@@ -142,7 +142,7 @@ export default function ForgotPasswordPage() {
             </button>
           </div>
         ) : (
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" method="POST" action="" onSubmit={handleSubmit}>
             {/* 錯誤訊息 */}
             {error && (
               <div className="p-4 bg-loss/10 border border-loss/30 rounded-md">
