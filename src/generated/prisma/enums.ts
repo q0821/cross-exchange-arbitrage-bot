@@ -97,3 +97,11 @@ export const SettlementSide = {
 } as const
 
 export type SettlementSide = (typeof SettlementSide)[keyof typeof SettlementSide]
+
+
+export const OpportunityStatus = {
+  ACTIVE: 'ACTIVE',
+  ENDED: 'ENDED'
+} as const
+
+export type OpportunityStatus = (typeof OpportunityStatus)[keyof typeof OpportunityStatus]

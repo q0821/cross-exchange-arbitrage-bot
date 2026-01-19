@@ -152,7 +152,15 @@
       "Skill(speckit.implement)",
       "Bash(gh api:*)",
       "Bash(gh run view:*)",
-      "Bash(pnpm exec tsc:*)"
+      "Bash(pnpm exec tsc:*)",
+      "mcp__plugin_serena_serena__list_memories",
+      "mcp__plugin_serena_serena__get_symbols_overview",
+      "Bash(RUN_TRADING_INTEGRATION_TESTS=true pnpm test:*)",
+      "mcp__plugin_serena_serena__find_symbol",
+      "Bash(gh run list:*)",
+      "Bash(pkill -f \"tsx watch server.ts\")",
+      "Bash(bash:*)",
+      "mcp__plugin_serena_serena__replace_content"
     ],
     "deny": [],
     "ask": []

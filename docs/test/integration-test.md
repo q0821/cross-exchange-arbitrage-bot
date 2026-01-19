@@ -1,31 +1,74 @@
 # 整合測試分析報告
 
-> 最後更新：2026-01-17
+> 最後更新：2026-01-18
 
 ## 統計摘要
 
 | 項目     | 數量   |
 |:---------|--------|
-| 檔案數   | 15     |
-| 案例數   | 112    |
-| 目錄分類 | 4 個   |
+| 檔案數   | 20     |
+| 案例數   | 162    |
+| 目錄分類 | 5 個   |
 
 ---
 
 ## 測試分類索引
 
-| 分類                   | 檔案數 | 案例數 |
-|:-----------------------|--------|--------|
-| 根目錄                 | 6      | 35     |
+| 分類                     | 檔案數 | 案例數 |
+|:-------------------------|--------|--------|
+| 根目錄                   | 9      | 52     |
 | WebSocket (`websocket/`) | 7      | 66     |
-| Trading (`trading/`)   | 1      | 8      |
-| API (`api/`)           | 1      | 3      |
+| Pages (`pages/`)         | 2      | 8      |
+| API (`api/`)             | 2      | 12     |
+| Trading (`trading/`)     | 1      | 8      |
 
 ---
 
 ## 詳細測試清單
 
-### 1. CloseReason.test.ts
+### 1. ArbitrageOpportunityFlow.test.ts
+
+**路徑**: `tests/integration/ArbitrageOpportunityFlow.test.ts`
+**功能**: Feature 065 - 套利機會生命週期追蹤
+**狀態**: `describe.skipIf` (需要 `RUN_INTEGRATION_TESTS=true`)
+
+#### 完整生命週期
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-113 | 應該正確追蹤機會從發現到結束 | 驗證完整生命週期：create → update → markAsEnded，確認 status、spread、durationMs 等欄位正確更新 |
+| INT-114 | 應該支援同一 symbol 的多個交易所組合 | 驗證同一交易對可在不同交易所組合（binance-okx、gateio-mexc）同時追蹤，不互相干擾 |
+
+#### 公開 API 回應格式
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-115 | 應該回傳正確的 PublicOpportunityDTO 格式 | 驗證 getPublicOpportunities() 回傳的 DTO 包含所有必要欄位（id、symbol、maxSpread、finalSpread、durationMs 等） |
+| INT-116 | 應該支援時間篩選 | 驗證 days 參數（7、30、90）正確過濾指定時間範圍內的記錄 |
+| INT-117 | 應該支援狀態篩選 | 驗證 status 參數（ACTIVE、ENDED）正確過濾對應狀態的記錄 |
+
+---
+
+### 2. database-connection.test.ts
+
+**路徑**: `tests/integration/database-connection.test.ts`
+**功能**: 資料庫連線與 Schema 完整性測試
+**狀態**: `describe.skipIf` (需要 `RUN_INTEGRATION_TESTS=true`)
+**整合自**: `test-db-connection.ts`
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-105 | 應該成功連接到資料庫 | 驗證 Prisma Client 能正常連接到 PostgreSQL 資料庫 |
+| INT-106 | 應該成功執行查詢並回傳當前時間和版本 | 驗證基本 SQL 查詢功能，確認資料庫可正常執行 SELECT 語句 |
+| INT-107 | 應該已安裝 TimescaleDB 擴展 | 驗證 TimescaleDB 擴展已正確安裝並啟用 |
+| INT-108 | 應該包含所有必要的資料表 | 驗證資料庫 Schema 包含所有核心表格（users, api_keys, positions, trades 等 14 個表） |
+| INT-109 | 應該能夠查詢 _prisma_migrations 表確認遷移已執行 | 驗證 Prisma migrations 已正確執行，且記錄完整 |
+| INT-110 | 連線響應時間應小於 100ms | 驗證資料庫連線效能符合預期 |
+| INT-111 | 應該支援交易回滾 | 驗證 PostgreSQL 交易機制正常運作，rollback 能正確回復資料 |
+
+---
+
+### 2. CloseReason.test.ts
 
 **路徑**: `tests/integration/CloseReason.test.ts`
 **功能**: Feature 050 - 停損停利觸發偵測
@@ -366,6 +409,68 @@
 | INT-110 | should validate test constraints | 驗證測試約束常數：MAX_QUANTITY=0.001、DEFAULT_SYMBOL=BTCUSDT、DEFAULT_LEVERAGE=1 |
 | INT-111 | should parse test params correctly | 驗證 getTestParams() 能正確解析環境變數並返回有效參數 |
 | INT-112 | should check trading test flag correctly | 驗證 canRunTradingTests() 正確判斷 RUN_TRADING_INTEGRATION_TESTS 環境變數 |
+
+---
+
+### 16. api/public-opportunities.test.ts
+
+**路徑**: `tests/integration/api/public-opportunities.test.ts`
+**功能**: Feature 065 - 公開套利機會 API
+**狀態**: `describe.skipIf` (需要 `RUN_INTEGRATION_TESTS=true` + Next.js 伺服器)
+
+#### 正常請求
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-118 | 應回傳正確的 JSON 格式 | 驗證 API 回傳標準的 JSON 結構，包含 data、pagination、filter 欄位 |
+| INT-119 | 應回傳去識別化的資料（不包含 userId） | 驗證公開 API 不會洩漏用戶隱私資訊 |
+| INT-120 | 應支援時間範圍篩選（days=7） | 驗證 days 參數能正確過濾時間範圍 |
+| INT-121 | 應支援分頁（page, limit） | 驗證分頁參數正確運作 |
+
+#### 參數驗證
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-122 | 應拒絕無效的 page 參數 | 驗證非數字或負數的 page 會回傳 400 錯誤 |
+| INT-123 | 應拒絕無效的 limit 參數（超過最大值） | 驗證 limit > 100 會回傳 400 錯誤 |
+| INT-124 | 應拒絕無效的 days 參數 | 驗證非 7/30/90 的 days 會回傳 400 錯誤 |
+
+#### 速率限制
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-125 | 應在超過速率限制時回傳 429 | 驗證超過每分鐘 30 次請求會回傳 429 Too Many Requests |
+| INT-126 | 應設定正確的 X-RateLimit-* headers | 驗證回應包含 X-RateLimit-Limit 和 X-RateLimit-Remaining headers |
+
+---
+
+### 17. pages/home.test.ts
+
+**路徑**: `tests/integration/pages/home.test.ts`
+**功能**: Feature 064 - 公開首頁
+**狀態**: 單元測試（無需環境變數）
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-127 | 應無需認證即可訪問首頁 | 驗證未登入狀態可以存取首頁，不會重導向到登入頁 |
+| INT-128 | 應正確渲染 HTML 包含套利機會列表 | 驗證首頁 HTML 包含套利機會資料表格 |
+| INT-129 | 應包含公開導覽列 | 驗證首頁包含公開版本的導覽列元件 |
+| INT-130 | 應顯示套利機會的關鍵資訊 | 驗證顯示 symbol、maxSpread、durationMs 等關鍵欄位 |
+| INT-131 | 應正確設定 SEO metadata | 驗證頁面包含 title、description 等 SEO 標籤 |
+
+---
+
+### 18. pages/home-redirect.test.ts
+
+**路徑**: `tests/integration/pages/home-redirect.test.ts`
+**功能**: Feature 064 - 首頁重導向邏輯
+**狀態**: 單元測試（無需環境變數）
+
+| 編號 | 測試名稱 | 意圖說明 |
+|:-----|:---------|:---------|
+| INT-132 | 應將已登入用戶重導向到 /market-monitor | 驗證有效 session 的用戶會被重導向到 dashboard |
+| INT-133 | 未登入用戶應停留在首頁 | 驗證無 session 的訪客可正常瀏覽首頁 |
+| INT-134 | 無效 token 應視為未登入 | 驗證過期或無效的 token 不會被視為已登入 |
 
 ---
 

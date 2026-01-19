@@ -598,3 +598,52 @@ model TradingSettings {
 
   @@map("trading_settings")
 }
+
+// ===== 套利機會即時追蹤 (Feature 065) =====
+model ArbitrageOpportunity {
+  id                String            @id @default(cuid())
+
+  // 識別資訊
+  symbol            String            @db.VarChar(20)
+  longExchange      String            @db.VarChar(20)
+  shortExchange     String            @db.VarChar(20)
+
+  // 狀態
+  status            OpportunityStatus @default(ACTIVE)
+
+  // 時間資訊
+  detectedAt        DateTime          @default(now()) @db.Timestamptz
+  endedAt           DateTime?         @db.Timestamptz
+  durationMs        BigInt?
+
+  // 費差統計
+  initialSpread     Decimal           @db.Decimal(10, 6)
+  maxSpread         Decimal           @db.Decimal(10, 6)
+  maxSpreadAt       DateTime          @db.Timestamptz
+  currentSpread     Decimal           @db.Decimal(10, 6)
+
+  // 年化報酬
+  initialAPY        Decimal           @db.Decimal(10, 2)
+  maxAPY            Decimal           @db.Decimal(10, 2)
+  currentAPY        Decimal           @db.Decimal(10, 2)
+
+  // 費率結算週期
+  longIntervalHours   Int             @db.SmallInt
+  shortIntervalHours  Int             @db.SmallInt
+
+  createdAt         DateTime          @default(now()) @db.Timestamptz
+  updatedAt         DateTime          @updatedAt @db.Timestamptz
+
+  @@unique([symbol, longExchange, shortExchange, status])
+  @@index([status])
+  @@index([detectedAt(sort: Desc)])
+  @@index([endedAt(sort: Desc)])
+  @@map("arbitrage_opportunities")
+}
+
+enum OpportunityStatus {
+  ACTIVE  // 進行中
+  ENDED   // 已結束
+
+  @@map("opportunity_status")
+}

@@ -1,45 +1,47 @@
 # 測試分析報告
 
-> 最後更新：2026-01-17
+> 最後更新：2026-01-19
 
 ## 統計摘要
 
 ### 最新測試執行結果
 
 ```
-Test Files: 118 passed, 1 skipped (119)
-Tests:      2,099 passed, 17 skipped, 11 todo (2,127)
+Test Files: 131 passed, 4 skipped (135)
+Tests:      2,244 passed, 35 skipped, 11 todo (2,290)
 ```
 
 ### 測試案例數量（Test Cases）
 
 | 測試類型          |   案例數 |   百分比 |
 |:------------------|----------|----------|
-| Unit Tests        |    1,886 |    88.7% |
-| Integration Tests |      117 |     5.5% |
-| Hooks Tests       |       33 |     1.6% |
-| E2E Tests         |       23 |     1.1% |
-| Performance Tests |       17 |     0.8% |
-| **其他**          |       51 |     2.4% |
-| **總計**          |**2,127** | **100%** |
+| Unit Tests        |    2,036 |    88.9% |
+| Integration Tests |      162 |     7.1% |
+| Hooks Tests       |       45 |     2.0% |
+| E2E Tests         |       23 |     1.0% |
+| Performance Tests |       25 |     1.1% |
+| **總計**          |**2,291** | **100%** |
 
 ### 測試檔案數量（Test Files）
 
 | 測試類型          |   檔案數 |   百分比 |
 |:------------------|----------|----------|
-| Unit Tests        |       91 |    77.1% |
-| Integration Tests |       15 |    12.7% |
-| Hooks Tests       |        6 |     5.1% |
-| Performance Tests |        4 |     3.4% |
-| E2E Tests         |        2 |     1.7% |
-| **總計**          |  **118** | **100%** |
+| Unit Tests        |       97 |    74.6% |
+| Integration Tests |       20 |    15.4% |
+| Hooks Tests       |        7 |     5.4% |
+| Performance Tests |        4 |     3.1% |
+| E2E Tests         |        2 |     1.5% |
+| **總計**          |  **130** | **100%** |
 
-### 跳過的測試（17 Skipped）
+### 跳過的測試（35 Skipped）
 
 | 檔案 | 數量 | 原因 |
 |:-----|:-----|:-----|
 | `GateioConditionalOrderAdapter.test.ts` | 14 | `describe.skip` - Gate.io 原生 API 測試暫時跳過 |
 | `monitor-init.test.ts` | 3 | `it.skip` - 條件單監控初始化測試待修復 |
+| `multi-exchange-ws.test.ts` | 14 | `describe.skipIf` - 需要 WebSocket 連線 |
+| `binance-subscription.test.ts` | 3 | `it.skipIf` - 需要 API 金鑰 |
+| `okx-funding-rate-validation.test.ts` | 1 | `it.skip` - 避免 API 錯誤 |
 
 ### 待實作的測試（11 Todo）
 
@@ -53,9 +55,9 @@ Tests:      2,099 passed, 17 skipped, 11 todo (2,127)
 
 | 測試類型 | 連結 | 說明 |
 |:---------|:-----|:-----|
-| 整合測試 | [integration-test.md](./integration-test.md) | 117 個測試案例詳細意圖分析 |
+| 整合測試 | [integration-test.md](./integration-test.md) | 162 個測試案例詳細意圖分析 |
 | E2E 測試 | [e2e-test.md](./e2e-test.md) | 23 個測試案例詳細意圖分析 |
-| 效能測試 | [performance-test.md](./performance-test.md) | 17 個測試案例詳細意圖分析 |
+| 效能測試 | [performance-test.md](./performance-test.md) | 25 個測試案例詳細意圖分析 |
 
 ---
 
@@ -67,22 +69,23 @@ Tests:      2,099 passed, 17 skipped, 11 todo (2,127)
 
 | 子目錄            | 檔案數 | 案例數 | 說明               |
 |:------------------|--------|--------|:-------------------|
-| `services/`       |     41 |    840 | 核心業務服務邏輯   |
-| `lib/`            |     16 |    430 | 工具函式與輔助模組 |
+| `services/`       |     42 |    862 | 核心業務服務邏輯   |
+| `lib/`            |     18 |    470 | 工具函式與輔助模組 |
 | `formatters/`     |      4 |    105 | 輸出格式化         |
 | `connectors/`     |      8 |    103 | 交易所連接器       |
+| `repositories/`   |      5 |    118 | 資料存取層         |
 | `websocket/`      |      6 |     89 | WebSocket 客戶端   |
-| `repositories/`   |      3 |     82 | 資料存取層         |
 | `notification/`   |      3 |     76 | 通知服務           |
 | `models/`         |      2 |     40 | 資料模型           |
 | `market-monitor/` |      2 |     38 | 市場監控           |
 | `calculation/`    |      1 |     28 | 計算邏輯           |
 | `frontend/`       |      2 |     26 | 前端工具函式       |
 | `adapters/`       |      1 |     17 | 轉接器             |
+| `middleware/`     |      1 |     36 | 中介層             |
 | `prisma/`         |      1 |      9 | 資料庫遷移順序     |
 | `api/`            |      1 |      3 | API 路由           |
 | `components/`     |      0 |      0 | React 元件         |
-| **總計**          | **91** |**1,886**|                   |
+| **總計**          | **97** |**2,036**|                   |
 
 #### Services 子分類
 
@@ -101,23 +104,26 @@ Tests:      2,099 passed, 17 skipped, 11 todo (2,127)
 
 驗證多個模組間的互動與 API 端點。
 
-- **檔案數**：15 個
-- **案例數**：117 個
+- **檔案數**：20 個
+- **案例數**：162 個
 
 | 子目錄       | 檔案數 | 說明               |
 |:-------------|--------|:-------------------|
-| 根目錄       |      6 | 核心功能整合       |
+| 根目錄       |      9 | 核心功能整合       |
 | `websocket/` |      7 | WebSocket 訂閱整合 |
+| `pages/`     |      2 | 頁面整合測試       |
+| `api/`       |      2 | API 端點測試       |
 | `trading/`   |      1 | 交易功能整合       |
-| `api/`       |      1 | API 端點測試       |
 
 #### 檔案列表
 
 **根目錄**
+- `ArbitrageOpportunityFlow.test.ts` - 套利機會生命週期（Feature 065）
 - `CloseReason.test.ts` - 平倉原因（CloseReason enum 驗證）
 - `FundingRateValidationRepository.test.ts` - 資金費率驗證 Repository
 - `arbitrage-assessment.test.ts` - 套利評估
 - `caching-behavior.test.ts` - 快取行為
+- `database-connection.test.ts` - 資料庫連線與 Schema 完整性
 - `notification-price-filter.test.ts` - 通知價格過濾
 - `okx-funding-rate-validation.test.ts` - OKX 資金費率驗證
 
@@ -130,11 +136,16 @@ Tests:      2,099 passed, 17 skipped, 11 todo (2,127)
 - `okx-subscription.test.ts` - OKX 訂閱機制
 - `position-ws.test.ts` - 持倉 WebSocket
 
-**trading/**
-- `position-open-close.test.ts` - 開關倉整合測試（OKX Demo）
+**pages/**
+- `home.test.ts` - 首頁元件測試（Feature 064）
+- `home-redirect.test.ts` - 首頁重導向測試
 
 **api/**
 - `market-rates.test.ts` - 市場費率 API
+- `public-opportunities.test.ts` - 公開套利機會 API（Feature 065）
+
+**trading/**
+- `position-open-close.test.ts` - 開關倉整合測試（OKX Demo）
 
 ---
 
@@ -142,17 +153,18 @@ Tests:      2,099 passed, 17 skipped, 11 todo (2,127)
 
 TanStack Query hooks 的測試。
 
-- **檔案數**：6 個
-- **案例數**：33 個
+- **檔案數**：7 個
+- **案例數**：45 個
 
-| 檔案                           | 說明         |
-|:-------------------------------|:-------------|
-| `useAssetHistoryQuery.test.ts` | 資產歷史查詢 |
-| `useAssetsQuery.test.ts`       | 資產查詢     |
-| `useMarketRatesQuery.test.ts`  | 市場費率查詢 |
-| `usePositionsQuery.test.ts`    | 持倉查詢     |
-| `useTradesQuery.test.ts`       | 交易記錄查詢 |
-| `useTradingSettingsQuery.test.ts` | 交易設定查詢 |
+| 檔案                             | 說明                 |
+|:---------------------------------|:---------------------|
+| `useAssetHistoryQuery.test.ts`   | 資產歷史查詢         |
+| `useAssetsQuery.test.ts`         | 資產查詢             |
+| `useMarketRatesQuery.test.ts`    | 市場費率查詢         |
+| `usePositionsQuery.test.ts`      | 持倉查詢             |
+| `usePublicOpportunities.test.ts` | 公開套利機會查詢（Feature 065） |
+| `useTradesQuery.test.ts`         | 交易記錄查詢         |
+| `useTradingSettingsQuery.test.ts`| 交易設定查詢         |
 
 ---
 
@@ -175,7 +187,7 @@ TanStack Query hooks 的測試。
 延遲與效能基準測試。
 
 - **檔案數**：4 個
-- **案例數**：17 個
+- **案例數**：25 個
 
 | 檔案                                   | 說明                 |
 |:---------------------------------------|:---------------------|
@@ -191,15 +203,16 @@ TanStack Query hooks 的測試。
 ```
 tests/
 ├── e2e/                          # E2E 測試 (2 檔案, 23 案例)
-├── hooks/
-│   └── queries/                  # React Query Hooks (6 檔案, 33 案例)
-├── integration/                  # 整合測試 (15 檔案, 115 案例)
+├── hooks/                        # React Query Hooks (7 檔案, 45 案例)
+│   └── queries/
+├── integration/                  # 整合測試 (20 檔案, 162 案例)
 │   ├── api/
+│   ├── pages/                    # 頁面整合測試
 │   ├── trading/                  # 交易功能整合測試
 │   └── websocket/
-├── performance/                  # 效能測試 (4 檔案, 17 案例)
+├── performance/                  # 效能測試 (4 檔案, 25 案例)
 │   └── trading/                  # 開關倉效能測試
-├── unit/                         # 單元測試 (91 檔案, 1,886 案例)
+├── unit/                         # 單元測試 (97 檔案, 2,036 案例)
 │   ├── adapters/
 │   ├── api/
 │   ├── calculation/
@@ -209,6 +222,7 @@ tests/
 │   ├── frontend/
 │   ├── lib/
 │   ├── market-monitor/
+│   ├── middleware/               # 中介層測試
 │   ├── models/
 │   ├── notification/
 │   ├── prisma/
@@ -246,19 +260,19 @@ tests/
 
 目前的測試分佈符合測試金字塔的最佳實踐：
 
-- **Unit Tests** 佔比最高（88.8%），提供快速且穩定的回饋
-- **Integration Tests** 佔比適中（7.0% 含 Hooks），驗證模組間互動
-- **E2E Tests** 佔比最低（1.1%），聚焦關鍵使用者流程
+- **Unit Tests** 佔比最高（88.9%），提供快速且穩定的回饋
+- **Integration Tests** 佔比適中（9.1% 含 Hooks），驗證模組間互動
+- **E2E Tests** 佔比最低（1.0%），聚焦關鍵使用者流程
 
 ### 測試密度（案例/檔案）
 
 | 測試類型    | 平均案例數/檔案 |
 |:------------|-----------------|
-| Unit        |            20.7 |
-| Integration |             7.7 |
+| Unit        |            21.0 |
+| Integration |             8.1 |
 | E2E         |            11.5 |
-| Performance |             4.3 |
-| Hooks       |             5.5 |
+| Performance |             6.3 |
+| Hooks       |             6.4 |
 
 ---
 

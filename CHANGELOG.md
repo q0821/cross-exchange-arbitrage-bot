@@ -8,6 +8,179 @@
 
 ### 新增
 
+#### Feature 065: 套利機會追蹤系統（✅ 已完成 - 2026-01-19）
+
+**規劃文件**：
+- 新增 `specs/065-arbitrage-opportunity-tracking/` - 完整功能規劃文件
+  - `spec.md` - 功能規格
+  - `plan.md` - 實作計畫
+  - `tasks.md` - 實作任務清單（23 個任務，含 TDD 測試任務）
+  - `contracts/arbitrage-opportunity-tracker.md` - Tracker 服務契約（獨立生命週期設計）
+
+**已完成功能**：
+
+**1. 資料模型（Phase 1）**
+- ✅ `prisma/schema.prisma` - 新增 `ArbitrageOpportunity` model
+- ✅ `prisma/migrations/` - 資料庫遷移檔案
+- ✅ `src/models/ArbitrageOpportunity.ts` - 型別定義與 DTO
+
+**2. Repository 層（Phase 2）**
+- ✅ `src/repositories/ArbitrageOpportunityRepository.ts`
+  - `create()` - 建立新機會記錄
+  - `findActiveByKey()` - 依唯一鍵查詢進行中機會
+  - `update()` - 更新機會狀態
+  - `markAsEnded()` - 標記機會結束
+  - `upsert()` - 建立或更新機會（便捷方法）
+  - `getPublicOpportunities()` - 公開 API 查詢（支援時間與狀態篩選）
+  - `findAllActiveBySymbol()` - 查詢指定交易對的所有進行中機會
+
+**3. 事件追蹤服務（Phase 3-4）- 獨立生命週期設計**
+- ✅ `src/services/monitor/ArbitrageOpportunityTracker.ts`
+  - 獨立生命週期邏輯，不依賴其他服務的閾值設定
+  - 監聽 `rate-updated` 事件（而非 `opportunity-detected`）
+  - **雙閾值設計**：
+    - 發現閾值：APY ≥ 800% → 記錄新機會
+    - 結束閾值：APY < 0% → 結束機會
+    - 中間區間（0%~800%）：已追蹤機會持續維持
+  - 自行維護 `activeOpportunities` Map 追蹤狀態
+  - 計算持續時間（durationMs）
+  - 追蹤最大利差（maxSpread）和最大 APY（maxAPY）
+- ✅ `src/lib/constants.ts` - 新增專用常數
+  - `TRACKER_OPPORTUNITY_THRESHOLD = 800`（發現閾值）
+  - `TRACKER_OPPORTUNITY_END_THRESHOLD = 0`（結束閾值）
+
+**4. 公開 API 整合（Phase 5-6）**
+- ✅ 更新 `app/api/public/opportunities/route.ts` - 使用新 Repository
+- ✅ 更新 `src/lib/get-public-opportunities.ts` - SSR 查詢服務
+- ✅ 更新 `src/models/PublicOpportunity.ts` - 新增 `status` 參數
+- ✅ `PublicOpportunityDTO` 欄位映射：
+  - `detectedAt` → `appearedAt`
+  - `endedAt` → `disappearedAt`
+  - `currentSpread` → `finalSpread`
+
+**5. 公開頁面 UI 元件**
+- ✅ `app/(public)/components/OpportunityTable.tsx` - 表格式機會列表
+- ✅ `app/(public)/components/OpportunityDetailDialog.tsx` - 詳細資訊 Lightbox
+- ✅ 欄位說明 Tooltip（年化報酬率、持續時間）
+
+**6. 測試覆蓋（Phase 7）**
+- ✅ `tests/unit/repositories/ArbitrageOpportunityRepository.test.ts` - 16 個測試案例
+- ✅ `tests/unit/services/ArbitrageOpportunityTracker.test.ts` - 26 個測試案例（獨立生命週期）
+- ✅ `tests/integration/ArbitrageOpportunityFlow.test.ts` - 5 個整合測試案例
+
+**技術實作**：
+- 複合唯一鍵：`symbol + longExchange + shortExchange + status`
+- 支援同一交易對在多個交易所組合的追蹤
+- 獨立生命週期邏輯，避免與其他功能（Feature 022, 026, 027, 029）耦合
+- 雙閾值設計避免機會在邊緣頻繁開啟/關閉
+- 向後相容既有的公開 API 格式
+
+**統計**：
+- 新增程式碼：約 1,500 行 TypeScript
+- 新增檔案：10 個（model、repository、service、UI 元件、測試）
+- 測試覆蓋：47 個測試案例
+
+---
+
+#### Feature 064: 公開套利機會歷史首頁（✅ 已完成 - 2026-01-18）
+
+**規劃文件**：
+- 新增 `specs/064-public-landing-page/` - 完整功能規劃文件
+  - `spec.md` - 功能規格（4 User Stories、11 功能需求、5 非功能需求）
+  - `plan.md` - 實作計畫（Constitution Check 全部通過）
+  - `research.md` - 技術研究與決策
+  - `data-model.md` - 資料模型（PublicOpportunityDTO）
+  - `contracts/api.md` - API 契約（GET /api/public/opportunities）
+  - `quickstart.md` - 快速驗證指南
+  - `tasks.md` - 實作任務清單（49 個任務，含 14 個 TDD 測試任務）
+  - `checklists/requirements.md` - 需求驗證清單（35 項）
+
+**已完成功能**：
+
+**1. User Story 1 (P1) - 公開首頁展示歷史套利機會**（完成 ✅）
+- ✅ 公開首頁 `app/page.tsx` - 無需登入即可查看
+- ✅ `OpportunityCard.tsx` - 套利機會卡片元件
+- ✅ `OpportunityList.tsx` - 機會列表元件
+- ✅ `OpportunityListSkeleton.tsx` - 載入骨架屏
+- ✅ `PublicNav.tsx` - 公開導覽列
+
+**2. User Story 2 (P1) - 時間範圍篩選**（完成 ✅）
+- ✅ 支援 7/30/90 天時間範圍篩選
+- ✅ URL 參數支援（`?days=7`）
+- ✅ 預設顯示最近 7 天
+
+**3. User Story 3 (P2) - API 與速率限制**（完成 ✅）
+- ✅ `GET /api/public/opportunities` - 公開 API 端點
+- ✅ `src/lib/rate-limiter.ts` - IP 速率限制器（30 req/min）
+- ✅ `src/middleware/rateLimitMiddleware.ts` - 速率限制中介軟體
+- ✅ 去識別化 DTO（不洩漏 userId、notificationCount）
+
+**4. 資料層**（完成 ✅）
+- ✅ `OpportunityEndHistoryRepository.ts` - 公開機會查詢 Repository
+- ✅ `src/lib/get-public-opportunities.ts` - 公開機會查詢服務
+- ✅ `src/types/public-opportunity.ts` - 型別定義
+- ✅ `src/models/PublicOpportunity.ts` - 資料模型
+
+**5. User Story 3 (P2) - 分頁與時間篩選**（完成 ✅）
+- ✅ `Pagination.tsx` - 分頁元件（支援首頁/末頁快捷鍵）
+- ✅ `TimeRangeFilter.tsx` - 時間範圍篩選元件
+- ✅ `usePublicOpportunities.ts` - 公開機會查詢 Hook（TanStack Query）
+- ✅ `OpportunityListClient.tsx` - 客戶端列表元件（整合分頁與篩選）
+
+**6. User Story 4 (P3) - 品牌區塊與 SEO**（完成 ✅）
+- ✅ `HeroSection.tsx` - Hero Section 品牌區塊
+- ✅ SEO 優化（meta tags、Open Graph）
+- ✅ `format-duration.ts` - 持續時間格式化工具
+
+**7. 測試覆蓋**（完成 ✅）
+- ✅ `tests/unit/lib/rate-limiter.test.ts` - 速率限制器單元測試
+- ✅ `tests/unit/middleware/rateLimitMiddleware.test.ts` - 中介軟體單元測試
+- ✅ `tests/unit/repositories/OpportunityEndHistoryRepository.public.test.ts` - Repository 測試
+- ✅ `tests/unit/components/HeroSection.test.tsx` - Hero Section 測試
+- ✅ `tests/unit/components/Pagination.test.tsx` - 分頁元件測試
+- ✅ `tests/unit/components/TimeRangeFilter.test.tsx` - 時間篩選測試
+- ✅ `tests/unit/components/OpportunityCard.test.tsx` - 機會卡片測試
+- ✅ `tests/unit/lib/format-duration.test.ts` - 時間格式化測試
+- ✅ `tests/hooks/usePublicOpportunities.test.ts` - Hook 測試
+- ✅ `tests/integration/api/public-opportunities.test.ts` - API 整合測試
+- ✅ `tests/integration/database-connection.test.ts` - 資料庫連線測試
+
+**技術實作**：
+- SSR 渲染支援 SEO
+- IP 速率限制（30 req/min，滑動視窗算法）
+- 響應式設計（Tailwind CSS）
+- 去識別化保護用戶隱私
+- TanStack Query 客戶端快取
+
+**統計**：
+- 新增程式碼：約 5,500 行 TypeScript
+- 新增檔案：33 個（元件、API、測試、規格文件）
+- 測試覆蓋：13 個測試檔案
+
+---
+
+**其他更新（2026-01-18）**：
+- 更新 `CLAUDE.md` - 新增「Speckit 工作流程強制要求」章節
+  - 強制 TDD 與 Constitution 合規性檢查
+  - `/speckit.implement` 前必須確保測試任務存在
+  - Red-Green-Refactor 流程標示要求
+
+#### 腳本整理與清理（2026-01-18）
+- **診斷腳本重組**：移動至 `scripts/diagnostics/` 目錄
+  - `test-binance-api.ts` - Binance API 連線測試
+  - `test-gateio-api.ts` - Gate.io API 連線測試
+  - `test-mexc-api.ts` - MEXC API 連線測試
+  - `test-okx-position.ts` - OKX 持倉查詢測試
+  - 新增 `scripts/diagnostics/README.md` - 診斷工具使用說明
+- **刪除過時腳本**（11 個）：
+  - `test-balance-api.ts`, `test-balance-user1.ts`
+  - `test-funding-rate-validation.ts`, `test-gateio-connector.ts`
+  - `test-okx-funding-interval.mjs`, `test-open-position.ts`
+  - `test-user-connector.ts`, `test-binance-funding-interval.js`
+  - `test-binance-interval-fix.mjs`, `test-db-connection.ts`
+  - `test-gateio-funding-interval.mjs`, `test-mexc-okx-intervals.mjs`
+- 新增 `test-scripts-analysis.md` - 腳本清理分析報告
+
 #### 實際開關倉測試與效能測試（2025-01-17）
 - 新增 `tests/integration/trading/position-open-close.test.ts` - OKX Demo 開關倉整合測試
   - 使用 OKX Demo 進行真實單邊開關倉操作（Net Mode）
@@ -923,4 +1096,4 @@
 
 **維護者**: Claude Code
 **專案啟動日期**: 2025-10-17
-**最後更新**: 2025-01-17
+**最後更新**: 2026-01-18
