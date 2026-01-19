@@ -140,7 +140,7 @@ describe.skipIf(!RUN_INTEGRATION)('ArbitrageOpportunity Integration Flow', () =>
       await repository.markAsEnded(symbol, 'binance', 'okx', 0.48, 175.2);
 
       // 查詢公開 API
-      const { data, total } = await repository.getPublicOpportunities({
+      const { data } = await repository.getPublicOpportunities({
         days: 7,
         page: 1,
         limit: 10,
