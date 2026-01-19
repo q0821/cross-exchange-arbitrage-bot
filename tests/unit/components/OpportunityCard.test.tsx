@@ -9,12 +9,13 @@ describe('OpportunityCard', () => {
     symbol: 'BTCUSDT',
     longExchange: 'binance',
     shortExchange: 'okx',
+    status: 'ENDED',
     maxSpread: 0.0125, // 1.25%
-    finalSpread: 0.0095, // 0.95%
-    realizedAPY: 45.67,
+    currentSpread: 0.0095, // 0.95%
+    currentAPY: 45.67,
     disappearedAt: new Date('2024-01-15T10:30:00Z'),
     durationMs: 5400000, // 1.5 小時
-    detectedAt: new Date('2024-01-15T09:00:00Z'),
+    appearedAt: new Date('2024-01-15T09:00:00Z'),
   };
 
   describe('必要欄位顯示', () => {
@@ -39,7 +40,7 @@ describe('OpportunityCard', () => {
       expect(screen.getByText(/1\.2500%/)).toBeInTheDocument();
     });
 
-    it('應顯示最終費差（4 位小數）', () => {
+    it('應顯示結束費差（4 位小數）', () => {
       render(<OpportunityCard opportunity={mockOpportunity} />);
       // 0.95% → 0.9500%
       expect(screen.getByText(/0\.9500%/)).toBeInTheDocument();
@@ -86,7 +87,7 @@ describe('OpportunityCard', () => {
       const smallSpread: PublicOpportunityDTO = {
         ...mockOpportunity,
         maxSpread: 0.0001, // 0.01%
-        finalSpread: 0.00005, // 0.005%
+        currentSpread: 0.00005, // 0.005%
       };
 
       render(<OpportunityCard opportunity={smallSpread} />);
@@ -97,7 +98,7 @@ describe('OpportunityCard', () => {
     it('應正確顯示負 APY', () => {
       const negativeAPY: PublicOpportunityDTO = {
         ...mockOpportunity,
-        realizedAPY: -5.25,
+        currentAPY: -5.25,
       };
 
       render(<OpportunityCard opportunity={negativeAPY} />);
@@ -134,10 +135,10 @@ describe('OpportunityCard', () => {
       expect(screen.getByText(/多方|Long/i)).toBeInTheDocument();
       expect(screen.getByText(/空方|Short/i)).toBeInTheDocument();
       expect(screen.getByText(/最大費差|Max Spread/i)).toBeInTheDocument();
-      expect(screen.getByText(/最終費差|Final Spread/i)).toBeInTheDocument();
+      expect(screen.getByText(/結束費差|目前費差|Current Spread/i)).toBeInTheDocument();
       expect(screen.getByText(/年化報酬|APY/i)).toBeInTheDocument();
       expect(screen.getByText(/持續時間|Duration/i)).toBeInTheDocument();
-      expect(screen.getByText(/消失時間|Disappeared/i)).toBeInTheDocument();
+      expect(screen.getByText(/結束時間|消失時間|Disappeared/i)).toBeInTheDocument();
     });
   });
 });

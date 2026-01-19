@@ -40,6 +40,20 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
         <h3 className="text-lg font-semibold text-foreground">{opportunity.symbol}</h3>
       </div>
 
+      {/* 狀態與交易所資訊 */}
+      <div className="mb-4">
+        <div className="text-xs text-muted-foreground mb-1">狀態</div>
+        {opportunity.status === 'ACTIVE' ? (
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 text-sm animate-pulse">
+            進行中
+          </span>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-sm">
+            已結束
+          </span>
+        )}
+      </div>
+
       {/* 交易所資訊 */}
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
@@ -63,27 +77,35 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
           <div className="text-lg font-semibold text-foreground">{formatSpread(opportunity.maxSpread)}</div>
         </div>
         <div>
-          <div className="text-xs text-muted-foreground">最終費差 (Final Spread)</div>
-          <div className="text-lg font-semibold text-foreground">{formatSpread(opportunity.finalSpread)}</div>
+          <div className="text-xs text-muted-foreground">
+            {opportunity.status === 'ACTIVE' ? '當前費差' : '結束費差'}
+          </div>
+          <div className="text-lg font-semibold text-foreground">{formatSpread(opportunity.currentSpread)}</div>
         </div>
       </div>
 
       {/* 年化報酬率 */}
       <div className="mb-4">
-        <div className="text-xs text-muted-foreground">年化報酬率 (APY)</div>
-        <div className="text-2xl font-bold text-primary">{formatAPY(opportunity.realizedAPY)}</div>
+        <div className="text-xs text-muted-foreground">
+          {opportunity.status === 'ACTIVE' ? '當前年化報酬率' : '結束年化報酬率'}
+        </div>
+        <div className="text-2xl font-bold text-primary">{formatAPY(opportunity.currentAPY)}</div>
       </div>
 
       {/* 時間資訊 */}
       <div className="border-t border-border pt-4 space-y-2 text-sm">
         <div>
           <div className="text-xs text-muted-foreground">持續時間 (Duration)</div>
-          <div className="text-foreground font-medium">{formatDuration(opportunity.durationMs)}</div>
+          <div className="text-foreground font-medium">
+            {opportunity.durationMs !== null ? formatDuration(opportunity.durationMs) : '進行中'}
+          </div>
         </div>
-        <div>
-          <div className="text-xs text-muted-foreground">消失時間 (Disappeared At)</div>
-          <div className="text-foreground">{formatDate(opportunity.disappearedAt)}</div>
-        </div>
+        {opportunity.status === 'ENDED' && opportunity.disappearedAt && (
+          <div>
+            <div className="text-xs text-muted-foreground">結束時間</div>
+            <div className="text-foreground">{formatDate(opportunity.disappearedAt)}</div>
+          </div>
+        )}
       </div>
     </div>
   );

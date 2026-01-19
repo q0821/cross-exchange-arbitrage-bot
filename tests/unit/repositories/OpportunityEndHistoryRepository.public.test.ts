@@ -186,9 +186,10 @@ describe('OpportunityEndHistoryRepository - findAllPublic', () => {
       expect(publicDTO.symbol).toBe('BTCUSDT');
       expect(publicDTO.longExchange).toBe('binance');
       expect(publicDTO.shortExchange).toBe('okx');
+      expect(publicDTO.status).toBe('ENDED');
       expect(publicDTO.maxSpread).toBe(0.0045);
-      expect(publicDTO.finalSpread).toBe(0.0015);
-      expect(publicDTO.realizedAPY).toBe(12.5);
+      expect(publicDTO.currentSpread).toBe(0.0015);
+      expect(publicDTO.currentAPY).toBe(12.5);
       expect(publicDTO.durationMs).toBe(8 * 60 * 60 * 1000);
       expect(publicDTO.appearedAt).toEqual(new Date('2026-01-17T10:00:00Z'));
       expect(publicDTO.disappearedAt).toEqual(new Date('2026-01-17T18:00:00Z'));

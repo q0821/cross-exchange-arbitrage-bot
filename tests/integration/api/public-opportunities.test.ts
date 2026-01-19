@@ -141,9 +141,10 @@ describe.skipIf(!INTEGRATION_ENABLED || !SERVER_AVAILABLE)('GET /api/public/oppo
         expect(firstItem).toHaveProperty('symbol');
         expect(firstItem).toHaveProperty('longExchange');
         expect(firstItem).toHaveProperty('shortExchange');
+        expect(firstItem).toHaveProperty('status');
         expect(firstItem).toHaveProperty('maxSpread');
-        expect(firstItem).toHaveProperty('finalSpread');
-        expect(firstItem).toHaveProperty('realizedAPY');
+        expect(firstItem).toHaveProperty('currentSpread');
+        expect(firstItem).toHaveProperty('currentAPY');
         expect(firstItem).toHaveProperty('durationMs');
         expect(firstItem).toHaveProperty('appearedAt');
         expect(firstItem).toHaveProperty('disappearedAt');
@@ -162,10 +163,13 @@ describe.skipIf(!INTEGRATION_ENABLED || !SERVER_AVAILABLE)('GET /api/public/oppo
       expect(data.filter.days).toBe(7);
 
       // 驗證資料在 7 天內
+      // ACTIVE 記錄使用 appearedAt，ENDED 記錄使用 disappearedAt
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      data.data.forEach((item: { disappearedAt: string }) => {
-        const disappearedAt = new Date(item.disappearedAt);
-        expect(disappearedAt.getTime()).toBeGreaterThanOrEqual(sevenDaysAgo.getTime());
+      data.data.forEach((item: { status: string; appearedAt: string; disappearedAt: string | null }) => {
+        const referenceDate = item.status === 'ACTIVE'
+          ? new Date(item.appearedAt)
+          : new Date(item.disappearedAt as string);
+        expect(referenceDate.getTime()).toBeGreaterThanOrEqual(sevenDaysAgo.getTime());
       });
     });
 

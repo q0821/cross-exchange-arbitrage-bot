@@ -47,7 +47,7 @@ export default async function HomePage() {
         {/* 套利機會列表（客戶端互動） */}
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-semibold text-foreground mb-6">
-            歷史套利機會記錄
+            套利機會追蹤
           </h2>
           <OpportunityListClient />
         </div>

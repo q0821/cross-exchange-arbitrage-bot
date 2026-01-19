@@ -79,6 +79,18 @@ export function OpportunityDetailDialog({
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">基本資訊</h3>
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
+                  <span className="text-sm text-muted-foreground">狀態</span>
+                  {opportunity.status === 'ACTIVE' ? (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 text-sm font-medium animate-pulse">
+                      進行中
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-sm font-medium">
+                      已結束
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-start justify-between">
                   <span className="text-sm text-muted-foreground">交易對</span>
                   <span className="text-base font-semibold text-foreground">{opportunity.symbol}</span>
                 </div>
@@ -106,16 +118,20 @@ export function OpportunityDetailDialog({
                   <span className="text-base font-semibold text-foreground">{formatSpread(opportunity.maxSpread)}</span>
                 </div>
                 <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted-foreground">最終費差</span>
-                  <span className="text-base font-semibold text-foreground">{formatSpread(opportunity.finalSpread)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {opportunity.status === 'ACTIVE' ? '當前費差' : '結束費差'}
+                  </span>
+                  <span className="text-base font-semibold text-foreground">{formatSpread(opportunity.currentSpread)}</span>
                 </div>
               </div>
             </section>
 
             {/* 收益資訊 */}
             <section className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-3">年化報酬率</h3>
-              <div className="text-3xl font-bold text-primary">{formatAPY(opportunity.realizedAPY)}</div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                {opportunity.status === 'ACTIVE' ? '當前年化報酬率' : '結束時年化報酬率'}
+              </h3>
+              <div className="text-3xl font-bold text-primary">{formatAPY(opportunity.currentAPY)}</div>
             </section>
 
             {/* 時間資訊 */}
@@ -126,13 +142,17 @@ export function OpportunityDetailDialog({
                   <span className="text-sm text-muted-foreground">發現時間</span>
                   <span className="text-sm text-foreground">{formatDate(opportunity.appearedAt)}</span>
                 </div>
-                <div className="flex items-start justify-between">
-                  <span className="text-sm text-muted-foreground">消失時間</span>
-                  <span className="text-sm text-foreground">{formatDate(opportunity.disappearedAt)}</span>
-                </div>
+                {opportunity.status === 'ENDED' && opportunity.disappearedAt && (
+                  <div className="flex items-start justify-between">
+                    <span className="text-sm text-muted-foreground">結束時間</span>
+                    <span className="text-sm text-foreground">{formatDate(opportunity.disappearedAt)}</span>
+                  </div>
+                )}
                 <div className="flex items-start justify-between">
                   <span className="text-sm text-muted-foreground">持續時間</span>
-                  <span className="text-base font-semibold text-foreground">{formatDuration(opportunity.durationMs)}</span>
+                  <span className="text-base font-semibold text-foreground">
+                    {opportunity.durationMs !== null ? formatDuration(opportunity.durationMs) : '進行中'}
+                  </span>
                 </div>
               </div>
             </section>

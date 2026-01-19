@@ -28,17 +28,20 @@ export class ArbitrageOpportunityRepository {
    * @returns PublicOpportunityDTO
    */
   private toPublicDTO(opp: ArbitrageOpportunity): PublicOpportunityDTO {
+    const isActive = opp.status === 'ACTIVE';
+
     return {
       id: opp.id,
       symbol: opp.symbol,
       longExchange: opp.longExchange,
       shortExchange: opp.shortExchange,
+      status: opp.status as 'ACTIVE' | 'ENDED',
       maxSpread: Number(opp.maxSpread),
-      finalSpread: Number(opp.currentSpread),
-      realizedAPY: Number(opp.currentAPY),
-      durationMs: opp.durationMs ? Number(opp.durationMs) : 0,
+      currentSpread: Number(opp.currentSpread),
+      currentAPY: Number(opp.currentAPY),
+      durationMs: isActive ? null : (opp.durationMs ? Number(opp.durationMs) : null),
       appearedAt: opp.detectedAt,
-      disappearedAt: opp.endedAt ?? opp.detectedAt,
+      disappearedAt: isActive ? null : opp.endedAt,
     };
   }
   /**

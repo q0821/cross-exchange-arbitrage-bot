@@ -6,6 +6,67 @@
 
 ## [Unreleased]
 
+### 變更
+
+#### 首頁同時顯示 ACTIVE 與 ENDED 套利機會（2026-01-19）
+
+**背景**：原本首頁只顯示已結束（ENDED）的套利機會，無法看到進行中的機會。
+
+**修改內容**：
+
+1. **API 預設值變更**
+   - `src/models/PublicOpportunity.ts` - `status` 預設值從 `'ENDED'` 改為 `'all'`
+   - `src/lib/get-public-opportunities.ts` - SSR 查詢改為 `status: 'all'`
+
+2. **DTO 擴充支援 ACTIVE 狀態**
+   - `src/types/public-opportunity.ts`
+     - 新增 `OpportunityStatus` type（`'ACTIVE' | 'ENDED'`）
+     - 新增 `status` 欄位
+     - `finalSpread` → `currentSpread`（統一命名）
+     - `realizedAPY` → `currentAPY`（統一命名）
+     - `durationMs` 改為 `number | null`（ACTIVE 時為 null）
+     - `disappearedAt` 改為 `Date | null`（ACTIVE 時為 null）
+
+3. **Repository 轉換邏輯更新**
+   - `src/repositories/ArbitrageOpportunityRepository.ts` - `toPublicDTO()` 加入 status 欄位
+   - `src/repositories/OpportunityEndHistoryRepository.ts` - `toPublicDTO()` 加入 status 欄位
+
+4. **UI 元件更新**
+   - `app/page.tsx` - 標題從「歷史套利機會記錄」改為「套利機會追蹤」
+   - `app/(public)/components/OpportunityTable.tsx`
+     - 新增「狀態」欄位，ACTIVE 顯示綠色閃爍「進行中」badge
+     - 持續時間：ACTIVE 時顯示「-」
+   - `app/(public)/components/OpportunityCard.tsx` - 新增狀態顯示
+   - `app/(public)/components/OpportunityDetailDialog.tsx`
+     - 狀態顯示
+     - 費差/APY 標籤根據狀態動態顯示（「當前」vs「結束」）
+     - 結束時間僅在 ENDED 時顯示
+
+**行為變化**：
+- 排序方式：改為依 `detectedAt` 降序（最新偵測的在前）
+- ACTIVE 機會會顯示當前即時的費差和 APY
+
+**測試更新**（2026-01-19）：
+
+1. **OpportunityCard 元件測試**（新增）
+   - `tests/unit/components/OpportunityCard.test.tsx` - 14 個測試案例
+   - 測試內容：必要欄位顯示、完整欄位組合、邊界案例、語意化標籤
+
+2. **整合測試修正**
+   - `tests/integration/pages/home.test.ts`
+     - 更新標題斷言：「歷史套利機會記錄」→「套利機會追蹤」
+     - 調整 SSR 測試：改為驗證 `OpportunityListClient` 元件結構（客戶端渲染）
+   - `tests/integration/api/public-opportunities.test.ts`
+     - 修正時間篩選測試：ACTIVE 記錄使用 `appearedAt`，ENDED 記錄使用 `disappearedAt`
+     - 處理 nullable `disappearedAt` 欄位
+
+3. **欄位名稱變更對應**
+   - `finalSpread` → `currentSpread`
+   - `realizedAPY` → `currentAPY`
+   - 標籤斷言更新：支援「結束費差」和「目前費差」雙語
+
+---
+
 ### 新增
 
 #### Feature 065: 套利機會追蹤系統（✅ 已完成 - 2026-01-19）
@@ -1096,4 +1157,4 @@
 
 **維護者**: Claude Code
 **專案啟動日期**: 2025-10-17
-**最後更新**: 2026-01-18
+**最後更新**: 2026-01-19

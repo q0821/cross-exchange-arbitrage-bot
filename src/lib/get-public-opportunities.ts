@@ -17,7 +17,7 @@ export async function getPublicOpportunities(params?: PublicOpportunityQueryPara
     page,
     limit,
     days,
-    status: 'ENDED',
+    status: 'all',
   });
 
   const totalPages = Math.ceil(total / limit);
