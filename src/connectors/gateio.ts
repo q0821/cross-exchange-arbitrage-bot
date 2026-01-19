@@ -15,6 +15,7 @@ import {
   OrderSide,
 } from './types.js';
 import { apiKeys } from '../lib/config.js';
+import { getProxyUrl, getCcxtProxyConfig } from '../lib/env.js';
 import { exchangeLogger as logger } from '../lib/logger.js';
 import {
   ExchangeApiError,
@@ -53,15 +54,23 @@ export class GateioConnector extends BaseExchangeConnector {
         });
       }
 
+      const proxyUrl = getProxyUrl();
+      const proxyConfig = getCcxtProxyConfig();
+
       this.client = new (ccxt as any).gateio({
         apiKey,
         secret: apiSecret,
         enableRateLimit: true,
+        ...proxyConfig,
         options: {
           defaultType: 'swap', // 使用永續合約
           ...(testnet && { sandboxMode: true }),
         },
       }) as ccxt.Exchange;
+
+      if (proxyUrl) {
+        logger.info({ proxy: proxyUrl }, 'Gate.io using proxy');
+      }
 
       // 測試連線
       await this.testConnection();

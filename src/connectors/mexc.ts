@@ -14,6 +14,7 @@ import {
   OrderSide,
 } from './types.js';
 import { apiKeys } from '../lib/config.js';
+import { getProxyUrl, getCcxtProxyConfig } from '../lib/env.js';
 import { exchangeLogger as logger } from '../lib/logger.js';
 import {
   ExchangeApiError,
@@ -42,10 +43,14 @@ export class MexcConnector extends BaseExchangeConnector {
         });
       }
 
+      const proxyUrl = getProxyUrl();
+      const proxyConfig = getCcxtProxyConfig();
+
       this.client = new (ccxt as any).mexc({
         apiKey,
         secret: apiSecret,
         enableRateLimit: true,
+        ...proxyConfig,
         options: {
           defaultType: 'swap', // 使用永續合約
           ...(testnet && { sandboxMode: true }),
@@ -56,6 +61,10 @@ export class MexcConnector extends BaseExchangeConnector {
       await this.testConnection();
 
       this.connected = true;
+
+      if (proxyUrl) {
+        logger.info({ proxy: proxyUrl }, 'MEXC using proxy');
+      }
       logger.info({ testnet }, 'MEXC connector connected');
       this.emit('connected');
     } catch (error) {

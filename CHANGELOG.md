@@ -6,6 +6,60 @@
 
 ## [Unreleased]
 
+### 新增
+
+#### Proxy 支援 - 交易所 API 連線代理（2026-01-19）
+
+**背景**：部分交易所 API 需要 IP 白名單，透過 VPS proxy 可確保固定 IP 存取。
+
+**新增功能**：
+
+1. **環境變數配置**
+   - `.env.example` - 新增 `PROXY_URL` 設定說明
+   - 支援 HTTP/HTTPS proxy（`http://user:pass@host:port`）
+   - 支援 SOCKS4/5 proxy（`socks5://user:pass@host:port`）
+
+2. **Proxy 工具函數** - `src/lib/env.ts`
+   - `getProxyUrl()` - 取得 proxy URL
+   - `isProxyConfigured()` - 檢查是否已配置 proxy
+   - `isSocksProxy()` - 判斷是否為 SOCKS proxy
+   - `getCcxtProxyConfig()` - 取得 CCXT 適用的 proxy 設定
+   - `createProxyAgent()` - 建立 axios 適用的 proxy agent
+
+3. **交易所連接器 Proxy 支援**
+   - `src/connectors/binance.ts` - Binance（@binance/connector + axios）
+   - `src/connectors/okx.ts` - OKX（CCXT）
+   - `src/connectors/gateio.ts` - Gate.io（CCXT）
+   - `src/connectors/mexc.ts` - MEXC（CCXT）
+   - `src/connectors/bingx.ts` - BingX（CCXT + axios）
+
+4. **診斷工具** - `scripts/diagnostics/test-proxy.ts`
+   - 測試直連 vs Proxy IP 差異
+   - 測試五大交易所 API 連線
+   - 顯示延遲比較表格（直連/Proxy/差異）
+   - 計算平均延遲統計
+
+5. **VPS Proxy 安裝腳本** - `scripts/setup-proxy-server.sh`
+   - 一鍵安裝 tinyproxy（Ubuntu/Debian）
+   - 自動生成認證密碼
+   - 設定防火牆規則
+   - 輸出可直接使用的 `PROXY_URL`
+
+**新增依賴**：
+- `https-proxy-agent` - HTTP/HTTPS proxy agent
+- `socks-proxy-agent` - SOCKS4/5 proxy agent
+
+**使用方式**：
+```bash
+# 1. 設定 .env
+PROXY_URL=http://user:pass@your-vps:18888
+
+# 2. 測試連線
+pnpm tsx scripts/diagnostics/test-proxy.ts
+```
+
+---
+
 ### 變更
 
 #### 首頁同時顯示 ACTIVE 與 ENDED 套利機會（2026-01-19）
