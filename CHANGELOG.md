@@ -8,13 +8,14 @@
 
 ### 新增
 
-#### Feature 065: 套利機會追蹤系統（✅ 已完成 - 2026-01-18）
+#### Feature 065: 套利機會追蹤系統（✅ 已完成 - 2026-01-19）
 
 **規劃文件**：
 - 新增 `specs/065-arbitrage-opportunity-tracking/` - 完整功能規劃文件
   - `spec.md` - 功能規格
   - `plan.md` - 實作計畫
   - `tasks.md` - 實作任務清單（23 個任務，含 TDD 測試任務）
+  - `contracts/arbitrage-opportunity-tracker.md` - Tracker 服務契約（獨立生命週期設計）
 
 **已完成功能**：
 
@@ -33,12 +34,20 @@
   - `getPublicOpportunities()` - 公開 API 查詢（支援時間與狀態篩選）
   - `findAllActiveBySymbol()` - 查詢指定交易對的所有進行中機會
 
-**3. 事件追蹤服務（Phase 3-4）**
-- ✅ `src/services/ArbitrageOpportunityTracker.ts`
-  - EventEmitter 架構監聽 `opportunity-detected` 和 `opportunity-disappeared` 事件
-  - 自動追蹤機會生命週期（發現 → 更新 → 結束）
+**3. 事件追蹤服務（Phase 3-4）- 獨立生命週期設計**
+- ✅ `src/services/monitor/ArbitrageOpportunityTracker.ts`
+  - 獨立生命週期邏輯，不依賴其他服務的閾值設定
+  - 監聽 `rate-updated` 事件（而非 `opportunity-detected`）
+  - **雙閾值設計**：
+    - 發現閾值：APY ≥ 800% → 記錄新機會
+    - 結束閾值：APY < 0% → 結束機會
+    - 中間區間（0%~800%）：已追蹤機會持續維持
+  - 自行維護 `activeOpportunities` Map 追蹤狀態
   - 計算持續時間（durationMs）
   - 追蹤最大利差（maxSpread）和最大 APY（maxAPY）
+- ✅ `src/lib/constants.ts` - 新增專用常數
+  - `TRACKER_OPPORTUNITY_THRESHOLD = 800`（發現閾值）
+  - `TRACKER_OPPORTUNITY_END_THRESHOLD = 0`（結束閾值）
 
 **4. 公開 API 整合（Phase 5-6）**
 - ✅ 更新 `app/api/public/opportunities/route.ts` - 使用新 Repository
@@ -49,21 +58,27 @@
   - `endedAt` → `disappearedAt`
   - `currentSpread` → `finalSpread`
 
-**5. 測試覆蓋（Phase 7）**
+**5. 公開頁面 UI 元件**
+- ✅ `app/(public)/components/OpportunityTable.tsx` - 表格式機會列表
+- ✅ `app/(public)/components/OpportunityDetailDialog.tsx` - 詳細資訊 Lightbox
+- ✅ 欄位說明 Tooltip（年化報酬率、持續時間）
+
+**6. 測試覆蓋（Phase 7）**
 - ✅ `tests/unit/repositories/ArbitrageOpportunityRepository.test.ts` - 16 個測試案例
-- ✅ `tests/unit/services/ArbitrageOpportunityTracker.test.ts` - 9 個測試案例
+- ✅ `tests/unit/services/ArbitrageOpportunityTracker.test.ts` - 26 個測試案例（獨立生命週期）
 - ✅ `tests/integration/ArbitrageOpportunityFlow.test.ts` - 5 個整合測試案例
 
 **技術實作**：
 - 複合唯一鍵：`symbol + longExchange + shortExchange + status`
 - 支援同一交易對在多個交易所組合的追蹤
-- 自動計算持續時間和最大利差
+- 獨立生命週期邏輯，避免與其他功能（Feature 022, 026, 027, 029）耦合
+- 雙閾值設計避免機會在邊緣頻繁開啟/關閉
 - 向後相容既有的公開 API 格式
 
 **統計**：
-- 新增程式碼：約 1,200 行 TypeScript
-- 新增檔案：8 個（model、repository、service、測試）
-- 測試覆蓋：30 個測試案例
+- 新增程式碼：約 1,500 行 TypeScript
+- 新增檔案：10 個（model、repository、service、UI 元件、測試）
+- 測試覆蓋：47 個測試案例
 
 ---
 
