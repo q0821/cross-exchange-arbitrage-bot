@@ -516,9 +516,10 @@ export function isSocksProxy(): boolean {
 }
 
 /**
- * 取得 CCXT proxy 配置
- * CCXT 使用 httpProxy 處理 HTTP/HTTPS proxy，使用 socksProxy 處理 SOCKS proxy
+ * 取得 CCXT proxy 配置（舊版，使用 httpProxy/socksProxy）
+ * 注意：httpProxy 在某些環境下可能不起作用，建議使用 getCcxtAgentConfig
  *
+ * @deprecated 建議使用 getCcxtAgentConfig
  * @returns CCXT proxy 配置物件，可直接展開到 CCXT 建構函數
  */
 export function getCcxtProxyConfig(): { httpProxy?: string; socksProxy?: string } {
@@ -532,6 +533,48 @@ export function getCcxtProxyConfig(): { httpProxy?: string; socksProxy?: string 
   }
 
   return { httpProxy: proxyUrl };
+}
+
+/**
+ * 取得 CCXT agent 配置
+ * 使用 https-proxy-agent 或 socks-proxy-agent 建立 agent
+ *
+ * 注意：此方法在某些情況下可能無法正確使用 proxy
+ * 建議使用 getCcxtHttpsProxyConfig
+ *
+ * @deprecated 建議使用 getCcxtHttpsProxyConfig
+ * @returns Promise<{ agent?: Agent }> - CCXT agent 配置物件
+ */
+export async function getCcxtAgentConfig(): Promise<{ agent?: import('http').Agent }> {
+  const agent = await createProxyAgent();
+  if (!agent) {
+    return {};
+  }
+  return { agent };
+}
+
+/**
+ * 取得 CCXT httpsProxy 配置（推薦方式）
+ *
+ * 經過測試，這是 CCXT 4.x 最可靠的 proxy 配置方式：
+ * - 使用 `httpsProxy` 屬性（即使是 http:// 協議的 proxy）
+ * - 同時支援 HTTP 和 SOCKS proxy
+ *
+ * @returns CCXT proxy 配置物件，可直接展開到 CCXT 建構函數
+ */
+export function getCcxtHttpsProxyConfig(): { httpsProxy?: string; socksProxy?: string } {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) {
+    return {};
+  }
+
+  // SOCKS proxy 使用 socksProxy 屬性
+  if (isSocksProxy()) {
+    return { socksProxy: proxyUrl };
+  }
+
+  // HTTP/HTTPS proxy 使用 httpsProxy 屬性（這是 CCXT 4.x 的正確方式）
+  return { httpsProxy: proxyUrl };
 }
 
 /**

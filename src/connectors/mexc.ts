@@ -14,7 +14,7 @@ import {
   OrderSide,
 } from './types.js';
 import { apiKeys } from '../lib/config.js';
-import { getProxyUrl, getCcxtProxyConfig } from '../lib/env.js';
+import { getProxyUrl, getCcxtHttpsProxyConfig } from '../lib/env.js';
 import { exchangeLogger as logger } from '../lib/logger.js';
 import {
   ExchangeApiError,
@@ -44,7 +44,7 @@ export class MexcConnector extends BaseExchangeConnector {
       }
 
       const proxyUrl = getProxyUrl();
-      const proxyConfig = getCcxtProxyConfig();
+      const proxyConfig = getCcxtHttpsProxyConfig();
 
       this.client = new (ccxt as any).mexc({
         apiKey,

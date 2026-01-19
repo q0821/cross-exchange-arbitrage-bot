@@ -41,8 +41,15 @@ PROXY_USER="proxyuser"
 PROXY_PASS=$(openssl rand -base64 16 | tr -dc 'a-zA-Z0-9' | head -c 16)
 PROXY_PORT=18888
 
-# 取得伺服器 IP
-SERVER_IP=$(curl -s https://api.ipify.org || curl -s https://ifconfig.me || echo "YOUR_SERVER_IP")
+# 取得伺服器 IPv4 地址
+SERVER_IP=$(curl -4 -s https://api.ipify.org || curl -4 -s https://ifconfig.me || echo "YOUR_SERVER_IP")
+
+# 確保取得的是 IPv4 地址（用於出站連線綁定）
+if [[ ! "$SERVER_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo -e "${RED}無法取得有效的 IPv4 地址${NC}"
+  echo "請手動設定 SERVER_IP 變數"
+  exit 1
+fi
 
 echo -e "${YELLOW}[1/5] 更新系統套件...${NC}"
 apt update -qq
@@ -65,6 +72,10 @@ Port ${PROXY_PORT}
 
 # 監聽所有介面
 Listen 0.0.0.0
+
+# 強制出站連線使用 IPv4（重要！）
+# 避免某些 API（如 OKX）因 IPv6 連線而報 IP 白名單錯誤
+Bind ${SERVER_IP}
 
 # 允許所有來源（透過 BasicAuth 保護）
 Allow 0.0.0.0/0
@@ -138,8 +149,11 @@ echo -e "${GREEN}請將以下設定加入 .env 檔案：${NC}"
 echo ""
 echo -e "${YELLOW}PROXY_URL=http://${PROXY_USER}:${PROXY_PASS}@${SERVER_IP}:${PROXY_PORT}${NC}"
 echo ""
-echo -e "${GREEN}重要：請在交易所 API Key 設定中將以下 IP 加入白名單：${NC}"
+echo -e "${GREEN}重要：請在交易所 API Key 設定中將以下 IPv4 加入白名單：${NC}"
 echo -e "${YELLOW}${SERVER_IP}${NC}"
+echo ""
+echo -e "${GREEN}注意：此腳本已設定強制使用 IPv4 出站連線${NC}"
+echo -e "如果仍遇到 IP 白名單錯誤，請檢查 /etc/tinyproxy/tinyproxy.conf 中的 Bind 設定"
 echo ""
 echo -e "${GREEN}測試指令：${NC}"
 echo -e "curl -x http://${PROXY_USER}:${PROXY_PASS}@${SERVER_IP}:${PROXY_PORT} https://api.ipify.org"

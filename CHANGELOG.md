@@ -12,6 +12,15 @@
 
 **背景**：部分交易所 API 需要 IP 白名單，透過 VPS proxy 可確保固定 IP 存取。
 
+**重要修復（2026-01-19）**：
+
+- **問題**：CCXT 帶 API Key 的請求未正確使用 proxy，導致 OKX 報 IP 白名單錯誤
+- **根因**：VPS 有 IPv6 地址時，tinyproxy 出站連線優先使用 IPv6
+- **解決方案**：
+  1. 在 tinyproxy.conf 添加 `Bind <IPv4>` 強制出站使用 IPv4
+  2. CCXT 改用 `httpsProxy` 屬性（而非 `httpProxy` 或 `agent`）
+- **新增函數**：`getCcxtHttpsProxyConfig()` - CCXT 4.x 最可靠的 proxy 配置方式
+
 **新增功能**：
 
 1. **環境變數配置**
@@ -43,6 +52,7 @@
    - 一鍵安裝 tinyproxy（Ubuntu/Debian）
    - 自動生成認證密碼
    - 設定防火牆規則
+   - **強制 IPv4 出站連線**（避免 IPv6 導致的 IP 白名單問題）
    - 輸出可直接使用的 `PROXY_URL`
 
 **新增依賴**：

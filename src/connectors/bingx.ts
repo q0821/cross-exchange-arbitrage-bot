@@ -14,7 +14,7 @@ import ccxt from 'ccxt';
 import axios from 'axios';
 import Decimal from 'decimal.js';
 import { BaseExchangeConnector } from './base.js';
-import { getProxyUrl, getCcxtProxyConfig, createProxyAgent } from '../lib/env.js';
+import { getProxyUrl, getCcxtHttpsProxyConfig, createProxyAgent } from '../lib/env.js';
 import {
   FundingRateData,
   PriceData,
@@ -58,7 +58,7 @@ export class BingxConnector extends BaseExchangeConnector {
     try {
       const { apiKey, apiSecret, testnet } = apiKeys.bingx;
       const proxyUrl = getProxyUrl();
-      const proxyConfig = getCcxtProxyConfig();
+      const proxyConfig = getCcxtHttpsProxyConfig();
 
       // 建立 CCXT 客戶端（可以沒有 API Key，仍能存取公開 API）
       const config: any = {
