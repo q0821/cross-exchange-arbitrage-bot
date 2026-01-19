@@ -155,9 +155,10 @@ describe.skipIf(!RUN_INTEGRATION)('ArbitrageOpportunity Integration Flow', () =>
       expect(found).toHaveProperty('symbol', symbol);
       expect(found).toHaveProperty('longExchange', 'binance');
       expect(found).toHaveProperty('shortExchange', 'okx');
+      expect(found).toHaveProperty('status', 'ENDED');
       expect(found).toHaveProperty('maxSpread');
-      expect(found).toHaveProperty('finalSpread');
-      expect(found).toHaveProperty('realizedAPY');
+      expect(found).toHaveProperty('currentSpread');
+      expect(found).toHaveProperty('currentAPY');
       expect(found).toHaveProperty('durationMs');
       expect(found).toHaveProperty('appearedAt');
       expect(found).toHaveProperty('disappearedAt');

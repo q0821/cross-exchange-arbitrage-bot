@@ -1,4 +1,9 @@
 /**
+ * 套利機會狀態
+ */
+export type OpportunityStatus = 'ACTIVE' | 'ENDED';
+
+/**
  * 公開套利機會 DTO (去識別化)
  * 用於公開首頁展示，不包含用戶相關資訊
  */
@@ -11,18 +16,20 @@ export interface PublicOpportunityDTO {
   longExchange: string;
   /** 空方交易所 */
   shortExchange: string;
+  /** 機會狀態 */
+  status: OpportunityStatus;
   /** 最大費差 (4 位小數) */
   maxSpread: number;
-  /** 最終費差 (4 位小數) */
-  finalSpread: number;
-  /** 實現年化報酬率 (%) */
-  realizedAPY: number;
-  /** 持續時間 (毫秒) */
-  durationMs: number;
+  /** 當前/最終費差 (4 位小數) */
+  currentSpread: number;
+  /** 當前/實現年化報酬率 (%) */
+  currentAPY: number;
+  /** 持續時間 (毫秒) - ACTIVE 時為 null */
+  durationMs: number | null;
   /** 機會發現時間 */
   appearedAt: Date;
-  /** 機會消失時間 */
-  disappearedAt: Date;
+  /** 機會消失時間 - ACTIVE 時為 null */
+  disappearedAt: Date | null;
 }
 
 /**

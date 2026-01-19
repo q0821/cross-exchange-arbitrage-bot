@@ -15,23 +15,23 @@ Tests:      2,244 passed, 35 skipped, 11 todo (2,290)
 
 | 測試類型          |   案例數 |   百分比 |
 |:------------------|----------|----------|
-| Unit Tests        |    2,036 |    88.9% |
-| Integration Tests |      162 |     7.1% |
+| Unit Tests        |    2,050 |    88.9% |
+| Integration Tests |      162 |     7.0% |
 | Hooks Tests       |       45 |     2.0% |
 | E2E Tests         |       23 |     1.0% |
 | Performance Tests |       25 |     1.1% |
-| **總計**          |**2,291** | **100%** |
+| **總計**          |**2,305** | **100%** |
 
 ### 測試檔案數量（Test Files）
 
 | 測試類型          |   檔案數 |   百分比 |
 |:------------------|----------|----------|
-| Unit Tests        |       97 |    74.6% |
-| Integration Tests |       20 |    15.4% |
-| Hooks Tests       |        7 |     5.4% |
+| Unit Tests        |       98 |    74.8% |
+| Integration Tests |       20 |    15.3% |
+| Hooks Tests       |        7 |     5.3% |
 | Performance Tests |        4 |     3.1% |
 | E2E Tests         |        2 |     1.5% |
-| **總計**          |  **130** | **100%** |
+| **總計**          |  **131** | **100%** |
 
 ### 跳過的測試（35 Skipped）
 
@@ -84,8 +84,8 @@ Tests:      2,244 passed, 35 skipped, 11 todo (2,290)
 | `middleware/`     |      1 |     36 | 中介層             |
 | `prisma/`         |      1 |      9 | 資料庫遷移順序     |
 | `api/`            |      1 |      3 | API 路由           |
-| `components/`     |      0 |      0 | React 元件         |
-| **總計**          | **97** |**2,036**|                   |
+| `components/`     |      1 |     14 | React 元件         |
+| **總計**          | **98** |**2,050**|                   |
 
 #### Services 子分類
 
@@ -212,7 +212,7 @@ tests/
 │   └── websocket/
 ├── performance/                  # 效能測試 (4 檔案, 25 案例)
 │   └── trading/                  # 開關倉效能測試
-├── unit/                         # 單元測試 (97 檔案, 2,036 案例)
+├── unit/                         # 單元測試 (98 檔案, 2,050 案例)
 │   ├── adapters/
 │   ├── api/
 │   ├── calculation/

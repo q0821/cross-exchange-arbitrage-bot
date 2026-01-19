@@ -28,7 +28,7 @@ export const PublicOpportunityQuerySchema = z.object({
   status: z
     .enum(['ACTIVE', 'ENDED', 'all'])
     .optional()
-    .default('ENDED'),
+    .default('all'),
 });
 
 export type PublicOpportunityQuery = z.infer<typeof PublicOpportunityQuerySchema>;

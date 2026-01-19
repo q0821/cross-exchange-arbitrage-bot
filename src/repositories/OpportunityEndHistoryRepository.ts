@@ -281,9 +281,10 @@ export class OpportunityEndHistoryRepository {
       symbol: history.symbol,
       longExchange: history.longExchange,
       shortExchange: history.shortExchange,
+      status: 'ENDED', // OpportunityEndHistory 永遠是已結束的機會
       maxSpread: Number(history.maxSpread),
-      finalSpread: Number(history.finalSpread),
-      realizedAPY: Number(history.realizedAPY),
+      currentSpread: Number(history.finalSpread),
+      currentAPY: Number(history.realizedAPY),
       durationMs: Number(history.durationMs),
       appearedAt: history.detectedAt,
       disappearedAt: history.disappearedAt,

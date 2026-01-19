@@ -68,6 +68,7 @@ export function OpportunityTable({ data }: OpportunityTableProps) {
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">交易對</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">多方交易所</th>
               <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">空方交易所</th>
+              <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">狀態</th>
               <th className="px-4 py-3 text-right text-sm font-semibold text-foreground relative">
                 <button
                   type="button"
@@ -87,7 +88,7 @@ export function OpportunityTable({ data }: OpportunityTableProps) {
                     />
                     <div className="absolute right-0 top-full mt-2 z-50 w-72 p-3 bg-popover border border-border rounded-lg shadow-lg text-left">
                       <p className="text-sm text-foreground leading-relaxed">
-                        這是理論年化收益，假設該費率差能維持一整年。實際顯示的是機會結束時點的年化報酬率。
+                        這是理論年化收益，假設該費率差能維持一整年。進行中的機會顯示當前報酬率，已結束的機會顯示結束時的報酬率。
                       </p>
                     </div>
                   </>
@@ -112,7 +113,7 @@ export function OpportunityTable({ data }: OpportunityTableProps) {
                     />
                     <div className="absolute right-0 top-full mt-2 z-50 w-72 p-3 bg-popover border border-border rounded-lg shadow-lg text-left">
                       <p className="text-sm text-foreground leading-relaxed">
-                        從機會被偵測到至機會結束之間的時間長度。
+                        從機會被偵測到至機會結束之間的時間長度。進行中的機會顯示「-」。
                       </p>
                     </div>
                   </>
@@ -151,16 +152,29 @@ export function OpportunityTable({ data }: OpportunityTableProps) {
                   </span>
                 </td>
 
+                {/* 狀態 */}
+                <td className="px-4 py-3">
+                  {opportunity.status === 'ACTIVE' ? (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs font-medium animate-pulse">
+                      進行中
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-xs font-medium">
+                      已結束
+                    </span>
+                  )}
+                </td>
+
                 {/* 年化報酬率 */}
                 <td className="px-4 py-3 text-right">
                   <span className="text-lg font-bold text-primary">
-                    {formatAPY(opportunity.realizedAPY)}
+                    {formatAPY(opportunity.currentAPY)}
                   </span>
                 </td>
 
                 {/* 持續時間 */}
                 <td className="px-4 py-3 text-right text-sm text-foreground">
-                  {formatDuration(opportunity.durationMs)}
+                  {opportunity.durationMs !== null ? formatDuration(opportunity.durationMs) : '-'}
                 </td>
 
                 {/* 操作按鈕 */}
@@ -187,6 +201,7 @@ export function OpportunityTable({ data }: OpportunityTableProps) {
               <th className="px-3 py-2 text-left text-xs font-semibold text-foreground">交易對</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-foreground">多方</th>
               <th className="px-3 py-2 text-left text-xs font-semibold text-foreground">空方</th>
+              <th className="px-3 py-2 text-left text-xs font-semibold text-foreground">狀態</th>
               <th className="px-3 py-2 text-right text-xs font-semibold text-foreground relative">
                 <button
                   type="button"
@@ -206,7 +221,7 @@ export function OpportunityTable({ data }: OpportunityTableProps) {
                     />
                     <div className="absolute right-0 top-full mt-2 z-50 w-64 p-3 bg-popover border border-border rounded-lg shadow-lg text-left">
                       <p className="text-xs text-foreground leading-relaxed">
-                        這是理論年化收益，假設該費率差能維持一整年。實際顯示的是機會結束時點的年化報酬率。
+                        這是理論年化收益，假設該費率差能維持一整年。進行中的機會顯示當前報酬率。
                       </p>
                     </div>
                   </>
@@ -237,9 +252,20 @@ export function OpportunityTable({ data }: OpportunityTableProps) {
                     {opportunity.shortExchange}
                   </span>
                 </td>
+                <td className="px-3 py-2">
+                  {opportunity.status === 'ACTIVE' ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs animate-pulse">
+                      進行中
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 text-xs">
+                      已結束
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-right">
                   <span className="text-sm font-bold text-primary">
-                    {formatAPY(opportunity.realizedAPY)}
+                    {formatAPY(opportunity.currentAPY)}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-center">

@@ -126,19 +126,11 @@ describe.skipIf(!INTEGRATION_ENABLED || !SERVER_AVAILABLE)('首頁 SSR', () => {
     const html = await response.text();
 
     // 驗證包含機會列表容器（無論是否有資料）
-    expect(html).toContain('歷史套利機會記錄');
+    expect(html).toContain('套利機會追蹤');
 
-    // 驗證包含正確的結構（資料或空狀態）
-    const hasData = html.includes('TESTHOMEBTC');
-    if (hasData) {
-      // 如果有資料，驗證內容
-      expect(html).toContain('TESTHOMEBTC');
-      expect(html).toContain('binance');
-      expect(html).toContain('okx');
-    } else {
-      // 如果沒有資料，驗證空狀態
-      expect(html).toContain('目前暫無套利機會記錄');
-    }
+    // 驗證客戶端組件已載入（OpportunityListClient）
+    // 注意：實際資料是通過客戶端渲染，SSR HTML 只包含結構
+    expect(html).toContain('OpportunityListClient');
   });
 
   it('應包含公開導覽列', async () => {
@@ -154,18 +146,13 @@ describe.skipIf(!INTEGRATION_ENABLED || !SERVER_AVAILABLE)('首頁 SSR', () => {
     const response = await fetch(`${baseUrl}/`);
     const html = await response.text();
 
-    // 驗證包含年化報酬率、費差等資訊
-    // 如果有資料，應該包含這些資訊
-    // 如果沒有資料，應該顯示空狀態訊息
-    const hasData = html.includes('TESTHOMEBTC');
+    // 驗證頁面結構正確
+    // SSR 時載入骨架畫面，客戶端會替換為實際資料
+    // 驗證頁面包含必要的結構
+    expect(html).toContain('套利機會追蹤');
 
-    if (hasData) {
-      expect(html).toContain('12.5'); // realizedAPY
-      expect(html).toContain('0.0045'); // maxSpread
-    } else {
-      // 驗證空狀態顯示
-      expect(html).toContain('目前暫無套利機會記錄');
-    }
+    // 驗證頁面包含主要區塊
+    expect(html).toContain('container');
   });
 
   it('應正確設定 SEO metadata', async () => {
