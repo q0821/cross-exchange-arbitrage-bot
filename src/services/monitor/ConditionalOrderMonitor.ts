@@ -71,6 +71,10 @@ export class ConditionalOrderMonitor {
   private _parallelModeEnabled = false;
   private _processedByWs: Set<string> = new Set(); // 被 WebSocket 處理過的持倉 ID
 
+  // T017 (Feature 066): 儲存命名的 handler 參考，以便在 stop() 時移除
+  private handleTriggerDetected: ((event: { positionId: string }) => void) | null = null;
+  private handleCloseProgress: ((event: { positionId: string; step: string }) => void) | null = null;
+
   constructor(
     prisma: PrismaClient,
     intervalMs?: number,
@@ -85,29 +89,33 @@ export class ConditionalOrderMonitor {
 
   /**
    * T048: 設定 TriggerDetector 並啟用並行模式
+   * T017 (Feature 066): 使用命名 handler 以便在 stop() 時移除
    */
   setTriggerDetector(detector: TriggerDetector): void {
     this.triggerDetector = detector;
     this._parallelModeEnabled = true;
 
-    // 監聽 TriggerDetector 的觸發事件，標記已處理的持倉
-    detector.on('triggerDetected', (event: { positionId: string }) => {
+    // T017: 建立命名的 handler 並儲存參考
+    this.handleTriggerDetected = (event: { positionId: string }) => {
       this._processedByWs.add(event.positionId);
       logger.debug(
         { positionId: event.positionId },
         '[條件單監控] 持倉已由 WebSocket 偵測處理，標記跳過',
       );
-    });
+    };
 
-    // 監聽平倉完成事件，清理標記
-    detector.on('closeProgress', (event: { positionId: string; step: string }) => {
+    this.handleCloseProgress = (event: { positionId: string; step: string }) => {
       if (event.step === 'completed' || event.step === 'failed') {
         // 延遲清理，確保不會在同一輪檢查中重複處理
         setTimeout(() => {
           this._processedByWs.delete(event.positionId);
         }, this._intervalMs);
       }
-    });
+    };
+
+    // 註冊監聽器
+    detector.on('triggerDetected', this.handleTriggerDetected);
+    detector.on('closeProgress', this.handleCloseProgress);
 
     logger.info(
       { intervalMs: this._intervalMs },
@@ -223,6 +231,8 @@ export class ConditionalOrderMonitor {
    */
   async stop(): Promise<void> {
     if (!this._isRunning) {
+      // T017 (Feature 066): 即使未運行，仍需清理資源（冪等操作）
+      this.cleanupResources();
       return;
     }
 
@@ -231,9 +241,42 @@ export class ConditionalOrderMonitor {
       this.timer = null;
     }
 
+    // T017 (Feature 066): 清理所有資源
+    this.cleanupResources();
+
     this._isRunning = false;
 
     logger.info({}, 'ConditionalOrderMonitor stopped');
+  }
+
+  /**
+   * T017 (Feature 066): 清理所有資源
+   * - 移除 TriggerDetector 監聽器
+   * - 清空 _processedByWs Set
+   */
+  private cleanupResources(): void {
+    // 移除 TriggerDetector 監聽器
+    if (this.triggerDetector) {
+      if (this.handleTriggerDetected) {
+        this.triggerDetector.off('triggerDetected', this.handleTriggerDetected);
+        this.handleTriggerDetected = null;
+      }
+      if (this.handleCloseProgress) {
+        this.triggerDetector.off('closeProgress', this.handleCloseProgress);
+        this.handleCloseProgress = null;
+      }
+    }
+
+    // 清空已處理的持倉 ID Set（FR-004）
+    const previousSize = this._processedByWs.size;
+    this._processedByWs.clear();
+
+    if (previousSize > 0) {
+      logger.debug(
+        { clearedCount: previousSize },
+        '[條件單監控] 已清理 _processedByWs Set',
+      );
+    }
   }
 
   /**

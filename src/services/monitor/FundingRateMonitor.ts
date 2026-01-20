@@ -71,6 +71,10 @@ export class FundingRateMonitor extends EventEmitter {
   private arbitrageCapital = 10000; // 預設資金量（USDT）
   private timeBasis: TimeBasis = 8; // 標準化時間基準（小時）
 
+  // T015-T016 (Feature 066): 儲存 PriceMonitor handler 參考以便在 stop() 時移除
+  private handlePriceUpdate: ((priceData: PriceData) => void) | null = null;
+  private handlePriceError: ((error: Error) => void) | null = null;
+
   private status: MonitorStatus = {
     isRunning: false,
     symbols: [],
@@ -129,16 +133,16 @@ export class FundingRateMonitor extends EventEmitter {
         restPollingIntervalMs: updateInterval,
       });
 
-      // 監聽價格更新事件
-      this.priceMonitor.on('price', (priceData: PriceData) => {
+      // T015-T016 (Feature 066): 使用命名 handler 以便在 stop() 時移除
+      this.handlePriceUpdate = (priceData: PriceData) => {
         logger.debug({
           exchange: priceData.exchange,
           symbol: priceData.symbol,
           lastPrice: priceData.lastPrice,
         }, 'Price updated from PriceMonitor');
-      });
+      };
 
-      this.priceMonitor.on('error', (error: Error) => {
+      this.handlePriceError = (error: Error) => {
         // 交易對不存在的錯誤降級為 debug
         const isSymbolNotFound = error.message.includes('60018') ||
           error.message.includes("doesn't exist") ||
@@ -156,7 +160,11 @@ export class FundingRateMonitor extends EventEmitter {
         } else {
           logger.error({ error: error.message }, 'PriceMonitor error');
         }
-      });
+      };
+
+      // 註冊監聽器
+      this.priceMonitor.on('price', this.handlePriceUpdate);
+      this.priceMonitor.on('error', this.handlePriceError);
     }
 
     // 設定套利評估器
@@ -292,8 +300,17 @@ export class FundingRateMonitor extends EventEmitter {
 
     // 停止價格監控器（如果啟用）
     if (this.enablePriceMonitor && this.priceMonitor) {
+      // T015-T016 (Feature 066): 先移除監聽器再停止 PriceMonitor
+      if (this.handlePriceUpdate) {
+        this.priceMonitor.off('price', this.handlePriceUpdate);
+        this.handlePriceUpdate = null;
+      }
+      if (this.handlePriceError) {
+        this.priceMonitor.off('error', this.handlePriceError);
+        this.handlePriceError = null;
+      }
       await this.priceMonitor.stop();
-      logger.info('PriceMonitor stopped');
+      logger.info('PriceMonitor stopped with listeners removed');
     }
 
     // 並行斷開所有交易所連線

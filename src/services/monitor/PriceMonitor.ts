@@ -83,6 +83,14 @@ export class PriceMonitor extends EventEmitter {
   // 數據源管理器 (Feature 052: T054)
   private dataSourceManager: DataSourceManager;
 
+  // T012-T014 (Feature 066): 儲存 handler 參考以便在 stop() 時移除
+  private restPollerHandlers: Map<string, { onTicker: (data: PriceData) => void; onError: (error: Error) => void }> = new Map();
+  // 注意: WebSocket handlers 透過 destroy() 自動清理，不需要手動移除
+  private dataSourceManagerHandlers: {
+    onSwitch?: (event: DataSourceSwitchEvent) => void;
+    onRecoveryAttempt?: (event: { exchange: ExchangeName; dataType: string }) => void;
+  } = {};
+
   constructor(
     connectors: IExchangeConnector[],
     symbols: string[],
@@ -127,10 +135,11 @@ export class PriceMonitor extends EventEmitter {
 
   /**
    * 設定 DataSourceManager 事件監聽 (Feature 052: T054)
+   * T012-T014 (Feature 066): 使用命名 handler 以便在 stop() 時移除
    */
   private setupDataSourceManagerListeners(): void {
-    // 監聽數據源切換事件
-    this.dataSourceManager.onSwitch((event: DataSourceSwitchEvent) => {
+    // T012-T014: 建立命名 handler 並儲存參考
+    this.dataSourceManagerHandlers.onSwitch = (event: DataSourceSwitchEvent) => {
       logger.info(
         {
           exchange: event.exchange,
@@ -150,10 +159,9 @@ export class PriceMonitor extends EventEmitter {
         // 如果切換到 REST，可能需要確保 REST poller 正在運行
         this.ensureRestPollerRunning(event.exchange as ExchangeName);
       }
-    });
+    };
 
-    // 監聯恢復嘗試事件
-    this.dataSourceManager.on('recoveryAttempt', async (event: { exchange: ExchangeName; dataType: string }) => {
+    this.dataSourceManagerHandlers.onRecoveryAttempt = async (event: { exchange: ExchangeName; dataType: string }) => {
       if (event.dataType === 'fundingRate') {
         logger.info(
           { exchange: event.exchange },
@@ -161,7 +169,11 @@ export class PriceMonitor extends EventEmitter {
         );
         await this.tryRecoverWebSocket(event.exchange);
       }
-    });
+    };
+
+    // 註冊監聽器
+    this.dataSourceManager.onSwitch(this.dataSourceManagerHandlers.onSwitch);
+    this.dataSourceManager.on('recoveryAttempt', this.dataSourceManagerHandlers.onRecoveryAttempt);
   }
 
   /**
@@ -285,9 +297,12 @@ export class PriceMonitor extends EventEmitter {
 
   /**
    * 停止價格監控
+   * T012-T014 (Feature 066): 在停止時移除所有監聽器
    */
   async stop(): Promise<void> {
     if (!this.isRunning) {
+      // T012-T014: 即使未運行，仍需清理監聽器（冪等操作）
+      this.cleanupListeners();
       return;
     }
 
@@ -295,22 +310,51 @@ export class PriceMonitor extends EventEmitter {
 
     logger.info('Stopping PriceMonitor');
 
-    // 停止所有 REST 輪詢器
+    // T012-T014: 先移除 REST poller 監聯器再停止
     for (const [exchange, poller] of this.restPollers.entries()) {
+      const handlers = this.restPollerHandlers.get(exchange);
+      if (handlers) {
+        poller.off('ticker', handlers.onTicker);
+        poller.off('error', handlers.onError);
+      }
       poller.stop();
-      logger.debug({ exchange }, 'REST poller stopped');
+      logger.debug({ exchange }, 'REST poller stopped with listeners removed');
     }
 
     this.restPollers.clear();
+    this.restPollerHandlers.clear();
 
     // 停止 WebSocket 客戶端 (Feature 052: T019)
     await this.stopWebSocket();
+
+    // T012-T014: 清理 DataSourceManager 監聯器
+    this.cleanupListeners();
 
     logger.info('PriceMonitor stopped');
   }
 
   /**
+   * T012-T014 (Feature 066): 清理所有監聽器
+   */
+  private cleanupListeners(): void {
+    // 移除 DataSourceManager 監聯器
+    if (this.dataSourceManagerHandlers.onSwitch) {
+      this.dataSourceManager.offSwitch(this.dataSourceManagerHandlers.onSwitch);
+      this.dataSourceManagerHandlers.onSwitch = undefined;
+    }
+    if (this.dataSourceManagerHandlers.onRecoveryAttempt) {
+      this.dataSourceManager.off('recoveryAttempt', this.dataSourceManagerHandlers.onRecoveryAttempt);
+      this.dataSourceManagerHandlers.onRecoveryAttempt = undefined;
+    }
+
+    logger.debug('[PriceMonitor] DataSourceManager listeners removed');
+  }
+
+  /**
    * 啟動 REST 輪詢
+   */
+  /**
+   * T012-T014 (Feature 066): 使用命名 handler 以便在 stop() 時移除
    */
   private async startRestPolling(): Promise<void> {
     for (const [exchangeName, connector] of this.connectors.entries()) {
@@ -331,13 +375,12 @@ export class PriceMonitor extends EventEmitter {
           immediate: true,
         });
 
-        // 監聽價格更新
-        poller.on('ticker', (priceData: PriceData) => {
+        // T012-T014: 建立命名 handler 並儲存參考
+        const onTicker = (priceData: PriceData) => {
           this.handlePriceUpdate(priceData);
-        });
+        };
 
-        // 監聽錯誤
-        poller.on('error', (error: Error) => {
+        const onError = (error: Error) => {
           // 交易對不存在的錯誤降級為 debug
           const isSymbolNotFound = error.message.includes('does not have market symbol') ||
             error.message.includes("doesn't exist") ||
@@ -362,7 +405,14 @@ export class PriceMonitor extends EventEmitter {
             }, 'REST poller error');
           }
           this.emit('error', error);
-        });
+        };
+
+        // 儲存 handler 參考
+        this.restPollerHandlers.set(exchangeName, { onTicker, onError });
+
+        // 註冊監聽器
+        poller.on('ticker', onTicker);
+        poller.on('error', onError);
 
         poller.start();
         this.restPollers.set(exchangeName, poller);
