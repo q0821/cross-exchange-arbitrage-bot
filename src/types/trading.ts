@@ -693,6 +693,10 @@ export interface TradingSettings {
   defaultTakeProfitPercent: number;
   defaultLeverage: number;
   maxPositionSizeUSD: number;
+  // Feature 067: 平倉建議設定
+  exitSuggestionEnabled: boolean;
+  exitSuggestionThreshold: number;
+  exitNotificationEnabled: boolean;
 }
 
 /**
@@ -713,6 +717,10 @@ export const UpdateTradingSettingsSchema = z.object({
     .optional(),
   defaultLeverage: z.number().int().min(1).max(125).optional(),
   maxPositionSizeUSD: z.number().min(100).optional(),
+  // Feature 067: 平倉建議設定
+  exitSuggestionEnabled: z.boolean().optional(),
+  exitSuggestionThreshold: z.number().min(0).max(1000).optional(),
+  exitNotificationEnabled: z.boolean().optional(),
 });
 
 export type UpdateTradingSettingsRequest = z.infer<typeof UpdateTradingSettingsSchema>;

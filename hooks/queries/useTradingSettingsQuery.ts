@@ -14,6 +14,10 @@ export const DEFAULT_TRADING_SETTINGS: TradingSettings = {
   defaultTakeProfitPercent: 3.0,
   defaultLeverage: 1,
   maxPositionSizeUSD: 10000,
+  // Feature 067: 平倉建議設定
+  exitSuggestionEnabled: true,
+  exitSuggestionThreshold: 100,
+  exitNotificationEnabled: true,
 };
 
 interface UseTradingSettingsQueryOptions {

@@ -19,6 +19,10 @@ const DEFAULT_TRADING_SETTINGS: Omit<TradingSettingsType, 'userId'> = {
   defaultTakeProfitPercent: 3.0,
   defaultLeverage: 1,
   maxPositionSizeUSD: 10000,
+  // Feature 067: 平倉建議設定
+  exitSuggestionEnabled: true,
+  exitSuggestionThreshold: 100,
+  exitNotificationEnabled: true,
 };
 
 /**
@@ -108,6 +112,10 @@ export class TradingSettingsRepository {
       defaultTakeProfitPercent: Number(settings.defaultTakeProfitPercent),
       defaultLeverage: settings.defaultLeverage,
       maxPositionSizeUSD: Number(settings.maxPositionSizeUSD),
+      // Feature 067: 平倉建議設定
+      exitSuggestionEnabled: settings.exitSuggestionEnabled,
+      exitSuggestionThreshold: Number(settings.exitSuggestionThreshold),
+      exitNotificationEnabled: settings.exitNotificationEnabled,
     };
   }
 

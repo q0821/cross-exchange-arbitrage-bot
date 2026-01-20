@@ -247,7 +247,12 @@ export const PositionScalarFieldEnum = {
   shortTakeProfitOrderId: 'shortTakeProfitOrderId',
   conditionalOrderStatus: 'conditionalOrderStatus',
   conditionalOrderError: 'conditionalOrderError',
-  closeReason: 'closeReason'
+  closeReason: 'closeReason',
+  cachedFundingPnL: 'cachedFundingPnL',
+  cachedFundingPnLUpdatedAt: 'cachedFundingPnLUpdatedAt',
+  exitSuggested: 'exitSuggested',
+  exitSuggestedAt: 'exitSuggestedAt',
+  exitSuggestedReason: 'exitSuggestedReason'
 } as const
 
 export type PositionScalarFieldEnum = (typeof PositionScalarFieldEnum)[keyof typeof PositionScalarFieldEnum]
@@ -430,6 +435,9 @@ export const TradingSettingsScalarFieldEnum = {
   defaultTakeProfitPercent: 'defaultTakeProfitPercent',
   defaultLeverage: 'defaultLeverage',
   maxPositionSizeUSD: 'maxPositionSizeUSD',
+  exitSuggestionEnabled: 'exitSuggestionEnabled',
+  exitSuggestionThreshold: 'exitSuggestionThreshold',
+  exitNotificationEnabled: 'exitNotificationEnabled',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

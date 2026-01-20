@@ -179,3 +179,98 @@ export interface MonitorStatus {
     lastErrorAt: Date | null;
   };
 }
+
+// ===== Feature 067: 持倉平倉建議監控 =====
+
+/**
+ * 平倉建議原因
+ */
+export const ExitSuggestionReason = {
+  APY_NEGATIVE: 'APY_NEGATIVE',       // APY 轉負，繼續持有會虧損
+  PROFIT_LOCKABLE: 'PROFIT_LOCKABLE', // APY 低於閾值但整體有獲利可鎖定
+} as const;
+
+export type ExitSuggestionReason = (typeof ExitSuggestionReason)[keyof typeof ExitSuggestionReason];
+
+/**
+ * 平倉建議計算結果（不持久化）
+ */
+export interface ExitSuggestion {
+  positionId: string;
+  symbol: string;
+  userId: string;
+
+  // 建議資訊
+  suggested: boolean;
+  reason: ExitSuggestionReason | null;
+  suggestedAt: Date;
+
+  // 計算數據
+  currentAPY: number;              // 當前 APY (%)
+  fundingPnL: number;              // 累計費率收益 (USDT)
+  priceDiffLoss: number;           // 價差損失 (USDT)
+  netProfit: number;               // 淨收益 = fundingPnL - priceDiffLoss
+
+  // 價格資訊
+  currentLongPrice: number;
+  currentShortPrice: number;
+  stalePrice: boolean;             // 價格是否過時
+
+  // 交易所資訊
+  longExchange: string;
+  shortExchange: string;
+}
+
+/**
+ * 平倉建議通知訊息
+ */
+export interface ExitSuggestionMessage {
+  symbol: string;
+  positionId: string;
+
+  // 建議資訊
+  reason: ExitSuggestionReason;
+  reasonDescription: string;
+
+  // 數據
+  currentAPY: number;
+  fundingPnL: number;
+  priceDiffLoss: number;
+  netProfit: number;
+
+  // 交易所
+  longExchange: string;
+  shortExchange: string;
+
+  timestamp: Date;
+}
+
+/**
+ * 平倉建議 WebSocket 事件 - 建議平倉
+ */
+export interface ExitSuggestedEvent {
+  positionId: string;
+  symbol: string;
+  reason: ExitSuggestionReason;
+  reasonDescription: string;
+  currentAPY: number;
+  fundingPnL: number;
+  priceDiffLoss: number;
+  netProfit: number;
+  longExchange: string;
+  shortExchange: string;
+  currentLongPrice: number;
+  currentShortPrice: number;
+  stalePrice: boolean;
+  suggestedAt: string; // ISO 8601
+}
+
+/**
+ * 平倉建議 WebSocket 事件 - 建議取消
+ */
+export interface ExitCanceledEvent {
+  positionId: string;
+  symbol: string;
+  currentAPY: number;
+  canceledAt: string; // ISO 8601
+}

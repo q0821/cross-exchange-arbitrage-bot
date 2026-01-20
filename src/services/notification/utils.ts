@@ -11,6 +11,101 @@ import type {
   TriggerNotificationType,
   EmergencyNotificationMessage,
 } from './types';
+import type { ExitSuggestionMessage } from '@/services/monitor/types';
+import { ExitSuggestionReason } from '@/services/monitor/types';
+
+// ===== Feature 067: 平倉建議通知格式化 =====
+
+/**
+ * 取得平倉建議原因的描述文字
+ * @param reason 平倉建議原因
+ * @returns 描述文字
+ */
+export function getReasonDescription(reason: ExitSuggestionReason): string {
+  switch (reason) {
+    case ExitSuggestionReason.APY_NEGATIVE:
+      return 'APY 已轉負，繼續持有會虧損';
+    case ExitSuggestionReason.PROFIT_LOCKABLE:
+      return 'APY 低於閾值但整體有獲利可鎖定';
+    default:
+      return '建議平倉';
+  }
+}
+
+/**
+ * 格式化平倉建議通知訊息
+ * Feature 067: 持倉平倉建議監控
+ *
+ * @param message 平倉建議訊息
+ * @returns 格式化的通知文字
+ */
+export function formatExitSuggestionMessage(message: ExitSuggestionMessage): string {
+  const {
+    symbol,
+    reason: _reason,
+    reasonDescription,
+    currentAPY,
+    fundingPnL,
+    priceDiffLoss,
+    netProfit,
+    longExchange,
+    shortExchange,
+  } = message;
+
+  const profitEmoji = netProfit >= 0 ? '✅' : '⚠️';
+  const apyEmoji = currentAPY < 0 ? '📉' : '📊';
+
+  const lines = [
+    `🔔 平倉建議 - ${symbol}`,
+    ``,
+    `⚠️ 原因: ${reasonDescription}`,
+    `${apyEmoji} 當前 APY: ${currentAPY.toFixed(1)}%`,
+    `💰 累計費率收益: ${fundingPnL >= 0 ? '+' : ''}${fundingPnL.toFixed(2)} USDT`,
+    `📉 價差損失: -${Math.abs(priceDiffLoss).toFixed(2)} USDT`,
+    `${profitEmoji} 淨收益: ${netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)} USDT`,
+    ``,
+    `📍 做多: ${longExchange.toUpperCase()}`,
+    `📍 做空: ${shortExchange.toUpperCase()}`,
+  ];
+
+  return lines.join('\n');
+}
+
+/**
+ * 格式化平倉建議通知訊息（Discord 版本，支援 Markdown）
+ * @param message 平倉建議訊息
+ * @returns 格式化的 Discord 通知文字
+ */
+export function formatExitSuggestionMessageDiscord(message: ExitSuggestionMessage): string {
+  const {
+    symbol,
+    reasonDescription,
+    currentAPY,
+    fundingPnL,
+    priceDiffLoss,
+    netProfit,
+    longExchange,
+    shortExchange,
+  } = message;
+
+  const profitEmoji = netProfit >= 0 ? '✅' : '⚠️';
+  const apyEmoji = currentAPY < 0 ? '📉' : '📊';
+
+  const lines = [
+    `🔔 **平倉建議 - ${symbol}**`,
+    ``,
+    `⚠️ **原因**: ${reasonDescription}`,
+    `${apyEmoji} **當前 APY**: ${currentAPY.toFixed(1)}%`,
+    `💰 **累計費率收益**: ${fundingPnL >= 0 ? '+' : ''}${fundingPnL.toFixed(2)} USDT`,
+    `📉 **價差損失**: -${Math.abs(priceDiffLoss).toFixed(2)} USDT`,
+    `${profitEmoji} **淨收益**: **${netProfit >= 0 ? '+' : ''}${netProfit.toFixed(2)} USDT**`,
+    ``,
+    `📍 做多: \`${longExchange.toUpperCase()}\``,
+    `📍 做空: \`${shortExchange.toUpperCase()}\``,
+  ];
+
+  return lines.join('\n');
+}
 
 // ===== Feature 058: 開倉連結生成 =====
 
