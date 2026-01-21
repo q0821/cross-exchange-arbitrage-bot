@@ -10,20 +10,32 @@
  * - 多方/空方收益加總
  */
 
+// @vitest-environment node
+// 需要 node 環境避免 CCXT 的 noble-hashes 在 jsdom 中初始化失敗
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Decimal } from 'decimal.js';
 
 // Use vi.hoisted to define mock functions before vi.mock is hoisted
-const { mockFetchFundingHistory, mockPositionUpdate } = vi.hoisted(() => ({
-  mockFetchFundingHistory: vi.fn(),
-  mockPositionUpdate: vi.fn(),
-}));
+const { mockFetchFundingHistory, mockPositionUpdate, mockCreateExchangeConnector } = vi.hoisted(() => {
+  const fetchFundingHistory = vi.fn();
+  const createConnector = vi.fn(() => ({
+    fetchFundingHistory,
+  }));
+  return {
+    mockFetchFundingHistory: fetchFundingHistory,
+    mockPositionUpdate: vi.fn(),
+    mockCreateExchangeConnector: createConnector,
+  };
+});
 
-// Mock CCXT exchange connector
+// Mock CCXT exchange connector - 必須在動態 import 之前設定
 vi.mock('@/lib/exchange-connector-factory', () => ({
-  createExchangeConnector: vi.fn(() => ({
-    fetchFundingHistory: mockFetchFundingHistory,
-  })),
+  createExchangeConnector: mockCreateExchangeConnector,
+  // 也 export 預設值以防萬一
+  default: {
+    createExchangeConnector: mockCreateExchangeConnector,
+  },
 }));
 
 // Mock Prisma
@@ -32,6 +44,16 @@ vi.mock('@/lib/db', () => ({
     position: {
       update: mockPositionUpdate,
     },
+  },
+}));
+
+// Mock logger to suppress output
+vi.mock('@/lib/logger', () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
   },
 }));
 

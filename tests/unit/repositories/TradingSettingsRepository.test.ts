@@ -41,6 +41,10 @@ describe('TradingSettingsRepository', () => {
     defaultTakeProfitPercent: 3.0,
     defaultLeverage: 1,
     maxPositionSizeUSD: 10000,
+    // Feature 067: 平倉建議設定
+    exitSuggestionEnabled: true,
+    exitSuggestionThreshold: 100,
+    exitNotificationEnabled: true,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -81,6 +85,10 @@ describe('TradingSettingsRepository', () => {
           defaultTakeProfitPercent: 3.0,
           defaultLeverage: 1,
           maxPositionSizeUSD: 10000,
+          // Feature 067: 平倉建議設定
+          exitSuggestionEnabled: true,
+          exitSuggestionThreshold: 100,
+          exitNotificationEnabled: true,
         },
       });
       expect(result).toEqual(mockSettings);
@@ -160,6 +168,10 @@ describe('TradingSettingsRepository', () => {
           defaultTakeProfitPercent: 3.0,
           defaultLeverage: 1,
           maxPositionSizeUSD: 10000,
+          // Feature 067: 平倉建議設定
+          exitSuggestionEnabled: true,
+          exitSuggestionThreshold: 100,
+          exitNotificationEnabled: true,
         },
       });
       expect(result).toEqual(mockSettings);
@@ -184,6 +196,10 @@ describe('TradingSettingsRepository', () => {
           defaultTakeProfitPercent: 3.0,
           defaultLeverage: 3,
           maxPositionSizeUSD: 10000,
+          // Feature 067: 平倉建議設定
+          exitSuggestionEnabled: true,
+          exitSuggestionThreshold: 100,
+          exitNotificationEnabled: true,
         },
       });
       expect(result).toEqual(customSettings);
@@ -213,6 +229,10 @@ describe('TradingSettingsRepository', () => {
         defaultTakeProfitPercent: 3.0,
         defaultLeverage: 1,
         maxPositionSizeUSD: 10000,
+        // Feature 067: 平倉建議設定
+        exitSuggestionEnabled: true,
+        exitSuggestionThreshold: 100,
+        exitNotificationEnabled: true,
       });
     });
 
@@ -244,6 +264,10 @@ describe('TradingSettingsRepository', () => {
         defaultTakeProfitPercent: 3.0,
         defaultLeverage: 1,
         maxPositionSizeUSD: 10000,
+        // Feature 067: 平倉建議設定
+        exitSuggestionEnabled: true,
+        exitSuggestionThreshold: 100,
+        exitNotificationEnabled: true,
       });
     });
 

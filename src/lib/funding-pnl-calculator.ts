@@ -13,6 +13,7 @@ import { Decimal } from 'decimal.js';
 import type { Position } from '@/generated/prisma/client';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { createExchangeConnector } from '@/lib/exchange-connector-factory';
 
 /**
  * 資金費率記錄
@@ -83,9 +84,6 @@ async function fetchFundingHistory(
   since: number,
   apiKey: ApiKeyInfo
 ): Promise<FundingFeeEntry[]> {
-  // 動態載入交易所連接器
-  const { createExchangeConnector } = await import('@/lib/exchange-connector-factory');
-
   const connector = createExchangeConnector(exchange, {
     apiKey: apiKey.apiKey,
     apiSecret: apiKey.apiSecret,
