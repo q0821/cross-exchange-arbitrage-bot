@@ -66,11 +66,13 @@ export const createApiKeySchema = z.object({
   apiKey: z.string().min(1, 'API Key is required'),
   apiSecret: z.string().min(1, 'API Secret is required'),
   passphrase: z.string().optional(), // OKX only
+  portfolioMargin: z.boolean().optional(), // Binance 統一帳戶模式
 });
 
 export const updateApiKeySchema = z.object({
   label: z.string().min(1).max(100).optional(),
   isActive: z.boolean().optional(),
+  portfolioMargin: z.boolean().optional(), // Binance 統一帳戶模式
 });
 
 // ===== 持倉管理 =====

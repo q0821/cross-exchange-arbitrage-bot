@@ -18,6 +18,7 @@ export interface CreateApiKeyRequest {
   apiKey: string;
   apiSecret: string;
   passphrase?: string;
+  portfolioMargin?: boolean; // Binance 統一帳戶模式
 }
 
 export class ApiKeyService {
@@ -31,7 +32,8 @@ export class ApiKeyService {
    * 建立新 API Key
    */
   async createApiKey(request: CreateApiKeyRequest): Promise<ApiKey> {
-    const { userId, exchange, environment, label, apiKey, apiSecret, passphrase } = request;
+    const { userId, exchange, environment, label, apiKey, apiSecret, passphrase, portfolioMargin } =
+      request;
 
     // 1. 驗證交易所名稱
     const exchangeValidation = ApiKey.validateExchange(exchange);
@@ -78,6 +80,7 @@ export class ApiKeyService {
       encryptedKey,
       encryptedSecret,
       encryptedPassphrase,
+      portfolioMargin: portfolioMargin ?? false,
     };
 
     const createdApiKey = await this.apiKeyRepository.create(apiKeyData);
@@ -184,7 +187,7 @@ export class ApiKeyService {
   async updateApiKey(
     apiKeyId: string,
     userId: string,
-    updates: { label?: string; isActive?: boolean },
+    updates: { label?: string; isActive?: boolean; portfolioMargin?: boolean },
   ): Promise<ApiKey> {
     // 先驗證權限
     await this.getApiKeyById(apiKeyId, userId);

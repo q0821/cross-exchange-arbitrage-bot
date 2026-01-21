@@ -13,6 +13,7 @@ export interface CreateApiKeyData {
   encryptedKey: string;
   encryptedSecret: string;
   encryptedPassphrase?: string;
+  portfolioMargin?: boolean; // Binance 統一帳戶模式
 }
 
 export interface ApiKeyDTO {
@@ -22,6 +23,7 @@ export interface ApiKeyDTO {
   environment: string;
   label: string;
   maskedKey: string;
+  portfolioMargin: boolean; // Binance 統一帳戶模式
   isActive: boolean;
   lastValidatedAt: Date | null;
   createdAt: Date;
@@ -46,6 +48,7 @@ export class ApiKey {
   readonly encryptedKey: string;
   readonly encryptedSecret: string;
   readonly encryptedPassphrase: string | null;
+  readonly portfolioMargin: boolean; // Binance 統一帳戶模式
   readonly isActive: boolean;
   readonly lastValidatedAt: Date | null;
   readonly createdAt: Date;
@@ -60,6 +63,7 @@ export class ApiKey {
     this.encryptedKey = data.encryptedKey;
     this.encryptedSecret = data.encryptedSecret;
     this.encryptedPassphrase = data.encryptedPassphrase;
+    this.portfolioMargin = data.portfolioMargin;
     this.isActive = data.isActive;
     this.lastValidatedAt = data.lastValidatedAt;
     this.createdAt = data.createdAt;
@@ -94,6 +98,7 @@ export class ApiKey {
       environment: this.environment,
       label: this.label,
       maskedKey: decryptedKey ? this.getMaskedKey(decryptedKey) : '****',
+      portfolioMargin: this.portfolioMargin,
       isActive: this.isActive,
       lastValidatedAt: this.lastValidatedAt,
       createdAt: this.createdAt,

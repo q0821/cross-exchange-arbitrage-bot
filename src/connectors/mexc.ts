@@ -50,6 +50,7 @@ export class MexcConnector extends BaseExchangeConnector {
         apiKey,
         secret: apiSecret,
         enableRateLimit: true,
+        timeout: 30000, // 30 秒超時（透過代理需要較長時間）
         ...proxyConfig,
         options: {
           defaultType: 'swap', // 使用永續合約

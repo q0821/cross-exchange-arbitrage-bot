@@ -33,6 +33,7 @@ export type ApiKeyMinAggregateOutputType = {
   encryptedKey: string | null
   encryptedSecret: string | null
   encryptedPassphrase: string | null
+  portfolioMargin: boolean | null
   isActive: boolean | null
   lastValidatedAt: Date | null
   createdAt: Date | null
@@ -48,6 +49,7 @@ export type ApiKeyMaxAggregateOutputType = {
   encryptedKey: string | null
   encryptedSecret: string | null
   encryptedPassphrase: string | null
+  portfolioMargin: boolean | null
   isActive: boolean | null
   lastValidatedAt: Date | null
   createdAt: Date | null
@@ -63,6 +65,7 @@ export type ApiKeyCountAggregateOutputType = {
   encryptedKey: number
   encryptedSecret: number
   encryptedPassphrase: number
+  portfolioMargin: number
   isActive: number
   lastValidatedAt: number
   createdAt: number
@@ -80,6 +83,7 @@ export type ApiKeyMinAggregateInputType = {
   encryptedKey?: true
   encryptedSecret?: true
   encryptedPassphrase?: true
+  portfolioMargin?: true
   isActive?: true
   lastValidatedAt?: true
   createdAt?: true
@@ -95,6 +99,7 @@ export type ApiKeyMaxAggregateInputType = {
   encryptedKey?: true
   encryptedSecret?: true
   encryptedPassphrase?: true
+  portfolioMargin?: true
   isActive?: true
   lastValidatedAt?: true
   createdAt?: true
@@ -110,6 +115,7 @@ export type ApiKeyCountAggregateInputType = {
   encryptedKey?: true
   encryptedSecret?: true
   encryptedPassphrase?: true
+  portfolioMargin?: true
   isActive?: true
   lastValidatedAt?: true
   createdAt?: true
@@ -198,6 +204,7 @@ export type ApiKeyGroupByOutputType = {
   encryptedKey: string
   encryptedSecret: string
   encryptedPassphrase: string | null
+  portfolioMargin: boolean
   isActive: boolean
   lastValidatedAt: Date | null
   createdAt: Date
@@ -234,6 +241,7 @@ export type ApiKeyWhereInput = {
   encryptedKey?: Prisma.StringFilter<"ApiKey"> | string
   encryptedSecret?: Prisma.StringFilter<"ApiKey"> | string
   encryptedPassphrase?: Prisma.StringNullableFilter<"ApiKey"> | string | null
+  portfolioMargin?: Prisma.BoolFilter<"ApiKey"> | boolean
   isActive?: Prisma.BoolFilter<"ApiKey"> | boolean
   lastValidatedAt?: Prisma.DateTimeNullableFilter<"ApiKey"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ApiKey"> | Date | string
@@ -250,6 +258,7 @@ export type ApiKeyOrderByWithRelationInput = {
   encryptedKey?: Prisma.SortOrder
   encryptedSecret?: Prisma.SortOrder
   encryptedPassphrase?: Prisma.SortOrderInput | Prisma.SortOrder
+  portfolioMargin?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastValidatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -270,6 +279,7 @@ export type ApiKeyWhereUniqueInput = Prisma.AtLeast<{
   encryptedKey?: Prisma.StringFilter<"ApiKey"> | string
   encryptedSecret?: Prisma.StringFilter<"ApiKey"> | string
   encryptedPassphrase?: Prisma.StringNullableFilter<"ApiKey"> | string | null
+  portfolioMargin?: Prisma.BoolFilter<"ApiKey"> | boolean
   isActive?: Prisma.BoolFilter<"ApiKey"> | boolean
   lastValidatedAt?: Prisma.DateTimeNullableFilter<"ApiKey"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ApiKey"> | Date | string
@@ -286,6 +296,7 @@ export type ApiKeyOrderByWithAggregationInput = {
   encryptedKey?: Prisma.SortOrder
   encryptedSecret?: Prisma.SortOrder
   encryptedPassphrase?: Prisma.SortOrderInput | Prisma.SortOrder
+  portfolioMargin?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastValidatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -307,6 +318,7 @@ export type ApiKeyScalarWhereWithAggregatesInput = {
   encryptedKey?: Prisma.StringWithAggregatesFilter<"ApiKey"> | string
   encryptedSecret?: Prisma.StringWithAggregatesFilter<"ApiKey"> | string
   encryptedPassphrase?: Prisma.StringNullableWithAggregatesFilter<"ApiKey"> | string | null
+  portfolioMargin?: Prisma.BoolWithAggregatesFilter<"ApiKey"> | boolean
   isActive?: Prisma.BoolWithAggregatesFilter<"ApiKey"> | boolean
   lastValidatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"ApiKey"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"ApiKey"> | Date | string
@@ -321,6 +333,7 @@ export type ApiKeyCreateInput = {
   encryptedKey: string
   encryptedSecret: string
   encryptedPassphrase?: string | null
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: Date | string | null
   createdAt?: Date | string
@@ -337,6 +350,7 @@ export type ApiKeyUncheckedCreateInput = {
   encryptedKey: string
   encryptedSecret: string
   encryptedPassphrase?: string | null
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: Date | string | null
   createdAt?: Date | string
@@ -351,6 +365,7 @@ export type ApiKeyUpdateInput = {
   encryptedKey?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedSecret?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedPassphrase?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioMargin?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastValidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -367,6 +382,7 @@ export type ApiKeyUncheckedUpdateInput = {
   encryptedKey?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedSecret?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedPassphrase?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioMargin?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastValidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -382,6 +398,7 @@ export type ApiKeyCreateManyInput = {
   encryptedKey: string
   encryptedSecret: string
   encryptedPassphrase?: string | null
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: Date | string | null
   createdAt?: Date | string
@@ -396,6 +413,7 @@ export type ApiKeyUpdateManyMutationInput = {
   encryptedKey?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedSecret?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedPassphrase?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioMargin?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastValidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -411,6 +429,7 @@ export type ApiKeyUncheckedUpdateManyInput = {
   encryptedKey?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedSecret?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedPassphrase?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioMargin?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastValidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -442,6 +461,7 @@ export type ApiKeyCountOrderByAggregateInput = {
   encryptedKey?: Prisma.SortOrder
   encryptedSecret?: Prisma.SortOrder
   encryptedPassphrase?: Prisma.SortOrder
+  portfolioMargin?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastValidatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -457,6 +477,7 @@ export type ApiKeyMaxOrderByAggregateInput = {
   encryptedKey?: Prisma.SortOrder
   encryptedSecret?: Prisma.SortOrder
   encryptedPassphrase?: Prisma.SortOrder
+  portfolioMargin?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastValidatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -472,6 +493,7 @@ export type ApiKeyMinOrderByAggregateInput = {
   encryptedKey?: Prisma.SortOrder
   encryptedSecret?: Prisma.SortOrder
   encryptedPassphrase?: Prisma.SortOrder
+  portfolioMargin?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   lastValidatedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -532,6 +554,7 @@ export type ApiKeyCreateWithoutUserInput = {
   encryptedKey: string
   encryptedSecret: string
   encryptedPassphrase?: string | null
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: Date | string | null
   createdAt?: Date | string
@@ -546,6 +569,7 @@ export type ApiKeyUncheckedCreateWithoutUserInput = {
   encryptedKey: string
   encryptedSecret: string
   encryptedPassphrase?: string | null
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: Date | string | null
   createdAt?: Date | string
@@ -590,6 +614,7 @@ export type ApiKeyScalarWhereInput = {
   encryptedKey?: Prisma.StringFilter<"ApiKey"> | string
   encryptedSecret?: Prisma.StringFilter<"ApiKey"> | string
   encryptedPassphrase?: Prisma.StringNullableFilter<"ApiKey"> | string | null
+  portfolioMargin?: Prisma.BoolFilter<"ApiKey"> | boolean
   isActive?: Prisma.BoolFilter<"ApiKey"> | boolean
   lastValidatedAt?: Prisma.DateTimeNullableFilter<"ApiKey"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"ApiKey"> | Date | string
@@ -604,6 +629,7 @@ export type ApiKeyCreateManyUserInput = {
   encryptedKey: string
   encryptedSecret: string
   encryptedPassphrase?: string | null
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: Date | string | null
   createdAt?: Date | string
@@ -618,6 +644,7 @@ export type ApiKeyUpdateWithoutUserInput = {
   encryptedKey?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedSecret?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedPassphrase?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioMargin?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastValidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -632,6 +659,7 @@ export type ApiKeyUncheckedUpdateWithoutUserInput = {
   encryptedKey?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedSecret?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedPassphrase?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioMargin?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastValidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -646,6 +674,7 @@ export type ApiKeyUncheckedUpdateManyWithoutUserInput = {
   encryptedKey?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedSecret?: Prisma.StringFieldUpdateOperationsInput | string
   encryptedPassphrase?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  portfolioMargin?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastValidatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -663,6 +692,7 @@ export type ApiKeySelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   encryptedKey?: boolean
   encryptedSecret?: boolean
   encryptedPassphrase?: boolean
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: boolean
   createdAt?: boolean
@@ -679,6 +709,7 @@ export type ApiKeySelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   encryptedKey?: boolean
   encryptedSecret?: boolean
   encryptedPassphrase?: boolean
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: boolean
   createdAt?: boolean
@@ -695,6 +726,7 @@ export type ApiKeySelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   encryptedKey?: boolean
   encryptedSecret?: boolean
   encryptedPassphrase?: boolean
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: boolean
   createdAt?: boolean
@@ -711,13 +743,14 @@ export type ApiKeySelectScalar = {
   encryptedKey?: boolean
   encryptedSecret?: boolean
   encryptedPassphrase?: boolean
+  portfolioMargin?: boolean
   isActive?: boolean
   lastValidatedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ApiKeyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "exchange" | "environment" | "label" | "encryptedKey" | "encryptedSecret" | "encryptedPassphrase" | "isActive" | "lastValidatedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["apiKey"]>
+export type ApiKeyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "exchange" | "environment" | "label" | "encryptedKey" | "encryptedSecret" | "encryptedPassphrase" | "portfolioMargin" | "isActive" | "lastValidatedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["apiKey"]>
 export type ApiKeyInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -742,6 +775,7 @@ export type $ApiKeyPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     encryptedKey: string
     encryptedSecret: string
     encryptedPassphrase: string | null
+    portfolioMargin: boolean
     isActive: boolean
     lastValidatedAt: Date | null
     createdAt: Date
@@ -1178,6 +1212,7 @@ export interface ApiKeyFieldRefs {
   readonly encryptedKey: Prisma.FieldRef<"ApiKey", 'String'>
   readonly encryptedSecret: Prisma.FieldRef<"ApiKey", 'String'>
   readonly encryptedPassphrase: Prisma.FieldRef<"ApiKey", 'String'>
+  readonly portfolioMargin: Prisma.FieldRef<"ApiKey", 'Boolean'>
   readonly isActive: Prisma.FieldRef<"ApiKey", 'Boolean'>
   readonly lastValidatedAt: Prisma.FieldRef<"ApiKey", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"ApiKey", 'DateTime'>

@@ -197,6 +197,7 @@ export const ApiKeyScalarFieldEnum = {
   encryptedKey: 'encryptedKey',
   encryptedSecret: 'encryptedSecret',
   encryptedPassphrase: 'encryptedPassphrase',
+  portfolioMargin: 'portfolioMargin',
   isActive: 'isActive',
   lastValidatedAt: 'lastValidatedAt',
   createdAt: 'createdAt',

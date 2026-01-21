@@ -19,8 +19,9 @@ import type { ConnectionTestResponse } from '@/src/types/api-key-validation';
 
 const apiKeyService = new ApiKeyService(prisma);
 
-// Timeout configuration: 15 seconds for backend
-const VALIDATION_TIMEOUT_MS = 15000;
+// Timeout configuration: 35 seconds for backend
+// 需要比 CCXT timeout (30秒) 更長，以確保透過 proxy 連線有足夠時間完成
+const VALIDATION_TIMEOUT_MS = 35000;
 
 /**
  * POST /api/api-keys/[id]/test

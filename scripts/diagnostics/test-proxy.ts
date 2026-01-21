@@ -33,7 +33,7 @@ async function testConnection(
       config.httpsAgent = proxyAgent;
     }
 
-    const response = await axios.get(url, config);
+    await axios.get(url, config);
     const latency = Date.now() - start;
 
     return {

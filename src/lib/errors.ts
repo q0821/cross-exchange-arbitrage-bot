@@ -37,7 +37,12 @@ export class ExchangeError extends BaseError {
 
 export class ExchangeConnectionError extends ExchangeError {
   constructor(exchange: string, context?: Record<string, unknown>) {
-    super(`Failed to connect to ${exchange}`, exchange, context);
+    // 在訊息中包含原始錯誤訊息，讓重試機制能識別可重試的錯誤（如 timeout）
+    const originalError = context?.originalError || context?.message;
+    const message = originalError
+      ? `Failed to connect to ${exchange}: ${originalError}`
+      : `Failed to connect to ${exchange}`;
+    super(message, exchange, context);
     this.code = 'EXCHANGE_CONNECTION_ERROR';
   }
 }

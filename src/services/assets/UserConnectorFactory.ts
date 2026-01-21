@@ -2,6 +2,8 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { ApiKeyService } from '../apikey/ApiKeyService';
 import { logger } from '@lib/logger';
 import { decrypt } from '@lib/encryption';
+import { getProxyUrl } from '@lib/env';
+import { ProxyAgent } from 'undici';
 import {
   IExchangeConnector,
   ExchangeName,
@@ -312,6 +314,7 @@ class BinanceUserConnector implements IExchangeConnector {
   private readonly spotBaseUrl: string;
   private readonly futuresBaseUrl: string;
   private readonly portfolioMarginBaseUrl: string;
+  private readonly proxyAgent: ProxyAgent | null = null;
 
   constructor(
     private readonly apiKey: string,
@@ -328,6 +331,13 @@ class BinanceUserConnector implements IExchangeConnector {
       : 'https://fapi.binance.com';
     // Portfolio Margin API - 統一保證金帳戶
     this.portfolioMarginBaseUrl = 'https://papi.binance.com';
+
+    // 初始化 Proxy Agent
+    const proxyUrl = getProxyUrl();
+    if (proxyUrl) {
+      this.proxyAgent = new ProxyAgent(proxyUrl);
+      logger.info({ proxy: proxyUrl }, 'BinanceUserConnector using proxy');
+    }
   }
 
   async connect(): Promise<void> {
@@ -358,12 +368,19 @@ class BinanceUserConnector implements IExchangeConnector {
 
     const url = `${baseUrl}${endpoint}?${queryString}&signature=${signature}`;
 
-    const response = await fetch(url, {
+    // 準備 fetch 選項，如果有 proxy 則加入 dispatcher
+    const fetchOptions: RequestInit & { dispatcher?: ProxyAgent } = {
       method: 'GET',
       headers: {
         'X-MBX-APIKEY': this.apiKey,
       },
-    });
+    };
+
+    if (this.proxyAgent) {
+      fetchOptions.dispatcher = this.proxyAgent;
+    }
+
+    const response = await fetch(url, fetchOptions);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -378,7 +395,12 @@ class BinanceUserConnector implements IExchangeConnector {
    */
   private async getSpotPrices(): Promise<Record<string, number>> {
     try {
-      const response = await fetch(`${this.spotBaseUrl}/api/v3/ticker/price`);
+      const fetchOptions: RequestInit & { dispatcher?: ProxyAgent } = {};
+      if (this.proxyAgent) {
+        fetchOptions.dispatcher = this.proxyAgent;
+      }
+
+      const response = await fetch(`${this.spotBaseUrl}/api/v3/ticker/price`, fetchOptions);
       if (!response.ok) return {};
 
       const data = (await response.json()) as Array<{ symbol: string; price: string }>;
@@ -393,9 +415,12 @@ class BinanceUserConnector implements IExchangeConnector {
   }
 
   async getBalance(): Promise<AccountBalance> {
-    logger.info({ apiKey: this.apiKey.slice(0, 8) + '...' }, 'BinanceUserConnector.getBalance() called');
+    logger.info(
+      { apiKey: this.apiKey.slice(0, 8) + '...' },
+      'BinanceUserConnector.getBalance() called'
+    );
 
-    // 優先使用 Futures API 獲取合約帳戶餘額（開倉需要的可用餘額）
+    // 使用 Futures API 獲取合約帳戶餘額
     try {
       logger.info('Attempting Binance Futures API /fapi/v2/account');
       const futuresData = (await this.signedRequest(
@@ -587,56 +612,12 @@ class BinanceUserConnector implements IExchangeConnector {
   }
 
   async getPositions(): Promise<PositionInfo> {
-    // 優先使用 Portfolio Margin API（統一保證金帳戶）
-    try {
-      const data = (await this.signedRequest(
-        this.portfolioMarginBaseUrl,
-        '/papi/v1/um/positionRisk'
-      )) as Array<{
-        symbol: string;
-        positionAmt: string;
-        entryPrice: string;
-        markPrice: string;
-        unRealizedProfit: string;
-        liquidationPrice: string;
-        leverage: string;
-        isolatedMargin: string;
-        positionSide: string;
-        updateTime: number;
-      }>;
+    logger.info(
+      { apiKey: this.apiKey.slice(0, 8) + '...' },
+      'BinanceUserConnector.getPositions() called'
+    );
 
-      const positions = data
-        .filter((p) => Math.abs(parseFloat(p.positionAmt)) > 0)
-        .map((p) => {
-          const positionAmt = parseFloat(p.positionAmt);
-          return {
-            symbol: p.symbol,
-            side: (positionAmt > 0 ? 'LONG' : 'SHORT') as 'LONG' | 'SHORT',
-            quantity: Math.abs(positionAmt),
-            entryPrice: parseFloat(p.entryPrice),
-            markPrice: parseFloat(p.markPrice),
-            leverage: parseInt(p.leverage),
-            marginUsed: parseFloat(p.isolatedMargin),
-            unrealizedPnl: parseFloat(p.unRealizedProfit),
-            liquidationPrice: parseFloat(p.liquidationPrice) || undefined,
-            timestamp: new Date(p.updateTime),
-          };
-        });
-
-      return {
-        exchange: 'binance',
-        positions,
-        timestamp: new Date(),
-      };
-    } catch (pmError) {
-      // Portfolio Margin API 失敗，記錄錯誤後 fallback 到 Futures API
-      logger.debug(
-        { error: pmError instanceof Error ? pmError.message : String(pmError) },
-        'Binance Portfolio Margin positions API failed, falling back to Futures API'
-      );
-    }
-
-    // Fallback: 嘗試使用 Futures API
+    // 嘗試使用 Futures API
     try {
       const data = (await this.signedRequest(this.futuresBaseUrl, '/fapi/v2/positionRisk')) as Array<{
         symbol: string;
@@ -751,17 +732,26 @@ class OkxUserConnector implements IExchangeConnector {
 
   async connect(): Promise<void> {
     this.ccxt = await import('ccxt');
-     
-    this.exchange = new this.ccxt.okx({
+    const proxyUrl = getProxyUrl();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const config: any = {
       apiKey: this.apiKey,
       secret: this.apiSecret,
       password: this.passphrase,
       sandbox: this.isTestnet,
-      timeout: 30000, // 30 秒超時
+      timeout: 60000, // 60 秒超時
       options: {
         defaultType: 'swap',
       },
-    } as any);
+    };
+
+    if (proxyUrl) {
+      config.httpsProxy = proxyUrl;
+      logger.info({ proxy: proxyUrl }, 'OkxUserConnector CCXT using httpsProxy');
+    }
+
+    this.exchange = new this.ccxt.okx(config);
     this.connected = true;
   }
 
@@ -896,16 +886,25 @@ class MexcUserConnector implements IExchangeConnector {
 
   async connect(): Promise<void> {
     this.ccxt = await import('ccxt');
+    const proxyUrl = getProxyUrl();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.exchange = new (this.ccxt as any).mexc({
+    const config: any = {
       apiKey: this.apiKey,
       secret: this.apiSecret,
       enableRateLimit: true,
-      timeout: 30000, // 30 秒超時
+      timeout: 60000, // 60 秒超時
       options: {
         defaultType: 'swap',
       },
-    });
+    };
+
+    if (proxyUrl) {
+      config.httpsProxy = proxyUrl;
+      logger.info({ proxy: proxyUrl }, 'MexcUserConnector CCXT using httpsProxy');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.exchange = new (this.ccxt as any).mexc(config);
     this.connected = true;
   }
 
@@ -1031,25 +1030,42 @@ class GateioUserConnector implements IExchangeConnector {
   private ccxt: typeof import('ccxt') | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private exchange: any = null;
+  private readonly proxyAgent: ProxyAgent | null = null;
 
   constructor(
     private readonly apiKey: string,
     private readonly apiSecret: string,
     readonly isTestnet: boolean = false
-  ) {}
+  ) {
+    // 初始化 Proxy Agent
+    const proxyUrl = getProxyUrl();
+    if (proxyUrl) {
+      this.proxyAgent = new ProxyAgent(proxyUrl);
+      logger.info({ proxy: proxyUrl }, 'GateioUserConnector using proxy');
+    }
+  }
 
   async connect(): Promise<void> {
     this.ccxt = await import('ccxt');
+    const proxyUrl = getProxyUrl();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.exchange = new (this.ccxt as any).gateio({
+    const config: any = {
       apiKey: this.apiKey,
       secret: this.apiSecret,
       enableRateLimit: true,
-      timeout: 30000, // 30 秒超時
+      timeout: 60000, // 60 秒超時
       options: {
         defaultType: 'swap',
       },
-    });
+    };
+
+    if (proxyUrl) {
+      config.httpsProxy = proxyUrl;
+      logger.info({ proxy: proxyUrl }, 'GateioUserConnector CCXT using httpsProxy');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.exchange = new (this.ccxt as any).gateio(config);
     this.connected = true;
   }
 
@@ -1128,7 +1144,8 @@ class GateioUserConnector implements IExchangeConnector {
     const signString = `${method}\n${url}\n${queryString}\n${bodyHash}\n${timestamp}`;
     const signature = crypto.createHmac('sha512', this.apiSecret).update(signString).digest('hex');
 
-    const response = await fetch(`https://api.gateio.ws${url}`, {
+    // 準備 fetch 選項，如果有 proxy 則加入 dispatcher
+    const fetchOptions: RequestInit & { dispatcher?: ProxyAgent } = {
       method,
       headers: {
         KEY: this.apiKey,
@@ -1136,7 +1153,13 @@ class GateioUserConnector implements IExchangeConnector {
         SIGN: signature,
         'Content-Type': 'application/json',
       },
-    });
+    };
+
+    if (this.proxyAgent) {
+      fetchOptions.dispatcher = this.proxyAgent;
+    }
+
+    const response = await fetch(`https://api.gateio.ws${url}`, fetchOptions);
 
     if (!response.ok) {
       return null;
@@ -1280,16 +1303,25 @@ class BingxUserConnector implements IExchangeConnector {
 
   async connect(): Promise<void> {
     this.ccxt = await import('ccxt');
+    const proxyUrl = getProxyUrl();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.exchange = new (this.ccxt as any).bingx({
+    const config: any = {
       apiKey: this.apiKey,
       secret: this.apiSecret,
       enableRateLimit: true,
-      timeout: 30000,
+      timeout: 60000, // 60 秒超時
       options: {
         defaultType: 'swap',
       },
-    });
+    };
+
+    if (proxyUrl) {
+      config.httpsProxy = proxyUrl;
+      logger.info({ proxy: proxyUrl }, 'BingxUserConnector CCXT using httpsProxy');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.exchange = new (this.ccxt as any).bingx(config);
     this.connected = true;
   }
 

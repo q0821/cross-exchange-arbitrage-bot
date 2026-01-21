@@ -63,6 +63,7 @@ export class BingxConnector extends BaseExchangeConnector {
       // 建立 CCXT 客戶端（可以沒有 API Key，仍能存取公開 API）
       const config: any = {
         enableRateLimit: true,
+        timeout: 30000, // 30 秒超時（透過代理需要較長時間）
         ...proxyConfig,
         options: {
           defaultType: 'swap', // 使用永續合約

@@ -4,8 +4,13 @@
  * 在應用啟動時驗證所有環境變數，提供型別安全的存取方式。
  * 驗證失敗時會提供清楚的錯誤訊息。
  */
+import dns from 'dns';
 import dotenv from 'dotenv';
 import { z } from 'zod';
+
+// 設定 DNS 優先使用 IPv4
+// 解決 Squid proxy 無法連接 IPv6 的問題（OKX、BingX 等交易所）
+dns.setDefaultResultOrder('ipv4first');
 
 // 確保在驗證前載入 .env 檔案
 dotenv.config();

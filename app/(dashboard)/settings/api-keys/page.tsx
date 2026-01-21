@@ -10,6 +10,7 @@ interface ApiKeyDTO {
   environment: string;
   label: string;
   maskedKey: string;
+  portfolioMargin: boolean; // Binance 統一帳戶模式
   isActive: boolean;
   lastValidatedAt: string | null;
   createdAt: string;
@@ -49,6 +50,7 @@ export default function ApiKeysPage() {
   const [apiKey, setApiKey] = useState('');
   const [apiSecret, setApiSecret] = useState('');
   const [passphrase, setPassphrase] = useState('');
+  const [portfolioMargin, setPortfolioMargin] = useState(false); // Binance 統一帳戶
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 連線測試狀態 (T019-T022)
@@ -57,8 +59,9 @@ export default function ApiKeysPage() {
   const [showSaveWarning, setShowSaveWarning] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // 連線測試超時設定：20 秒 (T020)
-  const CONNECTION_TEST_TIMEOUT_MS = 20000;
+  // 連線測試超時設定：40 秒 (T020)
+  // 透過 proxy 連線交易所 API 需要較長時間（Gate.io 實測約 20 秒）
+  const CONNECTION_TEST_TIMEOUT_MS = 40000;
 
   // 重新測試狀態 (T033-T036)
   const [revalidatingKeyId, setRevalidatingKeyId] = useState<string | null>(null);
@@ -206,6 +209,7 @@ export default function ApiKeysPage() {
           apiKey,
           apiSecret,
           passphrase: passphrase || undefined,
+          portfolioMargin: exchange === 'binance' ? portfolioMargin : undefined,
         }),
       });
 
@@ -222,6 +226,7 @@ export default function ApiKeysPage() {
       setApiKey('');
       setApiSecret('');
       setPassphrase('');
+      setPortfolioMargin(false);
       setShowAddForm(false);
       setConnectionTestResult(null);
       setShowSaveWarning(false);
@@ -539,6 +544,25 @@ export default function ApiKeysPage() {
                   onChange={(e) => setPassphrase(e.target.value)}
                   className="w-full px-3 py-2 border border-border rounded-md bg-card"
                 />
+              </div>
+            )}
+
+            {/* Binance 統一帳戶選項 */}
+            {exchange === 'binance' && (
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  id="portfolioMargin"
+                  checked={portfolioMargin}
+                  onChange={(e) => setPortfolioMargin(e.target.checked)}
+                  className="mt-1 mr-2"
+                />
+                <label htmlFor="portfolioMargin" className="text-sm">
+                  <span className="font-medium text-foreground">統一帳戶模式 (Portfolio Margin)</span>
+                  <p className="text-muted-foreground mt-1">
+                    如果你的 Binance 帳戶已開啟統一帳戶，請勾選此選項
+                  </p>
+                </label>
               </div>
             )}
 

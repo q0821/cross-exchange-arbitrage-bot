@@ -106,6 +106,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       apiKey: validatedData.apiKey,
       apiSecret: validatedData.apiSecret,
       passphrase: validatedData.passphrase,
+      portfolioMargin: validatedData.portfolioMargin,
     });
 
     // 5. 返回結果（包含遮罩後的 Key）
