@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { splitQuantity } from '@/lib/split-quantity';
 import type { MarketRate, ExchangeName } from '../types';
+import type { StabilityWarning } from '../hooks/useOpenPosition';
 import {
   isArbitragePairRestricted,
   getArbitragePairRestriction,
@@ -69,6 +70,10 @@ interface OpenPositionDialogProps {
   currentGroup?: number;
   /** 分單開倉進度 - 總組數 (Feature 060) */
   totalGroups?: number;
+  /** 費率穩定性警告 (資金費率穩定性檢測功能) */
+  stabilityWarning?: StabilityWarning | null;
+  /** 是否正在載入穩定性資訊 */
+  isLoadingStability?: boolean;
 }
 
 const MIN_QUANTITY = 0.0001;
@@ -100,6 +105,8 @@ export function OpenPositionDialog({
   defaultStopLossConfig,
   currentGroup = 0,
   totalGroups = 0,
+  stabilityWarning = null,
+  isLoadingStability = false,
 }: OpenPositionDialogProps) {
   const [quantity, setQuantity] = useState<number>(0);
   const [leverage, setLeverage] = useState<1 | 2>(1);
@@ -396,6 +403,62 @@ export function OpenPositionDialog({
                     <ExternalLink className="w-4 h-4" />
                     前往 MEXC 手動操作
                   </a>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 費率穩定性警告 (資金費率穩定性檢測功能) */}
+          {isLoadingStability && (
+            <div className="border border-border bg-muted rounded-lg p-3 mb-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                正在檢查費率穩定性...
+              </div>
+            </div>
+          )}
+
+          {!isLoadingStability && stabilityWarning?.hasWarning && (
+            <div className="border border-amber-300 bg-amber-50 rounded-lg p-4 mb-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-amber-800 mb-1">
+                    費率不穩定警告
+                  </h4>
+                  <p className="text-sm text-amber-700 mb-2">
+                    {stabilityWarning.combinedWarning || '此交易對的資金費率過去 24 小時內頻繁翻轉，可能影響套利收益。'}
+                  </p>
+                  <div className="flex flex-col gap-1 text-xs text-amber-600">
+                    {stabilityWarning.longExchange && !stabilityWarning.longExchange.isStable && (
+                      <div className="flex items-center gap-1">
+                        <span className="capitalize font-medium">{stabilityWarning.longExchange.exchange}:</span>
+                        <span>翻轉 {stabilityWarning.longExchange.flipCount} 次</span>
+                      </div>
+                    )}
+                    {stabilityWarning.shortExchange && !stabilityWarning.shortExchange.isStable && (
+                      <div className="flex items-center gap-1">
+                        <span className="capitalize font-medium">{stabilityWarning.shortExchange.exchange}:</span>
+                        <span>翻轉 {stabilityWarning.shortExchange.flipCount} 次</span>
+                      </div>
+                    )}
+                    {/* 顯示不支援查詢的交易所 */}
+                    {stabilityWarning.longExchange && !stabilityWarning.longExchange.supported && (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <span className="capitalize font-medium">{stabilityWarning.longExchange.exchange}:</span>
+                        <span>無歷史資料</span>
+                      </div>
+                    )}
+                    {stabilityWarning.shortExchange && !stabilityWarning.shortExchange.supported && (
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <span className="capitalize font-medium">{stabilityWarning.shortExchange.exchange}:</span>
+                        <span>無歷史資料</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-xs text-amber-600 mt-2 italic">
+                    建議謹慎開倉，或選擇費率更穩定的交易對
+                  </p>
                 </div>
               </div>
             </div>

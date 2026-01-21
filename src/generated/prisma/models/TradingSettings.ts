@@ -31,6 +31,7 @@ export type TradingSettingsAvgAggregateOutputType = {
   defaultTakeProfitPercent: runtime.Decimal | null
   defaultLeverage: number | null
   maxPositionSizeUSD: runtime.Decimal | null
+  exitSuggestionThreshold: runtime.Decimal | null
 }
 
 export type TradingSettingsSumAggregateOutputType = {
@@ -38,6 +39,7 @@ export type TradingSettingsSumAggregateOutputType = {
   defaultTakeProfitPercent: runtime.Decimal | null
   defaultLeverage: number | null
   maxPositionSizeUSD: runtime.Decimal | null
+  exitSuggestionThreshold: runtime.Decimal | null
 }
 
 export type TradingSettingsMinAggregateOutputType = {
@@ -49,6 +51,9 @@ export type TradingSettingsMinAggregateOutputType = {
   defaultTakeProfitPercent: runtime.Decimal | null
   defaultLeverage: number | null
   maxPositionSizeUSD: runtime.Decimal | null
+  exitSuggestionEnabled: boolean | null
+  exitSuggestionThreshold: runtime.Decimal | null
+  exitNotificationEnabled: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -62,6 +67,9 @@ export type TradingSettingsMaxAggregateOutputType = {
   defaultTakeProfitPercent: runtime.Decimal | null
   defaultLeverage: number | null
   maxPositionSizeUSD: runtime.Decimal | null
+  exitSuggestionEnabled: boolean | null
+  exitSuggestionThreshold: runtime.Decimal | null
+  exitNotificationEnabled: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -75,6 +83,9 @@ export type TradingSettingsCountAggregateOutputType = {
   defaultTakeProfitPercent: number
   defaultLeverage: number
   maxPositionSizeUSD: number
+  exitSuggestionEnabled: number
+  exitSuggestionThreshold: number
+  exitNotificationEnabled: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -86,6 +97,7 @@ export type TradingSettingsAvgAggregateInputType = {
   defaultTakeProfitPercent?: true
   defaultLeverage?: true
   maxPositionSizeUSD?: true
+  exitSuggestionThreshold?: true
 }
 
 export type TradingSettingsSumAggregateInputType = {
@@ -93,6 +105,7 @@ export type TradingSettingsSumAggregateInputType = {
   defaultTakeProfitPercent?: true
   defaultLeverage?: true
   maxPositionSizeUSD?: true
+  exitSuggestionThreshold?: true
 }
 
 export type TradingSettingsMinAggregateInputType = {
@@ -104,6 +117,9 @@ export type TradingSettingsMinAggregateInputType = {
   defaultTakeProfitPercent?: true
   defaultLeverage?: true
   maxPositionSizeUSD?: true
+  exitSuggestionEnabled?: true
+  exitSuggestionThreshold?: true
+  exitNotificationEnabled?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -117,6 +133,9 @@ export type TradingSettingsMaxAggregateInputType = {
   defaultTakeProfitPercent?: true
   defaultLeverage?: true
   maxPositionSizeUSD?: true
+  exitSuggestionEnabled?: true
+  exitSuggestionThreshold?: true
+  exitNotificationEnabled?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -130,6 +149,9 @@ export type TradingSettingsCountAggregateInputType = {
   defaultTakeProfitPercent?: true
   defaultLeverage?: true
   maxPositionSizeUSD?: true
+  exitSuggestionEnabled?: true
+  exitSuggestionThreshold?: true
+  exitNotificationEnabled?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -230,6 +252,9 @@ export type TradingSettingsGroupByOutputType = {
   defaultTakeProfitPercent: runtime.Decimal
   defaultLeverage: number
   maxPositionSizeUSD: runtime.Decimal
+  exitSuggestionEnabled: boolean
+  exitSuggestionThreshold: runtime.Decimal
+  exitNotificationEnabled: boolean
   createdAt: Date
   updatedAt: Date
   _count: TradingSettingsCountAggregateOutputType | null
@@ -266,6 +291,9 @@ export type TradingSettingsWhereInput = {
   defaultTakeProfitPercent?: Prisma.DecimalFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntFilter<"TradingSettings"> | number
   maxPositionSizeUSD?: Prisma.DecimalFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolFilter<"TradingSettings"> | boolean
+  exitSuggestionThreshold?: Prisma.DecimalFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolFilter<"TradingSettings"> | boolean
   createdAt?: Prisma.DateTimeFilter<"TradingSettings"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TradingSettings"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -280,6 +308,9 @@ export type TradingSettingsOrderByWithRelationInput = {
   defaultTakeProfitPercent?: Prisma.SortOrder
   defaultLeverage?: Prisma.SortOrder
   maxPositionSizeUSD?: Prisma.SortOrder
+  exitSuggestionEnabled?: Prisma.SortOrder
+  exitSuggestionThreshold?: Prisma.SortOrder
+  exitNotificationEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -297,6 +328,9 @@ export type TradingSettingsWhereUniqueInput = Prisma.AtLeast<{
   defaultTakeProfitPercent?: Prisma.DecimalFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntFilter<"TradingSettings"> | number
   maxPositionSizeUSD?: Prisma.DecimalFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolFilter<"TradingSettings"> | boolean
+  exitSuggestionThreshold?: Prisma.DecimalFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolFilter<"TradingSettings"> | boolean
   createdAt?: Prisma.DateTimeFilter<"TradingSettings"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"TradingSettings"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -311,6 +345,9 @@ export type TradingSettingsOrderByWithAggregationInput = {
   defaultTakeProfitPercent?: Prisma.SortOrder
   defaultLeverage?: Prisma.SortOrder
   maxPositionSizeUSD?: Prisma.SortOrder
+  exitSuggestionEnabled?: Prisma.SortOrder
+  exitSuggestionThreshold?: Prisma.SortOrder
+  exitNotificationEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.TradingSettingsCountOrderByAggregateInput
@@ -332,6 +369,9 @@ export type TradingSettingsScalarWhereWithAggregatesInput = {
   defaultTakeProfitPercent?: Prisma.DecimalWithAggregatesFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntWithAggregatesFilter<"TradingSettings"> | number
   maxPositionSizeUSD?: Prisma.DecimalWithAggregatesFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolWithAggregatesFilter<"TradingSettings"> | boolean
+  exitSuggestionThreshold?: Prisma.DecimalWithAggregatesFilter<"TradingSettings"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolWithAggregatesFilter<"TradingSettings"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"TradingSettings"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"TradingSettings"> | Date | string
 }
@@ -344,6 +384,9 @@ export type TradingSettingsCreateInput = {
   defaultTakeProfitPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: number
   maxPositionSizeUSD?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutTradingSettingsInput
@@ -358,6 +401,9 @@ export type TradingSettingsUncheckedCreateInput = {
   defaultTakeProfitPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: number
   maxPositionSizeUSD?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -370,6 +416,9 @@ export type TradingSettingsUpdateInput = {
   defaultTakeProfitPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntFieldUpdateOperationsInput | number
   maxPositionSizeUSD?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestionThreshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutTradingSettingsNestedInput
@@ -384,6 +433,9 @@ export type TradingSettingsUncheckedUpdateInput = {
   defaultTakeProfitPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntFieldUpdateOperationsInput | number
   maxPositionSizeUSD?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestionThreshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -397,6 +449,9 @@ export type TradingSettingsCreateManyInput = {
   defaultTakeProfitPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: number
   maxPositionSizeUSD?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -409,6 +464,9 @@ export type TradingSettingsUpdateManyMutationInput = {
   defaultTakeProfitPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntFieldUpdateOperationsInput | number
   maxPositionSizeUSD?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestionThreshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -422,6 +480,9 @@ export type TradingSettingsUncheckedUpdateManyInput = {
   defaultTakeProfitPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntFieldUpdateOperationsInput | number
   maxPositionSizeUSD?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestionThreshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -440,6 +501,9 @@ export type TradingSettingsCountOrderByAggregateInput = {
   defaultTakeProfitPercent?: Prisma.SortOrder
   defaultLeverage?: Prisma.SortOrder
   maxPositionSizeUSD?: Prisma.SortOrder
+  exitSuggestionEnabled?: Prisma.SortOrder
+  exitSuggestionThreshold?: Prisma.SortOrder
+  exitNotificationEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -449,6 +513,7 @@ export type TradingSettingsAvgOrderByAggregateInput = {
   defaultTakeProfitPercent?: Prisma.SortOrder
   defaultLeverage?: Prisma.SortOrder
   maxPositionSizeUSD?: Prisma.SortOrder
+  exitSuggestionThreshold?: Prisma.SortOrder
 }
 
 export type TradingSettingsMaxOrderByAggregateInput = {
@@ -460,6 +525,9 @@ export type TradingSettingsMaxOrderByAggregateInput = {
   defaultTakeProfitPercent?: Prisma.SortOrder
   defaultLeverage?: Prisma.SortOrder
   maxPositionSizeUSD?: Prisma.SortOrder
+  exitSuggestionEnabled?: Prisma.SortOrder
+  exitSuggestionThreshold?: Prisma.SortOrder
+  exitNotificationEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -473,6 +541,9 @@ export type TradingSettingsMinOrderByAggregateInput = {
   defaultTakeProfitPercent?: Prisma.SortOrder
   defaultLeverage?: Prisma.SortOrder
   maxPositionSizeUSD?: Prisma.SortOrder
+  exitSuggestionEnabled?: Prisma.SortOrder
+  exitSuggestionThreshold?: Prisma.SortOrder
+  exitNotificationEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -482,6 +553,7 @@ export type TradingSettingsSumOrderByAggregateInput = {
   defaultTakeProfitPercent?: Prisma.SortOrder
   defaultLeverage?: Prisma.SortOrder
   maxPositionSizeUSD?: Prisma.SortOrder
+  exitSuggestionThreshold?: Prisma.SortOrder
 }
 
 export type TradingSettingsCreateNestedOneWithoutUserInput = {
@@ -524,6 +596,9 @@ export type TradingSettingsCreateWithoutUserInput = {
   defaultTakeProfitPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: number
   maxPositionSizeUSD?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -536,6 +611,9 @@ export type TradingSettingsUncheckedCreateWithoutUserInput = {
   defaultTakeProfitPercent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: number
   maxPositionSizeUSD?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -564,6 +642,9 @@ export type TradingSettingsUpdateWithoutUserInput = {
   defaultTakeProfitPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntFieldUpdateOperationsInput | number
   maxPositionSizeUSD?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestionThreshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -576,6 +657,9 @@ export type TradingSettingsUncheckedUpdateWithoutUserInput = {
   defaultTakeProfitPercent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   defaultLeverage?: Prisma.IntFieldUpdateOperationsInput | number
   maxPositionSizeUSD?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitSuggestionEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestionThreshold?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  exitNotificationEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -591,6 +675,9 @@ export type TradingSettingsSelect<ExtArgs extends runtime.Types.Extensions.Inter
   defaultTakeProfitPercent?: boolean
   defaultLeverage?: boolean
   maxPositionSizeUSD?: boolean
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: boolean
+  exitNotificationEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -605,6 +692,9 @@ export type TradingSettingsSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   defaultTakeProfitPercent?: boolean
   defaultLeverage?: boolean
   maxPositionSizeUSD?: boolean
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: boolean
+  exitNotificationEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -619,6 +709,9 @@ export type TradingSettingsSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   defaultTakeProfitPercent?: boolean
   defaultLeverage?: boolean
   maxPositionSizeUSD?: boolean
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: boolean
+  exitNotificationEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -633,11 +726,14 @@ export type TradingSettingsSelectScalar = {
   defaultTakeProfitPercent?: boolean
   defaultLeverage?: boolean
   maxPositionSizeUSD?: boolean
+  exitSuggestionEnabled?: boolean
+  exitSuggestionThreshold?: boolean
+  exitNotificationEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type TradingSettingsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "defaultStopLossEnabled" | "defaultStopLossPercent" | "defaultTakeProfitEnabled" | "defaultTakeProfitPercent" | "defaultLeverage" | "maxPositionSizeUSD" | "createdAt" | "updatedAt", ExtArgs["result"]["tradingSettings"]>
+export type TradingSettingsOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "defaultStopLossEnabled" | "defaultStopLossPercent" | "defaultTakeProfitEnabled" | "defaultTakeProfitPercent" | "defaultLeverage" | "maxPositionSizeUSD" | "exitSuggestionEnabled" | "exitSuggestionThreshold" | "exitNotificationEnabled" | "createdAt" | "updatedAt", ExtArgs["result"]["tradingSettings"]>
 export type TradingSettingsInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -662,6 +758,9 @@ export type $TradingSettingsPayload<ExtArgs extends runtime.Types.Extensions.Int
     defaultTakeProfitPercent: runtime.Decimal
     defaultLeverage: number
     maxPositionSizeUSD: runtime.Decimal
+    exitSuggestionEnabled: boolean
+    exitSuggestionThreshold: runtime.Decimal
+    exitNotificationEnabled: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["tradingSettings"]>
@@ -1096,6 +1195,9 @@ export interface TradingSettingsFieldRefs {
   readonly defaultTakeProfitPercent: Prisma.FieldRef<"TradingSettings", 'Decimal'>
   readonly defaultLeverage: Prisma.FieldRef<"TradingSettings", 'Int'>
   readonly maxPositionSizeUSD: Prisma.FieldRef<"TradingSettings", 'Decimal'>
+  readonly exitSuggestionEnabled: Prisma.FieldRef<"TradingSettings", 'Boolean'>
+  readonly exitSuggestionThreshold: Prisma.FieldRef<"TradingSettings", 'Decimal'>
+  readonly exitNotificationEnabled: Prisma.FieldRef<"TradingSettings", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"TradingSettings", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"TradingSettings", 'DateTime'>
 }

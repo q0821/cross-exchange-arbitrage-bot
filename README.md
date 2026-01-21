@@ -1,270 +1,121 @@
 # Cross-Exchange Arbitrage Bot
 
-跨交易所資金費率套利平台 - 自動偵測幣安和 OKX 的資金費率差異並執行套利交易
+跨交易所資金費率套利平台 - 自動偵測多交易所資金費率差異並支援套利交易
 
-[![CI](https://github.com/shingo0620/cross-exchange-arbitrage-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/shingo0620/cross-exchange-arbitrage-bot/actions/workflows/ci.yml)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
+[![CI](https://github.com/q0821/cross-exchange-arbitrage-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/q0821/cross-exchange-arbitrage-bot/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20.x-green.svg)](https://nodejs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## 🎯 專案狀態
+## 專案狀態
 
-**當前版本**: v0.5.0 (CLI 監控 + Web 多用戶平台)
-**最後更新**: 2025-11-12
+**當前版本**: v1.0.0 (Web 多用戶平台 + 完整交易功能)
+**最後更新**: 2026-01-21
 
-### ✅ 已完成功能 (Phase 1-3)
+### 已完成功能
 
-#### Phase 1: 資料庫與型別系統 ✅
-- ✅ PostgreSQL 15 + TimescaleDB 時序資料庫
-- ✅ 3 個核心資料表：套利機會、機會歷史、通知日誌
-- ✅ Prisma ORM (完整型別安全)
-- ✅ TimescaleDB hypertable 自動分區
-- ✅ 完整的事件型別定義系統
+#### 核心交易功能
 
-#### Phase 2: 基礎元件 ✅
-- ✅ **領域模型**
-  - ArbitrageOpportunity（套利機會業務邏輯）
-  - OpportunityHistory（生命週期追蹤）
-- ✅ **資料存取層**
-  - ArbitrageOpportunityRepository（CRUD + 查詢 + 統計）
-  - OpportunityHistoryRepository（歷史記錄管理）
-  - NotificationLogRepository（通知日誌 + 防抖動統計）
-- ✅ **工具函式**
-  - DebounceManager（per-symbol 防抖動機制）
+| 功能 | 說明 | 狀態 |
+|------|------|------|
+| 手動開倉 | Saga Pattern 雙邊開倉協調器 | ✅ 完成 |
+| 手動平倉 | 一鍵平倉 + PnL 計算 | ✅ 完成 |
+| 分單開倉 | 大組優先分配算法 (1-10 組) | ✅ 完成 |
+| 停損停利 | 四交易所條件單適配器 | ✅ 完成 |
+| 觸發偵測 | 自動偵測停損停利觸發 + 平倉 | ✅ 完成 |
 
-#### Phase 3: 核心偵測與通知功能 ✅
-- ✅ **OpportunityDetector 偵測引擎**
-  - 自動偵測費率差異達到閾值的套利機會
-  - 計算預期年化收益率（考慮資金費率結算頻率）
-  - 追蹤機會生命週期（ACTIVE → EXPIRED → CLOSED）
-  - 記錄最大費率差異和持續時間
+#### 市場監控
 
-- ✅ **NotificationService 通知系統**
-  - 多渠道通知管理（Terminal + Log）
-  - 防抖動機制（30 秒窗口，避免通知轟炸）
-  - Graceful degradation（單一渠道失敗不影響其他渠道）
-  - 通知統計與追蹤
+| 功能 | 說明 | 狀態 |
+|------|------|------|
+| 資金費率監控 | 5 交易所即時費率顯示 | ✅ 完成 |
+| 套利機會偵測 | 自動計算最佳套利對 | ✅ 完成 |
+| WebSocket 即時更新 | markPrice、fundingRate 訂閱 | ✅ 完成 |
+| 套利機會追蹤 | 機會生命週期記錄 (Feature 065) | ✅ 完成 |
+| 平倉建議監控 | APY 監控 + 智能平倉建議 (Feature 067) | ✅ 完成 |
 
-- ✅ **通知渠道實作**
-  - TerminalChannel（終端機彩色輸出，INFO/WARNING/CRITICAL）
-  - LogChannel（Pino 結構化日誌）
+#### 用戶系統
 
-- ✅ **CLI 指令**
-  - `opportunities config` - 查看/設定偵測配置
-  - `opportunities list` - 列出套利機會（支援篩選和排序）
-  - `opportunities show <id>` - 查看特定機會詳情
+| 功能 | 說明 | 狀態 |
+|------|------|------|
+| 用戶認證 | Email/Password + JWT Token | ✅ 完成 |
+| API Key 管理 | 5 交易所 + AES-256-GCM 加密 | ✅ 完成 |
+| 通知系統 | Discord/Slack Webhook | ✅ 完成 |
+| 公開首頁 | 套利機會歷史展示 (Feature 064) | ✅ 完成 |
 
-#### 測試覆蓋 ✅
-- ✅ **186 個測試全部通過**
-  - 19 個整合測試（資料庫、Repository、防抖動機制）
-  - 6 個端到端測試（完整流程驗證）
-  - 161 個單元測試（現有功能）
-- ✅ **測試覆蓋率**: Phase 1-3 核心功能 100%
+#### 支援交易所
 
-#### Feature 004: OKX 驗證與套利評估 ⚠️（部分完成 38%）
-
-- ✅ **User Story 1: OKX 資金費率驗證**（核心完成）
-  - FundingRateValidator - 雙重驗證服務（OKX Native API + CCXT 備援）
-  - FundingRateValidationRepository - 驗證記錄持久化（TimescaleDB）
-  - 整合測試 - OKX API + CCXT 驗證流程驗證
-
-- ⚠️ **User Story 2: 價格監控**（部分完成）
-  - PriceMonitor - REST 輪詢價格監控服務（每 5 秒更新）
-  - PriceCache - LRU 快取機制（100 個交易對）
-  - BinanceConnector / OkxConnector - getPrices() 方法實作
-  - 🔄 **延後**: WebSocket 即時訂閱（REST 已滿足需求）
-
-- ✅ **User Story 3: 套利可行性評估**（完整實作）
-  - ArbitrageAssessor - 套利評估引擎（362 行）
-    - 手續費計算（Maker/Taker/Mixed 三種模式）
-    - 淨收益計算（利差 - 雙邊手續費）
-    - 可行性判斷（淨收益 > 最小利潤閾值）
-    - 極端價差檢測（預設閾值 5%）
-  - CLI 參數支援 - `--enable-arbitrage-assessment`, `--arbitrage-capital`, `--maker-fee`, `--taker-fee`, `--min-profit`
-  - 整合到 FundingRateMonitor - 發出 `arbitrage-feasible` 事件
-
-- ✅ **測試**: 284 個測試通過（包含 Feature 004 測試）
-  - 17 個 ArbitrageAssessor 單元測試
-  - 6 個套利評估整合測試
-
-- ✅ **系統架構調整**: 新增 Constitution Principle VI
-  - CLI 職責: 後台監控 + 數據計算 + 寫入 DB
-  - Web 職責: 查詢 DB + 即時更新 + 使用者互動
-  - 資料流向: CLI Monitor → Database → Web API → Web UI
-
-#### Feature 006: Web 多用戶套利交易平台 ⚠️（部分完成 36%）
-
-**已完成核心功能**：
-
-- ✅ **User Story 1: 用戶註冊和 API Key 設定**（完成）
-  - 自定義 JWT Token 認證（SessionManager）
-  - Email/Password 登入和註冊
-  - API Key 管理頁面（支援 5 個交易所：Binance、OKX、Bybit、MEXC、Gate.io）
-  - AES-256-GCM 加密儲存
-  - 環境選擇（主網/測試網）
-  - 完整 CRUD 操作（新增、編輯、啟用/停用、刪除）
-
-- ✅ **User Story 2: 即時套利機會監控**（完成）
-  - 套利機會列表頁面（網格卡片展示）
-  - WebSocket 即時更新（new、update、expired 事件）
-  - 機會詳情頁面
-  - 成本計算和淨利潤率展示（Decimal.js 精確計算）
-  - 年化收益率計算
-  - 連線狀態指示器（綠色脈動動畫）
-
-- ✅ **User Story 2.5: 多交易所市場監控**（完成）
-  - 市場監控頁面（表格形式，同時顯示 4 個交易所）
-  - 即時資金費率和價格顯示
-  - 最佳套利對自動計算和標示（BUY/SELL 標籤）
-  - WebSocket 定期廣播（每 5 秒更新）
-  - 費率差異狀態指示（🔔 機會 / ⚠️ 接近 / ➖ 正常）
-  - 交易對群組篩選和排序
-  - 統計卡片（機會數、最高年化收益）
-
-**技術實作**：
-- Next.js 14 App Router + React 18 + TypeScript 5.6
-- Socket.io WebSocket（JWT 認證、Room 管理）
-- Prisma + PostgreSQL + TimescaleDB + Redis
-- Tailwind CSS + Radix UI + Lucide React
-- 5 個主要頁面（register、login、api-keys、opportunities、market-monitor）
-- 8+ 個 API 路由
-- 2 個 WebSocket Handlers（MarketRatesHandler、OpportunityHandler）
-- 4+ 個自定義 Hooks（useWebSocket、useMarketRates 等）
-- 10+ 個組件
-
-**延後功能**：
-- ⏸️ User Story 3: 手動開倉（TradeOrchestrator、Saga Pattern）
-- ⏸️ User Story 4: 手動平倉（PnL 計算）
-- ⏸️ User Story 5: 歷史記錄查詢
-
-#### Feature 008: 交易所快速連結 ✅（核心功能完成 40%）
-
-- ✅ **ExchangeLink 組件**（115 行）
-  - 支援 4 個交易所 URL 生成（Binance、OKX、MEXC、Gate.io）
-  - URL Builder 服務（統一符號格式處理：BTCUSDT → 各交易所格式）
-  - 新分頁開啟（target="_blank" + rel="noopener noreferrer"）
-  - 整合到市場監控頁面 RateRow 組件
-
-- ✅ **視覺化和無障礙**
-  - Radix UI Tooltip 提示說明
-  - Hover 效果（opacity-70）
-  - Lucide React ExternalLink 圖標
-  - 完整的 aria-label 支援
-  - 禁用狀態處理（無數據時自動禁用）
-
-**符號格式轉換**：
-- 內部格式：BTCUSDT（統一標準）
-- Binance：BTCUSDT
-- OKX：BTC-USDT-SWAP
-- MEXC：BTC_USDT
-- Gate.io：BTC_USDT
-
-#### Feature 009: 市場監控頁面穩定排序 ✅（完成 100% - 27/27 任務）
-
-- ✅ **快照排序 (Snapshot Sorting) 模式**
-  - 列表順序固定，WebSocket 更新不觸發重新排序
-  - 位置穩定性達 100%
-  - 只有數值更新，交易對位置保持不變
-  - 預設按交易對字母順序排列（升序）
-
-- ✅ **用戶自訂排序**
-  - 支援按交易對名稱、費率差異、年化收益排序
-  - 點擊欄位標題切換排序方向
-  - 視覺排序指示器（↑ 升序 / ↓ 降序 / ↕ 未排序）
-  - 排序後列表保持穩定
-
-- ✅ **排序偏好記憶**
-  - localStorage 自動儲存排序設定
-  - 頁面重新載入後自動恢復排序
-  - 優雅降級處理（私密瀏覽模式下功能照常運作）
-
-- ✅ **技術實作**
-  - Map-based 資料儲存（O(1) 查找和更新）
-  - 穩定排序演算法（次要排序鍵確保穩定性）
-  - useMemo 精確控制依賴（避免不必要的重新計算）
-  - 完整的 localStorage 錯誤處理
-
-**新增檔案**：
-- `app/(dashboard)/market-monitor/types.ts` - 排序類型定義
-- `app/(dashboard)/market-monitor/utils/sortComparator.ts` - 穩定排序比較器
-- `app/(dashboard)/market-monitor/utils/localStorage.ts` - localStorage 工具
-
-**修改組件**：
-- `useMarketRates.ts` - 改用 Map 儲存資料
-- `RatesTable.tsx` - 實作快照排序
-- `useTableSort.ts` - 預設排序改為字母順序
-- `page.tsx` - 整合 ratesMap 和過濾邏輯
-
-### 🔄 計畫功能 (Phase 4-7)
-
-- 🔜 **Phase 4**: 多幣別機會排序與優先級
-- 🔜 **Phase 5**: 機會生命週期追蹤與歷史記錄查詢
-- 🔜 **Phase 6**: 多通道通知（Webhook, Telegram）
-- 🔜 **Phase 7**: 效能優化、文件、整合測試
+| 交易所 | 費率監控 | 開倉 | 平倉 | 停損停利 |
+|--------|----------|------|------|----------|
+| Binance | ✅ | ✅ | ✅ | ✅ |
+| OKX | ✅ | ✅ | ✅ | ✅ |
+| Gate.io | ✅ | ✅ | ✅ | ✅ |
+| MEXC | ✅ | ✅ | ✅ | ✅ |
+| BingX | ✅ | ✅ | ✅ | ✅ |
 
 ## 功能特色
 
-### CLI 監控系統
-- 🔍 **即時監控**: 每 5 秒更新 Binance 和 OKX 的資金費率與價格
-- 📊 **智能偵測**: 自動識別套利機會並計算年化收益率
-- ✅ **雙重驗證**: OKX 資金費率使用 Native API + CCXT 雙重驗證確保準確性
-- 💰 **套利評估**: 自動計算淨收益（利差 - 手續費），判斷套利可行性
-- 🎯 **極端價差檢測**: 自動檢測異常價差（預設 >5%）並發出警告
-- 🛡️ **防抖動**: 30 秒窗口防止通知轟炸
-- ⚡ **高精確度**: 使用 Decimal.js 確保金融計算精確
-
 ### Web 多用戶平台
 - 👤 **多用戶系統**: Email/Password 註冊登入 + JWT Token 認證
-- 🔐 **API Key 管理**: 支援 5 個交易所（Binance、OKX、Bybit、MEXC、Gate.io）
-- 🔒 **安全加密**: AES-256-GCM 加密儲存 API Keys
+- 🔐 **API Key 管理**: 支援 5 個交易所，AES-256-GCM 加密儲存
 - 🌐 **環境隔離**: 主網/測試網環境分離管理
-- 📊 **即時更新**: WebSocket 推送套利機會（new、update、expired 事件）
-- 🗺️ **市場全景**: 4 個交易所資金費率一覽表（Binance、OKX、MEXC、Gate.io）
+- 📊 **即時更新**: WebSocket 推送套利機會和市場數據
+- 🗺️ **市場全景**: 5 個交易所資金費率一覽表
 - 🎯 **智能標示**: 自動計算並標示最佳套利對（BUY/SELL 標籤）
 - 📈 **收益分析**: 年化收益率、淨利潤率即時計算
 - 🔗 **快速跳轉**: 一鍵開啟交易所對應交易對頁面
-- 🎨 **現代 UI**: Next.js 14 + Tailwind CSS + Radix UI
-- 📱 **響應式設計**: 支援桌面和行動裝置
-- ♿ **無障礙設計**: 完整的 aria-label 和 Tooltip 支援
 
-### 架構特色
-- 🏗️ **職責分離**: CLI 負責監控計算，Web 負責顯示互動
-- 🗄️ **單一真相來源**: 資料庫作為 CLI 和 Web 之間的契約
-- 🔄 **即時同步**: WebSocket 確保多用戶即時數據同步
-- 📈 **歷史追蹤**: 完整的機會生命週期追蹤與統計
+### 交易功能
+- 💹 **雙邊開倉**: Saga Pattern 協調器，支援回滾機制
+- 📉 **一鍵平倉**: 雙邊市價平倉 + PnL 計算
+- 🔢 **分單開倉**: 將大單拆分為 1-10 個獨立持倉
+- 🛡️ **停損停利**: 四交易所條件單自動設定
+- ⚡ **觸發偵測**: 每 30 秒輪詢條件單狀態，自動平倉
+
+### 智能監控
+- 🔍 **平倉建議**: 當 APY < 0% 或滿足獲利鎖定條件時通知
+- 📊 **機會追蹤**: 記錄套利機會生命週期和統計
+- 🔔 **即時通知**: Discord/Slack Webhook 推送
+- 📱 **WebSocket 推送**: 持倉進度、觸發事件即時更新
+
+### 公開展示
+- 🏠 **公開首頁**: 無需登入查看歷史套利機會
+- 📅 **時間篩選**: 7/30/90 天範圍選擇
+- 📊 **統計展示**: 持續時間、最大 APY、費差變化
 
 ## 技術架構
 
-### CLI 監控系統
-- **語言**: TypeScript 5.3+
-- **運行環境**: Node.js 20.x LTS
-- **數據庫**: PostgreSQL 15+ with TimescaleDB extension
-- **ORM**: Prisma 5.x
-- **日誌**: Pino (高性能結構化日誌)
-- **金融計算**: Decimal.js (精確度保證)
-- **CLI 框架**: Commander.js
-- **終端機輸出**: Chalk (彩色顯示)
+### 前端
+| 技術 | 版本 | 用途 |
+|------|------|------|
+| Next.js | 15 | App Router 框架 |
+| React | 19 | UI 函式庫 |
+| TypeScript | 5.8+ | 型別安全 |
+| Tailwind CSS | 4.x | 樣式框架 |
+| TanStack Query | 5.x | 資料快取 |
+| Socket.io Client | 4.8+ | WebSocket 客戶端 |
+| Radix UI | - | 無障礙元件庫 |
 
-### Web 多用戶平台
-- **前端框架**: Next.js 14 App Router
-- **UI 框架**: React 18
-- **語言**: TypeScript 5.6
-- **樣式**: Tailwind CSS
-- **組件庫**: Radix UI (Tooltip)
-- **圖標**: Lucide React
-- **即時通訊**: Socket.io v4 (WebSocket + polling)
-- **認證**: JWT Token + HttpOnly Cookies
-- **資料庫**: Prisma 5.x + PostgreSQL 15 + TimescaleDB
-- **快取**: Redis 7+
-- **精確計算**: Decimal.js
+### 後端
+| 技術 | 版本 | 用途 |
+|------|------|------|
+| Node.js | 20.x LTS | 運行環境 |
+| Prisma | 7.x | ORM |
+| PostgreSQL | 15+ | 主資料庫 |
+| TimescaleDB | - | 時序資料擴展 |
+| Socket.io | 4.8+ | WebSocket 伺服器 |
+| Pino | 10.x | 結構化日誌 |
+| Decimal.js | 10.x | 金融精確計算 |
 
 ### 交易所整合
-
-- **Binance**: Binance Futures API (直接調用 `/fapi/v1/premiumIndex`)
-- **OKX**: OKX Native API + `ccxt` v4.x (雙重驗證)
-- **MEXC**: `ccxt` v4.x
-- **Gate.io**: `ccxt` v4.x
-- **Bybit**: `ccxt` v4.x (API Key 管理支援)
+| 交易所 | 整合方式 | 特殊說明 |
+|--------|----------|----------|
+| Binance | CCXT 4.x + Native API | Futures API 直接調用 |
+| OKX | CCXT 4.x + Native API | 雙重驗證機制 |
+| Gate.io | CCXT 4.x | 需 API Key 獲取公開數據 |
+| MEXC | CCXT 4.x | 標準整合 |
+| BingX | CCXT 4.x | 標準整合 |
 
 ## 系統需求
 
@@ -273,7 +124,7 @@
 - PostgreSQL >= 15.0 (含 TimescaleDB extension)
 - Docker (可選，用於本地開發環境)
 
-## 安裝步驟
+## 快速開始
 
 ### 1. 克隆專案
 
@@ -290,24 +141,20 @@ pnpm install
 
 ### 3. 設定環境變數
 
-複製範例環境變數檔案並填入您的 API 金鑰：
-
 ```bash
 cp .env.example .env
 ```
 
-編輯 `.env` 檔案，填入以下資訊：
-
-- Binance API 金鑰和密鑰
-- OKX API 金鑰、密鑰和 Passphrase
+編輯 `.env` 檔案，填入：
 - 資料庫連線資訊
-- Redis 連線資訊
-- (可選) Telegram Bot Token 和 Chat ID
+- JWT 密鑰
+- 加密金鑰
+- (可選) 交易所 API 金鑰
 
 ### 4. 設定資料庫
 
 ```bash
-# 啟動 PostgreSQL 和 Redis (使用 Docker)
+# 啟動 PostgreSQL (使用 Docker)
 pnpm docker:up
 
 # 執行資料庫遷移
@@ -323,261 +170,180 @@ pnpm db:generate
 # 開發模式
 pnpm dev
 
+# 開發模式（美化日誌）
+pnpm dev:pretty
+
 # 生產模式
 pnpm build
 pnpm start
 ```
 
-## 🚀 部署指南
+## 開發指令
 
-### 快速部署到雲端平台
+### 開發
+```bash
+pnpm dev              # 啟動開發伺服器
+pnpm dev:pretty       # 啟動開發伺服器（美化日誌）
+pnpm build            # 建置生產版本
+```
 
-本專案支援部署到多個雲端平台。推薦使用 **Zeabur** 進行快速部署。
+### 測試
+```bash
+pnpm test             # 執行所有測試
+pnpm test:unit        # 執行單元測試
+pnpm test:integration # 執行整合測試
+pnpm test:e2e         # 執行 E2E 測試
+pnpm test:coverage    # 產生覆蓋率報告
+```
 
-#### 推薦平台
+### 資料庫
+```bash
+pnpm docker:up        # 啟動 PostgreSQL + Redis
+pnpm db:migrate       # 執行資料庫遷移
+pnpm db:generate      # 產生 Prisma Client
+pnpm db:studio        # 開啟 Prisma Studio
+```
+
+### 診斷工具
+```bash
+# 測試交易所 API 連線
+pnpm tsx scripts/diagnostics/test-binance-api.ts
+pnpm tsx scripts/diagnostics/test-gateio-api.ts
+pnpm tsx scripts/diagnostics/test-mexc-api.ts
+pnpm tsx scripts/diagnostics/test-okx-position.ts
+```
+
+### 其他工具
+```bash
+pnpm update-oi-symbols    # 更新 OI 監控清單
+pnpm validate-trading     # 驗證交易設定
+pnpm lint                 # ESLint 檢查
+pnpm format               # Prettier 格式化
+```
+
+## 專案結構
+
+```
+├── app/                      # Next.js App Router
+│   ├── (auth)/               # 認證頁面 (登入/註冊)
+│   ├── (dashboard)/          # 儀表板頁面
+│   │   ├── market-monitor/   # 市場監控
+│   │   ├── positions/        # 持倉管理
+│   │   ├── trades/           # 交易歷史
+│   │   ├── assets/           # 資產總覽
+│   │   └── settings/         # 設定頁面
+│   ├── (public)/             # 公開頁面
+│   └── api/                  # API 路由
+├── src/
+│   ├── connectors/           # 交易所連接器
+│   ├── services/             # 核心業務邏輯
+│   │   ├── trading/          # 交易服務
+│   │   ├── monitor/          # 監控服務
+│   │   ├── websocket/        # WebSocket 處理
+│   │   └── notification/     # 通知服務
+│   ├── repositories/         # 資料存取層
+│   ├── models/               # 資料模型
+│   ├── lib/                  # 工具函式
+│   └── types/                # 型別定義
+├── tests/
+│   ├── unit/                 # 單元測試 (~1900 案例)
+│   ├── integration/          # 整合測試 (~120 案例)
+│   ├── hooks/                # React Hooks 測試
+│   ├── e2e/                  # E2E 測試 (~23 案例)
+│   └── performance/          # 效能測試
+├── prisma/                   # 資料庫 Schema 和遷移
+├── config/                   # 配置檔案
+└── docs/                     # 文件
+    ├── deployment/           # 部署指南
+    └── test/                 # 測試報告
+```
+
+## 核心檔案說明
+
+### 交易服務
+| 檔案 | 說明 |
+|------|------|
+| `src/services/trading/PositionOrchestrator.ts` | Saga Pattern 雙邊開倉協調器 |
+| `src/services/trading/PositionCloser.ts` | 雙邊平倉服務 |
+| `src/services/trading/ConditionalOrderService.ts` | 停損停利統一管理 |
+| `src/services/trading/BalanceValidator.ts` | 保證金驗證 |
+
+### 監控服務
+| 檔案 | 說明 |
+|------|------|
+| `src/services/MonitorService.ts` | 監控服務主入口 |
+| `src/services/monitor/FundingRateMonitor.ts` | 資金費率監控 |
+| `src/services/monitor/ConditionalOrderMonitor.ts` | 條件單觸發監控 |
+| `src/services/monitor/PositionExitMonitor.ts` | 平倉建議監控 |
+| `src/services/monitor/ArbitrageOpportunityTracker.ts` | 套利機會追蹤 |
+
+### WebSocket
+| 檔案 | 說明 |
+|------|------|
+| `src/services/websocket/PositionProgressEmitter.ts` | 開倉進度推送 |
+| `src/services/websocket/TriggerProgressEmitter.ts` | 觸發事件推送 |
+| `src/services/websocket/PositionExitEmitter.ts` | 平倉建議推送 |
+| `src/services/websocket/BalanceUpdateEmitter.ts` | 餘額更新推送 |
+
+## 環境變數
+
+詳細說明請參考 `.env.example` 和 `docs/deployment/environment-variables.md`
+
+### 核心設定
+| 變數 | 說明 |
+|------|------|
+| `DATABASE_URL` | PostgreSQL 連線字串 |
+| `JWT_SECRET` | JWT 簽名密鑰 |
+| `ENCRYPTION_KEY` | API Key 加密金鑰 |
+
+### 功能開關
+| 變數 | 說明 |
+|------|------|
+| `ENABLE_CONDITIONAL_ORDER_MONITOR` | 啟用條件單監控 |
+| `ENABLE_POSITION_EXIT_MONITOR` | 啟用平倉建議監控 |
+
+## 部署
+
+### 推薦平台
 
 | 平台 | 難度 | 成本 | 特色 |
 |------|------|------|------|
-| [Zeabur](docs/deployment/README.md#zeabur-部署) ⭐⭐⭐⭐⭐ | ⭐ 簡單 | $5-20/月 | 中文介面、自動部署、內建資料庫 |
-| [Railway](docs/deployment/railway-guide.md) | ⭐⭐ 中等 | $5-15/月 | 簡單易用、$5 免費額度 |
-| [VPS 自建](docs/deployment/upgrade-to-timescaledb.md#方案-1-vps--docker-詳細步驟) | ⭐⭐⭐ 較難 | $5-20/月 | 完整控制、長期穩定 |
+| [Zeabur](docs/deployment/README.md#zeabur-部署) | ⭐ 簡單 | $5-20/月 | 中文介面、自動部署 |
+| [Railway](docs/deployment/railway-guide.md) | ⭐⭐ 中等 | $5-15/月 | $5 免費額度 |
+| [VPS 自建](docs/deployment/upgrade-to-timescaledb.md) | ⭐⭐⭐ 較難 | $5-20/月 | 完整控制 |
 
-#### 詳細文件
-
-📖 **[完整部署指南](docs/deployment/README.md)** - 一步步教您部署到生產環境
-
-包含：
-- ✅ Zeabur 部署步驟（推薦）
-- ✅ Railway 部署步驟
-- ✅ 環境變數配置說明
-- ✅ 資料庫設定指南
-- ✅ 常見問題排解
-
-#### 長期營運優化
-
-📊 **[升級到 TimescaleDB](docs/deployment/upgrade-to-timescaledb.md)** - 當資料量增大時的效能優化方案
-
-- 何時需要升級（資料量 > 10 萬筆）
-- 3 種升級方案比較
-- 詳細的升級步驟
-- 驗證和測試指南
-
-#### 環境變數說明
-
-📝 **[環境變數完整說明](docs/deployment/environment-variables.md)** - 所有環境變數的用途和配置方法
-
----
-
-## 使用指南
-
-### 快速開始
-
-#### 1. 啟動監控服務
-```bash
-# 啟動資金費率監控
-pnpm tsx src/cli/index.ts monitor start
-
-# 查看監控狀態
-pnpm tsx src/cli/index.ts monitor status
-```
-
-#### 2. 查看套利機會
-```bash
-# 列出所有活躍的套利機會
-pnpm tsx src/cli/index.ts opportunities list
-
-# 列出所有機會（包含已過期）
-pnpm tsx src/cli/index.ts opportunities list --status ALL
-
-# 篩選特定幣別
-pnpm tsx src/cli/index.ts opportunities list --symbol BTCUSDT
-
-# 按年化收益率排序，限制顯示 10 筆
-pnpm tsx src/cli/index.ts opportunities list --sort-by return --limit 10
-
-# JSON 格式輸出
-pnpm tsx src/cli/index.ts opportunities list --format json
-```
-
-#### 3. 查看機會詳情
-```bash
-# 查看特定機會的詳細資訊
-pnpm tsx src/cli/index.ts opportunities show <opportunity-id>
-```
-
-#### 4. 配置偵測參數
-```bash
-# 查看當前配置
-pnpm tsx src/cli/index.ts opportunities config
-
-# 設定最小費率差異閾值（0.08% = 0.0008）
-pnpm tsx src/cli/index.ts opportunities config --threshold 0.0008
-
-# 設定防抖動窗口時間（60 秒）
-pnpm tsx src/cli/index.ts opportunities config --debounce 60
-
-# 重置為預設值
-pnpm tsx src/cli/index.ts opportunities config --reset
-
-# JSON 格式輸出配置
-pnpm tsx src/cli/index.ts opportunities config --format json
-```
-
-### CLI 命令完整列表
-
-#### 監控管理
-```bash
-pnpm tsx src/cli/index.ts monitor start       # 啟動監控服務
-pnpm tsx src/cli/index.ts monitor status      # 查看監控狀態
-pnpm tsx src/cli/index.ts monitor stop        # 停止監控服務
-```
-
-#### 套利機會管理
-```bash
-# 列出機會
-pnpm tsx src/cli/index.ts opportunities list [options]
-  -s, --status <status>      篩選狀態: ACTIVE | EXPIRED | CLOSED (預設: ACTIVE)
-  --symbol <symbol>          篩選特定幣別
-  --min-return <percent>     最小年化收益率
-  -l, --limit <number>       限制顯示數量 (預設: 20)
-  --format <type>            輸出格式: table | json (預設: table)
-  --sort-by <field>          排序方式: return | time | spread (預設: return)
-
-# 查看詳情
-pnpm tsx src/cli/index.ts opportunities show <id>
-
-# 配置管理
-pnpm tsx src/cli/index.ts opportunities config [options]
-  --threshold <value>        設定最小費率差異閾值
-  --debounce <seconds>       設定防抖動窗口時間
-  --reset                    重置為預設值
-  --format <type>            輸出格式: table | json
-```
-
-#### 計畫中的指令（Phase 4-7）
-```bash
-# 查看機會歷史（Phase 5）
-pnpm tsx src/cli/index.ts opportunities history [options]
-
-# 查看當前持倉
-pnpm tsx src/cli/index.ts positions list
-
-# 查看交易歷史
-pnpm tsx src/cli/index.ts trades list
-```
-
-### 配置說明
-
-主要配置檔案位於 `config/default.json`，您可以調整以下參數：
-
-- **交易參數**
-  - `minSpreadThreshold`: 最小價差門檻
-  - `maxPositionSizeUsd`: 最大持倉金額
-  - `defaultLeverage`: 預設槓桿倍數
-
-- **風險管理**
-  - `maxDailyLoss`: 每日最大虧損
-  - `maxDrawdown`: 最大回撤比例
-  - `stopLossPercent`: 止損百分比
-
-- **監控設定**
-  - `priceUpdateIntervalMs`: 價格更新頻率
-  - `fundingRateCheckIntervalMs`: 資金費率檢查頻率
-
-## 開發指南
-
-### 專案結構
-
-```
-src/
-├── models/        # 資料模型 (Prisma + 業務邏輯)
-├── services/      # 核心業務邏輯
-├── connectors/    # 交易所 API 適配器
-├── cli/           # 命令列介面
-└── lib/           # 工具函式 (logger, config, retry)
-
-tests/
-├── unit/          # 單元測試
-├── integration/   # 整合測試
-└── mocks/         # API 模擬
-
-config/            # 配置檔案
-prisma/            # 資料庫 schema 和遷移
-```
-
-### 開發命令
-
-```bash
-# 執行測試
-pnpm test
-
-# 執行測試並監聽變更
-pnpm test:watch
-
-# 測試覆蓋率報告
-pnpm test:coverage
-
-# 程式碼檢查
-pnpm lint
-
-# 自動修復程式碼風格
-pnpm lint:fix
-
-# 格式化程式碼
-pnpm format
-
-# 檢查格式
-pnpm format:check
-```
-
-### 資料庫管理
-
-```bash
-# 開啟 Prisma Studio
-pnpm db:studio
-
-# 執行種子資料
-pnpm db:seed
-
-# 重置資料庫
-pnpm db:reset
-```
+詳細部署指南請參考 `docs/deployment/README.md`
 
 ## 測試
 
-```bash
-# 執行所有測試
-pnpm test
+### 測試統計
+- **單元測試**: ~1,900 案例
+- **整合測試**: ~120 案例
+- **E2E 測試**: ~23 案例
+- **效能測試**: ~11 案例
 
-# 執行測試並顯示 UI
-pnpm test:ui
-
-# 生成覆蓋率報告
-pnpm test:coverage
-```
-
-## Docker 支援
-
-```bash
-# 啟動所有服務
-pnpm docker:up
-
-# 停止所有服務
-pnpm docker:down
-
-# 查看日誌
-pnpm docker:logs
-```
+### CI/CD
+| 工作流程 | 觸發條件 | 內容 |
+|----------|----------|------|
+| `ci.yml` | 每次 push/PR | Lint + 型別檢查 + 單元測試 |
+| `integration.yml` | push to main | 整合測試 |
+| `e2e.yml` | push to main | Playwright E2E 測試 |
 
 ## 安全性注意事項
 
-⚠️ **重要**:
-
-1. 不要將 `.env` 檔案提交到版本控制系統
-2. 確保 API 金鑰具有適當的權限（僅需交易和查詢權限）
-3. 在測試網上進行充分測試後再使用真實資金
+1. **不要**將 `.env` 檔案提交到版本控制系統
+2. 確保 API 金鑰僅具有必要權限
+3. 在測試網上充分測試後再使用真實資金
 4. 定期檢查和更新依賴套件
-5. 設定合理的風險參數以保護您的資金
+5. 設定合理的風險參數
+
+## 專案文件
+
+- `CHANGELOG.md` - 版本歷史與變更記錄
+- `CLAUDE.md` - 開發指南與程式碼規範
+- `.specify/memory/constitution.md` - 專案憲法 (7 個核心原則)
+- `docs/deployment/` - 部署相關文件
+- `docs/test/` - 測試報告
 
 ## 授權
 
@@ -587,24 +353,8 @@ MIT License
 
 歡迎提交 Issue 和 Pull Request！
 
-## 專案文件
-
-- **CHANGELOG.md** - 版本歷史與變更記錄
-- **specs/001-funding-rate-arbitrage/spec.md** - 功能規格說明
-- **specs/001-funding-rate-arbitrage/plan.md** - 技術實作計畫
-- **specs/001-funding-rate-arbitrage/tasks.md** - 開發任務清單
-- **.specify/memory/constitution.md** - 專案憲法 (5 個核心原則)
-
-## 參考資源
-
-- [Prisma 文件](https://www.prisma.io/docs)
-- [TimescaleDB 文件](https://docs.timescale.com)
-- [Binance Futures API](https://binance-docs.github.io/apidocs/futures/en/)
-- [CCXT 文件](https://docs.ccxt.com)
-- [Pino 日誌](https://getpino.io)
-
 ## 免責聲明
 
 本軟體僅供教育和研究用途。使用本軟體進行實際交易需自行承擔風險。作者不對任何財務損失負責。
 
-⚠️ **警告**: 當前版本 (v0.3.0) 僅實作監控和偵測功能，尚未實作自動交易功能。請勿在未充分測試的情況下使用於生產環境。
+⚠️ **警告**: 加密貨幣交易具有高風險。請確保您了解相關風險，並只投入您能承受損失的資金。

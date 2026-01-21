@@ -316,6 +316,7 @@ export class RatesCache {
 
   /**
    * 獲取單一交易對的費率
+   * Feature 066: 過期項目會從快取中移除以防止記憶體洩漏
    */
   get(symbol: string): FundingRatePair | null {
     const cached = this.cache.get(symbol);
@@ -325,7 +326,9 @@ export class RatesCache {
 
     // 檢查是否過期
     if (this.isStale(cached.cachedAt)) {
-      logger.warn({ symbol }, 'Cached rate is stale');
+      // Feature 066: 主動從快取中刪除過期項目
+      this.cache.delete(symbol);
+      logger.warn({ symbol }, 'Cached rate is stale, removed from cache');
       return null;
     }
 
@@ -336,17 +339,29 @@ export class RatesCache {
 
   /**
    * 獲取所有費率數據（過濾掉過期數據）
+   * Feature 066: 過期項目會從快取中移除以防止記憶體洩漏
    */
   getAll(): FundingRatePair[] {
     const rates: FundingRatePair[] = [];
+    const staleSymbols: string[] = [];
 
     for (const [symbol, cached] of this.cache.entries()) {
       if (!this.isStale(cached.cachedAt)) {
         const { cachedAt: _cachedAt, ...rate } = cached;
         rates.push(rate);
       } else {
+        // Feature 066: 收集過期的 symbol 以便稍後刪除
+        staleSymbols.push(symbol);
         logger.debug({ symbol }, 'Skipping stale rate');
       }
+    }
+
+    // Feature 066: 主動從快取中刪除過期項目
+    if (staleSymbols.length > 0) {
+      for (const symbol of staleSymbols) {
+        this.cache.delete(symbol);
+      }
+      logger.debug({ count: staleSymbols.length }, 'Removed stale rates from cache');
     }
 
     return rates;

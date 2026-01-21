@@ -22,6 +22,26 @@ export interface OpenPositionData {
   takeProfitPercent?: number;
 }
 
+/** 費率穩定性警告資訊 */
+export interface StabilityWarning {
+  hasWarning: boolean;
+  combinedWarning?: string;
+  longExchange: {
+    exchange: string;
+    isStable: boolean;
+    flipCount: number;
+    warning?: string;
+    supported: boolean;
+  } | null;
+  shortExchange: {
+    exchange: string;
+    isStable: boolean;
+    flipCount: number;
+    warning?: string;
+    supported: boolean;
+  } | null;
+}
+
 interface UseOpenPositionReturn {
   /** 當前選中的交易對 */
   selectedRate: MarketRate | null;
@@ -62,6 +82,10 @@ interface UseOpenPositionReturn {
   currentGroup: number;
   /** 分單開倉進度 - 總組數 (Feature 060) */
   totalGroups: number;
+  /** 費率穩定性警告 (資金費率穩定性檢測功能) */
+  stabilityWarning: StabilityWarning | null;
+  /** 是否正在載入穩定性資訊 */
+  isLoadingStability: boolean;
 }
 
 /**
@@ -100,6 +124,10 @@ export function useOpenPosition(): UseOpenPositionReturn {
   // Feature 060: 分單開倉進度狀態
   const [currentGroup, setCurrentGroup] = useState(0);
   const [totalGroups, setTotalGroups] = useState(0);
+
+  // 資金費率穩定性警告狀態
+  const [stabilityWarning, setStabilityWarning] = useState<StabilityWarning | null>(null);
+  const [isLoadingStability, setIsLoadingStability] = useState(false);
 
   // 用於取消請求的 AbortController
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -142,6 +170,67 @@ export function useOpenPosition(): UseOpenPositionReturn {
   }, []);
 
   /**
+   * 獲取資金費率穩定性
+   * @param symbol 交易對
+   * @param longExchange 做多交易所
+   * @param shortExchange 做空交易所
+   */
+  const fetchStability = useCallback(
+    async (symbol: string, longExchange: string, shortExchange: string) => {
+      setIsLoadingStability(true);
+      setStabilityWarning(null);
+
+      try {
+        const params = new URLSearchParams({
+          symbol,
+          longExchange,
+          shortExchange,
+        });
+
+        const response = await fetch(`/api/funding-rate-stability?${params}`);
+        const data = await response.json();
+
+        if (data.success && data.data) {
+          const result = data.data;
+          setStabilityWarning({
+            hasWarning: result.hasUnstableExchange,
+            combinedWarning: result.combinedWarning,
+            longExchange: result.longExchange
+              ? {
+                  exchange: result.longExchange.exchange,
+                  isStable: result.longExchange.isStable,
+                  flipCount: result.longExchange.flipCount,
+                  warning: result.longExchange.warning,
+                  supported: result.longExchange.supported,
+                }
+              : null,
+            shortExchange: result.shortExchange
+              ? {
+                  exchange: result.shortExchange.exchange,
+                  isStable: result.shortExchange.isStable,
+                  flipCount: result.shortExchange.flipCount,
+                  warning: result.shortExchange.warning,
+                  supported: result.shortExchange.supported,
+                }
+              : null,
+          });
+        } else {
+          console.warn('[useOpenPosition] Failed to fetch stability:', data.error);
+          // 查詢失敗不阻止開倉，只是不顯示警告
+          setStabilityWarning(null);
+        }
+      } catch (err) {
+        console.error('[useOpenPosition] Error fetching stability:', err);
+        // 錯誤不阻止開倉
+        setStabilityWarning(null);
+      } finally {
+        setIsLoadingStability(false);
+      }
+    },
+    []
+  );
+
+  /**
    * 打開開倉對話框
    */
   const openDialog = useCallback((rate: MarketRate) => {
@@ -151,15 +240,18 @@ export function useOpenPosition(): UseOpenPositionReturn {
     setIsLockConflict(false);
     setRequiresManualIntervention(false);
     setRollbackFailedDetails(null);
+    setStabilityWarning(null);
 
-    // 從 bestPair 中提取交易所並獲取餘額
+    // 從 bestPair 中提取交易所並獲取餘額和穩定性
     if (rate.bestPair) {
       const exchanges = [rate.bestPair.longExchange, rate.bestPair.shortExchange];
       fetchBalances(exchanges);
+      // 同時查詢費率穩定性
+      fetchStability(rate.symbol, rate.bestPair.longExchange, rate.bestPair.shortExchange);
     } else {
       console.warn('[useOpenPosition] No bestPair available for rate:', rate.symbol);
     }
-  }, [fetchBalances]);
+  }, [fetchBalances, fetchStability]);
 
   /**
    * 關閉開倉對話框
@@ -464,5 +556,8 @@ export function useOpenPosition(): UseOpenPositionReturn {
     clearRollbackFailed,
     currentGroup,
     totalGroups,
+    // 資金費率穩定性檢測功能
+    stabilityWarning,
+    isLoadingStability,
   };
 }

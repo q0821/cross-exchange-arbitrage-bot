@@ -1,0 +1,169 @@
+openapi: 3.0.3
+info:
+  title: Position Exit Monitor API
+  description: Feature 067 - 持倉平倉建議監控 API
+  version: 1.0.0
+
+paths:
+  /api/settings/trading:
+    get:
+      summary: 獲取用戶交易設定
+      description: 返回用戶的交易設定，包含平倉建議相關設定
+      tags:
+        - Trading Settings
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingSettingsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      summary: 更新用戶交易設定
+      description: 更新用戶的交易設定
+      tags:
+        - Trading Settings
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTradingSettingsRequest'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TradingSettingsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+
+  schemas:
+    TradingSettingsResponse:
+      type: object
+      required:
+        - defaultStopLossEnabled
+        - defaultStopLossPercent
+        - defaultTakeProfitEnabled
+        - defaultTakeProfitPercent
+        - defaultLeverage
+        - maxPositionSizeUSD
+        - exitSuggestionEnabled
+        - exitSuggestionThreshold
+        - exitNotificationEnabled
+      properties:
+        defaultStopLossEnabled:
+          type: boolean
+          description: 預設啟用停損
+        defaultStopLossPercent:
+          type: number
+          format: float
+          description: 預設停損百分比
+        defaultTakeProfitEnabled:
+          type: boolean
+          description: 預設啟用停利
+        defaultTakeProfitPercent:
+          type: number
+          format: float
+          description: 預設停利百分比
+        defaultLeverage:
+          type: integer
+          description: 預設槓桿
+        maxPositionSizeUSD:
+          type: number
+          format: float
+          description: 最大持倉金額（USD）
+        # Feature 067 新增欄位
+        exitSuggestionEnabled:
+          type: boolean
+          description: 是否啟用平倉建議功能
+          example: true
+        exitSuggestionThreshold:
+          type: number
+          format: float
+          description: APY 閾值（%），低於此值時觸發條件 B
+          example: 100.0
+        exitNotificationEnabled:
+          type: boolean
+          description: 是否啟用 Discord/Slack 平倉建議通知
+          example: true
+
+    UpdateTradingSettingsRequest:
+      type: object
+      properties:
+        defaultStopLossEnabled:
+          type: boolean
+        defaultStopLossPercent:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 50
+        defaultTakeProfitEnabled:
+          type: boolean
+        defaultTakeProfitPercent:
+          type: number
+          format: float
+          minimum: 0.5
+          maximum: 100
+        defaultLeverage:
+          type: integer
+          minimum: 1
+          maximum: 10
+        maxPositionSizeUSD:
+          type: number
+          format: float
+          minimum: 100
+          maximum: 100000
+        # Feature 067 新增欄位
+        exitSuggestionEnabled:
+          type: boolean
+          description: 是否啟用平倉建議功能
+        exitSuggestionThreshold:
+          type: number
+          format: float
+          description: APY 閾值（%）
+          minimum: 0
+          maximum: 500
+        exitNotificationEnabled:
+          type: boolean
+          description: 是否啟用 Discord/Slack 平倉建議通知
+
+  responses:
+    Unauthorized:
+      description: 未授權
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Unauthorized
+
+    BadRequest:
+      description: 請求參數錯誤
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: Invalid request parameters

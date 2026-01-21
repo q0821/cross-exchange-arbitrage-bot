@@ -9,12 +9,14 @@ import type {
   TriggerNotificationMessage,
   EmergencyNotificationMessage,
 } from './types';
+import type { ExitSuggestionMessage } from '@/services/monitor/types';
 import {
   generateExchangeUrl,
   generateOpenPositionUrl,
   formatPriceSmart,
   formatTime,
   formatProfitInfo,
+  formatExitSuggestionMessage,
 } from './utils';
 
 /**
@@ -626,6 +628,56 @@ export class SlackNotifier implements INotifier {
         return { title: '雙邊觸發', emoji: '⚡' };
       default:
         return { title: '觸發', emoji: '📢' };
+    }
+  }
+
+  // ===== Feature 067: 平倉建議通知 =====
+
+  /**
+   * Feature 067: 發送平倉建議通知
+   */
+  async sendExitSuggestionNotification(
+    webhookUrl: string,
+    message: ExitSuggestionMessage
+  ): Promise<NotificationResult> {
+    const timestamp = new Date();
+
+    try {
+      const text = formatExitSuggestionMessage(message);
+
+      await axios.post(
+        webhookUrl,
+        { text },
+        { timeout: this.timeout }
+      );
+
+      logger.info(
+        {
+          symbol: message.symbol,
+          reason: message.reason,
+          currentAPY: message.currentAPY,
+        },
+        '[Feature 067] Slack exit suggestion notification sent successfully'
+      );
+
+      return {
+        webhookId: '',
+        success: true,
+        timestamp,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error(
+        { error: errorMessage },
+        '[Feature 067] Failed to send Slack exit suggestion notification'
+      );
+
+      return {
+        webhookId: '',
+        success: false,
+        error: errorMessage,
+        timestamp,
+      };
     }
   }
 }

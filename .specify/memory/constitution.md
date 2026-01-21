@@ -1,343 +1,507 @@
-<!--
-Sync Impact Report - Constitution v1.3.0
-Created: 2025-10-19
-Last Updated: 2026-01-11
+# 跨交易所套利機器人開發準則
 
-Changes in v1.3.0:
-- Enhanced Principle IV: Data Integrity - Migration File Mandate (NON-NEGOTIABLE)
-  - schema.prisma 變更 MUST 同時產生 migration 檔案
-  - Migration 檔案 MUST 與 schema 變更一起 commit
-  - PR/Code Review MUST 拒絕沒有 migration 的 schema 變更
-  - 新增 Migration Workflow 強制流程
-- Root cause: Feature 061 部署後登入失敗，因 migration 檔案遺漏
-- Templates requiring updates:
-  ✅ plan-template.md - no changes needed (already has Constitution Check)
-  ✅ spec-template.md - no changes needed
-  ✅ tasks-template.md - no changes needed
-- Follow-up TODOs: None
+> **版本**：1.4.0 ｜ **生效日期**：2025-10-19 ｜ **最後修訂**：2026-01-21
 
-Changes in v1.2.0:
-- Added Principle VII: Test-Driven Development (TDD) Discipline (NON-NEGOTIABLE)
-  - Mandates strict Red-Green-Refactor cycle
-  - Prohibits writing production code without tests first
-  - Requires test failure verification before implementation
-  - Establishes TDD execution flow for all implementations
-- Templates requiring updates:
-  ✅ plan-template.md - already has Constitution Check section
-  ✅ spec-template.md - no changes needed
-  ✅ tasks-template.md - already mentions "tests MUST be written and FAIL before implementation"
-- Follow-up TODOs: None
+---
 
-Changes in v1.1.0:
-- Added Principle VI: System Architecture Boundaries
-  - Defines CLI vs Web responsibility separation
-  - Establishes data flow pattern (CLI → DB → Web)
-  - Enforces single source of truth (Database)
-  - Prevents security issues (API keys only in CLI)
-- Templates requiring updates:
-  ✅ plan-template.md - no changes needed (architecture boundaries are feature-specific)
-  ✅ spec-template.md - no changes needed (specs should follow Principle VI)
-  ✅ tasks-template.md - no changes needed (tasks should respect boundaries)
-- Follow-up TODOs: None
+## 目錄
 
-Changes in v1.0.0 (Initial):
-- Initial constitution established (from template)
-- Added 5 core principles for trading platform
-- Added Trading Safety section
-- Added Development Workflow section
--->
+1. [核心原則](#核心原則)
+   - [安全性原則](#安全性原則)
+   - [開發原則](#開發原則)
+   - [品質原則](#品質原則)
+2. [交易安全規範](#交易安全規範)
+3. [開發工作流程](#開發工作流程)
+4. [治理與修訂](#治理與修訂)
+5. [附錄：版本變更記錄](#附錄版本變更記錄)
 
-# Cross-Exchange Arbitrage Bot Constitution
+---
 
-## Core Principles
+## 核心原則
 
-### I. Trading Safety First (NON-NEGOTIABLE)
+本專案遵循七大核心原則，依性質分為三類：**安全性原則**、**開發原則**、**品質原則**。標註「不可妥協」者為強制性要求，任何情況下均不得違反。
 
-**MUST** requirements for any code that executes real trades or manages positions:
+---
 
-- All trade execution MUST implement transaction compensation (Saga pattern or equivalent)
-- Dual-exchange operations MUST be atomic or have automatic rollback on single-side failure
-- Balance validation MUST occur before any order placement
-- Position state MUST be persisted before execution and updated atomically after completion
-- No trade execution without explicit user confirmation (manual mode) or validated trigger conditions (auto mode)
+### 安全性原則
 
-**Rationale**: This platform manages real funds. A single bug in trade execution can result in unhedged exposure or capital loss. Safety mechanisms are not optional.
+#### 原則一：交易安全優先（不可妥協）
 
-### II. Complete Observability (NON-NEGOTIABLE)
+本平台管理真實資金，交易執行的任何錯誤都可能導致未對沖曝險或資金損失。安全機制絕非可選項。
 
-**MUST** requirements for logging and monitoring:
+**強制要求**：
 
-- All critical operations (trades, position changes, API calls) MUST be logged with structured context
-- Error logs MUST include: error type, exchange name, symbol, timestamp, stack trace, and remediation hint
-- Trade lifecycle MUST be fully traceable: opportunity detection → execution → settlement → P&L
-- Performance metrics MUST be captured: API latency, execution time, funding rate update frequency
-- Use Pino structured logging exclusively (no console.log in production code)
+| 項目 | 說明 |
+|------|------|
+| 交易補償機制 | 所有交易執行必須實作 Saga Pattern 或同等補償機制 |
+| 原子性操作 | 雙交易所操作必須為原子性，單邊失敗時自動回滾 |
+| 餘額驗證 | 下單前必須驗證帳戶餘額 |
+| 狀態持久化 | 執行前持久化倉位狀態，完成後原子性更新 |
+| 執行確認 | 手動模式需用戶確認；自動模式需通過觸發條件驗證 |
 
-**Rationale**: When trades fail or unexpected behavior occurs, we need complete audit trails for debugging and compliance.
+---
 
-### III. Defensive Programming
+#### 原則二：完整可觀測性（不可妥協）
 
-**MUST** requirements for error handling and resilience:
+當交易失敗或出現意外行為時，需要完整的稽核軌跡用於除錯和合規。
 
-- All external API calls MUST have retry logic with exponential backoff
-- Network errors, rate limits, and timeouts MUST be handled gracefully
-- WebSocket disconnections MUST trigger automatic reconnection
-- Invalid data from exchanges MUST be rejected with validation errors (use Zod schemas)
-- System MUST degrade gracefully: if one exchange is down, continue monitoring the other
+**強制要求**：
 
-**SHOULD** guidelines:
+| 項目 | 說明 |
+|------|------|
+| 結構化日誌 | 所有關鍵操作（交易、倉位變更、API 呼叫）必須記錄 |
+| 錯誤資訊 | 必須包含：錯誤類型、交易所、交易對、時間戳、堆疊追蹤、修復建議 |
+| 交易追溯 | 完整記錄：機會偵測 → 執行 → 結算 → 損益 |
+| 效能指標 | 擷取 API 延遲、執行時間、資金費率更新頻率 |
+| 日誌規範 | 僅使用 Pino 結構化日誌，正式環境禁止 `console.log` |
 
-- Prefer fail-fast for configuration errors (startup validation)
-- Prefer fail-safe for runtime errors (log and continue monitoring)
+---
 
-**Rationale**: Exchanges have variable reliability. The system must operate continuously even when individual services fail.
+#### 原則三：防禦性程式設計
 
-### IV. Data Integrity (NON-NEGOTIABLE)
+交易所的可靠性不穩定，系統必須在個別服務故障時持續運作。
 
-**MUST** requirements for data management:
+**強制要求**：
 
-- Database schema changes MUST use Prisma migrations (no manual schema edits)
-- Time-series data (funding rates) MUST use TimescaleDB hypertables for efficient queries
-- Funding rate records MUST be immutable once created (append-only)
-- Position records MUST capture state transitions (PENDING → OPEN → CLOSED)
-- Financial calculations MUST use `Decimal` type (never JavaScript `Number` for money)
+- ✅ 所有外部 API 呼叫必須具備指數退避（Exponential Backoff）重試邏輯
+- ✅ 必須優雅處理網路錯誤、速率限制、逾時
+- ✅ WebSocket 斷線必須觸發自動重連
+- ✅ 使用 Zod Schema 驗證並拒絕來自交易所的無效資料
+- ✅ 單一交易所故障時，系統必須優雅降級並繼續監控其他交易所
 
-**Migration File Mandate** (NON-NEGOTIABLE):
+**建議做法**：
 
-- Every `schema.prisma` modification MUST be accompanied by a migration file
-- Migration files MUST be generated using `npx prisma migrate dev --name <descriptive-name>`
-- Migration files MUST be committed together with schema changes in the same commit
-- Pull requests with schema changes but without migration files MUST be rejected
-- Code review MUST verify migration file existence for any `schema.prisma` diff
+- 設定錯誤：快速失敗（啟動時驗證）
+- 執行時錯誤：安全失敗（記錄並繼續監控）
 
-**Migration Workflow** (MUST follow):
+#### 物件創建模式（建議遵循）
+
+為避免大量反覆修改或遺漏，共用資源的物件創建應遵循 Singleton + Factory 模式。
+
+**適用 Singleton 模式的場景**：
+
+| 類型 | 說明 | 原因 |
+|------|------|------|
+| Exchange Connectors | 交易所連接器 | 避免重複建立連線、統一管理 API 限速 |
+| Database Client | 資料庫客戶端 | 連線池管理、避免資源耗盡 |
+| Logger Instance | 日誌實例 | 統一日誌格式與輸出 |
+| Configuration Manager | 設定管理器 | 確保設定一致性 |
+| WebSocket Manager | WebSocket 管理器 | 避免重複訂閱、統一重連邏輯 |
+
+**Factory 模式建議**：
+
+- ✅ 所有 Singleton 物件應透過 Factory 創建
+- ✅ Factory 應集中放置於 `src/lib/factories/`
+- ✅ 業務邏輯中避免直接 `new` 共用資源類別
+- ✅ Factory 應處理初始化邏輯和依賴注入
+
+**範例結構**：
+
+```typescript
+// src/lib/factories/connectorFactory.ts
+export class ConnectorFactory {
+  private static instances: Map<string, ExchangeConnector> = new Map();
+  
+  static getConnector(exchange: ExchangeName): ExchangeConnector {
+    if (!this.instances.has(exchange)) {
+      this.instances.set(exchange, this.createConnector(exchange));
+    }
+    return this.instances.get(exchange)!;
+  }
+  
+  private static createConnector(exchange: ExchangeName): ExchangeConnector {
+    // 集中管理創建邏輯，變更時只需改此處
+  }
+}
+
+// 使用方式
+const binance = ConnectorFactory.getConnector('binance');
+const okx = ConnectorFactory.getConnector('okx');
+```
+
+**應避免的做法**：
+
+- ❌ 在 Service 層直接 `new BinanceConnector()`
+- ❌ 多處重複初始化相同資源
+- ❌ 繞過 Factory 直接存取 Singleton
+
+**不適用的場景**：
+
+- 短生命週期的物件（如 DTO、Request/Response）
+- 需要多實例的物件（如個別交易訂單）
+- 無狀態的工具類別（可直接使用靜態方法）
+
+---
+
+### 開發原則
+
+#### 原則四：資料完整性（不可妥協）
+
+Migration 檔案是程式碼與資料庫之間的契約。沒有它們，部署將失敗，正式環境系統將崩潰。
+
+> ⚠️ **事件教訓**：Feature 061（2026-01-11）因遺漏 Migration 導致正式環境完全無法登入。
+
+**強制要求**：
+
+| 項目 | 說明 |
+|------|------|
+| Schema 變更 | 必須使用 Prisma Migrations，禁止手動編輯 |
+| 時間序列資料 | 資金費率必須使用 TimescaleDB Hypertables |
+| 資料不可變性 | 資金費率記錄建立後禁止修改（僅允許新增） |
+| 狀態轉換 | 倉位記錄必須捕捉：`PENDING → OPEN → CLOSED` |
+| 財務計算 | 必須使用 `Decimal` 類型，禁止對金額使用 JavaScript `Number` |
+
+**Migration 強制規範**：
+
+- ✅ 每次 `schema.prisma` 修改必須附帶 Migration 檔案
+- ✅ 使用 `npx prisma migrate dev --name <描述性名稱>` 產生
+- ✅ Migration 檔案必須與 Schema 變更在同一個 Commit 提交
+- ✅ Code Review 必須驗證 Migration 檔案存在
+- ❌ 禁止提交 Schema 變更但不含 Migration 檔案的 PR
+
+**Migration 工作流程**：
 
 ```bash
-# 1. Modify schema.prisma
-# 2. Generate migration (REQUIRED - not optional)
+# 步驟 1：修改 schema.prisma
+
+# 步驟 2：產生 Migration（必要，非可選）
 npx prisma migrate dev --name <feature-name>
 
-# 3. Verify migration file created in prisma/migrations/
-# 4. Commit BOTH schema.prisma AND migration file together
+# 步驟 3：確認 Migration 檔案已建立
+ls prisma/migrations/
+
+# 步驟 4：同時提交 Schema 和 Migration
 git add prisma/schema.prisma prisma/migrations/<timestamp>_<name>/
-git commit -m "feat: <description>"
+git commit -m "feat: <描述>"
 ```
 
-**Migration Prohibitions**:
+**禁止事項**：
 
-- ❌ Committing schema.prisma changes without migration files
-- ❌ Using `prisma db push` in production or for permanent changes
-- ❌ Manually editing migration SQL files after generation (regenerate instead)
-- ❌ Skipping migration generation "because it's a small change"
-- ❌ Assuming deployment will "figure it out" - it won't
+- ❌ 提交 Schema 變更但不含 Migration 檔案
+- ❌ 在正式環境使用 `prisma db push`
+- ❌ 手動編輯已產生的 Migration SQL（應重新產生）
+- ❌ 以「只是小改動」為由跳過 Migration
+- ❌ 假設部署會「自己搞定」
 
-**Rationale**: Migration files are the contract between code and database. Without them, deployments will fail and production systems will break. Feature 061 incident (2026-01-11) demonstrated that missing migrations cause complete authentication failures in production.
+---
 
-### V. Incremental Delivery
+#### 原則五：漸進式交付
 
-**MUST** requirements for development workflow:
+交易平台需要徹底驗證，未經適當測試就急於上線會危及資金。
 
-- MVP scope: User Story 1 (monitoring) + User Story 2 (detection) MUST be completed before trading features
-- Each User Story MUST be independently testable before integration
-- Trading features (US3-US5) MUST be tested in testnet/sandbox environments before mainnet
-- No feature deployment without successful end-to-end testing in test environment
+**強制要求**：
 
-**Rationale**: Trading platforms require thorough validation. Rushing to production without proper testing risks capital.
+- ✅ MVP 範圍：User Story 1（監控）+ User Story 2（偵測）必須在交易功能前完成
+- ✅ 每個 User Story 必須可獨立測試後再整合
+- ✅ 交易功能（US3-US5）必須先在測試網環境測試，再上主網
+- ✅ 未通過端對端測試，不得部署功能
 
-### VI. System Architecture Boundaries
+---
 
-**MUST** requirements for CLI vs Web separation:
+#### 原則六：系統架構邊界
 
-- **CLI Responsibilities**:
-  - Background monitoring (funding rates, prices, arbitrage opportunities)
-  - Data collection and calculation (validation, assessment, metrics)
-  - Writing results to database (opportunities, validations, price data)
-  - Logging and error tracking
-  - NO complex UI display (simple status logs only)
+清晰的職責分離防止複雜度蔓延。CLI 專注於可靠的資料收集，Web 專注於用戶體驗。資料庫作為兩者之間的契約。
 
-- **Web Responsibilities**:
-  - Query database for display (arbitrage opportunities, historical data)
-  - Real-time updates via WebSocket (price tickers, funding rate changes)
-  - User interactions (manual trading, configuration)
-  - Data visualization (charts, tables, dashboards)
-  - NO business logic or calculations (read-only data consumption)
+**職責劃分**：
 
-**Data Flow Pattern**:
+| 層級 | 職責 | 禁止事項 |
+|------|------|----------|
+| **CLI** | 背景監控、資料收集與計算、寫入資料庫、日誌記錄 | 禁止複雜 UI 顯示 |
+| **Web** | 查詢資料庫、即時更新、用戶互動、資料視覺化 | 禁止業務邏輯或計算 |
+| **Database** | 唯一真實來源（Single Source of Truth） | — |
+
+**資料流架構**：
 
 ```
-CLI Monitor → Database (Single Source of Truth) → Web API → Web UI
-     ↓                      ↑                          ↓
-  Connectors          Prisma ORM                 WebSocket Server
-     ↓                      ↑                          ↓
-Exchange APIs         TimescaleDB                 React Client
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│ CLI Monitor │ ──▶ │  Database   │ ──▶ │   Web API   │ ──▶ │   Web UI    │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+       │                   │                   │                   │
+       ▼                   ▼                   ▼                   ▼
+   Connectors         Prisma ORM         WebSocket Server    React Client
+       │                   │                   
+       ▼                   ▼                   
+  Exchange APIs       TimescaleDB         
 ```
 
-**MUST** requirements for data flow:
+**強制要求**：
 
-- CLI MUST write all calculated results to database (no direct CLI-to-Web communication)
-- Web MUST read from database only (no direct exchange API calls from Web)
-- WebSocket updates MUST be triggered by database changes or scheduled polling
-- Database is the single source of truth for all application state
-- API keys and credentials MUST only exist in CLI environment (never exposed to Web)
+- ✅ CLI 必須將所有計算結果寫入資料庫（禁止 CLI 與 Web 直接通訊）
+- ✅ Web 必須僅從資料庫讀取（禁止從 Web 直接呼叫交易所 API）
+- ✅ WebSocket 更新必須由資料庫變更或排程輪詢觸發
+- ✅ API 金鑰和憑證僅存在於 CLI 環境（永不暴露給 Web）
 
-**SHOULD** guidelines:
+**建議做法**：
 
-- Prefer database triggers or event emitters for real-time Web updates
-- Prefer REST API for historical data queries
-- Prefer WebSocket for live price/rate streaming
-- Cache frequently accessed data in Web backend (with TTL)
+- 即時更新：使用資料庫觸發器或事件發射器
+- 歷史資料：使用 REST API 查詢
+- 即時串流：使用 WebSocket
+- 高頻存取：在 Web 後端快取（設定 TTL）
 
-**Rationale**: Clear separation of concerns prevents complexity creep. CLI focuses on reliable data collection, Web focuses on user experience. Database acts as the contract between both systems, enabling independent development and scaling.
+---
 
-### VII. Test-Driven Development (TDD) Discipline (NON-NEGOTIABLE)
+### 品質原則
 
-**MUST** requirements for all implementation work:
+#### 原則七：測試驅動開發 TDD（不可妥協）
 
-- All production code MUST be written using strict TDD workflow
-- Tests MUST be written BEFORE any production code
-- Tests MUST be run and verified to FAIL before implementing production code
-- Only the minimum code necessary to pass the test MUST be written
-- Refactoring MUST only occur after tests pass (never during Red or Green phases)
+TDD 確保程式碼品質、防止回歸錯誤，並強制深思熟慮的 API 設計。在交易系統中，TDD 是安全機制而非可選項。
 
-**TDD Execution Flow** (MUST follow in order):
+**強制要求**：
 
-1. **Red Phase - Write Failing Test First**
-   - Write a single test case for the expected behavior
-   - Run the test and verify it FAILS
-   - The test failure message MUST clearly indicate what is missing
-   - DO NOT proceed to Green phase until test failure is verified
+- ✅ 所有正式程式碼必須使用嚴格的 TDD 工作流程
+- ✅ 測試必須在任何正式程式碼之前編寫
+- ✅ 測試必須執行並驗證**失敗**，才能實作正式程式碼
+- ✅ 僅編寫使測試通過所需的最少程式碼
+- ✅ 重構僅在測試通過後進行
 
-2. **Green Phase - Minimal Implementation**
-   - Write the MINIMUM code to make the test pass
-   - DO NOT add extra functionality, optimizations, or "nice-to-haves"
-   - Run the test and verify it PASSES
-   - DO NOT proceed to Refactor phase until test passes
+**TDD 三階段循環**：
 
-3. **Refactor Phase - Improve Code Quality**
-   - Improve code structure, naming, and clarity
-   - Run ALL tests after each refactoring step
-   - If any test fails, revert the refactoring change
-   - Only proceed to next test cycle when all tests pass
+| 階段 | 名稱 | 動作 | 完成條件 |
+|------|------|------|----------|
+| 1️⃣ | **Red** | 編寫單一測試案例 | 測試執行並**失敗** |
+| 2️⃣ | **Green** | 編寫最少程式碼 | 測試執行並**通過** |
+| 3️⃣ | **Refactor** | 改善程式碼品質 | 所有測試仍**通過** |
 
-**TDD Prohibitions**:
+**階段詳細說明**：
 
-- ❌ Writing production code without a failing test first
-- ❌ Writing more than one failing test at a time
-- ❌ Writing more code than necessary to pass the current test
-- ❌ Skipping the Red phase ("I know this will work")
-- ❌ Skipping the Refactor phase due to time pressure
-- ❌ Mocking everything - prefer integration tests where feasible
+**Red 階段 — 先寫失敗的測試**
+- 為預期行為編寫單一測試案例
+- 執行測試並驗證它失敗
+- 測試失敗訊息必須清楚指出缺少什麼
+- 未驗證測試失敗，不得進入 Green 階段
 
-**SHOULD** guidelines:
+**Green 階段 — 最小實作**
+- 編寫最少程式碼使測試通過
+- 不得添加額外功能、優化或「有了更好」的東西
+- 測試未通過，不得進入 Refactor 階段
 
-- Prefer small, focused tests over large, complex ones
-- Prefer testing behavior over implementation details
-- Prefer real dependencies over mocks when performance allows
-- Name tests using Given-When-Then or Arrange-Act-Assert patterns
+**Refactor 階段 — 改善程式碼品質**
+- 改善程式碼結構、命名和清晰度
+- 每次重構後執行所有測試
+- 若任何測試失敗，還原重構變更
 
-**Rationale**: TDD ensures code quality, prevents regression bugs, and forces thoughtful API design. In a trading system where bugs can cause financial losses, TDD discipline is not optional - it is a safety mechanism. Writing tests first guarantees that every piece of production code has corresponding test coverage.
+**禁止事項**：
 
-## Trading Safety Requirements
+- ❌ 沒有先寫失敗的測試就編寫正式程式碼
+- ❌ 同時編寫超過一個失敗的測試
+- ❌ 編寫超過當前測試通過所需的程式碼
+- ❌ 跳過 Red 階段（「我知道這會有效」）
+- ❌ 因時間壓力跳過 Refactor 階段
+- ❌ 過度使用 Mock（可行時偏好整合測試）
 
-### Position Management
+**建議做法**：
 
-- **Maximum Position Size**: Single position MUST NOT exceed user-configured limit (default: 10,000 USDT)
-- **Total Exposure Limit**: Sum of all open positions MUST NOT exceed user-configured cap
-- **Stop-Loss Enforcement**: All positions MUST have stop-loss triggers to prevent unlimited losses
-- **Slippage Protection**: Orders MUST be rejected if expected slippage exceeds threshold (default: 0.5%)
+- 偏好小型、專注的測試
+- 測試行為而非實作細節
+- 效能允許時偏好真實依賴
+- 使用 Given-When-Then 或 Arrange-Act-Assert 命名模式
 
-### Risk Controls
+---
 
-- **Pre-Trade Validation Checklist**:
-  1. Sufficient balance on both exchanges
-  2. Position size within limits
-  3. Funding rate spread still valid (not expired)
-  4. Market liquidity sufficient (check order book depth)
+## 交易安全規範
 
-- **Post-Trade Validation**:
-  1. Both orders filled successfully
-  2. Actual execution prices within expected range
-  3. Position records created in database
-  4. Margin requirements satisfied
+### 倉位管理
 
-### Emergency Procedures
+| 項目 | 規則 | 預設值 |
+|------|------|--------|
+| 單一倉位上限 | 單一倉位不得超過用戶設定限制 | 10,000 USDT |
+| 總曝險上限 | 所有未平倉部位總和不得超過上限 | 用戶設定 |
+| 止損強制執行 | 所有倉位必須設定止損觸發 | — |
+| 滑點保護 | 預期滑點超過閾值時拒絕訂單 | 0.5% |
 
-- **Manual Override**: CLI commands MUST allow emergency position closure regardless of strategy rules
-- **Circuit Breaker**: System MUST pause auto-trading if error rate exceeds threshold (default: 3 failures in 5 minutes)
-- **Notification Escalation**: Critical errors MUST trigger immediate Telegram alerts
+### 風險控制
 
-## Development Workflow
+**交易前驗證清單**：
 
-### Code Organization
+- [ ] 雙交易所餘額充足
+- [ ] 倉位大小在限制內
+- [ ] 資金費率價差仍有效（未過期）
+- [ ] 市場流動性充足（檢查訂單簿深度）
 
-- **Directory Structure**: Follow plan.md specification
-  - Core business logic: `src/services/`
-  - Exchange adapters: `src/connectors/`
-  - Data models: `src/models/`
-  - Utilities: `src/lib/`
+**交易後驗證清單**：
 
-- **Naming Conventions**:
-  - Files: camelCase (e.g., `fundingRateMonitor.ts`)
-  - Classes: PascalCase (e.g., `class FundingRateMonitor`)
-  - Constants: UPPER_SNAKE_CASE (e.g., `MAX_RETRY_ATTEMPTS`)
+- [ ] 雙方訂單成功成交
+- [ ] 實際執行價格在預期範圍內
+- [ ] 倉位記錄已建立於資料庫
+- [ ] 保證金要求已滿足
 
-### Testing Requirements
+### 緊急程序
 
-- **Unit Tests**: MUST cover all business logic in `src/services/`
-- **Integration Tests**: MUST test exchange connector interactions with mocked APIs
-- **E2E Tests**: MUST validate complete trade flows in testnet
-- **Coverage Target**: 85% minimum (enforced by CI)
+| 機制 | 說明 | 預設值 |
+|------|------|--------|
+| 手動覆蓋 | CLI 指令允許緊急平倉，不受策略規則限制 | — |
+| 熔斷機制 | 錯誤率超過閾值時暫停自動交易 | 5 分鐘內 3 次失敗 |
+| 通知升級 | 嚴重錯誤觸發即時 Telegram 警報 | — |
 
-### Quality Gates
+---
 
-Before merging to main branch:
+## 開發工作流程
 
-1. ✅ All tests passing
-2. ✅ No TypeScript errors
-3. ✅ ESLint checks passing
-4. ✅ Build succeeds
-5. ✅ Constitution compliance verified
-6. ✅ Migration files present for schema changes (Principle IV)
+### 程式碼組織
 
-### Configuration Management
+**目錄結構**：
 
-- **Environment-Specific Config**:
-  - Development: `.env` (not committed)
-  - Production: Environment variables or secret management
+```
+src/
+├── services/      # 核心業務邏輯
+├── connectors/    # 交易所適配器
+├── models/        # 資料模型
+└── lib/           # 工具函式
+```
 
-- **Sensitive Data**:
-  - API keys MUST NEVER be committed to git
-  - Use `.env.example` for documentation
+**命名慣例**：
 
-- **Feature Flags**:
-  - Auto-trading MUST be disabled by default
-  - Testnet mode MUST be explicitly configurable
+| 類型 | 慣例 | 範例 |
+|------|------|------|
+| 檔案 | camelCase | `fundingRateMonitor.ts` |
+| 類別 | PascalCase | `class FundingRateMonitor` |
+| 常數 | UPPER_SNAKE_CASE | `MAX_RETRY_ATTEMPTS` |
 
-## Governance
+### 測試要求
 
-### Amendment Process
+| 類型 | 範圍 | 說明 |
+|------|------|------|
+| 單元測試 | `src/services/` | 涵蓋所有業務邏輯 |
+| 整合測試 | `src/connectors/` | 以模擬 API 測試交易所連接器 |
+| 端對端測試 | 完整流程 | 在測試網驗證交易流程 |
+| 覆蓋率目標 | 全專案 | 最低 85%（CI 強制執行） |
 
-1. Propose change via GitHub issue with rationale
-2. Discuss impact on existing code and workflows
-3. Update constitution with semantic version bump:
-   - **MAJOR**: Backward-incompatible principle changes (e.g., removing safety requirement)
-   - **MINOR**: New principle added or existing principle expanded
-   - **PATCH**: Clarifications, typo fixes, non-semantic updates
-4. Update dependent templates and documentation
-5. Commit with message: `docs: amend constitution to v[X.Y.Z] ([change summary])`
+### 品質關卡
 
-### Compliance Verification
+合併至 `main` 分支前，必須通過以下檢查：
 
-- All code reviews MUST verify adherence to Core Principles
-- Pull requests touching trade execution MUST be reviewed by 2+ developers
-- Constitution violations MUST be justified in writing or code must be revised
-- Complexity additions (new patterns, abstractions) MUST be justified against Principle V (Incremental Delivery)
-- Schema changes MUST include migration files (Principle IV enforcement)
+- [ ] 所有測試通過
+- [ ] 無 TypeScript 錯誤
+- [ ] ESLint 檢查通過
+- [ ] 建置成功
+- [ ] Constitution 合規性已驗證
+- [ ] Schema 變更包含 Migration 檔案
 
-### Living Document
+### 設定管理
 
-- This constitution evolves with the project
-- Principles should be challenged if they block necessary improvements
-- But convenience is not sufficient justification for weakening safety (Principle I)
+**環境設定**：
 
-**Version**: 1.3.0 | **Ratified**: 2025-10-19 | **Last Amended**: 2026-01-11
+| 環境 | 設定方式 |
+|------|----------|
+| 開發環境 | `.env`（不提交至版本控制） |
+| 正式環境 | 環境變數或密鑰管理服務 |
+
+**敏感資料規範**：
+
+- ✅ 使用 `.env.example` 作為文件說明
+- ❌ API 金鑰絕不提交至 Git
+
+**功能開關**：
+
+- 自動交易：預設停用
+- 測試網模式：必須可明確設定
+
+---
+
+## 治理與修訂
+
+### 修訂流程
+
+1. 透過 GitHub Issue 提出變更並說明理由
+2. 討論對現有程式碼和工作流程的影響
+3. 以語意化版本更新 Constitution
+4. 更新相依的範本和文件
+5. 提交訊息格式：`docs: amend constitution to v[X.Y.Z] ([變更摘要])`
+
+**版本號規則**：
+
+| 類型 | 說明 | 範例 |
+|------|------|------|
+| MAJOR | 不相容的原則變更 | 移除安全要求 |
+| MINOR | 新增或擴展原則 | 新增 TDD 原則 |
+| PATCH | 澄清、錯字修正 | 文字調整 |
+
+### 合規性驗證
+
+- ✅ 所有 Code Review 必須驗證是否遵守核心原則
+- ✅ 涉及交易執行的 PR 必須由 2 位以上開發者審查
+- ✅ Schema 變更必須包含 Migration 檔案
+- ✅ 新增複雜度必須根據原則五說明理由
+- ❌ Constitution 違規必須書面說明理由，否則必須修改程式碼
+
+### 活文件聲明
+
+- 本 Constitution 隨專案演進
+- 若原則阻礙必要改進，應提出挑戰
+- 但便利性不足以作為弱化安全性的理由
+
+---
+
+## 附錄：版本變更記錄
+
+### v1.4.0（2026-01-21）
+
+**變更內容**：
+- 擴展原則三：防禦性程式設計 — 新增「物件創建模式」建議
+
+**新增規範**：
+- 建議共用資源採用 Singleton + Factory 模式
+- 明確列出適用場景（Connectors、DB Client、Logger 等）
+- 提供 Factory 範例結構與使用方式
+
+**強制程度**：
+- 定位為 SHOULD（建議），保留彈性
+
+**範本更新狀態**：
+- ✅ `plan-template.md` — 無需變更
+- ✅ `spec-template.md` — 無需變更
+- ✅ `tasks-template.md` — 無需變更
+
+---
+
+### v1.3.0（2026-01-11）
+
+**變更內容**：
+- 強化原則四：資料完整性 — 新增 Migration 檔案強制規範
+
+**根本原因**：
+- Feature 061 部署後登入失敗，因 Migration 檔案遺漏
+
+**範本更新狀態**：
+- ✅ `plan-template.md` — 無需變更
+- ✅ `spec-template.md` — 無需變更
+- ✅ `tasks-template.md` — 無需變更
+
+---
+
+### v1.2.0
+
+**變更內容**：
+- 新增原則七：測試驅動開發（TDD）紀律
+
+**新增規範**：
+- 強制 Red-Green-Refactor 循環
+- 禁止在沒有測試的情況下編寫正式程式碼
+- 要求在實作前驗證測試失敗
+
+---
+
+### v1.1.0
+
+**變更內容**：
+- 新增原則六：系統架構邊界
+
+**新增規範**：
+- 定義 CLI vs Web 職責分離
+- 建立資料流模式
+- 強制資料庫為唯一真實來源
+- 防止安全問題（API 金鑰僅在 CLI）
+
+---
+
+### v1.0.0（2025-10-19）
+
+**變更內容**：
+- 初始版本建立
+- 新增 5 項核心原則
+- 新增交易安全章節
+- 新增開發工作流程章節
+
+---
+
+*文件結束*

@@ -37,8 +37,10 @@ export interface MonitorStatus {
 
 // T041: Singleton instance - 使用 globalThis 避免 Next.js hot reload 問題
 declare global {
-   
+  // eslint-disable-next-line no-var
   var conditionalOrderMonitor: ConditionalOrderMonitor | undefined;
+  // eslint-disable-next-line no-var
+  var __signalHandlersRegistered: boolean | undefined;
 }
 
 // 使用 globalThis 確保在 Next.js 開發環境中只有一個實例
@@ -149,8 +151,16 @@ export async function gracefulShutdown(): Promise<void> {
  * T043: 設置信號處理器
  *
  * 註冊 SIGINT 和 SIGTERM 信號處理，實現優雅關閉
+ * 使用 globalThis 標記防止 hot reload 時重複註冊
  */
 export function setupSignalHandlers(): void {
+  // 防止重複註冊
+  if (globalThis.__signalHandlersRegistered) {
+    logger.debug({}, 'Signal handlers already registered, skipping');
+    return;
+  }
+  globalThis.__signalHandlersRegistered = true;
+
   // SIGINT (Ctrl+C)
   process.on('SIGINT', async () => {
     logger.info({}, 'Received SIGINT signal');

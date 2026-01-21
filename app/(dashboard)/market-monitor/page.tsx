@@ -79,6 +79,9 @@ export default function MarketMonitorPage() {
     // Feature 060: 分單開倉進度
     currentGroup,
     totalGroups,
+    // 資金費率穩定性檢測功能
+    stabilityWarning,
+    isLoadingStability,
   } = useOpenPosition();
 
   // Feature 038: 交易設定（停損停利預設值）
@@ -359,6 +362,8 @@ export default function MarketMonitorPage() {
         } : undefined}
         currentGroup={currentGroup}
         totalGroups={totalGroups}
+        stabilityWarning={stabilityWarning}
+        isLoadingStability={isLoadingStability}
       />
 
       {/* 交易對詳情對話框 */}

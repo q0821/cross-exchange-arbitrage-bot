@@ -81,3 +81,4 @@ playwright/.cache/
 b2e-dev.md
 f2e-dev.md
 code-review.md
+.claude/settings.local.json

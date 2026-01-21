@@ -44,6 +44,7 @@ export type PositionAvgAggregateOutputType = {
   takeProfitPercent: runtime.Decimal | null
   longTakeProfitPrice: runtime.Decimal | null
   shortTakeProfitPrice: runtime.Decimal | null
+  cachedFundingPnL: runtime.Decimal | null
 }
 
 export type PositionSumAggregateOutputType = {
@@ -64,6 +65,7 @@ export type PositionSumAggregateOutputType = {
   takeProfitPercent: runtime.Decimal | null
   longTakeProfitPrice: runtime.Decimal | null
   shortTakeProfitPrice: runtime.Decimal | null
+  cachedFundingPnL: runtime.Decimal | null
 }
 
 export type PositionMinAggregateOutputType = {
@@ -108,6 +110,11 @@ export type PositionMinAggregateOutputType = {
   conditionalOrderStatus: $Enums.ConditionalOrderStatus | null
   conditionalOrderError: string | null
   closeReason: $Enums.CloseReason | null
+  cachedFundingPnL: runtime.Decimal | null
+  cachedFundingPnLUpdatedAt: Date | null
+  exitSuggested: boolean | null
+  exitSuggestedAt: Date | null
+  exitSuggestedReason: string | null
 }
 
 export type PositionMaxAggregateOutputType = {
@@ -152,6 +159,11 @@ export type PositionMaxAggregateOutputType = {
   conditionalOrderStatus: $Enums.ConditionalOrderStatus | null
   conditionalOrderError: string | null
   closeReason: $Enums.CloseReason | null
+  cachedFundingPnL: runtime.Decimal | null
+  cachedFundingPnLUpdatedAt: Date | null
+  exitSuggested: boolean | null
+  exitSuggestedAt: Date | null
+  exitSuggestedReason: string | null
 }
 
 export type PositionCountAggregateOutputType = {
@@ -196,6 +208,11 @@ export type PositionCountAggregateOutputType = {
   conditionalOrderStatus: number
   conditionalOrderError: number
   closeReason: number
+  cachedFundingPnL: number
+  cachedFundingPnLUpdatedAt: number
+  exitSuggested: number
+  exitSuggestedAt: number
+  exitSuggestedReason: number
   _all: number
 }
 
@@ -218,6 +235,7 @@ export type PositionAvgAggregateInputType = {
   takeProfitPercent?: true
   longTakeProfitPrice?: true
   shortTakeProfitPrice?: true
+  cachedFundingPnL?: true
 }
 
 export type PositionSumAggregateInputType = {
@@ -238,6 +256,7 @@ export type PositionSumAggregateInputType = {
   takeProfitPercent?: true
   longTakeProfitPrice?: true
   shortTakeProfitPrice?: true
+  cachedFundingPnL?: true
 }
 
 export type PositionMinAggregateInputType = {
@@ -282,6 +301,11 @@ export type PositionMinAggregateInputType = {
   conditionalOrderStatus?: true
   conditionalOrderError?: true
   closeReason?: true
+  cachedFundingPnL?: true
+  cachedFundingPnLUpdatedAt?: true
+  exitSuggested?: true
+  exitSuggestedAt?: true
+  exitSuggestedReason?: true
 }
 
 export type PositionMaxAggregateInputType = {
@@ -326,6 +350,11 @@ export type PositionMaxAggregateInputType = {
   conditionalOrderStatus?: true
   conditionalOrderError?: true
   closeReason?: true
+  cachedFundingPnL?: true
+  cachedFundingPnLUpdatedAt?: true
+  exitSuggested?: true
+  exitSuggestedAt?: true
+  exitSuggestedReason?: true
 }
 
 export type PositionCountAggregateInputType = {
@@ -370,6 +399,11 @@ export type PositionCountAggregateInputType = {
   conditionalOrderStatus?: true
   conditionalOrderError?: true
   closeReason?: true
+  cachedFundingPnL?: true
+  cachedFundingPnLUpdatedAt?: true
+  exitSuggested?: true
+  exitSuggestedAt?: true
+  exitSuggestedReason?: true
   _all?: true
 }
 
@@ -501,6 +535,11 @@ export type PositionGroupByOutputType = {
   conditionalOrderStatus: $Enums.ConditionalOrderStatus
   conditionalOrderError: string | null
   closeReason: $Enums.CloseReason | null
+  cachedFundingPnL: runtime.Decimal | null
+  cachedFundingPnLUpdatedAt: Date | null
+  exitSuggested: boolean
+  exitSuggestedAt: Date | null
+  exitSuggestedReason: string | null
   _count: PositionCountAggregateOutputType | null
   _avg: PositionAvgAggregateOutputType | null
   _sum: PositionSumAggregateOutputType | null
@@ -568,6 +607,11 @@ export type PositionWhereInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFilter<"Position"> | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.StringNullableFilter<"Position"> | string | null
   closeReason?: Prisma.EnumCloseReasonNullableFilter<"Position"> | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.DecimalNullableFilter<"Position"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
+  exitSuggested?: Prisma.BoolFilter<"Position"> | boolean
+  exitSuggestedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
+  exitSuggestedReason?: Prisma.StringNullableFilter<"Position"> | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   trade?: Prisma.XOR<Prisma.TradeNullableScalarRelationFilter, Prisma.TradeWhereInput> | null
 }
@@ -614,6 +658,11 @@ export type PositionOrderByWithRelationInput = {
   conditionalOrderStatus?: Prisma.SortOrder
   conditionalOrderError?: Prisma.SortOrderInput | Prisma.SortOrder
   closeReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  cachedFundingPnL?: Prisma.SortOrderInput | Prisma.SortOrder
+  cachedFundingPnLUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  exitSuggested?: Prisma.SortOrder
+  exitSuggestedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  exitSuggestedReason?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   trade?: Prisma.TradeOrderByWithRelationInput
 }
@@ -663,6 +712,11 @@ export type PositionWhereUniqueInput = Prisma.AtLeast<{
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFilter<"Position"> | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.StringNullableFilter<"Position"> | string | null
   closeReason?: Prisma.EnumCloseReasonNullableFilter<"Position"> | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.DecimalNullableFilter<"Position"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
+  exitSuggested?: Prisma.BoolFilter<"Position"> | boolean
+  exitSuggestedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
+  exitSuggestedReason?: Prisma.StringNullableFilter<"Position"> | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   trade?: Prisma.XOR<Prisma.TradeNullableScalarRelationFilter, Prisma.TradeWhereInput> | null
 }, "id">
@@ -709,6 +763,11 @@ export type PositionOrderByWithAggregationInput = {
   conditionalOrderStatus?: Prisma.SortOrder
   conditionalOrderError?: Prisma.SortOrderInput | Prisma.SortOrder
   closeReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  cachedFundingPnL?: Prisma.SortOrderInput | Prisma.SortOrder
+  cachedFundingPnLUpdatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  exitSuggested?: Prisma.SortOrder
+  exitSuggestedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  exitSuggestedReason?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.PositionCountOrderByAggregateInput
   _avg?: Prisma.PositionAvgOrderByAggregateInput
   _max?: Prisma.PositionMaxOrderByAggregateInput
@@ -761,6 +820,11 @@ export type PositionScalarWhereWithAggregatesInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusWithAggregatesFilter<"Position"> | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.StringNullableWithAggregatesFilter<"Position"> | string | null
   closeReason?: Prisma.EnumCloseReasonNullableWithAggregatesFilter<"Position"> | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.DecimalNullableWithAggregatesFilter<"Position"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Position"> | Date | string | null
+  exitSuggested?: Prisma.BoolWithAggregatesFilter<"Position"> | boolean
+  exitSuggestedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Position"> | Date | string | null
+  exitSuggestedReason?: Prisma.StringNullableWithAggregatesFilter<"Position"> | string | null
 }
 
 export type PositionCreateInput = {
@@ -804,6 +868,11 @@ export type PositionCreateInput = {
   conditionalOrderStatus?: $Enums.ConditionalOrderStatus
   conditionalOrderError?: string | null
   closeReason?: $Enums.CloseReason | null
+  cachedFundingPnL?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Date | string | null
+  exitSuggested?: boolean
+  exitSuggestedAt?: Date | string | null
+  exitSuggestedReason?: string | null
   user: Prisma.UserCreateNestedOneWithoutPositionsInput
   trade?: Prisma.TradeCreateNestedOneWithoutPositionInput
 }
@@ -850,6 +919,11 @@ export type PositionUncheckedCreateInput = {
   conditionalOrderStatus?: $Enums.ConditionalOrderStatus
   conditionalOrderError?: string | null
   closeReason?: $Enums.CloseReason | null
+  cachedFundingPnL?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Date | string | null
+  exitSuggested?: boolean
+  exitSuggestedAt?: Date | string | null
+  exitSuggestedReason?: string | null
   trade?: Prisma.TradeUncheckedCreateNestedOneWithoutPositionInput
 }
 
@@ -894,6 +968,11 @@ export type PositionUpdateInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutPositionsNestedInput
   trade?: Prisma.TradeUpdateOneWithoutPositionNestedInput
 }
@@ -940,6 +1019,11 @@ export type PositionUncheckedUpdateInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trade?: Prisma.TradeUncheckedUpdateOneWithoutPositionNestedInput
 }
 
@@ -985,6 +1069,11 @@ export type PositionCreateManyInput = {
   conditionalOrderStatus?: $Enums.ConditionalOrderStatus
   conditionalOrderError?: string | null
   closeReason?: $Enums.CloseReason | null
+  cachedFundingPnL?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Date | string | null
+  exitSuggested?: boolean
+  exitSuggestedAt?: Date | string | null
+  exitSuggestedReason?: string | null
 }
 
 export type PositionUpdateManyMutationInput = {
@@ -1028,6 +1117,11 @@ export type PositionUpdateManyMutationInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type PositionUncheckedUpdateManyInput = {
@@ -1072,6 +1166,11 @@ export type PositionUncheckedUpdateManyInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type PositionListRelationFilter = {
@@ -1126,6 +1225,11 @@ export type PositionCountOrderByAggregateInput = {
   conditionalOrderStatus?: Prisma.SortOrder
   conditionalOrderError?: Prisma.SortOrder
   closeReason?: Prisma.SortOrder
+  cachedFundingPnL?: Prisma.SortOrder
+  cachedFundingPnLUpdatedAt?: Prisma.SortOrder
+  exitSuggested?: Prisma.SortOrder
+  exitSuggestedAt?: Prisma.SortOrder
+  exitSuggestedReason?: Prisma.SortOrder
 }
 
 export type PositionAvgOrderByAggregateInput = {
@@ -1146,6 +1250,7 @@ export type PositionAvgOrderByAggregateInput = {
   takeProfitPercent?: Prisma.SortOrder
   longTakeProfitPrice?: Prisma.SortOrder
   shortTakeProfitPrice?: Prisma.SortOrder
+  cachedFundingPnL?: Prisma.SortOrder
 }
 
 export type PositionMaxOrderByAggregateInput = {
@@ -1190,6 +1295,11 @@ export type PositionMaxOrderByAggregateInput = {
   conditionalOrderStatus?: Prisma.SortOrder
   conditionalOrderError?: Prisma.SortOrder
   closeReason?: Prisma.SortOrder
+  cachedFundingPnL?: Prisma.SortOrder
+  cachedFundingPnLUpdatedAt?: Prisma.SortOrder
+  exitSuggested?: Prisma.SortOrder
+  exitSuggestedAt?: Prisma.SortOrder
+  exitSuggestedReason?: Prisma.SortOrder
 }
 
 export type PositionMinOrderByAggregateInput = {
@@ -1234,6 +1344,11 @@ export type PositionMinOrderByAggregateInput = {
   conditionalOrderStatus?: Prisma.SortOrder
   conditionalOrderError?: Prisma.SortOrder
   closeReason?: Prisma.SortOrder
+  cachedFundingPnL?: Prisma.SortOrder
+  cachedFundingPnLUpdatedAt?: Prisma.SortOrder
+  exitSuggested?: Prisma.SortOrder
+  exitSuggestedAt?: Prisma.SortOrder
+  exitSuggestedReason?: Prisma.SortOrder
 }
 
 export type PositionSumOrderByAggregateInput = {
@@ -1254,6 +1369,7 @@ export type PositionSumOrderByAggregateInput = {
   takeProfitPercent?: Prisma.SortOrder
   longTakeProfitPrice?: Prisma.SortOrder
   shortTakeProfitPrice?: Prisma.SortOrder
+  cachedFundingPnL?: Prisma.SortOrder
 }
 
 export type PositionScalarRelationFilter = {
@@ -1370,6 +1486,11 @@ export type PositionCreateWithoutUserInput = {
   conditionalOrderStatus?: $Enums.ConditionalOrderStatus
   conditionalOrderError?: string | null
   closeReason?: $Enums.CloseReason | null
+  cachedFundingPnL?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Date | string | null
+  exitSuggested?: boolean
+  exitSuggestedAt?: Date | string | null
+  exitSuggestedReason?: string | null
   trade?: Prisma.TradeCreateNestedOneWithoutPositionInput
 }
 
@@ -1414,6 +1535,11 @@ export type PositionUncheckedCreateWithoutUserInput = {
   conditionalOrderStatus?: $Enums.ConditionalOrderStatus
   conditionalOrderError?: string | null
   closeReason?: $Enums.CloseReason | null
+  cachedFundingPnL?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Date | string | null
+  exitSuggested?: boolean
+  exitSuggestedAt?: Date | string | null
+  exitSuggestedReason?: string | null
   trade?: Prisma.TradeUncheckedCreateNestedOneWithoutPositionInput
 }
 
@@ -1488,6 +1614,11 @@ export type PositionScalarWhereInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFilter<"Position"> | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.StringNullableFilter<"Position"> | string | null
   closeReason?: Prisma.EnumCloseReasonNullableFilter<"Position"> | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.DecimalNullableFilter<"Position"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
+  exitSuggested?: Prisma.BoolFilter<"Position"> | boolean
+  exitSuggestedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
+  exitSuggestedReason?: Prisma.StringNullableFilter<"Position"> | string | null
 }
 
 export type PositionCreateWithoutTradeInput = {
@@ -1531,6 +1662,11 @@ export type PositionCreateWithoutTradeInput = {
   conditionalOrderStatus?: $Enums.ConditionalOrderStatus
   conditionalOrderError?: string | null
   closeReason?: $Enums.CloseReason | null
+  cachedFundingPnL?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Date | string | null
+  exitSuggested?: boolean
+  exitSuggestedAt?: Date | string | null
+  exitSuggestedReason?: string | null
   user: Prisma.UserCreateNestedOneWithoutPositionsInput
 }
 
@@ -1576,6 +1712,11 @@ export type PositionUncheckedCreateWithoutTradeInput = {
   conditionalOrderStatus?: $Enums.ConditionalOrderStatus
   conditionalOrderError?: string | null
   closeReason?: $Enums.CloseReason | null
+  cachedFundingPnL?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Date | string | null
+  exitSuggested?: boolean
+  exitSuggestedAt?: Date | string | null
+  exitSuggestedReason?: string | null
 }
 
 export type PositionCreateOrConnectWithoutTradeInput = {
@@ -1635,6 +1776,11 @@ export type PositionUpdateWithoutTradeInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutPositionsNestedInput
 }
 
@@ -1680,6 +1826,11 @@ export type PositionUncheckedUpdateWithoutTradeInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type PositionCreateManyUserInput = {
@@ -1723,6 +1874,11 @@ export type PositionCreateManyUserInput = {
   conditionalOrderStatus?: $Enums.ConditionalOrderStatus
   conditionalOrderError?: string | null
   closeReason?: $Enums.CloseReason | null
+  cachedFundingPnL?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Date | string | null
+  exitSuggested?: boolean
+  exitSuggestedAt?: Date | string | null
+  exitSuggestedReason?: string | null
 }
 
 export type PositionUpdateWithoutUserInput = {
@@ -1766,6 +1922,11 @@ export type PositionUpdateWithoutUserInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trade?: Prisma.TradeUpdateOneWithoutPositionNestedInput
 }
 
@@ -1810,6 +1971,11 @@ export type PositionUncheckedUpdateWithoutUserInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trade?: Prisma.TradeUncheckedUpdateOneWithoutPositionNestedInput
 }
 
@@ -1854,6 +2020,11 @@ export type PositionUncheckedUpdateManyWithoutUserInput = {
   conditionalOrderStatus?: Prisma.EnumConditionalOrderStatusFieldUpdateOperationsInput | $Enums.ConditionalOrderStatus
   conditionalOrderError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   closeReason?: Prisma.NullableEnumCloseReasonFieldUpdateOperationsInput | $Enums.CloseReason | null
+  cachedFundingPnL?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  cachedFundingPnLUpdatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1900,6 +2071,11 @@ export type PositionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   conditionalOrderStatus?: boolean
   conditionalOrderError?: boolean
   closeReason?: boolean
+  cachedFundingPnL?: boolean
+  cachedFundingPnLUpdatedAt?: boolean
+  exitSuggested?: boolean
+  exitSuggestedAt?: boolean
+  exitSuggestedReason?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   trade?: boolean | Prisma.Position$tradeArgs<ExtArgs>
 }, ExtArgs["result"]["position"]>
@@ -1946,6 +2122,11 @@ export type PositionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   conditionalOrderStatus?: boolean
   conditionalOrderError?: boolean
   closeReason?: boolean
+  cachedFundingPnL?: boolean
+  cachedFundingPnLUpdatedAt?: boolean
+  exitSuggested?: boolean
+  exitSuggestedAt?: boolean
+  exitSuggestedReason?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["position"]>
 
@@ -1991,6 +2172,11 @@ export type PositionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   conditionalOrderStatus?: boolean
   conditionalOrderError?: boolean
   closeReason?: boolean
+  cachedFundingPnL?: boolean
+  cachedFundingPnLUpdatedAt?: boolean
+  exitSuggested?: boolean
+  exitSuggestedAt?: boolean
+  exitSuggestedReason?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["position"]>
 
@@ -2036,9 +2222,14 @@ export type PositionSelectScalar = {
   conditionalOrderStatus?: boolean
   conditionalOrderError?: boolean
   closeReason?: boolean
+  cachedFundingPnL?: boolean
+  cachedFundingPnLUpdatedAt?: boolean
+  exitSuggested?: boolean
+  exitSuggestedAt?: boolean
+  exitSuggestedReason?: boolean
 }
 
-export type PositionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "symbol" | "longExchange" | "longOrderId" | "longEntryPrice" | "longPositionSize" | "longLeverage" | "longExitPrice" | "longCloseOrderId" | "shortExchange" | "shortOrderId" | "shortEntryPrice" | "shortPositionSize" | "shortLeverage" | "shortExitPrice" | "shortCloseOrderId" | "status" | "openFundingRateLong" | "openFundingRateShort" | "unrealizedPnL" | "openedAt" | "closedAt" | "failureReason" | "createdAt" | "updatedAt" | "stopLossEnabled" | "stopLossPercent" | "longStopLossPrice" | "longStopLossOrderId" | "shortStopLossPrice" | "shortStopLossOrderId" | "takeProfitEnabled" | "takeProfitPercent" | "longTakeProfitPrice" | "longTakeProfitOrderId" | "shortTakeProfitPrice" | "shortTakeProfitOrderId" | "conditionalOrderStatus" | "conditionalOrderError" | "closeReason", ExtArgs["result"]["position"]>
+export type PositionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "symbol" | "longExchange" | "longOrderId" | "longEntryPrice" | "longPositionSize" | "longLeverage" | "longExitPrice" | "longCloseOrderId" | "shortExchange" | "shortOrderId" | "shortEntryPrice" | "shortPositionSize" | "shortLeverage" | "shortExitPrice" | "shortCloseOrderId" | "status" | "openFundingRateLong" | "openFundingRateShort" | "unrealizedPnL" | "openedAt" | "closedAt" | "failureReason" | "createdAt" | "updatedAt" | "stopLossEnabled" | "stopLossPercent" | "longStopLossPrice" | "longStopLossOrderId" | "shortStopLossPrice" | "shortStopLossOrderId" | "takeProfitEnabled" | "takeProfitPercent" | "longTakeProfitPrice" | "longTakeProfitOrderId" | "shortTakeProfitPrice" | "shortTakeProfitOrderId" | "conditionalOrderStatus" | "conditionalOrderError" | "closeReason" | "cachedFundingPnL" | "cachedFundingPnLUpdatedAt" | "exitSuggested" | "exitSuggestedAt" | "exitSuggestedReason", ExtArgs["result"]["position"]>
 export type PositionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   trade?: boolean | Prisma.Position$tradeArgs<ExtArgs>
@@ -2098,6 +2289,11 @@ export type $PositionPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     conditionalOrderStatus: $Enums.ConditionalOrderStatus
     conditionalOrderError: string | null
     closeReason: $Enums.CloseReason | null
+    cachedFundingPnL: runtime.Decimal | null
+    cachedFundingPnLUpdatedAt: Date | null
+    exitSuggested: boolean
+    exitSuggestedAt: Date | null
+    exitSuggestedReason: string | null
   }, ExtArgs["result"]["position"]>
   composites: {}
 }
@@ -2564,6 +2760,11 @@ export interface PositionFieldRefs {
   readonly conditionalOrderStatus: Prisma.FieldRef<"Position", 'ConditionalOrderStatus'>
   readonly conditionalOrderError: Prisma.FieldRef<"Position", 'String'>
   readonly closeReason: Prisma.FieldRef<"Position", 'CloseReason'>
+  readonly cachedFundingPnL: Prisma.FieldRef<"Position", 'Decimal'>
+  readonly cachedFundingPnLUpdatedAt: Prisma.FieldRef<"Position", 'DateTime'>
+  readonly exitSuggested: Prisma.FieldRef<"Position", 'Boolean'>
+  readonly exitSuggestedAt: Prisma.FieldRef<"Position", 'DateTime'>
+  readonly exitSuggestedReason: Prisma.FieldRef<"Position", 'String'>
 }
     
 

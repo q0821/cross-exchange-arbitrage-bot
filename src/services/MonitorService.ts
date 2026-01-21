@@ -17,6 +17,8 @@ import { ACTIVE_EXCHANGES } from '../lib/exchanges/constants';
 // Feature 065: 套利機會追蹤
 import { ArbitrageOpportunityTracker } from './monitor/ArbitrageOpportunityTracker';
 import { ArbitrageOpportunityRepository } from '../repositories/ArbitrageOpportunityRepository';
+// Feature 067: 持倉平倉建議監控
+import { PositionExitMonitor } from './monitor/PositionExitMonitor';
 
 interface SymbolsConfig {
   groups: {
@@ -29,6 +31,8 @@ interface SymbolsConfig {
 
 let monitorInstance: FundingRateMonitor | null = null;
 let trackerInstance: ArbitrageOpportunityTracker | null = null;
+// Feature 067: 持倉平倉建議監控實例
+let positionExitMonitorInstance: PositionExitMonitor | null = null;
 
 /**
  * 啟動內建的資金費率監控服務
@@ -116,6 +120,17 @@ export async function startMonitorService(): Promise<void> {
     trackerInstance.attach(monitorInstance);
     logger.info('ArbitrageOpportunityTracker initialized and attached');
 
+    // Feature 067: 初始化持倉平倉建議監控器
+    // 只有在環境變數啟用時才初始化（預設關閉，避免影響現有用戶）
+    const enableExitMonitor = process.env.ENABLE_POSITION_EXIT_MONITOR === 'true';
+    if (enableExitMonitor) {
+      positionExitMonitorInstance = new PositionExitMonitor();
+      positionExitMonitorInstance.attach(monitorInstance);
+      logger.info('[Feature 067] PositionExitMonitor initialized and attached');
+    } else {
+      logger.debug('[Feature 067] PositionExitMonitor disabled (set ENABLE_POSITION_EXIT_MONITOR=true to enable)');
+    }
+
     // 啟動記憶體監控（每 1 分鐘記錄一次）
     const memoryMonitorInterval = parseInt(process.env.MEMORY_MONITOR_INTERVAL_MS || '60000', 10);
     startMemoryMonitor(memoryMonitorInterval);
@@ -138,6 +153,13 @@ export async function startMonitorService(): Promise<void> {
 export async function stopMonitorService(): Promise<void> {
   // 停止記憶體監控
   stopMemoryMonitor();
+
+  // Feature 067: 解除持倉平倉建議監控器綁定
+  if (positionExitMonitorInstance) {
+    positionExitMonitorInstance.detach();
+    positionExitMonitorInstance = null;
+    logger.info('[Feature 067] PositionExitMonitor detached');
+  }
 
   // Feature 065: 解除追蹤器綁定
   if (trackerInstance) {

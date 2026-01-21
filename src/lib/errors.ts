@@ -415,25 +415,35 @@ export class ErrorHandler {
 }
 
 // 全域錯誤處理
-process.on('unhandledRejection', (reason: Error | unknown) => {
-  logger.fatal({
-    reason: reason instanceof Error ? reason.message : String(reason),
-    stack: reason instanceof Error ? reason.stack : undefined,
-  }, 'Unhandled Promise Rejection');
+// 使用 globalThis 標記防止 Next.js hot reload 時重複註冊 listeners
+declare global {
+  // eslint-disable-next-line no-var
+  var __errorHandlersRegistered: boolean | undefined;
+}
 
-  if (process.env.NODE_ENV === 'production') {
-    process.exit(1);
-  }
-});
+if (!globalThis.__errorHandlersRegistered) {
+  globalThis.__errorHandlersRegistered = true;
 
-process.on('uncaughtException', (error: Error) => {
-  logger.fatal({
-    message: error.message,
-    stack: error.stack,
-  }, 'Uncaught Exception');
+  process.on('unhandledRejection', (reason: Error | unknown) => {
+    logger.fatal({
+      reason: reason instanceof Error ? reason.message : String(reason),
+      stack: reason instanceof Error ? reason.stack : undefined,
+    }, 'Unhandled Promise Rejection');
 
-  // 給予一些時間讓 logger 完成寫入
-  setTimeout(() => {
-    process.exit(1);
-  }, 1000);
-});
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    }
+  });
+
+  process.on('uncaughtException', (error: Error) => {
+    logger.fatal({
+      message: error.message,
+      stack: error.stack,
+    }, 'Uncaught Exception');
+
+    // 給予一些時間讓 logger 完成寫入
+    setTimeout(() => {
+      process.exit(1);
+    }, 1000);
+  });
+}
