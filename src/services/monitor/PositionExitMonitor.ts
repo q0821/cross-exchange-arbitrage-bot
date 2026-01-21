@@ -253,7 +253,7 @@ export class PositionExitMonitor {
     // 處理結果
     if (result.suggest && !position.exitSuggested) {
       // 新建議：更新 Position 並發送通知
-      await this.emitSuggestion(position, pair, currentAPY, fundingPnL, priceDiffLoss, result.reason!);
+      await this.emitSuggestion(position, pair, currentAPY, fundingPnL, priceDiffLoss, result.reason!, settings);
     } else if (!result.suggest && position.exitSuggested) {
       // 取消建議：APY 回升
       await this.cancelSuggestion(position, currentAPY);
@@ -302,7 +302,8 @@ export class PositionExitMonitor {
     currentAPY: number,
     fundingPnL: Decimal,
     priceDiffLoss: Decimal,
-    reason: ExitSuggestionReason
+    reason: ExitSuggestionReason,
+    settings: { exitNotificationEnabled?: boolean } | null
   ): Promise<void> {
     // 檢查防抖動
     const lastNotified = this.lastNotifiedMap.get(position.id);
@@ -353,20 +354,22 @@ export class PositionExitMonitor {
     // 發送 WebSocket 事件
     positionExitEmitter.emitExitSuggested(position.userId, event);
 
-    // 發送 Discord/Slack 通知
-    await this.sendExitSuggestionNotifications(position.userId, {
-      symbol: position.symbol,
-      positionId: position.id,
-      reason,
-      reasonDescription: this.getReasonDescription(reason),
-      currentAPY,
-      fundingPnL: fundingPnL.toNumber(),
-      priceDiffLoss: priceDiffLoss.toNumber(),
-      netProfit: fundingPnL.minus(priceDiffLoss).toNumber(),
-      longExchange: position.longExchange,
-      shortExchange: position.shortExchange,
-      timestamp: new Date(),
-    });
+    // 發送 Discord/Slack 通知（如果用戶啟用通知）
+    if (settings?.exitNotificationEnabled !== false) {
+      await this.sendExitSuggestionNotifications(position.userId, {
+        symbol: position.symbol,
+        positionId: position.id,
+        reason,
+        reasonDescription: this.getReasonDescription(reason),
+        currentAPY,
+        fundingPnL: fundingPnL.toNumber(),
+        priceDiffLoss: priceDiffLoss.toNumber(),
+        netProfit: fundingPnL.minus(priceDiffLoss).toNumber(),
+        longExchange: position.longExchange,
+        shortExchange: position.shortExchange,
+        timestamp: new Date(),
+      });
+    }
 
     // 更新防抖動記錄
     this.lastNotifiedMap.set(position.id, now);

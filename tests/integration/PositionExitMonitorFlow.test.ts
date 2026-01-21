@@ -56,14 +56,24 @@ vi.mock('@/lib/db', () => ({
           userId: 'user-test-001',
           platform: 'discord',
           webhookUrl: 'https://discord.com/api/webhooks/test',
-          enabled: true,
+          isEnabled: true,
+          name: 'Discord Test',
+          threshold: 800,
+          notifyOnDisappear: true,
+          notificationMinutes: [50],
+          requireFavorablePrice: false,
         },
         {
           id: 'webhook-slack',
           userId: 'user-test-001',
           platform: 'slack',
           webhookUrl: 'https://hooks.slack.com/services/test',
-          enabled: true,
+          isEnabled: true,
+          name: 'Slack Test',
+          threshold: 800,
+          notifyOnDisappear: true,
+          notificationMinutes: [50],
+          requireFavorablePrice: false,
         },
       ]),
     },
@@ -78,19 +88,25 @@ vi.mock('@/services/websocket/PositionExitEmitter', () => ({
 }));
 
 vi.mock('@/services/notification/DiscordNotifier', () => ({
-  DiscordNotifier: vi.fn().mockImplementation(() => ({
-    sendExitSuggestionNotification: mockSendDiscordNotification,
-  })),
+  DiscordNotifier: class MockDiscordNotifier {
+    sendExitSuggestionNotification = mockSendDiscordNotification;
+  },
 }));
 
 vi.mock('@/services/notification/SlackNotifier', () => ({
-  SlackNotifier: vi.fn().mockImplementation(() => ({
-    sendExitSuggestionNotification: mockSendSlackNotification,
-  })),
+  SlackNotifier: class MockSlackNotifier {
+    sendExitSuggestionNotification = mockSendSlackNotification;
+  },
 }));
 
 vi.mock('@/lib/funding-pnl-calculator', () => ({
   getCumulativeFundingPnL: mockGetCumulativeFundingPnL,
+}));
+
+// Mock encryption to avoid decryption errors in tests
+vi.mock('@lib/encryption', () => ({
+  encrypt: (value: string) => value,
+  decrypt: (value: string) => value,
 }));
 
 // Import after mocks
