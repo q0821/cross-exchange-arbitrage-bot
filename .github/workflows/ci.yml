@@ -3,7 +3,7 @@
 # ============================================================================
 #
 # 觸發條件：
-# - Push 到 main 分支
+# - Push 到 main 或 dev 分支
 # - 所有 Pull Request
 #
 # 執行內容：
@@ -18,9 +18,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
 
 # 取消同一 PR 的舊工作流程
 concurrency:

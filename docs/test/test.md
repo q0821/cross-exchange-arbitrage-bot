@@ -1,37 +1,37 @@
 # 測試分析報告
 
-> 最後更新：2026-01-19
+> 最後更新：2026-01-21
 
 ## 統計摘要
 
 ### 最新測試執行結果
 
 ```
-Test Files: 131 passed, 4 skipped (135)
-Tests:      2,244 passed, 35 skipped, 11 todo (2,290)
+Test Files: 134 passed, 4 skipped (138)
+Tests:      2,317 passed, 35 skipped, 11 todo (2,363)
 ```
 
 ### 測試案例數量（Test Cases）
 
 | 測試類型          |   案例數 |   百分比 |
 |:------------------|----------|----------|
-| Unit Tests        |    2,050 |    88.9% |
-| Integration Tests |      162 |     7.0% |
-| Hooks Tests       |       45 |     2.0% |
+| Unit Tests        |    2,123 |    89.0% |
+| Integration Tests |      162 |     6.8% |
+| Hooks Tests       |       45 |     1.9% |
 | E2E Tests         |       23 |     1.0% |
-| Performance Tests |       25 |     1.1% |
-| **總計**          |**2,305** | **100%** |
+| Performance Tests |       25 |     1.0% |
+| **總計**          |**2,378** | **100%** |
 
 ### 測試檔案數量（Test Files）
 
 | 測試類型          |   檔案數 |   百分比 |
 |:------------------|----------|----------|
-| Unit Tests        |       98 |    74.8% |
-| Integration Tests |       20 |    15.3% |
-| Hooks Tests       |        7 |     5.3% |
-| Performance Tests |        4 |     3.1% |
+| Unit Tests        |      101 |    75.4% |
+| Integration Tests |       20 |    14.9% |
+| Hooks Tests       |        7 |     5.2% |
+| Performance Tests |        4 |     3.0% |
 | E2E Tests         |        2 |     1.5% |
-| **總計**          |  **131** | **100%** |
+| **總計**          |  **134** | **100%** |
 
 ### 跳過的測試（35 Skipped）
 
@@ -69,8 +69,8 @@ Tests:      2,244 passed, 35 skipped, 11 todo (2,290)
 
 | 子目錄            | 檔案數 | 案例數 | 說明               |
 |:------------------|--------|--------|:-------------------|
-| `services/`       |     42 |    862 | 核心業務服務邏輯   |
-| `lib/`            |     18 |    470 | 工具函式與輔助模組 |
+| `services/`       |     43 |    871 | 核心業務服務邏輯   |
+| `lib/`            |     20 |    534 | 工具函式與輔助模組 |
 | `formatters/`     |      4 |    105 | 輸出格式化         |
 | `connectors/`     |      8 |    103 | 交易所連接器       |
 | `repositories/`   |      5 |    118 | 資料存取層         |
@@ -85,7 +85,7 @@ Tests:      2,244 passed, 35 skipped, 11 todo (2,290)
 | `prisma/`         |      1 |      9 | 資料庫遷移順序     |
 | `api/`            |      1 |      3 | API 路由           |
 | `components/`     |      1 |     14 | React 元件         |
-| **總計**          | **98** |**2,050**|                   |
+| **總計**          |**101** |**2,123**|                   |
 
 #### Services 子分類
 
@@ -97,6 +97,7 @@ Tests:      2,244 passed, 35 skipped, 11 todo (2,290)
 | `monitor/`          |      2 |
 | `notification/`     |      2 |
 | `websocket/`        |      1 |
+| `assets/`           |      1 |
 
 ---
 
@@ -212,7 +213,7 @@ tests/
 │   └── websocket/
 ├── performance/                  # 效能測試 (4 檔案, 25 案例)
 │   └── trading/                  # 開關倉效能測試
-├── unit/                         # 單元測試 (98 檔案, 2,050 案例)
+├── unit/                         # 單元測試 (101 檔案, 2,123 案例)
 │   ├── adapters/
 │   ├── api/
 │   ├── calculation/
@@ -229,6 +230,7 @@ tests/
 │   ├── repositories/
 │   ├── services/
 │   │   ├── apikey/
+│   │   ├── assets/
 │   │   ├── monitor/
 │   │   ├── notification/
 │   │   ├── trading/adapters/

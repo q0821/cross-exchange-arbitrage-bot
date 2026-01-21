@@ -8,6 +8,33 @@
 
 ### 新增
 
+#### 單元測試擴充 - 核心模組測試覆蓋（2026-01-21）
+
+**背景**：針對測試覆蓋率較低的核心模組新增測試，確保程式碼品質。
+
+**新增測試檔案**：
+
+1. **`tests/unit/lib/ccxt-factory.test.ts`**（25 個測試案例）
+   - CCXT 交易所實例創建工廠函數測試
+   - 覆蓋：Proxy 配置（HTTP/HTTPS/SOCKS）、認證參數傳遞、Binance Portfolio Margin、自訂 options 合併
+   - 驗證 5 個支援的交易所（binance, okx, gateio, mexc, bingx）
+
+2. **`tests/unit/lib/env.test.ts`**（39 個測試案例）
+   - 環境變數與 Proxy 配置函數測試
+   - 覆蓋：`getProxyUrl`, `isProxyConfigured`, `isSocksProxy`, `getCcxtHttpsProxyConfig`, `getCcxtProxyConfig`, `createProxyAgent`, `createProxyAgentSync`
+   - 覆蓋：`isRedisConfigured`, `isSmtpConfigured`, `getRedisUrl`, `getApiKeys`, `env` 物件驗證
+
+3. **`tests/unit/services/assets/UserConnectorFactory.test.ts`**（9 個測試案例）
+   - 用戶連接器工廠 API Key 處理邏輯測試
+   - 覆蓋：API Key 獲取、活躍狀態過濾、解密流程、錯誤隔離（單一交易所錯誤不影響其他）
+
+**測試統計更新**：
+- 單元測試檔案：98 → 101（+3）
+- 單元測試案例：2,050 → 2,123（+73）
+- 總測試案例：2,244 → 2,317（+73）
+
+---
+
 #### Proxy 支援 - 交易所 API 連線代理（2026-01-19）
 
 **背景**：部分交易所 API 需要 IP 白名單，透過 VPS proxy 可確保固定 IP 存取。
