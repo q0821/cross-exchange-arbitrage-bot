@@ -20,11 +20,15 @@ import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { getCumulativeFundingPnL } from '@/lib/funding-pnl-calculator';
 import { positionExitEmitter } from '@/services/websocket/PositionExitEmitter';
+import { NotificationWebhookRepository } from '@/repositories/NotificationWebhookRepository';
+import { DiscordNotifier } from '@/services/notification/DiscordNotifier';
+import { SlackNotifier } from '@/services/notification/SlackNotifier';
 import type { FundingRatePair, ExchangeName } from '@/models/FundingRate';
 import {
   ExitSuggestionReason,
   type ExitSuggestedEvent,
   type ExitCanceledEvent,
+  type ExitSuggestionMessage,
 } from './types';
 
 /**
@@ -69,6 +73,11 @@ export class PositionExitMonitor {
 
   // 防抖動：記錄每個持倉最後通知時間
   private lastNotifiedMap: Map<string, number> = new Map();
+
+  // 通知服務
+  private readonly webhookRepository = new NotificationWebhookRepository(prisma);
+  private readonly discordNotifier = new DiscordNotifier();
+  private readonly slackNotifier = new SlackNotifier();
 
   // 統計資料
   private stats: PositionExitMonitorStats = {
@@ -344,6 +353,21 @@ export class PositionExitMonitor {
     // 發送 WebSocket 事件
     positionExitEmitter.emitExitSuggested(position.userId, event);
 
+    // 發送 Discord/Slack 通知
+    await this.sendExitSuggestionNotifications(position.userId, {
+      symbol: position.symbol,
+      positionId: position.id,
+      reason,
+      reasonDescription: this.getReasonDescription(reason),
+      currentAPY,
+      fundingPnL: fundingPnL.toNumber(),
+      priceDiffLoss: priceDiffLoss.toNumber(),
+      netProfit: fundingPnL.minus(priceDiffLoss).toNumber(),
+      longExchange: position.longExchange,
+      shortExchange: position.shortExchange,
+      timestamp: new Date(),
+    });
+
     // 更新防抖動記錄
     this.lastNotifiedMap.set(position.id, now);
 
@@ -400,6 +424,68 @@ export class PositionExitMonitor {
       },
       '[Feature 067] Exit suggestion canceled'
     );
+  }
+
+  /**
+   * 發送 Discord/Slack 平倉建議通知
+   */
+  private async sendExitSuggestionNotifications(
+    userId: string,
+    message: ExitSuggestionMessage
+  ): Promise<void> {
+    try {
+      // 查詢用戶啟用的 webhooks
+      const webhooks = await this.webhookRepository.findEnabledByUserId(userId);
+
+      if (webhooks.length === 0) {
+        logger.debug(
+          { userId },
+          '[Feature 067] No enabled webhooks found for user'
+        );
+        return;
+      }
+
+      // 並行發送通知到所有 webhooks
+      const results = await Promise.allSettled(
+        webhooks.map(async (webhook) => {
+          if (webhook.platform === 'discord') {
+            return this.discordNotifier.sendExitSuggestionNotification(
+              webhook.webhookUrl,
+              message
+            );
+          } else if (webhook.platform === 'slack') {
+            return this.slackNotifier.sendExitSuggestionNotification(
+              webhook.webhookUrl,
+              message
+            );
+          }
+          return { success: false, error: `Unknown platform: ${webhook.platform}` };
+        })
+      );
+
+      // 記錄發送結果
+      const successCount = results.filter(
+        (r) => r.status === 'fulfilled' && r.value.success
+      ).length;
+      const failCount = results.length - successCount;
+
+      if (failCount > 0) {
+        logger.warn(
+          { userId, successCount, failCount },
+          '[Feature 067] Some exit suggestion notifications failed'
+        );
+      } else {
+        logger.debug(
+          { userId, count: successCount },
+          '[Feature 067] Exit suggestion notifications sent successfully'
+        );
+      }
+    } catch (error) {
+      logger.error(
+        { userId, error },
+        '[Feature 067] Error sending exit suggestion notifications'
+      );
+    }
   }
 
   /**
