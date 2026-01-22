@@ -198,6 +198,25 @@ CREATE INDEX IF NOT EXISTS "my_index" ON "my_table"(...);
 - **範例**：修改 `FundingRateMonitor` 的事件發送邏輯時，需檢查所有監聽該事件的服務（如 Feature 022, 026, 027, 029, 065）是否會受影響
 - **建議**：若影響範圍較大，考慮採用獨立的邏輯（如 Feature 065 的獨立生命週期設計）避免耦合
 
+### 11. CCXT 實例創建規範
+- **禁止**：直接使用 `new ccxt.binance()` 或類似方式創建 CCXT 實例
+- **應該**：使用 `src/lib/ccxt-factory.ts` 的工廠函數創建實例
+- **原因**：確保 proxy 配置自動套用，避免 IP 白名單錯誤（Binance -2015 錯誤）
+- **範例**：
+  ```typescript
+  // ❌ 錯誤 - 可能遺漏 proxy 設定
+  import ccxt from 'ccxt';
+  const exchange = new ccxt.binance({ apiKey, secret });
+
+  // ✅ 正確 - 自動套用 proxy
+  import { createAuthenticatedExchange } from '@/lib/ccxt-factory';
+  const exchange = createAuthenticatedExchange('binance', { apiKey, apiSecret });
+  ```
+- **統一工廠提供的函數**：
+  - `createCcxtExchange()` - 基礎創建函數
+  - `createAuthenticatedExchange()` - 帶認證的實例
+  - `createPublicExchange()` - 公開 API 實例（無需認證）
+
 ## ⚠️ Speckit 工作流程強制要求 (NON-NEGOTIABLE)
 
 ### TDD 與 Constitution 合規性檢查
