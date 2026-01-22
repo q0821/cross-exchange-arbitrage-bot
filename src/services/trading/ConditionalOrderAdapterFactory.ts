@@ -7,9 +7,10 @@
 
 import { PrismaClient } from '@/generated/prisma/client';
 import { createPrismaClient } from '@/lib/prisma-factory';
-import * as ccxt from 'ccxt';
+import type * as ccxt from 'ccxt';
 import { logger } from '../../lib/logger';
 import { decrypt } from '../../lib/encryption';
+import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
 import type { SupportedExchange } from '../../types/trading';
 import type { ConditionalOrderAdapter } from './adapters/ConditionalOrderAdapter';
 import { BinanceConditionalOrderAdapter } from './adapters/BinanceConditionalOrderAdapter';
@@ -71,7 +72,7 @@ export class ConditionalOrderAdapterFactory {
         return this.createOkxAdapter(exchangeOptions);
       case 'gateio':
         return new GateioConditionalOrderAdapter(
-          this.createCcxtExchange('gateio', exchangeOptions),
+          this.createCcxtExchangeInstance('gateio', exchangeOptions),
         );
       case 'mexc':
         return this.createMexcAdapter(exchangeOptions, userId);
@@ -84,8 +85,10 @@ export class ConditionalOrderAdapterFactory {
 
   /**
    * 創建 CCXT 交易所實例
+   *
+   * 使用 @/lib/ccxt-factory 統一工廠確保 proxy 配置自動套用
    */
-  private createCcxtExchange(
+  private createCcxtExchangeInstance(
     exchange: SupportedExchange,
     options: {
       apiKey: string;
@@ -95,20 +98,7 @@ export class ConditionalOrderAdapterFactory {
     },
     portfolioMargin: boolean = false,
   ): ccxt.Exchange {
-    const exchangeMap: Record<SupportedExchange, string> = {
-      binance: 'binance',
-      okx: 'okx',
-      mexc: 'mexc',
-      gateio: 'gateio',
-      bingx: 'bingx',
-    };
-
-    const exchangeId = exchangeMap[exchange];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ExchangeClass = (ccxt as any)[exchangeId];
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config: any = {
+    return createCcxtExchange(exchange as CcxtSupportedExchange, {
       apiKey: options.apiKey,
       secret: options.secret,
       password: options.password,
@@ -117,15 +107,10 @@ export class ConditionalOrderAdapterFactory {
       options: {
         // Binance 使用 'future'，其他交易所使用 'swap'
         defaultType: exchange === 'binance' ? 'future' : 'swap',
+        // Binance Portfolio Margin 需要額外選項
+        ...(exchange === 'binance' && portfolioMargin ? { portfolioMargin: true } : {}),
       },
-    };
-
-    // Binance Portfolio Margin 需要額外選項
-    if (exchange === 'binance' && portfolioMargin) {
-      config.options.portfolioMargin = true;
-    }
-
-    return new ExchangeClass(config);
+    });
   }
 
   /**
@@ -141,7 +126,7 @@ export class ConditionalOrderAdapterFactory {
     userId: string,
   ): Promise<BinanceConditionalOrderAdapter> {
     // 先創建初始 CCXT 實例用於偵測帳戶類型
-    let ccxtExchange = this.createCcxtExchange('binance', options);
+    let ccxtExchange = this.createCcxtExchangeInstance('binance', options);
 
     // 檢測帳戶類型
     const accountType = await this.detectBinanceAccountType(ccxtExchange);
@@ -158,7 +143,7 @@ export class ConditionalOrderAdapterFactory {
     // 如果是 Portfolio Margin，需要重新創建 exchange 實例並啟用 portfolioMargin 選項
     if (accountType.isPortfolioMargin) {
       logger.info('Recreating Binance exchange with Portfolio Margin enabled for conditional orders');
-      ccxtExchange = this.createCcxtExchange('binance', options, true);
+      ccxtExchange = this.createCcxtExchangeInstance('binance', options, true);
     }
 
     return new BinanceConditionalOrderAdapter(ccxtExchange, accountType);
@@ -203,7 +188,7 @@ export class ConditionalOrderAdapterFactory {
     password?: string;
     sandbox: boolean;
   }): Promise<OkxConditionalOrderAdapter> {
-    const ccxtExchange = this.createCcxtExchange('okx', options);
+    const ccxtExchange = this.createCcxtExchangeInstance('okx', options);
 
     // 動態偵測 OKX 帳戶模式
     const positionMode = await detectOkxPositionMode(ccxtExchange);
@@ -230,7 +215,7 @@ export class ConditionalOrderAdapterFactory {
     },
     _userId: string,
   ): Promise<MexcConditionalOrderAdapter> {
-    const ccxtExchange = this.createCcxtExchange('mexc', options);
+    const ccxtExchange = this.createCcxtExchangeInstance('mexc', options);
     // MEXC 默認使用 Hedge Mode
     // TODO: 如果需要，可以使用 _userId 添加帳戶模式檢測
     return new MexcConditionalOrderAdapter(ccxtExchange, { isHedgeMode: true });
@@ -246,7 +231,7 @@ export class ConditionalOrderAdapterFactory {
     password?: string;
     sandbox: boolean;
   }): BingxConditionalOrderAdapter {
-    const ccxtExchange = this.createCcxtExchange('bingx', options);
+    const ccxtExchange = this.createCcxtExchangeInstance('bingx', options);
     // BingX 默認使用 Hedge Mode
     return new BingxConditionalOrderAdapter(ccxtExchange, { isHedgeMode: true });
   }
