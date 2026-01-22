@@ -6,35 +6,6 @@
 
 ## [Unreleased]
 
-### 效能優化
-
-#### OI 獲取效能優化（2026-01-22）
-
-**問題**：`GET /api/symbol-groups` API 回應時間 2-4 秒，嚴重影響前端載入體驗。
-
-**根本原因**：
-- 原本使用 `getBatchOpenInterest()` 逐一請求每個交易對的 OI 資料
-- 200+ 個交易對 = 200+ 次 Binance API 請求（即使有 concurrency limit 也需 2-4 秒）
-
-**修復內容**：
-
-1. **改用 `/fapi/v1/ticker/24hr` 單次請求**
-   - 一次取得所有交易對的 24h 成交量資料
-   - 使用 `quoteVolume`（24h USDT 成交額）作為排序依據
-   - 與 OI 高度相關，排序結果相似
-
-2. **效能改善**
-   | 項目 | 優化前 | 優化後 |
-   |:-----|:-------|:-------|
-   | API 請求數 | 200+ 次 | 1 次 |
-   | 回應時間 | 2-4 秒 | ~0.5 秒 |
-   | 程式碼行數 | 128 行 | 73 行 |
-
-3. **簡化程式碼**
-   - 移除 `p-limit` 依賴
-   - 移除 `getUSDTPerpetualSymbols()`、`getOpenInterestForSymbol()`、`getBatchOpenInterest()` 等函數
-   - 新增 `getAll24hrTickers()` 單一函數
-
 ### 修復
 
 #### Graceful Shutdown 導致 Port 3000 無法釋放（2026-01-22）
