@@ -61,28 +61,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       'Get balances request received',
     );
 
-    // 4. 查詢餘額 (使用 UserConnectorFactory 獲取完整資訊)
+    // 4. 查詢餘額 (使用 UserConnectorFactory，只查詢指定交易所，平行執行)
     const userConnectorFactory = new UserConnectorFactory(prisma);
-    const allBalances = await userConnectorFactory.getBalancesForUser(user.userId);
+    const balanceResults = await userConnectorFactory.getBalancesForUser(user.userId, exchanges);
 
     // 5. 格式化回應 - Feature 056: 區分 available (可用餘額) 和 total (總權益)
-    const balances = exchanges.map((exchange) => {
-      const balanceResult = allBalances.find(
-        (b) => b.exchange.toLowerCase() === exchange.toLowerCase()
-      );
-
-      if (!balanceResult || balanceResult.status !== 'success') {
+    const balances = balanceResults.map((balanceResult) => {
+      if (balanceResult.status !== 'success') {
         return {
-          exchange,
+          exchange: balanceResult.exchange,
           available: 0,
           total: 0,
-          status: (balanceResult?.status || 'api_error') as 'success' | 'no_api_key' | 'api_error' | 'rate_limited',
-          errorMessage: balanceResult?.errorMessage,
+          status: balanceResult.status as 'success' | 'no_api_key' | 'api_error' | 'rate_limited',
+          errorMessage: balanceResult.errorMessage,
         };
       }
 
       return {
-        exchange,
+        exchange: balanceResult.exchange,
         available: balanceResult.availableBalanceUSD ?? 0, // 可用餘額（用於開倉）
         total: balanceResult.balanceUSD ?? 0,              // 總權益（用於資產總覽）
         status: 'success' as const,
