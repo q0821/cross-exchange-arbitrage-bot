@@ -8,6 +8,32 @@
 
 ### 效能優化
 
+#### GET /api/balances 平行查詢優化（2026-01-22）
+
+**問題**：`GET /api/balances?exchanges=gateio,binance` 回應時間長達 30 秒。
+
+**根本原因**：
+- `getBalancesForUser()` 使用 `for...of` 串行查詢所有 5 個交易所
+- 即使只請求 2 個交易所，仍查詢全部 5 個
+- 每個交易所透過 proxy 需要 10-15 秒，串行執行導致時間累加
+
+**修復內容**：
+
+1. **新增 `targetExchanges` 參數**
+   - `getBalancesForUser(userId, targetExchanges?)` 只查詢指定的交易所
+   - API route 傳入請求的 exchanges 參數
+
+2. **改用 `Promise.allSettled` 平行查詢**
+   - 所有交易所同時發送請求
+   - 即使某個交易所失敗也不影響其他查詢
+
+3. **效能改善**
+   | 項目 | 優化前 | 優化後 |
+   |:-----|:-------|:-------|
+   | 查詢方式 | 串行（for...of） | 平行（Promise.allSettled） |
+   | 查詢 2 個交易所 | ~30 秒 | ~15 秒 |
+   | 查詢範圍 | 全部 5 個 | 只查詢指定的 |
+
 #### OI 獲取效能優化（2026-01-22）
 
 **問題**：`GET /api/symbol-groups` API 回應時間 2-4 秒，嚴重影響前端載入體驗。
@@ -36,6 +62,31 @@
    - 新增 `getAll24hrTickers()` 單一函數
 
 ### 修復
+
+#### CcxtExchangeFactory 未使用 Proxy 導致 Binance -2015 錯誤（2026-01-22）
+
+**問題**：`POST /api/positions/open` 開倉時回傳 Binance -2015 "Invalid API-key, IP, or permissions for action" 錯誤。
+
+**根本原因**：
+- `CcxtExchangeFactory.ts` 直接使用 `new ccxt.binance()` 創建實例
+- 未使用 `src/lib/ccxt-factory.ts` 統一工廠
+- 導致 `httpsProxy` 配置未套用，請求從本機 IP 發出而非 proxy IP
+- Binance API 的 IP 白名單只允許 proxy IP
+
+**修復內容**：
+
+1. **修改 `CcxtExchangeFactory.ts`**
+   - 改用 `createCcxtExchange()` 從 `@/lib/ccxt-factory` 創建實例
+   - 自動套用 proxy 配置
+
+2. **更新 `CLAUDE.md` 開發規範**
+   - 新增規範 #11：CCXT 實例創建規範
+   - 禁止直接使用 `new ccxt.exchange()`
+   - 必須使用 `src/lib/ccxt-factory.ts` 工廠函數
+
+**影響範圍**：
+- `GET /api/balances` - 已使用 `UserConnectorFactory`（有 proxy）✅
+- `POST /api/positions/open` - 使用 `CcxtExchangeFactory`（已修復）✅
 
 #### Graceful Shutdown 導致 Port 3000 無法釋放（2026-01-22）
 
