@@ -75,7 +75,6 @@ global.fetch = mockFetch;
 
 import { UserConnectorFactory } from '@/services/assets/UserConnectorFactory';
 import type { PrismaClient } from '@/generated/prisma/client';
-import { getProxyUrl } from '@lib/env';
 
 describe('UserConnectorFactory', () => {
   let factory: UserConnectorFactory;
