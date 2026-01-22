@@ -6,6 +6,57 @@
 
 ## [Unreleased]
 
+### 修復
+
+#### Graceful Shutdown 導致 Port 3000 無法釋放（2026-01-22）
+
+**問題**：`pnpm dev` 停止後 port 3000 經常被佔用無法釋放，需要手動 `kill -9` 才能重新啟動。
+
+**根本原因**：
+- shutdown 缺少超時機制，任何服務卡住會導致永遠等待
+- Redis 和 Prisma 連線未正確關閉
+- `monitor-init.ts` 有重複的 signal handler 與 `server.ts` 衝突
+- `io.close()` 和 `httpServer.close()` 缺少錯誤處理
+
+**修復內容**：
+
+1. **新增 `src/lib/graceful-shutdown.ts` 模組**
+   - 可測試的 shutdown 邏輯，支援依賴注入
+   - `closeWithTimeout()` - Promise 包裝 + 超時機制
+   - `createShutdownHandler()` - 建立 shutdown handler
+   - `registerShutdownHandlers()` - 註冊 SIGINT/SIGTERM handler
+
+2. **修改 `server.ts`**
+   - 使用新的 `graceful-shutdown` 模組
+   - 10 秒整體超時，5 秒單一服務超時
+   - 正確的關閉順序：背景服務 → Redis → Prisma → Socket.io → HTTP Server
+
+3. **修改 `src/lib/monitor-init.ts`**
+   - 移除重複的 `setupSignalHandlers()` 函數
+   - 保留 `gracefulShutdown()` 供外部呼叫
+
+4. **單元測試**
+   - 新增 `tests/unit/lib/graceful-shutdown.test.ts` - 13 個測試案例
+   - 測試內容：超時機制、關閉順序、錯誤處理、並行停止服務
+
+**預期的關閉日誌順序**：
+```
+Shutting down server...
+Stopping background services...
+Background services stopped
+Closing Redis connection...
+Redis client connection closed gracefully
+Closing database connection...
+Database connection closed
+Closing Socket.io server...
+Socket.io server closed
+Closing HTTP server...
+HTTP server closed
+Graceful shutdown completed
+```
+
+---
+
 ### 新增
 
 #### 單元測試擴充 - 核心模組測試覆蓋（2026-01-21）
