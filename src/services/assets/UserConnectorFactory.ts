@@ -134,26 +134,37 @@ export class UserConnectorFactory {
   }
 
   /**
-   * 查詢用戶在所有交易所的餘額
+   * 查詢用戶在指定交易所的餘額（平行查詢）
+   *
+   * @param userId - 用戶 ID
+   * @param targetExchanges - 要查詢的交易所列表（可選，預設查詢所有）
+   * @returns 餘額查詢結果
    */
-  async getBalancesForUser(userId: string): Promise<ExchangeBalanceResult[]> {
-    const results: ExchangeBalanceResult[] = [];
+  async getBalancesForUser(
+    userId: string,
+    targetExchanges?: ExchangeName[]
+  ): Promise<ExchangeBalanceResult[]> {
     const supportedExchanges: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
+    // 如果有指定交易所，只查詢指定的；否則查詢所有
+    const exchangesToQuery = targetExchanges
+      ? targetExchanges.filter((e) => supportedExchanges.includes(e))
+      : supportedExchanges;
+
     const userApiKeys = await this.getUserApiKeys(userId);
 
-    for (const exchange of supportedExchanges) {
+    // 使用 Promise.allSettled 平行查詢所有交易所
+    const promises = exchangesToQuery.map(async (exchange): Promise<ExchangeBalanceResult> => {
       const apiKeyInfo = userApiKeys.find(
         (k) => k.exchange.toLowerCase() === exchange.toLowerCase()
       );
 
       if (!apiKeyInfo) {
-        results.push({
+        return {
           exchange,
           status: 'no_api_key',
           balanceUSD: null,
           availableBalanceUSD: null,
-        });
-        continue;
+        };
       }
 
       try {
@@ -166,26 +177,25 @@ export class UserConnectorFactory {
         );
 
         if (!connector) {
-          results.push({
+          return {
             exchange,
             status: 'no_api_key',
             balanceUSD: null,
             availableBalanceUSD: null,
             errorMessage: 'Connector not implemented',
-          });
-          continue;
+          };
         }
 
         await connector.connect();
         const balance = await connector.getBalance();
         await connector.disconnect();
 
-        results.push({
+        return {
           exchange,
           status: 'success',
           balanceUSD: balance.totalEquityUSD,
           availableBalanceUSD: balance.availableBalanceUSD,
-        });
+        };
       } catch (error) {
         // 提取詳細錯誤資訊
         const errorName = error instanceof Error ? error.name : 'Unknown';
@@ -219,17 +229,38 @@ export class UserConnectorFactory {
           );
         }
 
-        results.push({
+        return {
           exchange,
           status: isRateLimit ? 'rate_limited' : 'api_error',
           balanceUSD: null,
           availableBalanceUSD: null,
           errorMessage: `${errorName}: ${errorMessage}`,
-        });
+        };
       }
-    }
+    });
 
-    return results;
+    const settledResults = await Promise.allSettled(promises);
+
+    // 處理 Promise.allSettled 結果
+    return settledResults.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+      // Promise rejected（理論上不應發生，因為內部已 catch）
+      // index 一定有效，因為 settledResults 和 exchangesToQuery 長度相同
+      const exchange = exchangesToQuery[index]!;
+      logger.error(
+        { exchange, reason: result.reason },
+        'Unexpected promise rejection in getBalancesForUser'
+      );
+      return {
+        exchange,
+        status: 'api_error' as const,
+        balanceUSD: null,
+        availableBalanceUSD: null,
+        errorMessage: String(result.reason),
+      };
+    });
   }
 
   /**
