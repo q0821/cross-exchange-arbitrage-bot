@@ -183,19 +183,8 @@ describe('monitor-init', () => {
       await expect(gracefulShutdown()).resolves.not.toThrow();
     });
 
-    it('should register signal handlers when setupSignalHandlers is called', async () => {
-      const { setupSignalHandlers } = await import('@/lib/monitor-init');
-
-      const processOnSpy = vi.spyOn(process, 'on');
-
-      setupSignalHandlers();
-
-      // Should register both SIGINT and SIGTERM handlers
-      expect(processOnSpy).toHaveBeenCalledWith('SIGINT', expect.any(Function));
-      expect(processOnSpy).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
-
-      processOnSpy.mockRestore();
-    });
+    // 注意：setupSignalHandlers 已移至 graceful-shutdown.ts 中的 registerShutdownHandlers
+    // signal handlers 現在由 server.ts 統一管理，避免重複註冊
   });
 
   // getMonitorStatus
