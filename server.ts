@@ -10,6 +10,13 @@ import {
   stopAssetSnapshotScheduler,
 } from './src/services/assets/AssetSnapshotScheduler';
 import { createPrismaClient } from './src/lib/prisma-factory';
+import { closeRedisClient } from './src/lib/redis';
+import { stopMonitor as stopConditionalOrderMonitor } from './src/lib/monitor-init';
+import {
+  createShutdownHandler,
+  registerShutdownHandlers,
+  type ShutdownServices,
+} from './src/lib/graceful-shutdown';
 
 const prisma = createPrismaClient();
 
@@ -88,24 +95,25 @@ app.prepare().then(() => {
     }
   });
 
-  // 優雅關閉
-  const shutdown = async () => {
-    logger.info('Shutting down server...');
-
-    // 停止背景服務
-    await stopMonitorService();
-    await stopOIRefreshService();
-    await stopAssetSnapshotScheduler();
-
-    io.close(() => {
-      logger.info('Socket.io server closed');
-      httpServer.close(() => {
-        logger.info('HTTP server closed');
-        process.exit(0);
-      });
-    });
+  // 設定 graceful shutdown
+  const shutdownServices: ShutdownServices = {
+    stopMonitorService,
+    stopOIRefreshService,
+    stopAssetSnapshotScheduler,
+    stopConditionalOrderMonitor,
+    closeRedisClient,
   };
 
-  process.on('SIGTERM', shutdown);
-  process.on('SIGINT', shutdown);
+  const shutdown = createShutdownHandler(
+    shutdownServices,
+    { httpServer, io },
+    prisma,
+    {
+      timeout: 10000,        // 整體超時 10 秒
+      serviceTimeout: 5000,  // 單一服務超時 5 秒
+      logger,
+    },
+  );
+
+  registerShutdownHandlers(shutdown);
 });
