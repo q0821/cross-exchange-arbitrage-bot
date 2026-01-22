@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   closeWithTimeout,
   createShutdownHandler,
+  resetShutdownState,
   type ShutdownServices,
 } from '@/lib/graceful-shutdown';
 
@@ -20,6 +21,8 @@ describe('graceful-shutdown', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    // 重置 shutdown 狀態，確保每個測試從乾淨狀態開始
+    resetShutdownState();
   });
 
   afterEach(() => {
@@ -89,9 +92,11 @@ describe('graceful-shutdown', () => {
     const createMockServers = () => ({
       httpServer: {
         close: vi.fn((cb: (err?: Error) => void) => cb()),
+        closeAllConnections: vi.fn(), // Node.js 18.2+ API
       } as unknown as import('http').Server,
       io: {
         close: vi.fn((cb: (err?: Error) => void) => cb()),
+        disconnectSockets: vi.fn(), // Socket.io API 強制斷開所有連線
       } as unknown as import('socket.io').Server,
     });
 
@@ -380,6 +385,50 @@ describe('graceful-shutdown', () => {
       await shutdown();
 
       expect(mockExit).toHaveBeenCalledWith(1);
+    });
+
+    it('應該呼叫 disconnectSockets 和 closeAllConnections', async () => {
+      const services = createMockServices();
+      const servers = createMockServers();
+      const prisma = createMockPrisma();
+      const mockExit = vi.fn();
+
+      const shutdown = createShutdownHandler(services, servers, prisma, {
+        logger: mockLogger as unknown as typeof import('@/lib/logger').logger,
+        exit: mockExit,
+      });
+
+      await shutdown();
+
+      // 應該先斷開所有 Socket.io 連線
+      expect(servers.io.disconnectSockets).toHaveBeenCalledWith(true);
+      // 應該強制關閉所有 HTTP 連線
+      expect(servers.httpServer.closeAllConnections).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+
+    it('應該防止重複執行 shutdown', async () => {
+      const services = createMockServices();
+      const servers = createMockServers();
+      const prisma = createMockPrisma();
+      const mockExit = vi.fn();
+
+      const shutdown = createShutdownHandler(services, servers, prisma, {
+        logger: mockLogger as unknown as typeof import('@/lib/logger').logger,
+        exit: mockExit,
+      });
+
+      // 第一次呼叫
+      await shutdown();
+      expect(mockExit).toHaveBeenCalledWith(0);
+      expect(mockExit).toHaveBeenCalledTimes(1);
+
+      // 第二次呼叫應該被忽略
+      await shutdown();
+      expect(mockExit).toHaveBeenCalledTimes(1); // 仍然只呼叫一次
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Shutdown already in progress, ignoring duplicate signal',
+      );
     });
   });
 });

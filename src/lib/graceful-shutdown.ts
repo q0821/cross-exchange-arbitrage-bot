@@ -5,12 +5,16 @@
  * - 超時強制退出機制
  * - Promise 包裝的 close 函數
  * - 統一的關閉流程
+ * - 強制關閉活躍連線（解決 port 佔用問題）
  */
 
 import type { Server as HttpServer } from 'http';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { PrismaClient } from '@/generated/prisma/client';
 import { logger as defaultLogger } from './logger';
+
+// 防止重複執行 shutdown
+let isShuttingDown = false;
 
 export interface ShutdownServices {
   /** 停止 FundingRateMonitor */
@@ -89,16 +93,22 @@ export function createShutdownHandler(
   } = options;
 
   return async () => {
+    // 防止重複執行（例如快速按兩次 Ctrl+C）
+    if (isShuttingDown) {
+      logger.warn('Shutdown already in progress, ignoring duplicate signal');
+      return;
+    }
+    isShuttingDown = true;
+
     logger.info('Shutting down server...');
 
     // 設定超時強制退出
+    // 注意：不使用 .unref()，確保 timeout 會 hold 住事件循環
+    // 這樣即使有活躍連線，也能在超時後強制退出
     const forceExitTimeout = setTimeout(() => {
       logger.error('Graceful shutdown timeout, forcing exit');
       exit(1);
     }, timeout);
-
-    // 確保 timeout 不會阻止 process 退出
-    forceExitTimeout.unref();
 
     try {
       // 1. 停止所有背景服務（並行）
@@ -136,8 +146,10 @@ export function createShutdownHandler(
       await prisma.$disconnect();
       logger.info('Database connection closed');
 
-      // 4. 關閉 Socket.io
+      // 4. 關閉 Socket.io（先斷開所有連線）
       logger.info('Closing Socket.io server...');
+      // 強制斷開所有 Socket.io 連線
+      servers.io.disconnectSockets(true);
       await closeWithTimeout(
         (cb) => servers.io.close(cb),
         serviceTimeout,
@@ -147,6 +159,9 @@ export function createShutdownHandler(
 
       // 5. 關閉 HTTP Server
       logger.info('Closing HTTP server...');
+      // 強制關閉所有活躍的 TCP 連線（Node.js 18.2+）
+      // 這解決了 keep-alive 連線阻止 server.close() 完成的問題
+      servers.httpServer.closeAllConnections();
       await closeWithTimeout(
         (cb) => servers.httpServer.close(cb),
         serviceTimeout,
@@ -171,4 +186,11 @@ export function createShutdownHandler(
 export function registerShutdownHandlers(shutdownFn: () => Promise<void>): void {
   process.on('SIGTERM', shutdownFn);
   process.on('SIGINT', shutdownFn);
+}
+
+/**
+ * 重置 shutdown 狀態（僅供測試使用）
+ */
+export function resetShutdownState(): void {
+  isShuttingDown = false;
 }
