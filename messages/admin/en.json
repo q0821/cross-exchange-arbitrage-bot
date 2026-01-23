@@ -1,0 +1,306 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "refresh": "Refresh",
+    "noData": "No data available",
+    "actions": "Actions",
+    "status": "Status",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "all": "All",
+    "never": "Never",
+    "na": "N/A"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "trades": "Trades",
+    "settings": "Settings",
+    "logout": "Logout",
+    "loggingOut": "Logging out...",
+    "backToPlatform": "Back to Platform"
+  },
+  "login": {
+    "title": "Admin Login",
+    "subtitle": "Platform Administration Console",
+    "email": "Email",
+    "emailPlaceholder": "admin@example.com",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "submit": "Sign in",
+    "submitting": "Signing in...",
+    "error": {
+      "default": "Login failed",
+      "locked": "Account is locked. Please try again later.",
+      "inactive": "Account is inactive. Please contact the administrator.",
+      "unexpected": "An unexpected error occurred"
+    },
+    "notice": "This is a restricted area. Unauthorized access is prohibited."
+  },
+  "dashboard": {
+    "title": "Platform Overview",
+    "welcome": "Welcome back",
+    "stats": {
+      "totalUsers": "Total Users",
+      "activeUsers": "Active Users",
+      "weekActive": "Week Active",
+      "inactive": "Inactive",
+      "totalPositions": "Total Positions",
+      "totalTrades": "Total Trades",
+      "totalPnl": "Total PnL",
+      "todayTrades": "Today's Trades",
+      "averageRoi": "Average ROI"
+    },
+    "subtitles": {
+      "newToday": "{count} new today",
+      "todayCount": "{count} today",
+      "loggedIn7Days": "Logged in last 7 days"
+    },
+    "charts": {
+      "userGrowth": "User Growth",
+      "tradingVolume": "Trading Volume",
+      "pnlDistribution": "PnL Distribution"
+    },
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions"
+  },
+  "users": {
+    "title": "User Management",
+    "addUser": "Add User",
+    "searchPlaceholder": "Search by name or email...",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "positions": "Positions",
+      "trades": "Trades",
+      "lastLogin": "Last Login",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "locked": "Locked"
+    },
+    "role": {
+      "admin": "Admin",
+      "user": "User"
+    },
+    "detail": {
+      "title": "User Details",
+      "backToUsers": "Back to Users",
+      "basicInfo": "Basic Information",
+      "accountSecurity": "Account Security",
+      "tradingStats": "Trading Statistics",
+      "preferences": "Preferences",
+      "apiKeys": "API Keys",
+      "positions": "Positions",
+      "tradeHistory": "Trade History",
+      "tabs": {
+        "info": "User Info",
+        "positions": "Positions & Trades"
+      },
+      "fields": {
+        "email": "Email",
+        "role": "Role",
+        "created": "Created",
+        "lastLogin": "Last Login",
+        "passwordChanged": "Password Changed",
+        "status": "Status",
+        "failedLoginAttempts": "Failed Login Attempts",
+        "lockedUntil": "Locked Until",
+        "notLocked": "Not locked",
+        "activePositions": "Active Positions",
+        "totalTrades": "Total Trades",
+        "totalPnl": "Total PnL",
+        "timeBasis": "Time Basis",
+        "apiKeyCount": "API Keys"
+      },
+      "statusValues": {
+        "active": "Active",
+        "suspended": "Suspended"
+      }
+    },
+    "actions": {
+      "view": "View Details",
+      "edit": "Edit",
+      "resetPassword": "Reset Password",
+      "resetting": "Resetting...",
+      "suspend": "Suspend",
+      "suspending": "Suspending...",
+      "enable": "Enable",
+      "enabling": "Enabling...",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "promoteToAdmin": "Promote to Admin",
+      "promoting": "Promoting...",
+      "demoteToUser": "Demote to User",
+      "demoting": "Demoting..."
+    },
+    "confirm": {
+      "suspend": "Are you sure you want to suspend this user?",
+      "delete": "Type DELETE to confirm deletion:",
+      "resetPassword": "Are you sure you want to reset this user's password?",
+      "promoteToAdmin": "Are you sure you want to promote this user to admin?",
+      "demoteToUser": "Are you sure you want to demote this admin to regular user?"
+    },
+    "messages": {
+      "newPassword": "New password: {password}\n\nPlease save this password securely.",
+      "promoteSuccess": "User has been promoted to admin",
+      "demoteSuccess": "Admin has been demoted to regular user",
+      "cannotDemoteSelf": "Cannot demote your own account"
+    },
+    "create": {
+      "title": "Create User",
+      "subtitle": "Add a new user to the platform",
+      "nameLabel": "Username",
+      "namePlaceholder": "Enter username",
+      "emailLabel": "Email",
+      "emailPlaceholder": "user@example.com",
+      "roleLabel": "Role",
+      "submit": "Create User",
+      "success": "User created successfully",
+      "passwordGenerated": "A secure password has been generated for",
+      "generatedPasswordTitle": "Generated Password",
+      "savePasswordWarning": "Please save this password securely. It will only be shown once.",
+      "copyToClipboard": "Copy to Clipboard",
+      "createAnother": "Create Another",
+      "viewAllUsers": "View All Users",
+      "autoPasswordNote": "A secure password will be automatically generated for the new user."
+    },
+    "confirmDelete": {
+      "title": "Confirm Delete User",
+      "message": "Type DELETE to confirm deletion. This action cannot be undone.",
+      "placeholder": "Type DELETE",
+      "confirm": "Confirm Delete",
+      "hasPositions": "This user has active positions and cannot be deleted"
+    },
+    "pagination": {
+      "showing": "Showing {from} - {to} of {total}",
+      "prev": "Previous",
+      "next": "Next"
+    }
+  },
+  "positions": {
+    "title": "Positions",
+    "filter": {
+      "all": "All",
+      "open": "Open",
+      "closed": "Closed"
+    },
+    "status": {
+      "OPEN": "Open",
+      "OPENING": "Opening",
+      "CLOSED": "Closed",
+      "CLOSING": "Closing"
+    },
+    "exportCsv": "Export CSV",
+    "exporting": "Exporting...",
+    "retry": "Retry",
+    "noPositions": "No positions found",
+    "pagination": {
+      "page": "Page {page} of {totalPages} ({total} positions)",
+      "prev": "Previous",
+      "next": "Next"
+    },
+    "card": {
+      "long": "Long",
+      "short": "Short",
+      "entry": "Entry",
+      "size": "Size",
+      "leverage": "Leverage",
+      "openFundingRates": "Open Funding Rates",
+      "stopLoss": "Stop Loss",
+      "takeProfit": "Take Profit",
+      "tradeResult": "Trade Result",
+      "pricePnl": "Price PnL",
+      "fundingPnl": "Funding PnL",
+      "totalPnl": "Total PnL",
+      "roi": "ROI",
+      "closedAt": "Closed at",
+      "duration": "{hours}h"
+    },
+    "errors": {
+      "loadFailed": "Failed to load positions",
+      "connectFailed": "Failed to connect to server",
+      "exportFailed": "Failed to export CSV"
+    }
+  },
+  "trades": {
+    "title": "Trade Records",
+    "subtitle": "View all trading history across the platform",
+    "filters": {
+      "user": "User",
+      "symbol": "Symbol",
+      "status": "Status",
+      "dateRange": "Date Range",
+      "pnlRange": "PnL Range",
+      "sortBy": "Sort By",
+      "order": "Order",
+      "date": "Date",
+      "pnl": "PnL",
+      "desc": "Desc",
+      "asc": "Asc"
+    },
+    "placeholder": {
+      "symbol": "e.g. BTCUSDT"
+    },
+    "table": {
+      "id": "Trade ID",
+      "user": "User",
+      "symbol": "Symbol",
+      "side": "Side",
+      "quantity": "Quantity",
+      "entryPrice": "Entry Price",
+      "exitPrice": "Exit Price",
+      "pnl": "PnL",
+      "pnlPercent": "PnL %",
+      "openTime": "Open Time",
+      "closeTime": "Close Time",
+      "duration": "Duration",
+      "exchanges": "Exchanges",
+      "roi": "ROI"
+    },
+    "side": {
+      "long": "Long",
+      "short": "Short"
+    },
+    "export": {
+      "csv": "Export CSV",
+      "excel": "Export Excel"
+    },
+    "summary": {
+      "totalTrades": "Total Trades",
+      "winRate": "Win Rate",
+      "totalPnl": "Total PnL",
+      "avgPnl": "Average PnL"
+    },
+    "pagination": {
+      "page": "Page {page} of {totalPages} ({total} trades)",
+      "prev": "Previous",
+      "next": "Next"
+    }
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light Mode",
+    "dark": "Dark Mode",
+    "system": "System"
+  },
+  "language": {
+    "toggle": "Switch language",
+    "zhTW": "繁體中文",
+    "en": "English"
+  }
+}

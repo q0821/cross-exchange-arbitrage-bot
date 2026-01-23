@@ -52,6 +52,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       userId: user.id,
       email: user.email,
       tokenVersion: user.tokenVersion,
+      role: user.role,
     });
 
     // 5. 設定 Correlation ID header

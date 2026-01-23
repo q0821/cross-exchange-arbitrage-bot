@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { User as PrismaUser } from '@/generated/prisma/client';
+import { User as PrismaUser, UserRole } from '@/generated/prisma/client';
 
 /**
  * User 領域模型
@@ -17,6 +17,8 @@ export interface UserDTO {
   createdAt: Date;
   updatedAt: Date;
   tokenVersion: number; // Feature 061
+  role: UserRole; // Feature 068
+  isActive: boolean; // Feature 068
 }
 
 /**
@@ -33,6 +35,9 @@ export class User {
   readonly failedLoginAttempts: number;
   readonly lockedUntil: Date | null;
   readonly passwordChangedAt: Date | null;
+  // Feature 068: Admin 角色管理
+  readonly role: UserRole;
+  readonly isActive: boolean;
 
   constructor(data: PrismaUser) {
     this.id = data.id;
@@ -45,6 +50,9 @@ export class User {
     this.failedLoginAttempts = data.failedLoginAttempts;
     this.lockedUntil = data.lockedUntil;
     this.passwordChangedAt = data.passwordChangedAt;
+    // Feature 068: Admin 角色管理
+    this.role = data.role;
+    this.isActive = data.isActive;
   }
 
   /**
@@ -64,6 +72,8 @@ export class User {
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
       tokenVersion: this.tokenVersion,
+      role: this.role,
+      isActive: this.isActive,
     };
   }
 

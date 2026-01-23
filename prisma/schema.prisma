@@ -109,6 +109,14 @@ enum EventSeverity {
 
 // ===== Web 多用戶平台模型 (Feature 006) =====
 
+// ===== 用戶角色 (Feature 068) =====
+enum UserRole {
+  USER   // 一般用戶
+  ADMIN  // 管理員
+
+  @@map("user_role")
+}
+
 // ===== 用戶 =====
 model User {
   id        String   @id @default(cuid())
@@ -116,6 +124,10 @@ model User {
   password  String   @db.VarChar(255) // bcrypt hashed
   createdAt DateTime @default(now()) @db.Timestamptz
   updatedAt DateTime @updatedAt @db.Timestamptz
+
+  // ===== 用戶角色與狀態 (Feature 068) =====
+  role     UserRole @default(USER)      // 用戶角色
+  isActive Boolean  @default(true)      // 帳戶啟用狀態
 
   // 用戶偏好設定
   timeBasisPreference Int @default(8) // 時間基準偏好: 1, 4, 8, 24 小時
@@ -139,6 +151,7 @@ model User {
   passwordResetTokens     PasswordResetToken[]             // Feature 061
 
   @@index([email])
+  @@index([isActive])  // Feature 068: 用於篩選啟用/停用用戶列表
   @@map("users")
 }
 

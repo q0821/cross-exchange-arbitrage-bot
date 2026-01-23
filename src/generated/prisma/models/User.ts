@@ -44,6 +44,8 @@ export type UserMinAggregateOutputType = {
   password: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  role: $Enums.UserRole | null
+  isActive: boolean | null
   timeBasisPreference: number | null
   tokenVersion: number | null
   failedLoginAttempts: number | null
@@ -57,6 +59,8 @@ export type UserMaxAggregateOutputType = {
   password: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  role: $Enums.UserRole | null
+  isActive: boolean | null
   timeBasisPreference: number | null
   tokenVersion: number | null
   failedLoginAttempts: number | null
@@ -70,6 +74,8 @@ export type UserCountAggregateOutputType = {
   password: number
   createdAt: number
   updatedAt: number
+  role: number
+  isActive: number
   timeBasisPreference: number
   tokenVersion: number
   failedLoginAttempts: number
@@ -97,6 +103,8 @@ export type UserMinAggregateInputType = {
   password?: true
   createdAt?: true
   updatedAt?: true
+  role?: true
+  isActive?: true
   timeBasisPreference?: true
   tokenVersion?: true
   failedLoginAttempts?: true
@@ -110,6 +118,8 @@ export type UserMaxAggregateInputType = {
   password?: true
   createdAt?: true
   updatedAt?: true
+  role?: true
+  isActive?: true
   timeBasisPreference?: true
   tokenVersion?: true
   failedLoginAttempts?: true
@@ -123,6 +133,8 @@ export type UserCountAggregateInputType = {
   password?: true
   createdAt?: true
   updatedAt?: true
+  role?: true
+  isActive?: true
   timeBasisPreference?: true
   tokenVersion?: true
   failedLoginAttempts?: true
@@ -223,6 +235,8 @@ export type UserGroupByOutputType = {
   password: string
   createdAt: Date
   updatedAt: Date
+  role: $Enums.UserRole
+  isActive: boolean
   timeBasisPreference: number
   tokenVersion: number
   failedLoginAttempts: number
@@ -259,6 +273,8 @@ export type UserWhereInput = {
   password?: Prisma.StringFilter<"User"> | string
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
+  isActive?: Prisma.BoolFilter<"User"> | boolean
   timeBasisPreference?: Prisma.IntFilter<"User"> | number
   tokenVersion?: Prisma.IntFilter<"User"> | number
   failedLoginAttempts?: Prisma.IntFilter<"User"> | number
@@ -282,6 +298,8 @@ export type UserOrderByWithRelationInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  role?: Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
   tokenVersion?: Prisma.SortOrder
   failedLoginAttempts?: Prisma.SortOrder
@@ -308,6 +326,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   password?: Prisma.StringFilter<"User"> | string
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  role?: Prisma.EnumUserRoleFilter<"User"> | $Enums.UserRole
+  isActive?: Prisma.BoolFilter<"User"> | boolean
   timeBasisPreference?: Prisma.IntFilter<"User"> | number
   tokenVersion?: Prisma.IntFilter<"User"> | number
   failedLoginAttempts?: Prisma.IntFilter<"User"> | number
@@ -331,6 +351,8 @@ export type UserOrderByWithAggregationInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  role?: Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
   tokenVersion?: Prisma.SortOrder
   failedLoginAttempts?: Prisma.SortOrder
@@ -352,6 +374,8 @@ export type UserScalarWhereWithAggregatesInput = {
   password?: Prisma.StringWithAggregatesFilter<"User"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  role?: Prisma.EnumUserRoleWithAggregatesFilter<"User"> | $Enums.UserRole
+  isActive?: Prisma.BoolWithAggregatesFilter<"User"> | boolean
   timeBasisPreference?: Prisma.IntWithAggregatesFilter<"User"> | number
   tokenVersion?: Prisma.IntWithAggregatesFilter<"User"> | number
   failedLoginAttempts?: Prisma.IntWithAggregatesFilter<"User"> | number
@@ -365,6 +389,8 @@ export type UserCreateInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -388,6 +414,8 @@ export type UserUncheckedCreateInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -411,6 +439,8 @@ export type UserUpdateInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -434,6 +464,8 @@ export type UserUncheckedUpdateInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -457,6 +489,8 @@ export type UserCreateManyInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -470,6 +504,8 @@ export type UserUpdateManyMutationInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -483,6 +519,8 @@ export type UserUncheckedUpdateManyInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -496,6 +534,8 @@ export type UserCountOrderByAggregateInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  role?: Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
   tokenVersion?: Prisma.SortOrder
   failedLoginAttempts?: Prisma.SortOrder
@@ -515,6 +555,8 @@ export type UserMaxOrderByAggregateInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  role?: Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
   tokenVersion?: Prisma.SortOrder
   failedLoginAttempts?: Prisma.SortOrder
@@ -528,6 +570,8 @@ export type UserMinOrderByAggregateInput = {
   password?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  role?: Prisma.SortOrder
+  isActive?: Prisma.SortOrder
   timeBasisPreference?: Prisma.SortOrder
   tokenVersion?: Prisma.SortOrder
   failedLoginAttempts?: Prisma.SortOrder
@@ -549,6 +593,10 @@ export type UserScalarRelationFilter = {
 export type UserNullableScalarRelationFilter = {
   is?: Prisma.UserWhereInput | null
   isNot?: Prisma.UserWhereInput | null
+}
+
+export type EnumUserRoleFieldUpdateOperationsInput = {
+  set?: $Enums.UserRole
 }
 
 export type UserCreateNestedOneWithoutPasswordResetTokensInput = {
@@ -699,6 +747,8 @@ export type UserCreateWithoutPasswordResetTokensInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -721,6 +771,8 @@ export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -759,6 +811,8 @@ export type UserUpdateWithoutPasswordResetTokensInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -781,6 +835,8 @@ export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -803,6 +859,8 @@ export type UserCreateWithoutApiKeysInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -825,6 +883,8 @@ export type UserUncheckedCreateWithoutApiKeysInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -863,6 +923,8 @@ export type UserUpdateWithoutApiKeysInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -885,6 +947,8 @@ export type UserUncheckedUpdateWithoutApiKeysInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -907,6 +971,8 @@ export type UserCreateWithoutPositionsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -929,6 +995,8 @@ export type UserUncheckedCreateWithoutPositionsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -967,6 +1035,8 @@ export type UserUpdateWithoutPositionsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -989,6 +1059,8 @@ export type UserUncheckedUpdateWithoutPositionsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1011,6 +1083,8 @@ export type UserCreateWithoutTradesInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1033,6 +1107,8 @@ export type UserUncheckedCreateWithoutTradesInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1071,6 +1147,8 @@ export type UserUpdateWithoutTradesInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1093,6 +1171,8 @@ export type UserUncheckedUpdateWithoutTradesInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1115,6 +1195,8 @@ export type UserCreateWithoutAuditLogsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1137,6 +1219,8 @@ export type UserUncheckedCreateWithoutAuditLogsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1175,6 +1259,8 @@ export type UserUpdateWithoutAuditLogsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1197,6 +1283,8 @@ export type UserUncheckedUpdateWithoutAuditLogsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1219,6 +1307,8 @@ export type UserCreateWithoutNotificationWebhooksInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1241,6 +1331,8 @@ export type UserUncheckedCreateWithoutNotificationWebhooksInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1279,6 +1371,8 @@ export type UserUpdateWithoutNotificationWebhooksInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1301,6 +1395,8 @@ export type UserUncheckedUpdateWithoutNotificationWebhooksInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1323,6 +1419,8 @@ export type UserCreateWithoutOpportunityEndHistoriesInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1345,6 +1443,8 @@ export type UserUncheckedCreateWithoutOpportunityEndHistoriesInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1383,6 +1483,8 @@ export type UserUpdateWithoutOpportunityEndHistoriesInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1405,6 +1507,8 @@ export type UserUncheckedUpdateWithoutOpportunityEndHistoriesInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1427,6 +1531,8 @@ export type UserCreateWithoutSimulatedTrackingsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1449,6 +1555,8 @@ export type UserUncheckedCreateWithoutSimulatedTrackingsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1487,6 +1595,8 @@ export type UserUpdateWithoutSimulatedTrackingsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1509,6 +1619,8 @@ export type UserUncheckedUpdateWithoutSimulatedTrackingsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1531,6 +1643,8 @@ export type UserCreateWithoutAssetSnapshotsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1553,6 +1667,8 @@ export type UserUncheckedCreateWithoutAssetSnapshotsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1591,6 +1707,8 @@ export type UserUpdateWithoutAssetSnapshotsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1613,6 +1731,8 @@ export type UserUncheckedUpdateWithoutAssetSnapshotsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1635,6 +1755,8 @@ export type UserCreateWithoutTradingSettingsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1657,6 +1779,8 @@ export type UserUncheckedCreateWithoutTradingSettingsInput = {
   password: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  role?: $Enums.UserRole
+  isActive?: boolean
   timeBasisPreference?: number
   tokenVersion?: number
   failedLoginAttempts?: number
@@ -1695,6 +1819,8 @@ export type UserUpdateWithoutTradingSettingsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1717,6 +1843,8 @@ export type UserUncheckedUpdateWithoutTradingSettingsInput = {
   password?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.EnumUserRoleFieldUpdateOperationsInput | $Enums.UserRole
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   timeBasisPreference?: Prisma.IntFieldUpdateOperationsInput | number
   tokenVersion?: Prisma.IntFieldUpdateOperationsInput | number
   failedLoginAttempts?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1842,6 +1970,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   password?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  role?: boolean
+  isActive?: boolean
   timeBasisPreference?: boolean
   tokenVersion?: boolean
   failedLoginAttempts?: boolean
@@ -1866,6 +1996,8 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   password?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  role?: boolean
+  isActive?: boolean
   timeBasisPreference?: boolean
   tokenVersion?: boolean
   failedLoginAttempts?: boolean
@@ -1879,6 +2011,8 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   password?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  role?: boolean
+  isActive?: boolean
   timeBasisPreference?: boolean
   tokenVersion?: boolean
   failedLoginAttempts?: boolean
@@ -1892,6 +2026,8 @@ export type UserSelectScalar = {
   password?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  role?: boolean
+  isActive?: boolean
   timeBasisPreference?: boolean
   tokenVersion?: boolean
   failedLoginAttempts?: boolean
@@ -1899,7 +2035,7 @@ export type UserSelectScalar = {
   passwordChangedAt?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "createdAt" | "updatedAt" | "timeBasisPreference" | "tokenVersion" | "failedLoginAttempts" | "lockedUntil" | "passwordChangedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "email" | "password" | "createdAt" | "updatedAt" | "role" | "isActive" | "timeBasisPreference" | "tokenVersion" | "failedLoginAttempts" | "lockedUntil" | "passwordChangedAt", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   apiKeys?: boolean | Prisma.User$apiKeysArgs<ExtArgs>
   positions?: boolean | Prisma.User$positionsArgs<ExtArgs>
@@ -1936,6 +2072,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     password: string
     createdAt: Date
     updatedAt: Date
+    role: $Enums.UserRole
+    isActive: boolean
     timeBasisPreference: number
     tokenVersion: number
     failedLoginAttempts: number
@@ -2379,6 +2517,8 @@ export interface UserFieldRefs {
   readonly password: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly role: Prisma.FieldRef<"User", 'UserRole'>
+  readonly isActive: Prisma.FieldRef<"User", 'Boolean'>
   readonly timeBasisPreference: Prisma.FieldRef<"User", 'Int'>
   readonly tokenVersion: Prisma.FieldRef<"User", 'Int'>
   readonly failedLoginAttempts: Prisma.FieldRef<"User", 'Int'>
