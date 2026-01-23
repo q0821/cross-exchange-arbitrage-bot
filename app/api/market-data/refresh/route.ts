@@ -10,6 +10,7 @@ import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
+import { createPublicExchange, type SupportedExchange as CcxtSupportedExchange } from '@/src/lib/ccxt-factory';
 import {
   RefreshMarketDataRequestSchema,
   type MarketDataResponse,
@@ -143,14 +144,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 /**
  * 獲取單一交易所的市場數據
+ *
+ * 使用統一 CCXT 工廠確保 proxy 配置自動套用
  */
 async function fetchExchangeMarketData(
   symbol: string,
   exchange: SupportedExchange,
 ): Promise<ExchangeMarketData> {
   try {
-    const ccxt = await import('ccxt');
-    const exchangeInstance = createCcxtExchange(ccxt, exchange);
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    const exchangeInstance = createPublicExchange(exchange as CcxtSupportedExchange, {
+      sandbox: false,
+    });
 
     // 格式化交易對
     const ccxtSymbol = formatSymbolForCcxt(symbol);
@@ -183,28 +188,6 @@ async function fetchExchangeMarketData(
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
-}
-
-/**
- * 創建 CCXT 交易所實例
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function createCcxtExchange(ccxt: any, exchange: SupportedExchange) {
-  const exchangeMap: Record<SupportedExchange, string> = {
-    binance: 'binance',
-    okx: 'okx',
-    mexc: 'mexc',
-    gateio: 'gateio',
-    bingx: 'bingx',
-  };
-
-  const exchangeId = exchangeMap[exchange];
-  const ExchangeClass = ccxt[exchangeId];
-
-  return new ExchangeClass({
-    sandbox: false,
-    options: { defaultType: 'swap' },
-  });
 }
 
 /**

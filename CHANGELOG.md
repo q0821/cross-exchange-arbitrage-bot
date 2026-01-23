@@ -34,6 +34,30 @@
    | 查詢 2 個交易所 | ~30 秒 | ~15 秒 |
    | 查詢範圍 | 全部 5 個 | 只查詢指定的 |
 
+#### POST /api/positions/open 開倉效能優化（2026-01-23）
+
+**問題**：開倉 API 回應時間過長。
+
+**根本原因**：
+- `BalanceValidator.getBalances()` 未傳入 `targetExchanges`，查詢全部 5 個交易所而非需要的 2 個
+- `PositionOrchestrator.executeBilateralOpen()` 串行創建兩個交易所 trader
+
+**修復內容**：
+
+1. **BalanceValidator.getBalances() 傳入 targetExchanges**
+   - 只查詢 `longExchange` 和 `shortExchange` 兩個交易所
+   - 避免不必要的 API 呼叫
+
+2. **改用 Promise.all 平行創建 trader**
+   - 兩個交易所連接器同時創建
+   - 創建時間從 T1 + T2 降為 max(T1, T2)
+
+3. **效能改善**
+   | 項目 | 優化前 | 優化後 |
+   |:-----|:-------|:-------|
+   | 餘額查詢 | 5 交易所 (~15s) | 2 交易所 (~6s) |
+   | Trader 創建 | 串行執行 | 平行執行 |
+
 #### OI 獲取效能優化（2026-01-22）
 
 **問題**：`GET /api/symbol-groups` API 回應時間 2-4 秒，嚴重影響前端載入體驗。

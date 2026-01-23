@@ -4,11 +4,14 @@
  * CCXT 包裝器用於獲取 OKX 資金費率（備援驗證）
  * Feature: 004-fix-okx-add-price-display
  * Task: T018
+ *
+ * 使用統一 CCXT 工廠確保 proxy 配置自動套用
  */
 
-import ccxt from 'ccxt';
+import type ccxt from 'ccxt';
 import { logger } from '../logger.js';
 import { apiKeys } from '../config.js';
+import { createCcxtExchange } from '../ccxt-factory';
 
 export class OkxCCXT {
   private client: ccxt.okx;
@@ -16,7 +19,8 @@ export class OkxCCXT {
   constructor(isTestnet: boolean = false) {
     const { apiKey, apiSecret, passphrase, testnet } = apiKeys.okx;
 
-    this.client = new ccxt.okx({
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    this.client = createCcxtExchange('okx', {
       apiKey,
       secret: apiSecret,
       password: passphrase,
@@ -25,7 +29,7 @@ export class OkxCCXT {
         defaultType: 'swap',
         ...(testnet && { sandboxMode: true }),
       },
-    });
+    }) as ccxt.okx;
 
     logger.debug({ testnet: isTestnet }, 'OkxCCXT initialized');
   }

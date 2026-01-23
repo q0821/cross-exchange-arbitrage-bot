@@ -18,6 +18,18 @@ vi.mock('ccxt', () => ({
   mexc: vi.fn(),
 }));
 
+// Mock CCXT Factory - 需要 mock 這個模組因為 FundingFeeQueryService 使用它
+const mockExchangeInstance = {
+  fetchFundingHistory: vi.fn(),
+  fapiPrivateGetPositionSideDual: vi.fn().mockResolvedValue({ dualSidePosition: false }),
+  papiGetUmPositionSideDual: vi.fn(),
+  loadMarkets: vi.fn().mockResolvedValue({}),
+};
+
+vi.mock('@/lib/ccxt-factory', () => ({
+  createCcxtExchange: vi.fn(() => mockExchangeInstance),
+}));
+
 // Mock Prisma
 const mockPrismaApiKey = {
   findFirst: vi.fn(),
@@ -44,12 +56,10 @@ vi.mock('@/lib/logger', () => ({
 
 describe('FundingFeeQueryService', () => {
   let service: FundingFeeQueryService;
-  let mockCcxtExchange: {
-    fetchFundingHistory: Mock;
-    fapiPrivateGetPositionSideDual: Mock;
-    papiGetUmPositionSideDual: Mock;
-    loadMarkets: Mock;
-  };
+
+  // 使用頂層的 mockExchangeInstance 作為 mock CCXT exchange
+  // 這樣測試代碼可以繼續使用 mockCcxtExchange 名稱
+  const mockCcxtExchange = mockExchangeInstance;
 
   // Test fixtures
   const mockUserId = 'test-user-id';
@@ -67,21 +77,11 @@ describe('FundingFeeQueryService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Setup mock CCXT exchange
-    mockCcxtExchange = {
-      fetchFundingHistory: vi.fn(),
-      // Mock for Binance account type detection - default to standard Futures
-      fapiPrivateGetPositionSideDual: vi.fn().mockResolvedValue({ dualSidePosition: false }),
-      papiGetUmPositionSideDual: vi.fn(),
-      loadMarkets: vi.fn().mockResolvedValue({}),
-    };
-
-    // Mock CCXT constructor to return our mock exchange
-    const ccxt = await import('ccxt');
-    (ccxt.binance as Mock).mockImplementation(function() { return mockCcxtExchange; });
-    (ccxt.okx as Mock).mockImplementation(function() { return mockCcxtExchange; });
-    (ccxt.gateio as Mock).mockImplementation(function() { return mockCcxtExchange; });
-    (ccxt.mexc as Mock).mockImplementation(function() { return mockCcxtExchange; });
+    // 重置 mock 方法的預設行為
+    mockCcxtExchange.fetchFundingHistory.mockReset();
+    mockCcxtExchange.fapiPrivateGetPositionSideDual.mockReset().mockResolvedValue({ dualSidePosition: false });
+    mockCcxtExchange.papiGetUmPositionSideDual.mockReset();
+    mockCcxtExchange.loadMarkets.mockReset().mockResolvedValue({});
 
     // Setup Prisma mock
     mockPrismaApiKey.findFirst.mockResolvedValue(mockApiKey);
@@ -663,13 +663,11 @@ describe('FundingFeeQueryService', () => {
       mockCcxtExchange.papiGetUmPositionSideDual.mockResolvedValue({ dualSidePosition: true });
       mockCcxtExchange.fetchFundingHistory.mockResolvedValue([]);
 
-      const ccxt = await import('ccxt');
-      // Track how many times binance constructor is called
-      let constructorCallCount = 0;
-      (ccxt.binance as Mock).mockImplementation(function() {
-        constructorCallCount++;
-        return mockCcxtExchange;
-      });
+      // 取得 factory mock 以追蹤呼叫次數
+      const { createCcxtExchange } = await import('@/lib/ccxt-factory');
+
+      // 重置 factory 呼叫計數
+      (createCcxtExchange as Mock).mockClear();
 
       // Act
       const result = await service.queryFundingFees(
@@ -682,7 +680,8 @@ describe('FundingFeeQueryService', () => {
 
       // Assert: Should have recreated exchange with portfolioMargin option
       expect(mockCcxtExchange.papiGetUmPositionSideDual).toHaveBeenCalled();
-      expect(constructorCallCount).toBe(2); // Created twice (initial + portfolioMargin)
+      // Factory 被呼叫 2 次（初始 + portfolioMargin 重建）
+      expect(createCcxtExchange).toHaveBeenCalledTimes(2);
       expect(result.success).toBe(true);
     });
 

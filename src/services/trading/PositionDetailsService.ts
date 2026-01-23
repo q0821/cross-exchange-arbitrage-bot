@@ -7,10 +7,11 @@
 
 import { PrismaClient, Trade } from '@/generated/prisma/client';
 import { createPrismaClient } from '@/lib/prisma-factory';
-import * as ccxt from 'ccxt';
+import type * as ccxt from 'ccxt';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
 import { decrypt } from '../../lib/encryption';
+import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '../../lib/ccxt-factory';
 import { FundingFeeQueryService } from './FundingFeeQueryService';
 import type {
   SupportedExchange,
@@ -222,7 +223,7 @@ export class PositionDetailsService {
     userId: string,
   ): Promise<number | null> {
     try {
-      const ccxtExchange = await this.createCcxtExchange(exchange, userId);
+      const ccxtExchange = await this.createUserCcxtExchange(exchange, userId);
 
       // 必須先載入市場資訊，CCXT 才能正確解析永續合約 symbol
       await ccxtExchange.loadMarkets();
@@ -423,8 +424,10 @@ export class PositionDetailsService {
 
   /**
    * 創建已認證的 CCXT 交易所實例
+   *
+   * 使用統一 CCXT 工廠確保 proxy 配置自動套用
    */
-  private async createCcxtExchange(
+  private async createUserCcxtExchange(
     exchange: SupportedExchange,
     userId: string,
   ): Promise<ccxt.Exchange> {
@@ -446,20 +449,8 @@ export class PositionDetailsService {
       ? decrypt(apiKey.encryptedPassphrase)
       : undefined;
 
-    const exchangeMap: Record<SupportedExchange, string> = {
-      binance: 'binance',
-      okx: 'okx',
-      mexc: 'mexc',
-      gateio: 'gateio',
-      bingx: 'bingx',
-    };
-
-    const exchangeId = exchangeMap[exchange];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ExchangeClass = (ccxt as any)[exchangeId];
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config: any = {
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    return createCcxtExchange(exchange as CcxtSupportedExchange, {
       apiKey: decryptedKey,
       secret: decryptedSecret,
       password: decryptedPassphrase,
@@ -468,9 +459,7 @@ export class PositionDetailsService {
       options: {
         defaultType: exchange === 'binance' ? 'future' : 'swap',
       },
-    };
-
-    return new ExchangeClass(config);
+    });
   }
 }
 

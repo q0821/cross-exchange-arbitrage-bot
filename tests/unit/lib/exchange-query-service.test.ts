@@ -18,25 +18,30 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
-// Mock ccxt
+// Mock ccxt exchange instance
 const mockFetchPositions = vi.fn();
 const mockLoadMarkets = vi.fn().mockResolvedValue({});
 const mockFapiPrivateGetPositionRisk = vi.fn().mockResolvedValue([]);
 
-// 使用 class 模擬 CCXT 交易所，因為 ExchangeQueryService 使用 new
-class MockExchange {
-  fetchPositions = mockFetchPositions;
-  loadMarkets = mockLoadMarkets;
-  fapiPrivateGetPositionRisk = mockFapiPrivateGetPositionRisk;
-  markets = {};
-  constructor(_config: any) {}
-}
+const mockExchangeInstance = {
+  fetchPositions: mockFetchPositions,
+  loadMarkets: mockLoadMarkets,
+  fapiPrivateGetPositionRisk: mockFapiPrivateGetPositionRisk,
+  markets: {},
+};
 
+// Mock ccxt-factory - ExchangeQueryService 使用這個 factory 來創建交易所實例
+vi.mock('@/lib/ccxt-factory', () => ({
+  createCcxtExchange: vi.fn(() => mockExchangeInstance),
+}));
+
+// Mock ccxt - 保留用於類型相關的測試
 vi.mock('ccxt', () => ({
-  binance: MockExchange,
-  okx: MockExchange,
-  gateio: MockExchange,
-  bingx: MockExchange,
+  default: {},
+  binance: vi.fn(() => mockExchangeInstance),
+  okx: vi.fn(() => mockExchangeInstance),
+  gateio: vi.fn(() => mockExchangeInstance),
+  bingx: vi.fn(() => mockExchangeInstance),
 }));
 
 describe('ExchangeQueryService', () => {
