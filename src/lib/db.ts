@@ -63,9 +63,8 @@ const initializeServices = async () => {
   // 使用環境變數控制是否啟動，預設關閉
   if (process.env.ENABLE_CONDITIONAL_ORDER_MONITOR === 'true') {
     try {
-      const { initializeConditionalOrderMonitor, setupSignalHandlers } = await import('./monitor-init');
+      const { initializeConditionalOrderMonitor } = await import('./monitor-init');
       initializeConditionalOrderMonitor({ autoStart: true });
-      setupSignalHandlers();
       logger.info('ConditionalOrderMonitor initialized and started via db.ts');
     } catch (error) {
       logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Failed to initialize ConditionalOrderMonitor');

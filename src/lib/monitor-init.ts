@@ -39,8 +39,6 @@ export interface MonitorStatus {
 declare global {
   // eslint-disable-next-line no-var
   var conditionalOrderMonitor: ConditionalOrderMonitor | undefined;
-  // eslint-disable-next-line no-var
-  var __signalHandlersRegistered: boolean | undefined;
 }
 
 // 使用 globalThis 確保在 Next.js 開發環境中只有一個實例
@@ -126,7 +124,7 @@ export async function resetMonitor(): Promise<void> {
 /**
  * T043: 優雅關閉
  *
- * 停止監控服務
+ * 停止監控服務（供 server.ts 呼叫）
  */
 export async function gracefulShutdown(): Promise<void> {
   logger.info({}, 'Graceful shutdown initiated');
@@ -145,37 +143,6 @@ export async function gracefulShutdown(): Promise<void> {
   }
 
   logger.info({}, 'Graceful shutdown completed');
-}
-
-/**
- * T043: 設置信號處理器
- *
- * 註冊 SIGINT 和 SIGTERM 信號處理，實現優雅關閉
- * 使用 globalThis 標記防止 hot reload 時重複註冊
- */
-export function setupSignalHandlers(): void {
-  // 防止重複註冊
-  if (globalThis.__signalHandlersRegistered) {
-    logger.debug({}, 'Signal handlers already registered, skipping');
-    return;
-  }
-  globalThis.__signalHandlersRegistered = true;
-
-  // SIGINT (Ctrl+C)
-  process.on('SIGINT', async () => {
-    logger.info({}, 'Received SIGINT signal');
-    await gracefulShutdown();
-    process.exit(0);
-  });
-
-  // SIGTERM (kill command)
-  process.on('SIGTERM', async () => {
-    logger.info({}, 'Received SIGTERM signal');
-    await gracefulShutdown();
-    process.exit(0);
-  });
-
-  logger.info({}, 'Signal handlers registered (SIGINT, SIGTERM)');
 }
 
 /**
@@ -233,7 +200,6 @@ export default {
   getConditionalOrderMonitor,
   resetMonitor,
   gracefulShutdown,
-  setupSignalHandlers,
   getMonitorStatus,
   startMonitor,
   stopMonitor,

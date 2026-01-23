@@ -6,6 +6,86 @@
 
 ## [Unreleased]
 
+### 效能優化
+
+#### OI 獲取效能優化（2026-01-22）
+
+**問題**：`GET /api/symbol-groups` API 回應時間 2-4 秒，嚴重影響前端載入體驗。
+
+**根本原因**：
+- 原本使用 `getBatchOpenInterest()` 逐一請求每個交易對的 OI 資料
+- 200+ 個交易對 = 200+ 次 Binance API 請求（即使有 concurrency limit 也需 2-4 秒）
+
+**修復內容**：
+
+1. **改用 `/fapi/v1/ticker/24hr` 單次請求**
+   - 一次取得所有交易對的 24h 成交量資料
+   - 使用 `quoteVolume`（24h USDT 成交額）作為排序依據
+   - 與 OI 高度相關，排序結果相似
+
+2. **效能改善**
+   | 項目 | 優化前 | 優化後 |
+   |:-----|:-------|:-------|
+   | API 請求數 | 200+ 次 | 1 次 |
+   | 回應時間 | 2-4 秒 | ~0.5 秒 |
+   | 程式碼行數 | 128 行 | 73 行 |
+
+3. **簡化程式碼**
+   - 移除 `p-limit` 依賴
+   - 移除 `getUSDTPerpetualSymbols()`、`getOpenInterestForSymbol()`、`getBatchOpenInterest()` 等函數
+   - 新增 `getAll24hrTickers()` 單一函數
+
+### 修復
+
+#### Graceful Shutdown 導致 Port 3000 無法釋放（2026-01-22）
+
+**問題**：`pnpm dev` 停止後 port 3000 經常被佔用無法釋放，需要手動 `kill -9` 才能重新啟動。
+
+**根本原因**：
+- shutdown 缺少超時機制，任何服務卡住會導致永遠等待
+- Redis 和 Prisma 連線未正確關閉
+- `monitor-init.ts` 有重複的 signal handler 與 `server.ts` 衝突
+- `io.close()` 和 `httpServer.close()` 缺少錯誤處理
+
+**修復內容**：
+
+1. **新增 `src/lib/graceful-shutdown.ts` 模組**
+   - 可測試的 shutdown 邏輯，支援依賴注入
+   - `closeWithTimeout()` - Promise 包裝 + 超時機制
+   - `createShutdownHandler()` - 建立 shutdown handler
+   - `registerShutdownHandlers()` - 註冊 SIGINT/SIGTERM handler
+
+2. **修改 `server.ts`**
+   - 使用新的 `graceful-shutdown` 模組
+   - 10 秒整體超時，5 秒單一服務超時
+   - 正確的關閉順序：背景服務 → Redis → Prisma → Socket.io → HTTP Server
+
+3. **修改 `src/lib/monitor-init.ts`**
+   - 移除重複的 `setupSignalHandlers()` 函數
+   - 保留 `gracefulShutdown()` 供外部呼叫
+
+4. **單元測試**
+   - 新增 `tests/unit/lib/graceful-shutdown.test.ts` - 13 個測試案例
+   - 測試內容：超時機制、關閉順序、錯誤處理、並行停止服務
+
+**預期的關閉日誌順序**：
+```
+Shutting down server...
+Stopping background services...
+Background services stopped
+Closing Redis connection...
+Redis client connection closed gracefully
+Closing database connection...
+Database connection closed
+Closing Socket.io server...
+Socket.io server closed
+Closing HTTP server...
+HTTP server closed
+Graceful shutdown completed
+```
+
+---
+
 ### 變更
 
 #### 首頁同時顯示 ACTIVE 與 ENDED 套利機會（2026-01-19）
