@@ -17,8 +17,10 @@ import {
 } from '../../lib/errors/trading-errors';
 import type {
   BalanceValidationResult,
+  BalanceValidationOptions,
   LeverageOption,
 } from '../../types/trading';
+import { privateWsManager } from '../websocket/PrivateWsManager';
 
 /**
  * 餘額驗證配置
@@ -63,6 +65,46 @@ export class BalanceValidator {
     const requiredMargin = baseMargin.mul(1 + BALANCE_CONFIG.MARGIN_BUFFER_RATE);
 
     return requiredMargin;
+  }
+
+  /**
+   * 從 WebSocket 快取取得餘額
+   *
+   * @param userId 用戶 ID
+   * @param exchanges 要查詢的交易所列表
+   * @param maxCacheAgeMs 快取最大有效期（毫秒）
+   * @returns 各交易所的快取餘額，如果快取不存在或過期則回傳 null
+   */
+  private getCachedBalances(
+    userId: string,
+    exchanges: SupportedExchange[],
+    maxCacheAgeMs: number,
+  ): Map<SupportedExchange, number> | null {
+    const now = Date.now();
+    const cachedBalances = new Map<SupportedExchange, number>();
+
+    for (const exchange of exchanges) {
+      const cached = privateWsManager.getCachedBalance(userId, exchange);
+
+      if (!cached) {
+        logger.debug({ userId, exchange }, 'Balance cache not found');
+        return null;
+      }
+
+      const age = now - cached.timestamp;
+      if (age > maxCacheAgeMs) {
+        logger.debug({ userId, exchange, age, maxCacheAgeMs }, 'Balance cache expired');
+        return null;
+      }
+
+      cachedBalances.set(exchange, cached.balance);
+    }
+
+    logger.info(
+      { userId, exchanges, balances: Object.fromEntries(cachedBalances) },
+      'Using cached balances from WebSocket'
+    );
+    return cachedBalances;
   }
 
   /**
@@ -141,6 +183,7 @@ export class BalanceValidator {
    * @param longPrice 做多交易所價格
    * @param shortPrice 做空交易所價格
    * @param leverage 槓桿倍數
+   * @param options 驗證選項（包含是否使用快取）
    * @returns 驗證結果
    * @throws InsufficientBalanceError 如果餘額不足
    */
@@ -152,6 +195,7 @@ export class BalanceValidator {
     longPrice: Decimal,
     shortPrice: Decimal,
     leverage: LeverageOption,
+    options?: BalanceValidationOptions,
   ): Promise<BalanceValidationResult> {
     logger.info(
       {
@@ -162,6 +206,7 @@ export class BalanceValidator {
         longPrice: longPrice.toString(),
         shortPrice: shortPrice.toString(),
         leverage,
+        useCachedBalance: options?.useCachedBalance ?? false,
       },
       'Validating balance for position opening',
     );
@@ -170,8 +215,25 @@ export class BalanceValidator {
     const requiredMarginLong = this.calculateRequiredMargin(quantity, longPrice, leverage);
     const requiredMarginShort = this.calculateRequiredMargin(quantity, shortPrice, leverage);
 
-    // 獲取餘額
-    const balances = await this.getBalances(userId, [longExchange, shortExchange]);
+    // 獲取餘額（優先使用快取）
+    let balances: Map<SupportedExchange, number>;
+
+    if (options?.useCachedBalance) {
+      const maxCacheAgeMs = options.maxCacheAgeMs ?? 30000; // 預設 30 秒
+      const cachedBalances = this.getCachedBalances(userId, [longExchange, shortExchange], maxCacheAgeMs);
+
+      if (cachedBalances) {
+        balances = cachedBalances;
+      } else {
+        // 快取不存在或過期，fallback 到 API 查詢
+        logger.info({ userId }, 'Cache miss, falling back to API query');
+        balances = await this.getBalances(userId, [longExchange, shortExchange]);
+      }
+    } else {
+      // 不使用快取，直接查詢 API
+      balances = await this.getBalances(userId, [longExchange, shortExchange]);
+    }
+
     const longExchangeBalance = balances.get(longExchange) ?? 0;
     const shortExchangeBalance = balances.get(shortExchange) ?? 0;
 
@@ -242,6 +304,7 @@ export class BalanceValidator {
    * @param longPrice 做多交易所價格
    * @param shortPrice 做空交易所價格
    * @param leverage 槓桿倍數
+   * @param options 驗證選項（包含是否使用快取）
    * @returns 驗證結果（包含是否有效及不足資訊）
    */
   async checkBalance(
@@ -252,6 +315,7 @@ export class BalanceValidator {
     longPrice: Decimal,
     shortPrice: Decimal,
     leverage: LeverageOption,
+    options?: BalanceValidationOptions,
   ): Promise<BalanceValidationResult> {
     try {
       return await this.validateBalance(
@@ -262,6 +326,7 @@ export class BalanceValidator {
         longPrice,
         shortPrice,
         leverage,
+        options,
       );
     } catch (error) {
       if (error instanceof InsufficientBalanceError) {
