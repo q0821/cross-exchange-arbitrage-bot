@@ -80,7 +80,7 @@ export class BalanceValidator {
 
     let allBalances;
     try {
-      allBalances = await this.userConnectorFactory.getBalancesForUser(userId);
+      allBalances = await this.userConnectorFactory.getBalancesForUser(userId, exchanges);
       logger.info({ userId, balanceCount: allBalances.length }, 'Got balances from factory');
     } catch (error) {
       logger.error(
