@@ -14,6 +14,7 @@ import ccxt from 'ccxt';
 import axios from 'axios';
 import Decimal from 'decimal.js';
 import { BaseExchangeConnector } from './base.js';
+import { getProxyUrl, getCcxtHttpsProxyConfig, createProxyAgent } from '../lib/env.js';
 import {
   FundingRateData,
   PriceData,
@@ -56,10 +57,14 @@ export class BingxConnector extends BaseExchangeConnector {
   async connect(): Promise<void> {
     try {
       const { apiKey, apiSecret, testnet } = apiKeys.bingx;
+      const proxyUrl = getProxyUrl();
+      const proxyConfig = getCcxtHttpsProxyConfig();
 
       // 建立 CCXT 客戶端（可以沒有 API Key，仍能存取公開 API）
       const config: any = {
         enableRateLimit: true,
+        timeout: 30000, // 30 秒超時（透過代理需要較長時間）
+        ...proxyConfig,
         options: {
           defaultType: 'swap', // 使用永續合約
           ...(testnet && { sandboxMode: true }),
@@ -81,6 +86,10 @@ export class BingxConnector extends BaseExchangeConnector {
       await this.testConnection();
 
       this.connected = true;
+
+      if (proxyUrl) {
+        logger.info({ proxy: proxyUrl }, 'BingX using proxy');
+      }
       logger.info({ testnet, hasApiKey: !!apiKey }, 'BingX connector connected');
       this.emit('connected');
     } catch (error) {
@@ -220,10 +229,19 @@ export class BingxConnector extends BaseExchangeConnector {
       // 轉換符號格式: BTCUSDT -> BTC-USDT
       const bingxSymbol = this.toBingxSymbol(symbol);
 
-      const response = await axios.get('https://open-api.bingx.com/openApi/swap/v2/quote/fundingRate', {
+      // 設定 proxy（如果有配置）
+      const axiosConfig: any = {
         params: { symbol: bingxSymbol, limit: 2 },
         timeout: 5000,
-      });
+      };
+
+      // 使用通用的 proxy agent 建立函數（支援 HTTP/HTTPS/SOCKS）
+      const proxyAgent = await createProxyAgent();
+      if (proxyAgent) {
+        axiosConfig.httpsAgent = proxyAgent;
+      }
+
+      const response = await axios.get('https://open-api.bingx.com/openApi/swap/v2/quote/fundingRate', axiosConfig);
 
       if (response.data.code === 0 && response.data.data?.length >= 2) {
         const history = response.data.data;

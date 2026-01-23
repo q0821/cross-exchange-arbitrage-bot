@@ -4,8 +4,8 @@
 #
 # 觸發條件：
 # - 手動觸發 (workflow_dispatch)
-# - Push 到 main 分支（完整測試）
-# - PR 到 main（僅當 tests/integration、src、prisma 有變更）
+# - Push 到 main 或 dev 分支（完整測試）
+# - PR 到 main 或 dev（僅當 tests/integration、src、prisma 有變更）
 #
 # 執行內容：
 # - 啟動 PostgreSQL 服務
@@ -19,9 +19,9 @@ name: Integration Tests
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
-    branches: [main]
+    branches: [main, dev]
     paths:
       - 'tests/integration/**'
       - 'src/**'

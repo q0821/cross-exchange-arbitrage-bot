@@ -9,7 +9,8 @@
 
 import { logger } from '../../lib/logger';
 import crypto from 'crypto';
-import ccxt from 'ccxt';
+import { getProxyUrl } from '../../lib/env';
+import { createAuthenticatedExchange } from '../../lib/ccxt-factory';
 import type { ValidationErrorCode, ValidationDetails } from '../../types/api-key-validation';
 
 export interface ValidationResult {
@@ -25,6 +26,7 @@ export class ApiKeyValidator {
   /**
    * Make a signed request to Binance API
    * Uses the same approach as the working BinanceUserConnector
+   * Supports proxy configuration via PROXY_URL environment variable
    */
   private async binanceSignedRequest(
     baseUrl: string,
@@ -41,12 +43,28 @@ export class ApiKeyValidator {
     const url = `${baseUrl}${endpoint}?${queryString}&signature=${signature}`;
 
     try {
-      const response = await fetch(url, {
+      // 使用 proxy（如果已配置）
+      const proxyUrl = getProxyUrl();
+      let fetchFn = fetch;
+      let fetchOptions: RequestInit = {
         method: 'GET',
         headers: {
           'X-MBX-APIKEY': apiKey,
         },
-      });
+      };
+
+      if (proxyUrl) {
+        // 使用 undici ProxyAgent
+        const { ProxyAgent, fetch: undiciFetch } = await import('undici');
+        const proxyAgent = new ProxyAgent(proxyUrl);
+        fetchFn = undiciFetch as unknown as typeof fetch;
+        fetchOptions = {
+          ...fetchOptions,
+          dispatcher: proxyAgent,
+        } as RequestInit;
+      }
+
+      const response = await fetchFn(url, fetchOptions);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -275,18 +293,11 @@ export class ApiKeyValidator {
     const startTime = Date.now();
 
     try {
-      const config: any = {
-        apiKey,
-        secret: apiSecret,
-        password: passphrase,
-        enableRateLimit: true,
-        sandbox: environment === 'TESTNET',
-        options: {
-          defaultType: 'swap', // 永續合約
-        },
-      };
-
-      const exchange = new (ccxt as any).okx(config);
+      const exchange = createAuthenticatedExchange(
+        'okx',
+        { apiKey, apiSecret, passphrase },
+        { sandbox: environment === 'TESTNET' }
+      );
 
       // Test 1: Fetch account balance (read permission)
       const balance = await exchange.fetchBalance();
@@ -375,21 +386,11 @@ export class ApiKeyValidator {
     const startTime = Date.now();
 
     try {
-      const config: any = {
-        apiKey,
-        secret: apiSecret,
-        enableRateLimit: true,
-        options: {
-          defaultType: 'swap', // 永續合約
-        },
-      };
-
-      // Gate.io 測試網配置
-      if (environment === 'TESTNET') {
-        config.options.sandboxMode = true;
-      }
-
-      const exchange = new (ccxt as any).gateio(config);
+      const exchange = createAuthenticatedExchange(
+        'gateio',
+        { apiKey, apiSecret },
+        { sandbox: environment === 'TESTNET' }
+      );
 
       // Test: Fetch account balance (read permission)
       const balance = await exchange.fetchBalance();
@@ -465,21 +466,11 @@ export class ApiKeyValidator {
     const startTime = Date.now();
 
     try {
-      const config: any = {
-        apiKey,
-        secret: apiSecret,
-        enableRateLimit: true,
-        options: {
-          defaultType: 'swap', // 永續合約
-        },
-      };
-
-      // MEXC 測試網配置
-      if (environment === 'TESTNET') {
-        config.options.sandboxMode = true;
-      }
-
-      const exchange = new (ccxt as any).mexc(config);
+      const exchange = createAuthenticatedExchange(
+        'mexc',
+        { apiKey, apiSecret },
+        { sandbox: environment === 'TESTNET' }
+      );
 
       // Test: Fetch account balance (read permission)
       const balance = await exchange.fetchBalance();
@@ -556,21 +547,16 @@ export class ApiKeyValidator {
     const startTime = Date.now();
 
     try {
-      const config: any = {
-        apiKey,
-        secret: apiSecret,
-        enableRateLimit: true,
-        options: {
-          defaultType: 'swap', // 永續合約
-        },
-      };
-
       // BingX 目前沒有公開測試網
       if (environment === 'TESTNET') {
         logger.warn('BingX does not have a public testnet, using mainnet');
       }
 
-      const exchange = new (ccxt as any).bingx(config);
+      const exchange = createAuthenticatedExchange(
+        'bingx',
+        { apiKey, apiSecret },
+        { sandbox: false }, // BingX 無公開測試網
+      );
 
       // Test: Fetch account balance (read permission)
       const balance = await exchange.fetchBalance();

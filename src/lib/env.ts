@@ -4,8 +4,13 @@
  * 在應用啟動時驗證所有環境變數，提供型別安全的存取方式。
  * 驗證失敗時會提供清楚的錯誤訊息。
  */
+import dns from 'dns';
 import dotenv from 'dotenv';
 import { z } from 'zod';
+
+// 設定 DNS 優先使用 IPv4
+// 解決 Squid proxy 無法連接 IPv6 的問題（OKX、BingX 等交易所）
+dns.setDefaultResultOrder('ipv4first');
 
 // 確保在驗證前載入 .env 檔案
 dotenv.config();
@@ -207,6 +212,11 @@ const serverEnvSchema = z.object({
   API_BASE_URL: z.string().optional().default('http://localhost:3000'),
   TEST_TOKEN: optionalString,
   TRADING_VALIDATION_ALLOW_PROD: booleanString,
+
+  // -------------------------------------------------------------------------
+  // Proxy 配置
+  // -------------------------------------------------------------------------
+  PROXY_URL: optionalString,
 });
 
 // ============================================================================
@@ -369,6 +379,8 @@ function getDefaultServerEnv(): Partial<ServerEnv> {
     API_BASE_URL: 'http://localhost:3000',
     TEST_TOKEN: '',
     TRADING_VALIDATION_ALLOW_PROD: false,
+    // Proxy
+    PROXY_URL: '',
   };
 }
 
@@ -480,6 +492,147 @@ export function getApiKeys() {
       chatId: env.TELEGRAM_CHAT_ID,
     },
   };
+}
+
+/**
+ * 取得 Proxy 配置
+ * 支援 HTTP/HTTPS/SOCKS5 proxy
+ *
+ * @returns proxy URL 或 undefined（未設定時）
+ */
+export function getProxyUrl(): string | undefined {
+  return env.PROXY_URL || undefined;
+}
+
+/**
+ * 檢查 Proxy 是否已配置
+ */
+export function isProxyConfigured(): boolean {
+  return !!env.PROXY_URL;
+}
+
+/**
+ * 檢查是否為 SOCKS proxy
+ */
+export function isSocksProxy(): boolean {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) return false;
+  return proxyUrl.startsWith('socks4://') || proxyUrl.startsWith('socks5://') || proxyUrl.startsWith('socks5h://');
+}
+
+/**
+ * 取得 CCXT proxy 配置（舊版，使用 httpProxy/socksProxy）
+ * 注意：httpProxy 在某些環境下可能不起作用，建議使用 getCcxtAgentConfig
+ *
+ * @deprecated 建議使用 getCcxtAgentConfig
+ * @returns CCXT proxy 配置物件，可直接展開到 CCXT 建構函數
+ */
+export function getCcxtProxyConfig(): { httpProxy?: string; socksProxy?: string } {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) {
+    return {};
+  }
+
+  if (isSocksProxy()) {
+    return { socksProxy: proxyUrl };
+  }
+
+  return { httpProxy: proxyUrl };
+}
+
+/**
+ * 取得 CCXT agent 配置
+ * 使用 https-proxy-agent 或 socks-proxy-agent 建立 agent
+ *
+ * 注意：此方法在某些情況下可能無法正確使用 proxy
+ * 建議使用 getCcxtHttpsProxyConfig
+ *
+ * @deprecated 建議使用 getCcxtHttpsProxyConfig
+ * @returns Promise<{ agent?: Agent }> - CCXT agent 配置物件
+ */
+export async function getCcxtAgentConfig(): Promise<{ agent?: import('http').Agent }> {
+  const agent = await createProxyAgent();
+  if (!agent) {
+    return {};
+  }
+  return { agent };
+}
+
+/**
+ * 取得 CCXT httpsProxy 配置（推薦方式）
+ *
+ * 經過測試，這是 CCXT 4.x 最可靠的 proxy 配置方式：
+ * - 使用 `httpsProxy` 屬性（即使是 http:// 協議的 proxy）
+ * - 同時支援 HTTP 和 SOCKS proxy
+ *
+ * @returns CCXT proxy 配置物件，可直接展開到 CCXT 建構函數
+ */
+export function getCcxtHttpsProxyConfig(): { httpsProxy?: string; socksProxy?: string } {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) {
+    return {};
+  }
+
+  // SOCKS proxy 使用 socksProxy 屬性
+  if (isSocksProxy()) {
+    return { socksProxy: proxyUrl };
+  }
+
+  // HTTP/HTTPS proxy 使用 httpsProxy 屬性（這是 CCXT 4.x 的正確方式）
+  return { httpsProxy: proxyUrl };
+}
+
+/**
+ * 建立 Proxy Agent
+ * 根據 proxy URL 的協議自動選擇正確的 agent 類型
+ *
+ * 支援：
+ * - HTTP/HTTPS proxy: http://, https://
+ * - SOCKS4/SOCKS5 proxy: socks4://, socks5://, socks5h://
+ *
+ * @returns Promise<Agent | null> - proxy agent 或 null（未設定時）
+ */
+export async function createProxyAgent(): Promise<import('http').Agent | null> {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) {
+    return null;
+  }
+
+  // 檢查是否為 SOCKS proxy
+  if (proxyUrl.startsWith('socks4://') || proxyUrl.startsWith('socks5://') || proxyUrl.startsWith('socks5h://')) {
+    // 動態匯入 socks-proxy-agent
+    const { SocksProxyAgent } = await import('socks-proxy-agent');
+    return new SocksProxyAgent(proxyUrl);
+  }
+
+  // HTTP/HTTPS proxy
+  const { HttpsProxyAgent } = await import('https-proxy-agent');
+  return new HttpsProxyAgent(proxyUrl);
+}
+
+/**
+ * 同步版本的 Proxy Agent 建立函數
+ * 注意：此函數假設模組已經被載入
+ *
+ * @returns Agent | null - proxy agent 或 null（未設定時）
+ */
+export function createProxyAgentSync(): import('http').Agent | null {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) {
+    return null;
+  }
+
+  // 檢查是否為 SOCKS proxy
+  if (proxyUrl.startsWith('socks4://') || proxyUrl.startsWith('socks5://') || proxyUrl.startsWith('socks5h://')) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { SocksProxyAgent } = require('socks-proxy-agent');
+    return new SocksProxyAgent(proxyUrl);
+  }
+
+  // HTTP/HTTPS proxy
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { HttpsProxyAgent } = require('https-proxy-agent');
+  return new HttpsProxyAgent(proxyUrl);
 }
 
 export default env;

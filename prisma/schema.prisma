@@ -170,6 +170,7 @@ model ApiKey {
   encryptedKey        String         @db.Text // AES-256-GCM encrypted
   encryptedSecret     String         @db.Text
   encryptedPassphrase String?        @db.Text // OKX only
+  portfolioMargin     Boolean        @default(false) // Binance 統一帳戶模式
   isActive            Boolean        @default(true)
   lastValidatedAt     DateTime?      @db.Timestamptz
   createdAt           DateTime       @default(now()) @db.Timestamptz

@@ -27,6 +27,7 @@ import type {
 import { ConditionalOrderService } from './ConditionalOrderService';
 import { createBinanceAccountDetector } from './BinanceAccountDetector';
 import { createCcxtExchangeFactory } from './CcxtExchangeFactory';
+import { createPublicExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
 import { convertToContractsWithExchange } from './ContractQuantityConverter';
 import { createOrderParamsBuilder } from './OrderParamsBuilder';
 import { createOrderPriceFetcher } from './OrderPriceFetcher';
@@ -232,17 +233,17 @@ export class PositionOrchestrator {
 
   /**
    * 獲取當前價格
+   *
+   * 使用 createPublicExchange 確保 proxy 配置自動套用
    */
   private async getCurrentPrices(
     symbol: string,
     longExchange: SupportedExchange,
     shortExchange: SupportedExchange,
   ): Promise<{ longPrice: number; shortPrice: number }> {
-    // 使用 CCXT 獲取價格
-    const ccxt = await import('ccxt');
-
-    const longTrader = this.createCcxtExchange(ccxt, longExchange);
-    const shortTrader = this.createCcxtExchange(ccxt, shortExchange);
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    const longTrader = createPublicExchange(longExchange as CcxtSupportedExchange);
+    const shortTrader = createPublicExchange(shortExchange as CcxtSupportedExchange);
 
     const [longTicker, shortTicker] = await Promise.all([
       longTrader.fetchTicker(this.formatSymbolForCcxt(symbol)),
@@ -256,28 +257,6 @@ export class PositionOrchestrator {
   }
 
   /**
-   * 創建 CCXT 交易所實例（用於價格查詢，無需 API Key）
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private createCcxtExchange(ccxt: any, exchange: SupportedExchange) {
-    const exchangeMap: Record<SupportedExchange, string> = {
-      binance: 'binance',
-      okx: 'okx',
-      mexc: 'mexc',
-      gateio: 'gateio',
-      bingx: 'bingx',
-    };
-
-    const exchangeId = exchangeMap[exchange];
-    const ExchangeClass = ccxt[exchangeId];
-
-    return new ExchangeClass({
-      sandbox: false,
-      options: { defaultType: 'swap' },
-    });
-  }
-
-  /**
    * 執行雙邊開倉
    */
   private async executeBilateralOpen(
@@ -288,9 +267,11 @@ export class PositionOrchestrator {
     quantity: Decimal,
     leverage: LeverageOption,
   ): Promise<BilateralOpenResult> {
-    // 創建用戶特定的交易所連接器
-    const longTrader = await this.createUserTrader(userId, longExchange);
-    const shortTrader = await this.createUserTrader(userId, shortExchange);
+    // 創建用戶特定的交易所連接器（平行執行以優化效能）
+    const [longTrader, shortTrader] = await Promise.all([
+      this.createUserTrader(userId, longExchange),
+      this.createUserTrader(userId, shortExchange),
+    ]);
 
     const ccxtSymbol = this.formatSymbolForCcxt(symbol);
 

@@ -2,6 +2,7 @@ import { Spot } from '@binance/connector';
 import axios from 'axios';
 import pLimit from 'p-limit';
 import { BaseExchangeConnector } from './base.js';
+import { getProxyUrl, createProxyAgent } from '../lib/env.js';
 import {
   FundingRateData,
   PriceData,
@@ -42,6 +43,8 @@ export class BinanceConnector extends BaseExchangeConnector {
   private fundingWsClient: BinanceFundingWs | null = null;
   /** WebSocket 訂閱回調映射 */
   private wsCallbacks: Map<string, (data: FundingRateReceived) => void> = new Map();
+  /** Proxy Agent 用於 axios 呼叫 */
+  private proxyAgent: import('http').Agent | null = null;
 
   constructor(isTestnet: boolean = false) {
     super('binance', isTestnet);
@@ -51,6 +54,7 @@ export class BinanceConnector extends BaseExchangeConnector {
   async connect(): Promise<void> {
     try {
       const { apiKey, apiSecret, testnet } = apiKeys.binance;
+      const proxyUrl = getProxyUrl();
 
       if (!apiKey || !apiSecret) {
         throw new ExchangeConnectionError('binance', {
@@ -66,13 +70,27 @@ export class BinanceConnector extends BaseExchangeConnector {
         ? 'https://testnet.binancefuture.com'
         : 'https://fapi.binance.com';
 
+      // 初始化 proxy agent（如果有配置，支援 HTTP/HTTPS/SOCKS）
+      if (proxyUrl) {
+        this.proxyAgent = await createProxyAgent();
+      }
+
       // 初始化現貨客戶端 (用於價格查詢)
-      this.client = new Spot(apiKey, apiSecret, { baseURL: spotBaseURL });
+      // @binance/connector 支援 httpsAgent 來設定 proxy
+      const spotConfig: any = { baseURL: spotBaseURL };
+      if (this.proxyAgent) {
+        spotConfig.httpsAgent = this.proxyAgent;
+      }
+      this.client = new Spot(apiKey, apiSecret, spotConfig);
 
       // 測試連線
       await this.testConnection();
 
       this.connected = true;
+
+      if (proxyUrl) {
+        logger.info({ proxy: proxyUrl }, 'Binance using proxy');
+      }
       logger.info({ testnet }, 'Binance connector connected');
       this.emit('connected');
     } catch (error) {
@@ -116,9 +134,10 @@ export class BinanceConnector extends BaseExchangeConnector {
     return retryApiCall(async () => {
       try {
         // 使用 Binance Futures API 的 premiumIndex endpoint
-        const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/premiumIndex`, {
-          params: { symbol },
-        });
+        const response = await axios.get(
+          `${this.futuresBaseURL}/fapi/v1/premiumIndex`,
+          this.getAxiosConfig({ params: { symbol } })
+        );
 
         const data = response.data;
 
@@ -147,7 +166,10 @@ export class BinanceConnector extends BaseExchangeConnector {
     return retryApiCall(async () => {
       try {
         // 不帶 symbol 參數會返回所有交易對
-        const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/premiumIndex`);
+        const response = await axios.get(
+          `${this.futuresBaseURL}/fapi/v1/premiumIndex`,
+          this.getAxiosConfig()
+        );
         const allData = Array.isArray(response.data) ? response.data : [response.data];
 
         // 過濾指定的交易對
@@ -200,9 +222,10 @@ export class BinanceConnector extends BaseExchangeConnector {
       }
 
       // 2. 呼叫 Binance API /fapi/v1/fundingInfo
-      const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/fundingInfo`, {
-        params: { symbol },
-      });
+      const response = await axios.get(
+        `${this.futuresBaseURL}/fapi/v1/fundingInfo`,
+        this.getAxiosConfig({ params: { symbol } })
+      );
 
       // 3. 處理 API 回傳（可能是陣列或單一物件）
       const dataArray = Array.isArray(response.data) ? response.data : [response.data];
@@ -580,7 +603,10 @@ export class BinanceConnector extends BaseExchangeConnector {
 
     return retryApiCall(async () => {
       try {
-        const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/exchangeInfo`);
+        const response = await axios.get(
+          `${this.futuresBaseURL}/fapi/v1/exchangeInfo`,
+          this.getAxiosConfig()
+        );
         const symbols = response.data.symbols
           .filter((s: { symbol: string; quoteAsset: string; contractType: string; status: string }) =>
             s.quoteAsset === 'USDT' &&
@@ -607,9 +633,10 @@ export class BinanceConnector extends BaseExchangeConnector {
 
     return retryApiCall(async () => {
       try {
-        const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/openInterest`, {
-          params: { symbol },
-        });
+        const response = await axios.get(
+          `${this.futuresBaseURL}/fapi/v1/openInterest`,
+          this.getAxiosConfig({ params: { symbol } })
+        );
 
         const data = response.data;
         const record: OpenInterestRecord = {
@@ -638,7 +665,10 @@ export class BinanceConnector extends BaseExchangeConnector {
 
     return retryApiCall(async () => {
       try {
-        const response = await axios.get(`${this.futuresBaseURL}/fapi/v1/premiumIndex`);
+        const response = await axios.get(
+          `${this.futuresBaseURL}/fapi/v1/premiumIndex`,
+          this.getAxiosConfig()
+        );
         const allData = Array.isArray(response.data) ? response.data : [response.data];
 
         const filtered = symbols && symbols.length > 0
@@ -789,6 +819,19 @@ export class BinanceConnector extends BaseExchangeConnector {
   }
 
   // 輔助方法
+
+  /**
+   * 獲取帶有 proxy 設定的 axios 配置
+   * @param config 額外的 axios 配置
+   * @returns 合併後的 axios 配置
+   */
+  private getAxiosConfig(config: any = {}): any {
+    if (this.proxyAgent) {
+      return { ...config, httpsAgent: this.proxyAgent };
+    }
+    return config;
+  }
+
   private mapOrderStatus(status: string): 'FILLED' | 'PARTIAL' | 'CANCELED' | 'FAILED' | 'PENDING' {
     switch (status) {
       case 'FILLED':

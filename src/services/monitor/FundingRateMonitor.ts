@@ -219,26 +219,48 @@ export class FundingRateMonitor extends EventEmitter {
     try {
       logger.info('Starting funding rate monitor...');
 
-      // 並行連接所有交易所
-      const connectionPromises = Array.from(this.exchanges.entries()).map(
-        async ([name, connector]) => {
-          try {
+      // 並行連接所有交易所（允許部分失敗）
+      const connectionResults = await Promise.allSettled(
+        Array.from(this.exchanges.entries()).map(
+          async ([name, connector]) => {
             await connector.connect();
             logger.info({ exchange: name }, 'Exchange connected');
             return name;
-          } catch (error) {
-            logger.error({
-              exchange: name,
-              error: error instanceof Error ? error.message : String(error),
-            }, 'Failed to connect exchange');
-            throw error;
           }
-        }
+        )
       );
 
-      await Promise.all(connectionPromises);
+      // 處理連接結果，記錄失敗的交易所但繼續運行
+      const connectedExchanges: string[] = [];
+      const failedExchanges: string[] = [];
 
-      this.status.connectedExchanges = this.exchangeNames;
+      connectionResults.forEach((result, index) => {
+        const exchangeName = this.exchangeNames[index] ?? `unknown-${index}`;
+        if (result.status === 'fulfilled') {
+          connectedExchanges.push(result.value);
+        } else {
+          failedExchanges.push(exchangeName);
+          logger.error({
+            exchange: exchangeName,
+            error: result.reason instanceof Error ? result.reason.message : String(result.reason),
+          }, 'Failed to connect exchange, continuing with other exchanges');
+        }
+      });
+
+      // 如果所有交易所都失敗，才拋出錯誤
+      if (connectedExchanges.length === 0) {
+        throw new Error(`All exchanges failed to connect: ${failedExchanges.join(', ')}`);
+      }
+
+      // 記錄部分失敗的警告
+      if (failedExchanges.length > 0) {
+        logger.warn({
+          connected: connectedExchanges,
+          failed: failedExchanges,
+        }, 'Some exchanges failed to connect, continuing with available exchanges');
+      }
+
+      this.status.connectedExchanges = connectedExchanges;
       this.isRunning = true;
       this.status.isRunning = true;
 

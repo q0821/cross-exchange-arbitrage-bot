@@ -8,6 +8,32 @@
 
 ### 效能優化
 
+#### GET /api/balances 平行查詢優化（2026-01-22）
+
+**問題**：`GET /api/balances?exchanges=gateio,binance` 回應時間長達 30 秒。
+
+**根本原因**：
+- `getBalancesForUser()` 使用 `for...of` 串行查詢所有 5 個交易所
+- 即使只請求 2 個交易所，仍查詢全部 5 個
+- 每個交易所透過 proxy 需要 10-15 秒，串行執行導致時間累加
+
+**修復內容**：
+
+1. **新增 `targetExchanges` 參數**
+   - `getBalancesForUser(userId, targetExchanges?)` 只查詢指定的交易所
+   - API route 傳入請求的 exchanges 參數
+
+2. **改用 `Promise.allSettled` 平行查詢**
+   - 所有交易所同時發送請求
+   - 即使某個交易所失敗也不影響其他查詢
+
+3. **效能改善**
+   | 項目 | 優化前 | 優化後 |
+   |:-----|:-------|:-------|
+   | 查詢方式 | 串行（for...of） | 平行（Promise.allSettled） |
+   | 查詢 2 個交易所 | ~30 秒 | ~15 秒 |
+   | 查詢範圍 | 全部 5 個 | 只查詢指定的 |
+
 #### OI 獲取效能優化（2026-01-22）
 
 **問題**：`GET /api/symbol-groups` API 回應時間 2-4 秒，嚴重影響前端載入體驗。
@@ -36,6 +62,31 @@
    - 新增 `getAll24hrTickers()` 單一函數
 
 ### 修復
+
+#### CcxtExchangeFactory 未使用 Proxy 導致 Binance -2015 錯誤（2026-01-22）
+
+**問題**：`POST /api/positions/open` 開倉時回傳 Binance -2015 "Invalid API-key, IP, or permissions for action" 錯誤。
+
+**根本原因**：
+- `CcxtExchangeFactory.ts` 直接使用 `new ccxt.binance()` 創建實例
+- 未使用 `src/lib/ccxt-factory.ts` 統一工廠
+- 導致 `httpsProxy` 配置未套用，請求從本機 IP 發出而非 proxy IP
+- Binance API 的 IP 白名單只允許 proxy IP
+
+**修復內容**：
+
+1. **修改 `CcxtExchangeFactory.ts`**
+   - 改用 `createCcxtExchange()` 從 `@/lib/ccxt-factory` 創建實例
+   - 自動套用 proxy 配置
+
+2. **更新 `CLAUDE.md` 開發規範**
+   - 新增規範 #11：CCXT 實例創建規範
+   - 禁止直接使用 `new ccxt.exchange()`
+   - 必須使用 `src/lib/ccxt-factory.ts` 工廠函數
+
+**影響範圍**：
+- `GET /api/balances` - 已使用 `UserConnectorFactory`（有 proxy）✅
+- `POST /api/positions/open` - 使用 `CcxtExchangeFactory`（已修復）✅
 
 #### Graceful Shutdown 導致 Port 3000 無法釋放（2026-01-22）
 
@@ -82,6 +133,97 @@ Socket.io server closed
 Closing HTTP server...
 HTTP server closed
 Graceful shutdown completed
+```
+
+---
+
+### 新增
+
+#### 單元測試擴充 - 核心模組測試覆蓋（2026-01-21）
+
+**背景**：針對測試覆蓋率較低的核心模組新增測試，確保程式碼品質。
+
+**新增測試檔案**：
+
+1. **`tests/unit/lib/ccxt-factory.test.ts`**（25 個測試案例）
+   - CCXT 交易所實例創建工廠函數測試
+   - 覆蓋：Proxy 配置（HTTP/HTTPS/SOCKS）、認證參數傳遞、Binance Portfolio Margin、自訂 options 合併
+   - 驗證 5 個支援的交易所（binance, okx, gateio, mexc, bingx）
+
+2. **`tests/unit/lib/env.test.ts`**（39 個測試案例）
+   - 環境變數與 Proxy 配置函數測試
+   - 覆蓋：`getProxyUrl`, `isProxyConfigured`, `isSocksProxy`, `getCcxtHttpsProxyConfig`, `getCcxtProxyConfig`, `createProxyAgent`, `createProxyAgentSync`
+   - 覆蓋：`isRedisConfigured`, `isSmtpConfigured`, `getRedisUrl`, `getApiKeys`, `env` 物件驗證
+
+3. **`tests/unit/services/assets/UserConnectorFactory.test.ts`**（9 個測試案例）
+   - 用戶連接器工廠 API Key 處理邏輯測試
+   - 覆蓋：API Key 獲取、活躍狀態過濾、解密流程、錯誤隔離（單一交易所錯誤不影響其他）
+
+**測試統計更新**：
+- 單元測試檔案：98 → 101（+3）
+- 單元測試案例：2,050 → 2,123（+73）
+- 總測試案例：2,244 → 2,317（+73）
+
+---
+
+#### Proxy 支援 - 交易所 API 連線代理（2026-01-19）
+
+**背景**：部分交易所 API 需要 IP 白名單，透過 VPS proxy 可確保固定 IP 存取。
+
+**重要修復（2026-01-19）**：
+
+- **問題**：CCXT 帶 API Key 的請求未正確使用 proxy，導致 OKX 報 IP 白名單錯誤
+- **根因**：VPS 有 IPv6 地址時，tinyproxy 出站連線優先使用 IPv6
+- **解決方案**：
+  1. 在 tinyproxy.conf 添加 `Bind <IPv4>` 強制出站使用 IPv4
+  2. CCXT 改用 `httpsProxy` 屬性（而非 `httpProxy` 或 `agent`）
+- **新增函數**：`getCcxtHttpsProxyConfig()` - CCXT 4.x 最可靠的 proxy 配置方式
+
+**新增功能**：
+
+1. **環境變數配置**
+   - `.env.example` - 新增 `PROXY_URL` 設定說明
+   - 支援 HTTP/HTTPS proxy（`http://user:pass@host:port`）
+   - 支援 SOCKS4/5 proxy（`socks5://user:pass@host:port`）
+
+2. **Proxy 工具函數** - `src/lib/env.ts`
+   - `getProxyUrl()` - 取得 proxy URL
+   - `isProxyConfigured()` - 檢查是否已配置 proxy
+   - `isSocksProxy()` - 判斷是否為 SOCKS proxy
+   - `getCcxtProxyConfig()` - 取得 CCXT 適用的 proxy 設定
+   - `createProxyAgent()` - 建立 axios 適用的 proxy agent
+
+3. **交易所連接器 Proxy 支援**
+   - `src/connectors/binance.ts` - Binance（@binance/connector + axios）
+   - `src/connectors/okx.ts` - OKX（CCXT）
+   - `src/connectors/gateio.ts` - Gate.io（CCXT）
+   - `src/connectors/mexc.ts` - MEXC（CCXT）
+   - `src/connectors/bingx.ts` - BingX（CCXT + axios）
+
+4. **診斷工具** - `scripts/diagnostics/test-proxy.ts`
+   - 測試直連 vs Proxy IP 差異
+   - 測試五大交易所 API 連線
+   - 顯示延遲比較表格（直連/Proxy/差異）
+   - 計算平均延遲統計
+
+5. **VPS Proxy 安裝腳本** - `scripts/setup-proxy-server.sh`
+   - 一鍵安裝 tinyproxy（Ubuntu/Debian）
+   - 自動生成認證密碼
+   - 設定防火牆規則
+   - **強制 IPv4 出站連線**（避免 IPv6 導致的 IP 白名單問題）
+   - 輸出可直接使用的 `PROXY_URL`
+
+**新增依賴**：
+- `https-proxy-agent` - HTTP/HTTPS proxy agent
+- `socks-proxy-agent` - SOCKS4/5 proxy agent
+
+**使用方式**：
+```bash
+# 1. 設定 .env
+PROXY_URL=http://user:pass@your-vps:18888
+
+# 2. 測試連線
+pnpm tsx scripts/diagnostics/test-proxy.ts
 ```
 
 ---
