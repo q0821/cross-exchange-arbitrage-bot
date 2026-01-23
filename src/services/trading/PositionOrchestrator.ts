@@ -267,9 +267,11 @@ export class PositionOrchestrator {
     quantity: Decimal,
     leverage: LeverageOption,
   ): Promise<BilateralOpenResult> {
-    // 創建用戶特定的交易所連接器
-    const longTrader = await this.createUserTrader(userId, longExchange);
-    const shortTrader = await this.createUserTrader(userId, shortExchange);
+    // 創建用戶特定的交易所連接器（平行執行以優化效能）
+    const [longTrader, shortTrader] = await Promise.all([
+      this.createUserTrader(userId, longExchange),
+      this.createUserTrader(userId, shortExchange),
+    ]);
 
     const ccxtSymbol = this.formatSymbolForCcxt(symbol);
 
