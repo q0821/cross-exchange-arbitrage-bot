@@ -80,6 +80,8 @@ export class PrivateWsManager extends EventEmitter {
   private adapterFactory: WsAdapterFactory | null = null;
   private options: Required<PrivateWsManagerOptions>;
   private isDestroyed = false;
+  // 餘額快取：key = `${userId}:${exchange}`
+  private balanceCache = new Map<string, { balance: number; timestamp: number }>();
 
   private constructor(options?: PrivateWsManagerOptions) {
     super();
@@ -297,6 +299,8 @@ export class PrivateWsManager extends EventEmitter {
     });
 
     adapter.on('balanceChanged', (event: BalanceChanged) => {
+      // 更新快取
+      this.updateBalanceCache(userId, exchange, event);
       this.emit('balanceChanged', { userId, ...event });
     });
 
@@ -364,6 +368,43 @@ export class PrivateWsManager extends EventEmitter {
         reject(new Error(`Connection timeout after ${ms}ms`));
       }, ms);
     });
+  }
+
+  /**
+   * 更新餘額快取
+   */
+  private updateBalanceCache(userId: string, exchange: ExchangeName, event: BalanceChanged): void {
+    // 只快取 USDT 資產的可用餘額
+    if (event.asset.toLowerCase() === 'usdt' && event.availableBalance) {
+      const cacheKey = this.getBalanceCacheKey(userId, exchange);
+      this.balanceCache.set(cacheKey, {
+        balance: event.availableBalance.toNumber(),
+        timestamp: Date.now(),
+      });
+      logger.debug(
+        { userId, exchange, balance: event.availableBalance.toNumber() },
+        'Balance cache updated'
+      );
+    }
+  }
+
+  /**
+   * 取得快取的餘額
+   *
+   * @param userId 用戶 ID
+   * @param exchange 交易所
+   * @returns 快取的餘額資訊，如果不存在則回傳 null
+   */
+  getCachedBalance(userId: string, exchange: string): { balance: number; timestamp: number } | null {
+    const cacheKey = this.getBalanceCacheKey(userId, exchange as ExchangeName);
+    return this.balanceCache.get(cacheKey) ?? null;
+  }
+
+  /**
+   * 取得餘額快取鍵值
+   */
+  private getBalanceCacheKey(userId: string, exchange: ExchangeName): string {
+    return `${userId}:${exchange}`;
   }
 }
 
