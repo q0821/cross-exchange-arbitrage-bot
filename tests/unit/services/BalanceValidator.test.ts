@@ -32,6 +32,15 @@ vi.mock('../../../src/services/assets/UserConnectorFactory', () => {
   };
 });
 
+// Mock PrivateWsManager
+vi.mock('../../../src/services/websocket/PrivateWsManager', () => {
+  return {
+    privateWsManager: {
+      getCachedBalance: vi.fn(),
+    },
+  };
+});
+
 // Import after mocks are set up
 import { BalanceValidator } from '../../../src/services/trading/BalanceValidator';
 import {
@@ -619,6 +628,216 @@ describe('BalanceValidator', () => {
       await expect(
         validator.getBalances('user-123', ['binance']),
       ).rejects.toThrow('Database connection failed');
+    });
+  });
+
+  // ===========================================================================
+  // Phase N: WebSocket 快取餘額驗證測試 (Feature: perf/balance-validator-ws-cache)
+  // ===========================================================================
+
+  describe('validateBalance with WebSocket cache', () => {
+    it('should use cached balance when useCachedBalance is true and cache is valid', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const longExchange = 'binance';
+      const shortExchange = 'okx';
+      const quantity = new Decimal('0.1');
+      const longPrice = new Decimal('50000');
+      const shortPrice = new Decimal('50100');
+      const leverage = 1;
+
+      // Mock PrivateWsManager 回傳有效快取
+      const mockPrivateWsManager = await import('../../../src/services/websocket/PrivateWsManager');
+      vi.spyOn(mockPrivateWsManager.privateWsManager, 'getCachedBalance').mockImplementation((uid, ex) => {
+        if (uid === userId && ex === longExchange) {
+          return { balance: 10000, timestamp: Date.now() - 5000 }; // 5 秒前
+        }
+        if (uid === userId && ex === shortExchange) {
+          return { balance: 8000, timestamp: Date.now() - 5000 };
+        }
+        return null;
+      });
+
+      // Act
+      const result = await validator.validateBalance(
+        userId,
+        longExchange,
+        shortExchange,
+        quantity,
+        longPrice,
+        shortPrice,
+        leverage,
+        { useCachedBalance: true }
+      );
+
+      // Assert - 應該使用快取，不呼叫 API
+      expect(mockGetBalancesForUser).not.toHaveBeenCalled();
+      expect(result.isValid).toBe(true);
+      expect(result.longExchangeBalance).toBe(10000);
+      expect(result.shortExchangeBalance).toBe(8000);
+    });
+
+    it('should fallback to API when cache is expired', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const longExchange = 'binance';
+      const shortExchange = 'okx';
+      const quantity = new Decimal('0.1');
+      const longPrice = new Decimal('50000');
+      const shortPrice = new Decimal('50100');
+      const leverage = 1;
+
+      // Mock PrivateWsManager 回傳過期快取
+      const mockPrivateWsManager = await import('../../../src/services/websocket/PrivateWsManager');
+      vi.spyOn(mockPrivateWsManager.privateWsManager, 'getCachedBalance').mockImplementation((uid, ex) => {
+        if (uid === userId && ex === longExchange) {
+          return { balance: 10000, timestamp: Date.now() - 60000 }; // 60 秒前（過期）
+        }
+        if (uid === userId && ex === shortExchange) {
+          return { balance: 8000, timestamp: Date.now() - 60000 };
+        }
+        return null;
+      });
+
+      // Mock API 回傳
+      mockGetBalancesForUser.mockResolvedValue([
+        { exchange: 'binance', status: 'success', balanceUSD: 12000, availableBalanceUSD: 12000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 9000, availableBalanceUSD: 9000 },
+      ]);
+
+      // Act
+      const result = await validator.validateBalance(
+        userId,
+        longExchange,
+        shortExchange,
+        quantity,
+        longPrice,
+        shortPrice,
+        leverage,
+        { useCachedBalance: true, maxCacheAgeMs: 30000 } // 30 秒有效期
+      );
+
+      // Assert - 快取過期，應該呼叫 API
+      expect(mockGetBalancesForUser).toHaveBeenCalledWith(userId, [longExchange, shortExchange]);
+      expect(result.isValid).toBe(true);
+      expect(result.longExchangeBalance).toBe(12000); // 使用 API 回傳值
+      expect(result.shortExchangeBalance).toBe(9000);
+    });
+
+    it('should fallback to API when cache does not exist', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const longExchange = 'binance';
+      const shortExchange = 'okx';
+      const quantity = new Decimal('0.1');
+      const longPrice = new Decimal('50000');
+      const shortPrice = new Decimal('50100');
+      const leverage = 1;
+
+      // Mock PrivateWsManager 回傳 null（無快取）
+      const mockPrivateWsManager = await import('../../../src/services/websocket/PrivateWsManager');
+      vi.spyOn(mockPrivateWsManager.privateWsManager, 'getCachedBalance').mockReturnValue(null);
+
+      // Mock API 回傳
+      mockGetBalancesForUser.mockResolvedValue([
+        { exchange: 'binance', status: 'success', balanceUSD: 15000, availableBalanceUSD: 15000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
+      ]);
+
+      // Act
+      const result = await validator.validateBalance(
+        userId,
+        longExchange,
+        shortExchange,
+        quantity,
+        longPrice,
+        shortPrice,
+        leverage,
+        { useCachedBalance: true }
+      );
+
+      // Assert - 無快取，應該呼叫 API
+      expect(mockGetBalancesForUser).toHaveBeenCalledWith(userId, [longExchange, shortExchange]);
+      expect(result.isValid).toBe(true);
+      expect(result.longExchangeBalance).toBe(15000);
+      expect(result.shortExchangeBalance).toBe(10000);
+    });
+
+    it('should use API when useCachedBalance is false (default behavior)', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const longExchange = 'binance';
+      const shortExchange = 'okx';
+      const quantity = new Decimal('0.1');
+      const longPrice = new Decimal('50000');
+      const shortPrice = new Decimal('50100');
+      const leverage = 1;
+
+      // Mock API 回傳
+      mockGetBalancesForUser.mockResolvedValue([
+        { exchange: 'binance', status: 'success', balanceUSD: 20000, availableBalanceUSD: 20000 },
+        { exchange: 'okx', status: 'success', balanceUSD: 18000, availableBalanceUSD: 18000 },
+      ]);
+
+      // Act - 不傳 options，預設行為
+      const result = await validator.validateBalance(
+        userId,
+        longExchange,
+        shortExchange,
+        quantity,
+        longPrice,
+        shortPrice,
+        leverage
+      );
+
+      // Assert - 應該直接呼叫 API，不查快取
+      expect(mockGetBalancesForUser).toHaveBeenCalledWith(userId, [longExchange, shortExchange]);
+      expect(result.isValid).toBe(true);
+      expect(result.longExchangeBalance).toBe(20000);
+      expect(result.shortExchangeBalance).toBe(18000);
+    });
+  });
+
+  describe('checkBalance with WebSocket cache', () => {
+    it('should support cache options in checkBalance method', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const longExchange = 'binance';
+      const shortExchange = 'okx';
+      const quantity = new Decimal('0.1');
+      const longPrice = new Decimal('50000');
+      const shortPrice = new Decimal('50100');
+      const leverage = 1;
+
+      // Mock PrivateWsManager 回傳有效快取
+      const mockPrivateWsManager = await import('../../../src/services/websocket/PrivateWsManager');
+      vi.spyOn(mockPrivateWsManager.privateWsManager, 'getCachedBalance').mockImplementation((uid, ex) => {
+        if (uid === userId && ex === longExchange) {
+          return { balance: 10000, timestamp: Date.now() - 5000 };
+        }
+        if (uid === userId && ex === shortExchange) {
+          return { balance: 8000, timestamp: Date.now() - 5000 };
+        }
+        return null;
+      });
+
+      // Act
+      const result = await validator.checkBalance(
+        userId,
+        longExchange,
+        shortExchange,
+        quantity,
+        longPrice,
+        shortPrice,
+        leverage,
+        { useCachedBalance: true }
+      );
+
+      // Assert - checkBalance 也應該支援快取
+      expect(mockGetBalancesForUser).not.toHaveBeenCalled();
+      expect(result.isValid).toBe(true);
+      expect(result.longExchangeBalance).toBe(10000);
+      expect(result.shortExchangeBalance).toBe(8000);
     });
   });
 });
