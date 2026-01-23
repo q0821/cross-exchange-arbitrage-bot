@@ -6,8 +6,9 @@
  * 從 src/scripts/trading-validation/ExchangeQueryService.ts 重構
  */
 
-import * as ccxt from 'ccxt';
+import type * as ccxt from 'ccxt';
 import { logger } from './logger';
+import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from './ccxt-factory';
 
 // ===== Type Definitions =====
 
@@ -109,27 +110,23 @@ export class ExchangeQueryService {
 
   /**
    * 建立交易所連接
+   *
+   * 使用統一 CCXT 工廠確保 proxy 配置自動套用
    */
   async connect(apiKey: DecryptedApiKey): Promise<void> {
     this.apiKey = apiKey;
-    const exchangeClass = this.getExchangeClass();
 
-    const config: any = {
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    this.exchange = createCcxtExchange(this.exchangeName as CcxtSupportedExchange, {
       apiKey: apiKey.apiKey,
       secret: apiKey.secret,
+      password: this.exchangeName === 'okx' ? apiKey.passphrase : undefined,
       enableRateLimit: true,
       options: {
         defaultType: 'swap',
         adjustForTimeDifference: true,
       },
-    };
-
-    // OKX 需要 passphrase
-    if (this.exchangeName === 'okx' && apiKey.passphrase) {
-      config.password = apiKey.passphrase;
-    }
-
-    this.exchange = new exchangeClass(config);
+    });
 
     // Binance 需要檢測是否為 Portfolio Margin 帳戶
     if (this.exchangeName === 'binance') {
@@ -171,13 +168,14 @@ export class ExchangeQueryService {
 
   /**
    * 重新建立 Binance exchange 並啟用 Portfolio Margin
+   *
+   * 使用統一 CCXT 工廠確保 proxy 配置自動套用
    */
   private async recreateWithPortfolioMargin(): Promise<void> {
     if (!this.apiKey) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const BinanceClass = (ccxt as any).binance;
-    this.exchange = new BinanceClass({
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    this.exchange = createCcxtExchange('binance', {
       apiKey: this.apiKey.apiKey,
       secret: this.apiKey.secret,
       enableRateLimit: true,
@@ -188,27 +186,6 @@ export class ExchangeQueryService {
       },
     });
     this.marketsLoaded = false;
-  }
-
-  /**
-   * 取得交易所類別
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private getExchangeClass(): any {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ccxtAny = ccxt as any;
-    switch (this.exchangeName) {
-      case 'binance':
-        return ccxtAny.binance;
-      case 'okx':
-        return ccxtAny.okx;
-      case 'gateio':
-        return ccxtAny.gate;
-      case 'bingx':
-        return ccxtAny.bingx;
-      default:
-        throw new Error(`不支援的交易所: ${this.exchangeName}`);
-    }
   }
 
   /**

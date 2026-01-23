@@ -9,9 +9,9 @@
  * - 持倉歷史
  */
 
-import ccxt from 'ccxt';
 import type { Exchange } from 'ccxt';
 import { logger } from '@/lib/logger';
+import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
 
 /**
  * 連接器選項
@@ -51,6 +51,8 @@ export interface IAuthenticatedConnector {
 
 /**
  * CCXT 連接器封裝
+ *
+ * 使用統一 CCXT 工廠確保 proxy 配置自動套用
  */
 class CcxtAuthenticatedConnector implements IAuthenticatedConnector {
   private exchange: Exchange;
@@ -59,33 +61,17 @@ class CcxtAuthenticatedConnector implements IAuthenticatedConnector {
   constructor(exchangeName: string, options: ConnectorOptions) {
     this.exchangeName = exchangeName;
 
-    // 建立 CCXT exchange 實例
-    const ExchangeClass = (ccxt as unknown as Record<string, new (config: Record<string, unknown>) => Exchange>)[exchangeName];
-
-    if (!ExchangeClass) {
-      throw new Error(`Unsupported exchange: ${exchangeName}`);
-    }
-
-    const config: Record<string, unknown> = {
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    this.exchange = createCcxtExchange(exchangeName as CcxtSupportedExchange, {
       apiKey: options.apiKey,
       secret: options.apiSecret,
+      password: options.passphrase,
+      sandbox: options.isTestnet,
       enableRateLimit: true,
       options: {
         defaultType: 'swap',
       },
-    };
-
-    // 設置 passphrase（OKX 需要）
-    if (options.passphrase) {
-      config.password = options.passphrase;
-    }
-
-    // 設置測試網
-    if (options.isTestnet) {
-      config.sandbox = true;
-    }
-
-    this.exchange = new ExchangeClass(config);
+    });
   }
 
   /**

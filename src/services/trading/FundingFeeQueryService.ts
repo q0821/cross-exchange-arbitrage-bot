@@ -7,10 +7,11 @@
 
 import { PrismaClient } from '@/generated/prisma/client';
 import { createPrismaClient } from '@/lib/prisma-factory';
-import * as ccxt from 'ccxt';
+import type * as ccxt from 'ccxt';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
 import { decrypt } from '../../lib/encryption';
+import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '../../lib/ccxt-factory';
 import type {
   SupportedExchange,
   FundingFeeEntry,
@@ -62,8 +63,10 @@ export class FundingFeeQueryService {
 
   /**
    * 創建已認證的 CCXT 交易所實例
+   *
+   * 使用統一 CCXT 工廠確保 proxy 配置自動套用
    */
-  private async createCcxtExchange(
+  private async createUserCcxtExchange(
     exchange: SupportedExchange,
     userId: string,
   ): Promise<ccxt.Exchange> {
@@ -87,20 +90,8 @@ export class FundingFeeQueryService {
       ? decrypt(apiKey.encryptedPassphrase)
       : undefined;
 
-    const exchangeMap: Record<SupportedExchange, string> = {
-      binance: 'binance',
-      okx: 'okx',
-      mexc: 'mexc',
-      gateio: 'gateio',
-      bingx: 'bingx',
-    };
-
-    const exchangeId = exchangeMap[exchange];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ExchangeClass = (ccxt as any)[exchangeId];
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config: any = {
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    let ccxtExchange = createCcxtExchange(exchange as CcxtSupportedExchange, {
       apiKey: decryptedKey,
       secret: decryptedSecret,
       password: decryptedPassphrase,
@@ -110,20 +101,24 @@ export class FundingFeeQueryService {
         // Binance 使用 'future'，其他交易所使用 'swap'
         defaultType: exchange === 'binance' ? 'future' : 'swap',
       },
-    };
-
-    let ccxtExchange = new ExchangeClass(config);
+    });
 
     // Binance Portfolio Margin 偵測
     if (exchange === 'binance') {
       const accountType = await this.detectBinanceAccountType(ccxtExchange);
       if (accountType.isPortfolioMargin) {
         logger.info('Recreating Binance exchange with Portfolio Margin enabled (FundingFeeQueryService)');
-        config.options = {
-          ...config.options,
-          portfolioMargin: true,
-        };
-        ccxtExchange = new ExchangeClass(config);
+        ccxtExchange = createCcxtExchange(exchange as CcxtSupportedExchange, {
+          apiKey: decryptedKey,
+          secret: decryptedSecret,
+          password: decryptedPassphrase,
+          sandbox: apiKey.environment === 'TESTNET',
+          enableRateLimit: true,
+          options: {
+            defaultType: 'future',
+            portfolioMargin: true,
+          },
+        });
       }
     }
 
@@ -172,7 +167,7 @@ export class FundingFeeQueryService {
     };
 
     try {
-      const ccxtExchange = await this.createCcxtExchange(exchange, userId);
+      const ccxtExchange = await this.createUserCcxtExchange(exchange, userId);
 
       // 必須先載入市場資訊
       await ccxtExchange.loadMarkets();

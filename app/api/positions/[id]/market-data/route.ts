@@ -13,6 +13,7 @@ import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 import { TradingError } from '@/src/lib/errors/trading-errors';
 import { estimatePnL } from '@/src/lib/pnl-calculator';
+import { createPublicExchange, type SupportedExchange as CcxtSupportedExchange } from '@/src/lib/ccxt-factory';
 import type { SupportedExchange, PositionMarketDataResponse } from '@/src/types/trading';
 
 /**
@@ -163,26 +164,14 @@ export async function GET(
 
 /**
  * 獲取即時價格
+ *
+ * 使用統一 CCXT 工廠確保 proxy 配置自動套用
  */
 async function getCurrentPrice(symbol: string, exchange: SupportedExchange): Promise<number> {
   try {
-     
-    const ccxt = require('ccxt');
-
-    const exchangeMap: Record<SupportedExchange, string> = {
-      binance: 'binance',
-      okx: 'okx',
-      mexc: 'mexc',
-      gateio: 'gateio',
-      bingx: 'bingx',
-    };
-
-    const exchangeId = exchangeMap[exchange];
-    const ExchangeClass = ccxt[exchangeId];
-
-    const ccxtExchange = new ExchangeClass({
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    const ccxtExchange = createPublicExchange(exchange as CcxtSupportedExchange, {
       sandbox: false,
-      options: { defaultType: 'swap' },
     });
 
     // 格式化交易對

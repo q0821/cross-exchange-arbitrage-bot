@@ -10,6 +10,7 @@ import { BinanceConnector } from '../../../connectors/binance.js';
 import { logger } from '../../../lib/logger.js';
 import { MonitorOutputFormatter } from '../../../lib/formatters/MonitorOutputFormatter.js';
 import { oiCache } from '../../../lib/cache.js';
+import { createPublicExchange } from '../../../lib/ccxt-factory.js';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -44,18 +45,14 @@ async function _fetchAvailableSymbols(
   isTestnet: boolean,
   minVolume: number
 ): Promise<string[]> {
-  const ccxt = await import('ccxt');
-
   logger.info('正在從交易所獲取可用交易對...');
 
   try {
-    // 1. 獲取 Binance 永續合約交易對
-    const binanceExchange = new (ccxt as any).binance({
-      options: {
-        defaultType: 'future',
-        testnet: isTestnet,
-      },
-    });
+    // 1. 獲取 Binance 永續合約交易對（使用統一工廠確保 proxy 配置）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const binanceExchange = createPublicExchange('binance', {
+      sandbox: isTestnet,
+    }) as any;
 
     await binanceExchange.loadMarkets();
     const binanceTickers = await binanceExchange.fetchTickers();
@@ -87,19 +84,17 @@ async function _fetchAvailableSymbols(
       minVolume,
     }, 'Binance 可用交易對');
 
-    // 2. 獲取 OKX 永續合約交易對
-    const okxExchange = new (ccxt as any).okx({
-      options: {
-        defaultType: 'swap',
-        sandboxMode: isTestnet,
-      },
-    });
+    // 2. 獲取 OKX 永續合約交易對（使用統一工廠確保 proxy 配置）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const okxExchange = createPublicExchange('okx', {
+      sandbox: isTestnet,
+    }) as any;
 
     await okxExchange.loadMarkets();
     const okxTickers = await okxExchange.fetchTickers();
 
     const okxSymbols = new Set<string>();
-    Object.keys(okxExchange.markets).forEach((marketId) => {
+    Object.keys(okxExchange.markets).forEach((marketId: string) => {
       const market = okxExchange.markets[marketId];
       if (
         market.quote === 'USDT' &&
@@ -213,18 +208,16 @@ async function fetchSymbolsByOI(
     // 4. 儲存到快取
     oiCache.set(topN, ranking);
 
-    // 5. 驗證交易對在 OKX 上也可用
+    // 5. 驗證交易對在 OKX 上也可用（使用統一工廠確保 proxy 配置）
     logger.info('驗證交易對在 OKX 上的可用性...');
-    const okxExchange = await import('ccxt').then((ccxt) => new (ccxt as any).okx({
-      options: {
-        defaultType: 'swap',
-        sandboxMode: isTestnet,
-      },
-    }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const okxExchange = createPublicExchange('okx', {
+      sandbox: isTestnet,
+    }) as any;
 
     await okxExchange.loadMarkets();
     const okxSymbols = new Set<string>();
-    Object.keys(okxExchange.markets).forEach((marketId) => {
+    Object.keys(okxExchange.markets).forEach((marketId: string) => {
       const market = okxExchange.markets[marketId];
       if (market.quote === 'USDT' && market.swap && market.active) {
         const symbol = market.base + 'USDT';

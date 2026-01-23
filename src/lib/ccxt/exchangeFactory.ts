@@ -3,9 +3,12 @@
  *
  * 提供類型安全的 CCXT 交易所實例創建
  * 解決 CCXT 類型定義不完整的問題
+ *
+ * @deprecated 請使用 @/lib/ccxt-factory 統一工廠，該工廠已包含 proxy 配置
  */
 
-import ccxt, { Exchange } from 'ccxt';
+import type { Exchange } from 'ccxt';
+import { createCcxtExchange as createFromMainFactory, type SupportedExchange } from '../ccxt-factory';
 
 /**
  * 支援的交易所 ID
@@ -34,9 +37,13 @@ const SUPPORTED_EXCHANGES: SupportedExchangeId[] = ['binance', 'okx', 'mexc', 'g
 /**
  * 創建 CCXT 交易所實例
  *
+ * 使用統一 CCXT 工廠確保 proxy 配置自動套用
+ *
  * @param exchangeId 交易所 ID
  * @param options 配置選項
  * @returns CCXT Exchange 實例
+ *
+ * @deprecated 請直接使用 @/lib/ccxt-factory 的 createCcxtExchange
  *
  * @example
  * ```typescript
@@ -56,17 +63,13 @@ export function createCcxtExchange(
     throw new Error(`Unsupported exchange: ${exchangeId}`);
   }
 
-  // 使用 CCXT 的動態創建方式（需要雙重斷言因為 CCXT 類型定義不完整）
-  const ccxtModule = ccxt as unknown as Record<string, new (config: ExchangeOptions) => Exchange>;
-  const ExchangeClass = ccxtModule[exchangeId];
-
-  if (!ExchangeClass) {
-    throw new Error(`Exchange class not found: ${exchangeId}`);
-  }
-
-  return new ExchangeClass({
-    enableRateLimit: true,
-    ...options,
+  // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+  return createFromMainFactory(exchangeId as SupportedExchange, {
+    apiKey: options.apiKey,
+    secret: options.secret,
+    password: options.password,
+    enableRateLimit: options.enableRateLimit ?? true,
+    options: options.options,
   });
 }
 
