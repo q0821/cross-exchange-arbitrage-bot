@@ -1369,6 +1369,53 @@ describe('PositionOrchestrator', () => {
       expect(buyStartIndex).toBeLessThan(executionOrder.indexOf('end-buy'));
       expect(sellStartIndex).toBeLessThan(executionOrder.indexOf('end-sell'));
     });
+
+    it('should create traders for both exchanges in parallel (not sequentially)', async () => {
+      // Feature: fix/open-position-performance
+      // 驗證 createUserTrader 是平行執行的，而非串行
+      const apiKeyQueryTimes: number[] = [];
+
+      // Mock apiKey.findFirst 記錄查詢時間
+      (mockPrisma.apiKey.findFirst as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+        apiKeyQueryTimes.push(performance.now());
+        // 模擬 API key 查詢延遲
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        return {
+          id: 'key-1',
+          userId: 'user-123',
+          exchange: 'binance',
+          encryptedKey: 'encrypted-key',
+          encryptedSecret: 'encrypted-secret',
+          encryptedPassphrase: null,
+          environment: 'MAINNET',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+      });
+
+      mockCreateMarketOrder.mockResolvedValue(createSuccessfulOrderResult());
+
+      const params = createBaseParams();
+
+      const promise = orchestrator.openPosition(params);
+
+      // 快進所有 timers
+      await vi.advanceTimersByTimeAsync(500);
+
+      await promise;
+
+      // 驗證：至少有 2 次 API key 查詢（longExchange 和 shortExchange）
+      expect(apiKeyQueryTimes.length).toBeGreaterThanOrEqual(2);
+
+      // 如果是平行執行，兩次查詢的時間差應該很小（< 10ms）
+      // 如果是串行執行，時間差會 >= 50ms（因為第一次查詢需要 50ms）
+      if (apiKeyQueryTimes.length >= 2) {
+        const timeDiff = Math.abs(apiKeyQueryTimes[1] - apiKeyQueryTimes[0]);
+        // 平行執行時，兩次查詢幾乎同時開始，時間差應該很小
+        expect(timeDiff).toBeLessThan(10);
+      }
+    });
   });
 
   // ===========================================================================
