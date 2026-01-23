@@ -48,36 +48,64 @@ export class OKXConnector extends BaseExchangeConnector {
   }
 
   async connect(): Promise<void> {
-    try {
-      const { apiKey, apiSecret, passphrase, testnet } = apiKeys.okx;
+    const maxRetries = 3;
+    const baseDelayMs = 1000;
 
-      if (!apiKey || !apiSecret || !passphrase) {
-        throw new ExchangeConnectionError('okx', {
-          message: 'Missing OKX API credentials',
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const { apiKey, apiSecret, passphrase, testnet } = apiKeys.okx;
+
+        if (!apiKey || !apiSecret || !passphrase) {
+          throw new ExchangeConnectionError('okx', {
+            message: 'Missing OKX API credentials',
+          });
+        }
+
+        this.client = new ccxt.okx({
+          apiKey,
+          secret: apiSecret,
+          password: passphrase,
+          enableRateLimit: true,
+          options: {
+            defaultType: 'swap', // 使用永續合約
+            ...(testnet && { sandboxMode: true }),
+          },
         });
+
+        // 測試連線
+        await this.testConnection();
+
+        this.connected = true;
+        logger.info({ testnet, attempts: attempt }, 'OKX connector connected');
+        this.emit('connected');
+        return; // 連線成功，退出函數
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+
+        // 認證錯誤不重試
+        if (err.message.includes('Missing OKX API credentials')) {
+          logger.error({ error: err.message }, 'Failed to connect to OKX');
+          throw new ExchangeConnectionError('okx', { originalError: err.message });
+        }
+
+        // 最後一次嘗試失敗
+        if (attempt === maxRetries) {
+          logger.error(
+            { error: err.message, attempts: attempt },
+            'Failed to connect to OKX after all retries'
+          );
+          throw new ExchangeConnectionError('okx', { originalError: err.message });
+        }
+
+        // 計算重試延遲（指數退避）
+        const delayMs = baseDelayMs * Math.pow(2, attempt - 1);
+        logger.warn(
+          { error: err.message, attempt, maxRetries, delayMs },
+          'OKX connection attempt failed, retrying...'
+        );
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
-
-      this.client = new ccxt.okx({
-        apiKey,
-        secret: apiSecret,
-        password: passphrase,
-        enableRateLimit: true,
-        options: {
-          defaultType: 'swap', // 使用永續合約
-          ...(testnet && { sandboxMode: true }),
-        },
-      });
-
-      // 測試連線
-      await this.testConnection();
-
-      this.connected = true;
-      logger.info({ testnet }, 'OKX connector connected');
-      this.emit('connected');
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      logger.error({ error: err.message }, 'Failed to connect to OKX');
-      throw new ExchangeConnectionError('okx', { originalError: err.message });
     }
   }
 
