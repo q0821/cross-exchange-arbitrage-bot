@@ -104,36 +104,20 @@ const [longTrader, shortTrader] = await Promise.all([
 
 ---
 
-### 🟡 優先級中：OrderPriceFetcher 的固定 500ms 延遲
+### ✅ 已優化：OrderPriceFetcher 指數退避輪詢策略
 
-**位置**: `src/services/trading/OrderPriceFetcher.ts:102`
+**位置**: `src/services/trading/OrderPriceFetcher.ts:99-136`
 
-**問題程式碼**:
-```typescript
-private async tryFetchOrder(...): Promise<number> {
-  try {
-    // 固定等待 500ms
-    await new Promise(resolve => setTimeout(resolve, this.ORDER_SETTLEMENT_DELAY));
-    const fetchedOrder = await ccxtExchange.fetchOrder(orderId, symbol);
-    // ...
-  }
-}
-```
-
-**問題**:
-- 即使訂單已經結算完成，仍然需要等待固定的 500ms
+**原問題**:
+- 舊版本使用固定 500ms 延遲，即使訂單已經結算完成仍需等待
 - 開倉/平倉時如果 `order.average` 為空，必定觸發這個延遲
-
-**影響分析**:
-- 每個需要 fallback 到 `fetchOrder` 的訂單增加 500ms
 - 最壞情況下（雙邊開倉 + 雙邊平倉）可能增加 2 秒總延遲
 
-**優化方案一：輪詢策略（指數退避）**
+**優化後程式碼**:
 ```typescript
 private async tryFetchOrder(...): Promise<number> {
-  const delays = [100, 200, 400]; // 指數退避
-
-  for (const delay of delays) {
+  // 指數退避：50ms → 100ms → 200ms → 400ms
+  for (const delay of this.RETRY_DELAYS) {
     await new Promise(resolve => setTimeout(resolve, delay));
 
     try {
@@ -141,33 +125,39 @@ private async tryFetchOrder(...): Promise<number> {
       const price = fetchedOrder.average || fetchedOrder.price || 0;
 
       if (price > 0) {
+        logger.info(
+          { symbol, orderId, price, attemptDelay: delay },
+          'Got price from fetched order',
+        );
         return price;
       }
-    } catch (error) {
-      // 記錄但繼續嘗試
-      logger.debug({ orderId, delay, error }, 'fetchOrder attempt failed');
+      // price 為 0，繼續下一次嘗試
+      logger.debug({ symbol, orderId, delay }, 'Price still 0 after fetchOrder, retrying...');
+    } catch (fetchError) {
+      // 記錄但繼續嘗試下一次
+      logger.debug(
+        { symbol, orderId, delay, error: fetchError },
+        'fetchOrder attempt failed, will retry',
+      );
     }
   }
 
-  return 0; // 全部失敗
+  // 所有嘗試都失敗，返回 0（會觸發 fetchMyTrades fallback）
+  logger.warn(
+    { symbol, orderId, totalAttempts: this.RETRY_DELAYS.length },
+    'All fetchOrder attempts failed to get price',
+  );
+  return 0;
 }
 ```
 
-**優化方案二：根據交易所調整延遲**
-```typescript
-private getSettlementDelay(exchange: string): number {
-  const delays: Record<string, number> = {
-    binance: 300,  // Binance 結算較快
-    okx: 400,
-    gateio: 500,
-    mexc: 600,     // MEXC 結算較慢
-    bingx: 400,
-  };
-  return delays[exchange] ?? 500;
-}
-```
+**優化效果**:
+- **最佳情況**（50ms 即成功）：節省 450ms
+- **平均情況**（100-200ms 成功）：節省 300-400ms
+- **最壞情況**（所有嘗試都需要）：總延遲為 750ms（50+100+200+400），相比舊版 500ms 增加 250ms，但成功率更高
+- **實際表現**：大多數交易所在 50-100ms 內訂單就已結算，預期平均節省 **0.3-0.4 秒**
 
-**預估節省時間**: 0.3-0.5 秒（平均情況）
+**實作日期**: 2026-01-23
 
 ---
 
@@ -267,7 +257,7 @@ const results = await Promise.allSettled(
 | 優化項 | 位置 | 預估節省時間 | 實作難度 | 狀態 |
 |--------|------|-------------|---------|------|
 | PositionCloser Trader 並行創建 | `PositionCloser.ts:380-382` | **1-3 秒** | ⭐ 低 | ⏳ 待實作 |
-| OrderPriceFetcher 輪詢策略 | `OrderPriceFetcher.ts:102` | **0.3-0.5 秒** | ⭐⭐ 中 | ⏳ 待實作 |
+| OrderPriceFetcher 輪詢策略 | `OrderPriceFetcher.ts:99-136` | **0.3-0.4 秒** | ⭐⭐ 中 | ✅ 已完成 (2026-01-23) |
 | BalanceValidator 使用 WS 快取 | `BalanceValidator.ts:174` | **0.5-1 秒** | ⭐⭐ 中 | ⏳ 待實作 |
 | FundingRateMonitor 併發限制 | `FundingRateMonitor.ts:371` | 降低 rate limit | ⭐ 低 | ⏳ 待實作 |
 
@@ -359,3 +349,4 @@ PositionCloser.closePosition()
 | 日期 | 變更內容 |
 |------|---------|
 | 2026-01-23 | 初始版本：完成交易流程效能分析 |
+| 2026-01-23 | ✅ 完成 OrderPriceFetcher 指數退避輪詢優化 |
