@@ -23,15 +23,16 @@ import type {
  *
  * Fallback 機制：
  * 1. order.average || order.price（立即取得）
- * 2. fetchOrder API（等待 500ms 後查詢）
+ * 2. fetchOrder API（指數退避輪詢：50ms → 100ms → 200ms → 400ms）
  * 3. fetchMyTrades API（計算加權平均價格）
  * 4. 全部失敗時拋出 TradingError
  */
 export class OrderPriceFetcher implements IOrderPriceFetcher {
   /**
-   * 訂單結算延遲時間（毫秒）
+   * 指數退避輪詢延遲時間序列（毫秒）
+   * 從 50ms 開始，每次翻倍：50ms → 100ms → 200ms → 400ms
    */
-  private readonly ORDER_SETTLEMENT_DELAY = 500;
+  private readonly RETRY_DELAYS = [50, 100, 200, 400];
 
   /**
    * 獲取訂單成交價格
@@ -87,6 +88,9 @@ export class OrderPriceFetcher implements IOrderPriceFetcher {
   /**
    * 嘗試使用 fetchOrder 獲取價格
    *
+   * 使用指數退避輪詢策略，從 50ms 開始，每次翻倍
+   * 如果某次輪詢成功取得價格，立即回傳
+   *
    * @param ccxtExchange - CCXT 交易所實例
    * @param orderId - 訂單 ID
    * @param symbol - 交易對符號
@@ -97,27 +101,38 @@ export class OrderPriceFetcher implements IOrderPriceFetcher {
     orderId: string,
     symbol: string,
   ): Promise<number> {
-    try {
-      // 等待短暫時間讓訂單結算
-      await new Promise(resolve => setTimeout(resolve, this.ORDER_SETTLEMENT_DELAY));
-      const fetchedOrder = await ccxtExchange.fetchOrder(orderId, symbol);
-      const price = fetchedOrder.average || fetchedOrder.price || 0;
+    // 指數退避：50ms → 100ms → 200ms → 400ms
+    for (const delay of this.RETRY_DELAYS) {
+      await new Promise(resolve => setTimeout(resolve, delay));
 
-      if (price > 0) {
-        logger.info(
-          { symbol, orderId, price },
-          'Got price from fetched order',
+      try {
+        const fetchedOrder = await ccxtExchange.fetchOrder(orderId, symbol);
+        const price = fetchedOrder.average || fetchedOrder.price || 0;
+
+        if (price > 0) {
+          logger.info(
+            { symbol, orderId, price, attemptDelay: delay },
+            'Got price from fetched order',
+          );
+          return price;
+        }
+        // price 為 0，繼續下一次嘗試
+        logger.debug({ symbol, orderId, delay }, 'Price still 0 after fetchOrder, retrying...');
+      } catch (fetchError) {
+        // 記錄但繼續嘗試下一次
+        logger.debug(
+          { symbol, orderId, delay, error: fetchError },
+          'fetchOrder attempt failed, will retry',
         );
       }
-
-      return price;
-    } catch (fetchError) {
-      logger.warn(
-        { symbol, orderId, error: fetchError },
-        'Failed to fetch order details for price',
-      );
-      return 0;
     }
+
+    // 所有嘗試都失敗，返回 0（會觸發 fetchMyTrades fallback）
+    logger.warn(
+      { symbol, orderId, totalAttempts: this.RETRY_DELAYS.length },
+      'All fetchOrder attempts failed to get price',
+    );
+    return 0;
   }
 
   /**
