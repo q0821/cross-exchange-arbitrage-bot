@@ -366,8 +366,33 @@ export const RateRow = memo(function RateRow({
               );
             }
 
+            if (riskLevel === 'favorable') {
+              // 價差有利（開倉即有獲利）
+              return (
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <span className="font-mono text-sm text-green-600 dark:text-green-400 font-medium cursor-help">
+                      ✅ {formatPriceDiff(priceDiff!)}
+                    </span>
+                  </Tooltip.Trigger>
+                  <Tooltip.Portal>
+                    <Tooltip.Content
+                      className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-100 text-xs rounded px-3 py-2 shadow-lg z-50 max-w-xs"
+                      sideOffset={5}
+                    >
+                      <div className="font-semibold mb-1">價差有利</div>
+                      <div>
+                        價差 {Math.abs(typeof priceDiff === 'string' ? parseFloat(priceDiff) : priceDiff ?? 0).toFixed(2)}% 方向有利，開倉即有獲利。
+                      </div>
+                      <Tooltip.Arrow className="fill-green-100 dark:fill-green-900" />
+                    </Tooltip.Content>
+                  </Tooltip.Portal>
+                </Tooltip.Root>
+              );
+            }
+
             if (riskLevel === 'warning') {
-              // 價差過大警告
+              // 價差過大警告（開倉成本較高）
               return (
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>

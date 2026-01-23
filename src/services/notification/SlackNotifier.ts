@@ -382,6 +382,16 @@ export class SlackNotifier implements INotifier {
       };
     }
 
+    if (riskLevel === 'favorable' && priceDiffPercent !== undefined) {
+      return {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `✅ *價差有利*\n價差 ${Math.abs(priceDiffPercent).toFixed(2)}% 方向有利，開倉即有獲利。`,
+        },
+      };
+    }
+
     if (riskLevel === 'warning' && priceDiffPercent !== undefined) {
       return {
         type: 'section',
