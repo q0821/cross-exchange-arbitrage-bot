@@ -18,6 +18,7 @@ import { Decimal } from 'decimal.js';
 import type { Position } from '@/generated/prisma/client';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { decrypt } from '@/lib/encryption';
 import { getCumulativeFundingPnL } from '@/lib/funding-pnl-calculator';
 import { positionExitEmitter } from '@/services/websocket/PositionExitEmitter';
 import { NotificationWebhookRepository } from '@/repositories/NotificationWebhookRepository';
@@ -30,6 +31,17 @@ import {
   type ExitCanceledEvent,
   type ExitSuggestionMessage,
 } from './types';
+
+/**
+ * API Key 資訊（用於 getCumulativeFundingPnL）
+ */
+interface ApiKeyInfo {
+  exchange: string;
+  apiKey: string;
+  apiSecret: string;
+  passphrase?: string;
+  isTestnet: boolean;
+}
 
 /**
  * shouldSuggestClose 的輸入參數
@@ -205,6 +217,52 @@ export class PositionExitMonitor {
   }
 
   /**
+   * 獲取用戶的 API Keys（按交易所名稱索引）
+   *
+   * @param userId - 用戶 ID
+   * @param exchanges - 需要的交易所列表
+   * @returns API Keys 記錄
+   */
+  private async getUserApiKeys(
+    userId: string,
+    exchanges: string[]
+  ): Promise<Record<string, ApiKeyInfo>> {
+    const apiKeys = await prisma.apiKey.findMany({
+      where: {
+        userId,
+        exchange: { in: exchanges.map((e) => e.toLowerCase()) },
+        isActive: true,
+      },
+    });
+
+    const result: Record<string, ApiKeyInfo> = {};
+
+    for (const apiKey of apiKeys) {
+      // 避免重複（同一交易所取第一個）
+      if (result[apiKey.exchange]) continue;
+
+      try {
+        result[apiKey.exchange] = {
+          exchange: apiKey.exchange,
+          apiKey: decrypt(apiKey.encryptedKey),
+          apiSecret: decrypt(apiKey.encryptedSecret),
+          passphrase: apiKey.encryptedPassphrase
+            ? decrypt(apiKey.encryptedPassphrase)
+            : undefined,
+          isTestnet: apiKey.environment === 'TESTNET',
+        };
+      } catch (decryptError) {
+        logger.warn(
+          { userId, exchange: apiKey.exchange, error: decryptError },
+          '[Feature 067] Failed to decrypt API key'
+        );
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * 處理單一持倉
    */
   private async processPosition(
@@ -222,17 +280,51 @@ export class PositionExitMonitor {
       return;
     }
 
+    // 取得用戶的 API Keys
+    const apiKeys = await this.getUserApiKeys(position.userId, [
+      position.longExchange,
+      position.shortExchange,
+    ]);
+
+    // 驗證是否有所需的 API Keys
+    const hasLongKey = !!apiKeys[position.longExchange.toLowerCase()];
+    const hasShortKey = !!apiKeys[position.shortExchange.toLowerCase()];
+
+    if (!hasLongKey || !hasShortKey) {
+      logger.debug(
+        {
+          positionId: position.id,
+          hasLongKey,
+          hasShortKey,
+          longExchange: position.longExchange,
+          shortExchange: position.shortExchange,
+        },
+        '[Feature 067] Missing API keys for position, using cached funding PnL'
+      );
+    }
+
     // 取得累計費率收益
-    // 注意：這裡暫時使用空的 apiKeys，實際應用需要注入用戶的 API Keys
     let fundingPnL: Decimal;
     try {
-      fundingPnL = await getCumulativeFundingPnL(position, {});
+      // 只有在有完整 API Keys 時才查詢交易所
+      if (hasLongKey && hasShortKey) {
+        fundingPnL = await getCumulativeFundingPnL(position, apiKeys);
+      } else {
+        // 沒有 API Keys 時使用快取值
+        fundingPnL = position.cachedFundingPnL
+          ? new Decimal(position.cachedFundingPnL.toString())
+          : new Decimal(0);
+      }
     } catch (error) {
       // 如果無法取得累計收益，使用快取值或 0
       fundingPnL = position.cachedFundingPnL
         ? new Decimal(position.cachedFundingPnL.toString())
         : new Decimal(0);
-      throw error; // 重新拋出以被外層捕獲
+
+      logger.warn(
+        { positionId: position.id, error },
+        '[Feature 067] Failed to get funding PnL, using cached value'
+      );
     }
 
     // 計算價差損失（簡化版：使用當前價格差）

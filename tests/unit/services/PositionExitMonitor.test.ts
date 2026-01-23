@@ -21,6 +21,7 @@ const {
   mockFindMany,
   mockUpdate,
   mockFindUnique,
+  mockApiKeyFindMany,
   mockEmitExitSuggested,
   mockEmitExitCanceled,
   _mockSendNotification,
@@ -29,6 +30,7 @@ const {
   mockFindMany: vi.fn(),
   mockUpdate: vi.fn(),
   mockFindUnique: vi.fn(),
+  mockApiKeyFindMany: vi.fn(),
   mockEmitExitSuggested: vi.fn(),
   mockEmitExitCanceled: vi.fn(),
   _mockSendNotification: vi.fn(),
@@ -45,7 +47,15 @@ vi.mock('@/lib/db', () => ({
     tradingSettings: {
       findUnique: mockFindUnique,
     },
+    apiKey: {
+      findMany: mockApiKeyFindMany,
+    },
   },
+}));
+
+// Mock encryption
+vi.mock('@/lib/encryption', () => ({
+  decrypt: vi.fn((encrypted: string) => `decrypted-${encrypted}`),
 }));
 
 vi.mock('@/services/websocket/PositionExitEmitter', () => ({
@@ -136,6 +146,30 @@ describe('PositionExitMonitor', () => {
     ...overrides,
   });
 
+  // 建立測試用的 API Keys
+  const createApiKeys = () => [
+    {
+      id: 'apikey-binance-001',
+      userId: 'user-test-001',
+      exchange: 'binance',
+      environment: 'MAINNET',
+      encryptedKey: 'encrypted-key-binance',
+      encryptedSecret: 'encrypted-secret-binance',
+      encryptedPassphrase: null,
+      isActive: true,
+    },
+    {
+      id: 'apikey-okx-001',
+      userId: 'user-test-001',
+      exchange: 'okx',
+      environment: 'MAINNET',
+      encryptedKey: 'encrypted-key-okx',
+      encryptedSecret: 'encrypted-secret-okx',
+      encryptedPassphrase: 'encrypted-passphrase-okx',
+      isActive: true,
+    },
+  ];
+
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
@@ -147,6 +181,7 @@ describe('PositionExitMonitor', () => {
     // 預設 mock 回傳值
     mockFindMany.mockResolvedValue([]);
     mockFindUnique.mockResolvedValue(createUserSettings());
+    mockApiKeyFindMany.mockResolvedValue(createApiKeys());
     mockGetCumulativeFundingPnL.mockResolvedValue(new Decimal('0'));
 
     // 建立 monitor 實例
@@ -518,20 +553,37 @@ describe('PositionExitMonitor', () => {
       expect(stats.errors).toBe(1);
     });
 
-    it('累計收益計算失敗時應該跳過該持倉', async () => {
-      const position = createOpenPosition();
+    it('累計收益計算失敗時應該使用快取值繼續判斷', async () => {
+      const position = createOpenPosition({
+        cachedFundingPnL: new Decimal('5.00'),
+      });
       mockFindMany.mockResolvedValue([position]);
       mockGetCumulativeFundingPnL.mockRejectedValue(
         new Error('API rate limited')
       );
+      mockUpdate.mockResolvedValue({ ...position, exitSuggested: true });
 
       await monitor.handleRateUpdated(createPair(-50));
 
-      expect(mockUpdate).not.toHaveBeenCalled();
-      expect(mockEmitExitSuggested).not.toHaveBeenCalled();
+      // 即使查詢失敗，仍然使用快取值進行判斷，APY < 0 時應該觸發建議
+      expect(mockUpdate).toHaveBeenCalled();
+      expect(mockEmitExitSuggested).toHaveBeenCalled();
+    });
 
-      const stats = monitor.getStats();
-      expect(stats.errors).toBe(1);
+    it('缺少 API Keys 時應該使用快取值繼續判斷', async () => {
+      const position = createOpenPosition({
+        cachedFundingPnL: new Decimal('5.00'),
+      });
+      mockFindMany.mockResolvedValue([position]);
+      mockApiKeyFindMany.mockResolvedValue([]); // 沒有 API Keys
+      mockUpdate.mockResolvedValue({ ...position, exitSuggested: true });
+
+      await monitor.handleRateUpdated(createPair(-50));
+
+      // 沒有 API Keys 時使用快取值，APY < 0 時應該觸發建議
+      expect(mockGetCumulativeFundingPnL).not.toHaveBeenCalled();
+      expect(mockUpdate).toHaveBeenCalled();
+      expect(mockEmitExitSuggested).toHaveBeenCalled();
     });
   });
 });
