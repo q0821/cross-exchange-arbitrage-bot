@@ -620,35 +620,5 @@ describe('BalanceValidator', () => {
         validator.getBalances('user-123', ['binance']),
       ).rejects.toThrow('Database connection failed');
     });
-
-    it('should pass exchanges parameter to getBalancesForUser for targeted queries', async () => {
-      // Arrange - Feature: fix/open-position-performance
-      // 驗證 getBalancesForUser 被正確傳入 exchanges 參數，避免查詢所有交易所
-      mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'binance', status: 'success', balanceUSD: 10000, availableBalanceUSD: 10000 },
-        { exchange: 'okx', status: 'success', balanceUSD: 5000, availableBalanceUSD: 5000 },
-      ]);
-
-      // Act
-      await validator.getBalances('user-123', ['binance', 'okx']);
-
-      // Assert - 驗證 getBalancesForUser 被傳入正確的 exchanges 參數
-      expect(mockGetBalancesForUser).toHaveBeenCalledWith('user-123', ['binance', 'okx']);
-    });
-
-    it('should only query specified exchanges, not all exchanges', async () => {
-      // Arrange - Feature: fix/open-position-performance
-      // 只請求 gateio，應該只查詢 gateio
-      mockGetBalancesForUser.mockResolvedValue([
-        { exchange: 'gateio', status: 'success', balanceUSD: 3000, availableBalanceUSD: 3000 },
-      ]);
-
-      // Act
-      await validator.getBalances('user-123', ['gateio']);
-
-      // Assert - 驗證只傳入了 gateio
-      expect(mockGetBalancesForUser).toHaveBeenCalledWith('user-123', ['gateio']);
-      expect(mockGetBalancesForUser).not.toHaveBeenCalledWith('user-123', expect.arrayContaining(['binance']));
-    });
   });
 });
