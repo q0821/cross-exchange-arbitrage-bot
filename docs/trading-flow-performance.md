@@ -161,11 +161,11 @@ private async tryFetchOrder(...): Promise<number> {
 
 ---
 
-### 🟡 優先級中：BalanceValidator 沒有使用 WebSocket 快取
+### ✅ 已優化：BalanceValidator 使用 WebSocket 快取
 
-**位置**: `src/services/trading/BalanceValidator.ts:174`
+**位置**: `src/services/trading/BalanceValidator.ts:78-108`, `PrivateWsManager.ts:376-401`
 
-**問題程式碼**:
+**原問題**:
 ```typescript
 async validateBalance(...): Promise<BalanceValidationResult> {
   // ...
@@ -183,35 +183,88 @@ async validateBalance(...): Promise<BalanceValidationResult> {
 - 每次開倉增加一次雙交易所餘額查詢
 - API 調用延遲約 0.5-1 秒
 
-**優化方案：增加快取優先選項**
+**優化後程式碼**:
+
+1. **PrivateWsManager 新增快取查詢介面**:
 ```typescript
+// src/services/websocket/PrivateWsManager.ts:376-401
+private balanceCache = new Map<string, { balance: number; timestamp: number }>();
+
+private updateBalanceCache(userId: string, exchange: ExchangeName, event: BalanceChanged): void {
+  // 只快取 USDT 資產的可用餘額
+  if (event.asset.toLowerCase() === 'usdt' && event.availableBalance) {
+    const cacheKey = this.getBalanceCacheKey(userId, exchange);
+    this.balanceCache.set(cacheKey, {
+      balance: event.availableBalance.toNumber(),
+      timestamp: Date.now(),
+    });
+  }
+}
+
+getCachedBalance(userId: string, exchange: string): { balance: number; timestamp: number } | null {
+  const cacheKey = this.getBalanceCacheKey(userId, exchange as ExchangeName);
+  return this.balanceCache.get(cacheKey) ?? null;
+}
+```
+
+2. **BalanceValidator 支援快取選項**:
+```typescript
+// src/services/trading/BalanceValidator.ts:190-235
 async validateBalance(
   userId: string,
   longExchange: SupportedExchange,
   shortExchange: SupportedExchange,
-  // ...
-  options?: { useCachedBalance?: boolean; maxCacheAgeMs?: number }
+  quantity: Decimal,
+  longPrice: Decimal,
+  shortPrice: Decimal,
+  leverage: LeverageOption,
+  options?: BalanceValidationOptions, // 新增參數
 ): Promise<BalanceValidationResult> {
+  // 獲取餘額（優先使用快取）
   let balances: Map<SupportedExchange, number>;
 
   if (options?.useCachedBalance) {
-    // 嘗試從 WebSocket 快取獲取
-    const cached = await this.getCachedBalances(userId, [longExchange, shortExchange]);
-    const maxAge = options.maxCacheAgeMs ?? 30000; // 預設 30 秒
+    const maxCacheAgeMs = options.maxCacheAgeMs ?? 30000; // 預設 30 秒
+    const cachedBalances = this.getCachedBalances(userId, [longExchange, shortExchange], maxCacheAgeMs);
 
-    if (cached && cached.timestamp > Date.now() - maxAge) {
-      balances = cached.balances;
+    if (cachedBalances) {
+      balances = cachedBalances;
     } else {
-      // 快取過期，重新查詢
+      // 快取不存在或過期，fallback 到 API 查詢
       balances = await this.getBalances(userId, [longExchange, shortExchange]);
     }
   } else {
+    // 不使用快取，直接查詢 API
     balances = await this.getBalances(userId, [longExchange, shortExchange]);
   }
-
   // ...
 }
 ```
+
+3. **型別定義**:
+```typescript
+// src/types/trading.ts:244-249
+export interface BalanceValidationOptions {
+  /** 是否使用 WebSocket 快取餘額 */
+  useCachedBalance?: boolean;
+  /** 快取最大有效期（毫秒），預設 30000 */
+  maxCacheAgeMs?: number;
+}
+```
+
+**優化效果**:
+- **快取命中時**：節省 0.5-1 秒 API 查詢時間
+- **快取過期時**：自動 fallback 到 API 查詢，保證資料正確性
+- **向後相容**：預設行為不變（不使用快取），現有程式碼無需修改
+
+**測試覆蓋**:
+- ✅ 快取命中時使用快取餘額（不呼叫 API）
+- ✅ 快取過期時 fallback 到 API 查詢
+- ✅ 快取不存在時 fallback 到 API 查詢
+- ✅ 預設行為（不傳 options）直接查詢 API
+- ✅ checkBalance() 方法也支援快取選項
+
+**實作日期**: 2026-01-23
 
 **預估節省時間**: 0.5-1 秒
 
@@ -258,10 +311,11 @@ const results = await Promise.allSettled(
 |--------|------|-------------|---------|------|
 | PositionCloser Trader 並行創建 | `PositionCloser.ts:380-382` | **1-3 秒** | ⭐ 低 | ⏳ 待實作 |
 | OrderPriceFetcher 輪詢策略 | `OrderPriceFetcher.ts:99-136` | **0.3-0.4 秒** | ⭐⭐ 中 | ✅ 已完成 (2026-01-23) |
-| BalanceValidator 使用 WS 快取 | `BalanceValidator.ts:174` | **0.5-1 秒** | ⭐⭐ 中 | ⏳ 待實作 |
+| BalanceValidator 使用 WS 快取 | `BalanceValidator.ts:78-235` | **0.5-1 秒** | ⭐⭐ 中 | ✅ 已完成 (2026-01-23) |
 | FundingRateMonitor 併發限制 | `FundingRateMonitor.ts:371` | 降低 rate limit | ⭐ 低 | ⏳ 待實作 |
 
-**總計潛在節省**: 約 2-4.5 秒（最佳情況）
+**已完成優化總計節省**: 約 0.8-1.4 秒（每次開倉）
+**總計潛在節省**: 約 2-4.5 秒（最佳情況，包含待實作項目）
 
 ---
 
@@ -350,3 +404,4 @@ PositionCloser.closePosition()
 |------|---------|
 | 2026-01-23 | 初始版本：完成交易流程效能分析 |
 | 2026-01-23 | ✅ 完成 OrderPriceFetcher 指數退避輪詢優化 |
+| 2026-01-23 | ✅ 完成 BalanceValidator WebSocket 快取優化 |

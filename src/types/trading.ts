@@ -239,6 +239,16 @@ export interface RollbackResult {
 }
 
 /**
+ * 餘額驗證選項
+ */
+export interface BalanceValidationOptions {
+  /** 是否使用 WebSocket 快取餘額 */
+  useCachedBalance?: boolean;
+  /** 快取最大有效期（毫秒），預設 30000 */
+  maxCacheAgeMs?: number;
+}
+
+/**
  * 餘額驗證結果
  */
 export interface BalanceValidationResult {
