@@ -184,10 +184,22 @@ export function createShutdownHandler(
   };
 }
 
+// 防止 HMR 時重複註冊 signal handlers
+declare global {
+  // eslint-disable-next-line no-var
+  var __shutdownHandlersRegistered: boolean | undefined;
+}
+
 /**
  * 註冊 shutdown signal handlers
+ * 使用 globalThis 防止 Hot Module Replacement 時重複註冊
  */
 export function registerShutdownHandlers(shutdownFn: () => Promise<void>): void {
+  if (globalThis.__shutdownHandlersRegistered) {
+    return;
+  }
+  globalThis.__shutdownHandlersRegistered = true;
+
   process.on('SIGTERM', shutdownFn);
   process.on('SIGINT', shutdownFn);
 }
@@ -197,4 +209,5 @@ export function registerShutdownHandlers(shutdownFn: () => Promise<void>): void 
  */
 export function resetShutdownState(): void {
   isShuttingDown = false;
+  globalThis.__shutdownHandlersRegistered = false;
 }
