@@ -152,6 +152,13 @@ export class FundingFeeQueryService {
 
   /**
    * 查詢單一交易所的資金費率歷史
+   *
+   * @param exchange - 交易所名稱
+   * @param symbol - 交易對符號
+   * @param startTime - 起始時間
+   * @param endTime - 結束時間
+   * @param userId - 用戶 ID
+   * @param ccxtExchange - 可選的外部 CCXT 實例（已調用 loadMarkets）
    */
   async queryFundingFees(
     exchange: SupportedExchange,
@@ -159,6 +166,7 @@ export class FundingFeeQueryService {
     startTime: Date,
     endTime: Date,
     userId: string,
+    ccxtExchange?: ccxt.Exchange,
   ): Promise<FundingFeeQueryResult> {
     const ccxtSymbol = this.convertToCcxtSymbol(symbol);
     const result: FundingFeeQueryResult = {
@@ -172,10 +180,13 @@ export class FundingFeeQueryService {
     };
 
     try {
-      const ccxtExchange = await this.createCcxtExchange(exchange, userId);
+      // 如果沒有傳入實例，自動創建（向後相容）
+      const instance = ccxtExchange || await this.createUserCcxtExchange(exchange, userId);
 
-      // 必須先載入市場資訊
-      await ccxtExchange.loadMarkets();
+      // 只有自動創建時才需要 loadMarkets（外部實例已載入）
+      if (!ccxtExchange) {
+        await instance.loadMarkets();
+      }
 
       logger.info(
         {
@@ -184,6 +195,7 @@ export class FundingFeeQueryService {
           ccxtSymbol,
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
+          usingExternalInstance: !!ccxtExchange,
         },
         'Querying funding fee history',
       );
@@ -191,7 +203,7 @@ export class FundingFeeQueryService {
       // BingX 需要使用原生 API，因為 CCXT 不支援 fetchFundingHistory
       if (exchange === 'bingx') {
         return await this.queryBingxFundingFees(
-          ccxtExchange,
+          instance,
           symbol,
           startTime,
           endTime,
@@ -207,7 +219,7 @@ export class FundingFeeQueryService {
 
       // 調用 CCXT fetchFundingHistory
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const history = await (ccxtExchange as any).fetchFundingHistory(
+      const history = await (instance as any).fetchFundingHistory(
         ccxtSymbol,
         startTime.getTime(),
         undefined, // limit
@@ -430,6 +442,65 @@ export class FundingFeeQueryService {
       result.error = errorMessage;
       return result;
     }
+  }
+
+  /**
+   * 查詢雙邊的資金費率歷史並加總（使用外部 CCXT 實例）
+   *
+   * @param longExchange - 做多交易所
+   * @param shortExchange - 做空交易所
+   * @param symbol - 交易對符號
+   * @param startTime - 起始時間
+   * @param endTime - 結束時間
+   * @param longInstance - 做多交易所的 CCXT 實例（已調用 loadMarkets）
+   * @param shortInstance - 做空交易所的 CCXT 實例（已調用 loadMarkets）
+   */
+  async queryBilateralFundingFeesWithInstances(
+    longExchange: SupportedExchange,
+    shortExchange: SupportedExchange,
+    symbol: string,
+    startTime: Date,
+    endTime: Date,
+    longInstance: ccxt.Exchange,
+    shortInstance: ccxt.Exchange,
+  ): Promise<BilateralFundingFeeResult> {
+    logger.info(
+      {
+        longExchange,
+        shortExchange,
+        symbol,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        usingExternalInstances: true,
+      },
+      'Querying bilateral funding fees with external instances',
+    );
+
+    // 並行查詢 Long 和 Short 邊（傳入外部實例）
+    const [longResult, shortResult] = await Promise.all([
+      this.queryFundingFees(longExchange, symbol, startTime, endTime, '', longInstance),
+      this.queryFundingFees(shortExchange, symbol, startTime, endTime, '', shortInstance),
+    ]);
+
+    // 計算總資金費率損益
+    const totalFundingFee = longResult.totalAmount.plus(shortResult.totalAmount);
+
+    logger.info(
+      {
+        longAmount: longResult.totalAmount.toFixed(8),
+        shortAmount: shortResult.totalAmount.toFixed(8),
+        totalFundingFee: totalFundingFee.toFixed(8),
+        longSuccess: longResult.success,
+        shortSuccess: shortResult.success,
+      },
+      'Bilateral funding fee query with instances completed',
+    );
+
+    return {
+      longResult,
+      shortResult,
+      totalFundingFee,
+    };
   }
 
   /**
