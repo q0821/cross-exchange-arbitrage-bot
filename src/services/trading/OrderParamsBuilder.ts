@@ -83,18 +83,32 @@ export class OrderParamsBuilder implements IOrderParamsBuilder {
       return { positionSide };
     }
 
-    // OKX Hedge Mode（預設啟用）
+    // OKX：根據 hedgeMode 決定參數
     if (exchange === 'okx') {
-      const posSide = side === 'buy' ? 'long' : 'short';
-      logger.debug({ exchange, side, posSide }, 'Building OKX Hedge Mode open params');
-      return { posSide, tdMode: 'cross' };
+      if (hedgeMode.enabled) {
+        // 雙向模式：posSide = 'long' | 'short'
+        const posSide = side === 'buy' ? 'long' : 'short';
+        logger.debug({ exchange, side, posSide }, 'Building OKX Hedge Mode open params');
+        return { posSide, tdMode: 'cross' };
+      } else {
+        // 單向模式：posSide = 'net'
+        logger.debug({ exchange, side }, 'Building OKX One-way Mode open params');
+        return { posSide: 'net', tdMode: 'cross' };
+      }
     }
 
-    // BingX Hedge Mode（預設啟用）
+    // BingX：根據 hedgeMode 決定參數
     if (exchange === 'bingx') {
-      const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-      logger.debug({ exchange, side, positionSide }, 'Building BingX Hedge Mode open params');
-      return { positionSide };
+      if (hedgeMode.enabled) {
+        // 雙向模式：positionSide = 'LONG' | 'SHORT'
+        const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
+        logger.debug({ exchange, side, positionSide }, 'Building BingX Hedge Mode open params');
+        return { positionSide };
+      } else {
+        // 單向模式：positionSide = 'BOTH'
+        logger.debug({ exchange, side }, 'Building BingX One-way Mode open params');
+        return { positionSide: 'BOTH' };
+      }
     }
 
     // One-way Mode（無特殊參數）
@@ -152,20 +166,34 @@ export class OrderParamsBuilder implements IOrderParamsBuilder {
       return { positionSide: positionSideParam };
     }
 
-    // OKX Hedge Mode
-    // positionSide='buy' 代表原本是做多，要用 sell 平倉，posSide='long'
-    // positionSide='sell' 代表原本是做空，要用 buy 平倉，posSide='short'
+    // OKX：根據 hedgeMode 決定參數
+    // positionSide='buy' 代表原本是做多，要用 sell 平倉
+    // positionSide='sell' 代表原本是做空，要用 buy 平倉
     if (exchange === 'okx') {
-      const posSide = positionSide === 'buy' ? 'long' : 'short';
-      logger.debug({ exchange, positionSide, posSide }, 'Building OKX Hedge Mode close params');
-      return { posSide, tdMode: 'cross' };
+      if (hedgeMode.enabled) {
+        // 雙向模式：posSide = 'long' | 'short'
+        const posSide = positionSide === 'buy' ? 'long' : 'short';
+        logger.debug({ exchange, positionSide, posSide }, 'Building OKX Hedge Mode close params');
+        return { posSide, tdMode: 'cross' };
+      } else {
+        // 單向模式：posSide = 'net' + reduceOnly
+        logger.debug({ exchange, positionSide }, 'Building OKX One-way Mode close params');
+        return { posSide: 'net', tdMode: 'cross', reduceOnly: true };
+      }
     }
 
-    // BingX Hedge Mode
+    // BingX：根據 hedgeMode 決定參數
     if (exchange === 'bingx') {
-      const positionSideParam = positionSide === 'buy' ? 'LONG' : 'SHORT';
-      logger.debug({ exchange, positionSide, positionSideParam }, 'Building BingX Hedge Mode close params');
-      return { positionSide: positionSideParam };
+      if (hedgeMode.enabled) {
+        // 雙向模式：positionSide = 'LONG' | 'SHORT'
+        const positionSideParam = positionSide === 'buy' ? 'LONG' : 'SHORT';
+        logger.debug({ exchange, positionSide, positionSideParam }, 'Building BingX Hedge Mode close params');
+        return { positionSide: positionSideParam };
+      } else {
+        // 單向模式：positionSide = 'BOTH' + reduceOnly
+        logger.debug({ exchange, positionSide }, 'Building BingX One-way Mode close params');
+        return { positionSide: 'BOTH', reduceOnly: true };
+      }
     }
 
     // One-way Mode 使用 reduceOnly

@@ -752,8 +752,9 @@ export class PositionOrchestrator {
     const ccxtExchange = exchangeInstance.ccxt;
     const { isPortfolioMargin, isHedgeMode } = exchangeInstance;
 
-    // 用於追蹤 Binance 實際使用的模式（初始值為偵測結果）
-    let actualBinanceHedgeMode = isHedgeMode;
+    // 用於追蹤實際使用的持倉模式（初始值為偵測結果）
+    // Binance 可能會在 -4061 錯誤後切換模式
+    let actualHedgeMode = isHedgeMode;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ccxtExchangeAny = ccxtExchange as any;
@@ -767,9 +768,15 @@ export class PositionOrchestrator {
         if (leverage) {
           try {
             if (exchange === 'bingx') {
-              const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
-              await ccxtExchangeAny.setLeverage(leverage, symbol, { side: positionSide });
-              logger.info({ exchange, symbol, leverage, positionSide }, 'Leverage set successfully (BingX Hedge Mode)');
+              // BingX：雙向模式需指定 side，單向模式不需要
+              if (actualHedgeMode) {
+                const positionSide = side === 'buy' ? 'LONG' : 'SHORT';
+                await ccxtExchangeAny.setLeverage(leverage, symbol, { side: positionSide });
+                logger.info({ exchange, symbol, leverage, positionSide }, 'Leverage set successfully (BingX Hedge Mode)');
+              } else {
+                await ccxtExchangeAny.setLeverage(leverage, symbol);
+                logger.info({ exchange, symbol, leverage }, 'Leverage set successfully (BingX One-way Mode)');
+              }
             } else {
               await ccxtExchangeAny.setLeverage(leverage, symbol);
               logger.info({ exchange, symbol, leverage }, 'Leverage set successfully');
@@ -780,7 +787,7 @@ export class PositionOrchestrator {
         }
 
         // 使用 OrderParamsBuilder 建構訂單參數
-        const hedgeConfig = { enabled: actualBinanceHedgeMode, isPortfolioMargin };
+        const hedgeConfig = { enabled: actualHedgeMode, isPortfolioMargin };
         let orderParams = this.paramsBuilder.buildOpenParams(exchange, side, hedgeConfig);
 
         logger.info(
@@ -808,10 +815,10 @@ export class PositionOrchestrator {
             (errorMessage.includes('-4061') || errorMessage.includes('position side does not match'));
 
           if (isBinancePositionSideError) {
-            actualBinanceHedgeMode = !actualBinanceHedgeMode;
-            orderParams = this.paramsBuilder.buildOpenParams(exchange, side, { enabled: actualBinanceHedgeMode, isPortfolioMargin });
+            actualHedgeMode = !actualHedgeMode;
+            orderParams = this.paramsBuilder.buildOpenParams(exchange, side, { enabled: actualHedgeMode, isPortfolioMargin });
             logger.warn(
-              { exchange, symbol, side, newHedgeMode: actualBinanceHedgeMode, orderParams },
+              { exchange, symbol, side, newHedgeMode: actualHedgeMode, orderParams },
               'Retrying with opposite position mode after -4061 error',
             );
 
@@ -836,7 +843,7 @@ export class PositionOrchestrator {
         const closeSide = side === 'buy' ? 'sell' : 'buy';
 
         // 使用 OrderParamsBuilder 建構平倉參數
-        const hedgeConfig = { enabled: actualBinanceHedgeMode, isPortfolioMargin };
+        const hedgeConfig = { enabled: actualHedgeMode, isPortfolioMargin };
         let orderParams = this.paramsBuilder.buildCloseParams(exchange, side, hedgeConfig);
 
         logger.info(
@@ -864,10 +871,10 @@ export class PositionOrchestrator {
             (errorMessage.includes('-4061') || errorMessage.includes('position side does not match'));
 
           if (isBinancePositionSideError) {
-            actualBinanceHedgeMode = !actualBinanceHedgeMode;
-            orderParams = this.paramsBuilder.buildCloseParams(exchange, side, { enabled: actualBinanceHedgeMode, isPortfolioMargin });
+            actualHedgeMode = !actualHedgeMode;
+            orderParams = this.paramsBuilder.buildCloseParams(exchange, side, { enabled: actualHedgeMode, isPortfolioMargin });
             logger.warn(
-              { exchange, symbol, closeSide, newHedgeMode: actualBinanceHedgeMode, orderParams },
+              { exchange, symbol, closeSide, newHedgeMode: actualHedgeMode, orderParams },
               'Retrying close with opposite position mode after -4061 error',
             );
 
