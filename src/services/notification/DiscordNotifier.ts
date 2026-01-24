@@ -347,6 +347,14 @@ export class DiscordNotifier implements INotifier {
       };
     }
 
+    if (riskLevel === 'favorable' && priceDiffPercent !== undefined) {
+      return {
+        name: '✅ 價差有利',
+        value: `**價差 ${Math.abs(priceDiffPercent).toFixed(2)}% 方向有利**\n開倉即有獲利。`,
+        inline: false,
+      };
+    }
+
     if (riskLevel === 'warning' && priceDiffPercent !== undefined) {
       return {
         name: '⚠️ 價差警告',
