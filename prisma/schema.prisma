@@ -261,6 +261,9 @@ model Position {
   exitSuggestedAt             DateTime? @db.Timestamptz
   exitSuggestedReason         String?   @db.VarChar(50)
 
+  // ===== 分單開倉組別 (Feature 069) =====
+  groupId                     String?   @db.Uuid  // 分單開倉組別 ID，null 表示單獨開倉
+
   // Relations
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   trade Trade?
@@ -268,6 +271,7 @@ model Position {
   @@index([userId, status])
   @@index([symbol, status])
   @@index([createdAt(sort: Desc)])
+  @@index([groupId])  // Feature 069: 加速組別查詢
   @@map("positions")
 }
 
@@ -294,7 +298,7 @@ enum ConditionalOrderStatus {
   @@map("conditional_order_status")
 }
 
-// ===== 平倉原因 (Feature 050, 053) =====
+// ===== 平倉原因 (Feature 050, 053, 069) =====
 enum CloseReason {
   MANUAL              // 手動平倉
   LONG_SL_TRIGGERED   // 多方停損觸發
@@ -303,6 +307,7 @@ enum CloseReason {
   SHORT_TP_TRIGGERED  // 空方停利觸發
   BOTH_TRIGGERED      // 雙邊同時觸發
   UNCONFIRMED_TRIGGER // 無法確認觸發狀態，預防性平倉 (Feature 053)
+  BATCH_CLOSE         // 批量平倉 (Feature 069)
 
   @@map("close_reason")
 }

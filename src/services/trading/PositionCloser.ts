@@ -129,6 +129,36 @@ export interface ClosePositionPartialResult {
 export type ClosePositionResult = ClosePositionSuccessResult | ClosePositionPartialResult;
 
 /**
+ * 批量平倉參數
+ * Feature: 069-position-group-close
+ */
+export interface CloseBatchPositionsParams {
+  /** 用戶 ID */
+  userId: string;
+  /** 組 ID */
+  groupId: string;
+  /** 進度回調 */
+  onProgress?: (progress: { current: number; total: number; positionId: string }) => void;
+}
+
+/**
+ * 批量平倉結果
+ * Feature: 069-position-group-close
+ */
+export interface CloseBatchPositionsResult {
+  /** 是否全部成功 */
+  success: boolean;
+  /** 總持倉數量 */
+  totalPositions: number;
+  /** 成功平倉數量 */
+  closedPositions: number;
+  /** 失敗數量 */
+  failedPositions: number;
+  /** 每個持倉的結果 */
+  results: Array<{ success: boolean; positionId: string; error?: string }>;
+}
+
+/**
  * 單邊平倉參數
  * Feature: 050-sl-tp-trigger-monitor
  */
@@ -216,6 +246,135 @@ export class PositionCloser {
     return this.withCloseLock(positionId, async () => {
       return this.executeClosePositionWithLock(userId, positionId, closeReason);
     });
+  }
+
+  /**
+   * 批量平倉：關閉指定組內的所有持倉
+   *
+   * Feature: 069-position-group-close
+   *
+   * @param params 批量平倉參數
+   * @returns 批量平倉結果
+   */
+  async closeBatchPositions(params: CloseBatchPositionsParams): Promise<CloseBatchPositionsResult> {
+    const { userId, groupId, onProgress } = params;
+
+    logger.info(
+      { userId, groupId },
+      'Starting batch position close',
+    );
+
+    // 1. 查詢該組內所有 OPEN 狀態的持倉
+    const positions = await this.prisma.position.findMany({
+      where: {
+        userId,
+        groupId,
+        status: 'OPEN',
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const totalPositions = positions.length;
+
+    // 如果沒有持倉，直接返回成功
+    if (totalPositions === 0) {
+      logger.info(
+        { userId, groupId },
+        'No OPEN positions found in group',
+      );
+      return {
+        success: true,
+        totalPositions: 0,
+        closedPositions: 0,
+        failedPositions: 0,
+        results: [],
+      };
+    }
+
+    logger.info(
+      { userId, groupId, totalPositions },
+      'Found positions to close in batch',
+    );
+
+    // 2. 逐一平倉（使用 BATCH_CLOSE 作為 closeReason）
+    const results: Array<{ success: boolean; positionId: string; error?: string }> = [];
+    let closedPositions = 0;
+    let failedPositions = 0;
+
+    for (let i = 0; i < positions.length; i++) {
+      const position = positions[i]!; // 安全：已經在 for loop 範圍內
+      const current = i + 1;
+
+      // 調用進度回調
+      if (onProgress) {
+        onProgress({
+          current,
+          total: totalPositions,
+          positionId: position.id,
+        });
+      }
+
+      try {
+        // 使用現有的 closePosition 方法，傳入 BATCH_CLOSE 作為 closeReason
+        const closeResult = await this.closePosition({
+          userId,
+          positionId: position.id,
+          closeReason: 'BATCH_CLOSE',
+        });
+
+        if (closeResult.success) {
+          closedPositions++;
+          results.push({
+            success: true,
+            positionId: position.id,
+          });
+          logger.info(
+            { positionId: position.id, current, total: totalPositions },
+            'Batch close: position closed successfully',
+          );
+        } else {
+          // closePosition 返回 PARTIAL_CLOSE
+          failedPositions++;
+          results.push({
+            success: false,
+            positionId: position.id,
+            error: 'PARTIAL_CLOSE',
+          });
+          logger.warn(
+            { positionId: position.id, current, total: totalPositions },
+            'Batch close: position partially closed',
+          );
+        }
+      } catch (error) {
+        failedPositions++;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        results.push({
+          success: false,
+          positionId: position.id,
+          error: errorMessage,
+        });
+        logger.warn(
+          { positionId: position.id, current, total: totalPositions, error: errorMessage },
+          'Batch close: position close failed',
+        );
+        // 繼續處理下一個持倉
+      }
+    }
+
+    const success = failedPositions === 0;
+
+    logger.info(
+      { userId, groupId, totalPositions, closedPositions, failedPositions, success },
+      'Batch position close completed',
+    );
+
+    return {
+      success,
+      totalPositions,
+      closedPositions,
+      failedPositions,
+      results,
+    };
   }
 
   /**

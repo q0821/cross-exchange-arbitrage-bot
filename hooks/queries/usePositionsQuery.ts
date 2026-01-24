@@ -48,6 +48,42 @@ export interface PositionsData {
   total: number;
 }
 
+/**
+ * 組合持倉聚合資訊 (Feature 069)
+ */
+export interface PositionGroupAggregate {
+  totalQuantity: string;
+  avgLongEntryPrice: string;
+  avgShortEntryPrice: string;
+  totalFundingPnL: string | null;
+  totalUnrealizedPnL: string | null;
+  positionCount: number;
+  firstOpenedAt: string | null;
+  stopLossPercent: string | null;
+  takeProfitPercent: string | null;
+}
+
+/**
+ * 組合持倉 (Feature 069)
+ */
+export interface PositionGroup {
+  groupId: string;
+  symbol: string;
+  longExchange: string;
+  shortExchange: string;
+  positions: Position[];
+  aggregate: PositionGroupAggregate;
+}
+
+/**
+ * 分組後的持倉資料 (Feature 069)
+ */
+export interface GroupedPositionsData {
+  positions: Position[];  // 未分組的持倉
+  groups: PositionGroup[];  // 分組後的持倉
+  total: number;
+}
+
 interface UsePositionsQueryOptions {
   /** Filter by position status (default: all non-CLOSED) */
   status?: PositionStatus[];
@@ -57,6 +93,8 @@ interface UsePositionsQueryOptions {
   offset?: number;
   /** Enable the query (default: true) */
   enabled?: boolean;
+  /** Return grouped positions (Feature 069) */
+  grouped?: boolean;
 }
 
 /**
@@ -95,6 +133,39 @@ async function fetchPositions(options: UsePositionsQueryOptions): Promise<Positi
 }
 
 /**
+ * Fetch grouped positions from API (Feature 069)
+ */
+async function fetchGroupedPositions(
+  options: Omit<UsePositionsQueryOptions, 'grouped'>
+): Promise<GroupedPositionsData> {
+  const params = new URLSearchParams();
+
+  // Feature 069: Enable grouped response
+  params.set('grouped', 'true');
+
+  if (options.status && options.status.length > 0) {
+    params.set('status', options.status.join(','));
+  }
+
+  const queryString = params.toString();
+  const url = `/api/positions?${queryString}`;
+
+  const response = await fetch(url, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+    const errorMessage =
+      typeof errorData.error === 'object' ? errorData.error?.message : errorData.error;
+    throw new Error(errorMessage || `Failed to fetch grouped positions: ${response.status}`);
+  }
+
+  const result = await response.json();
+  return result.data;
+}
+
+/**
  * usePositionsQuery - Query hook for trading positions
  *
  * Features:
@@ -111,6 +182,33 @@ export function usePositionsQuery(options: UsePositionsQueryOptions = {}) {
   return useQuery({
     queryKey: queryKeys.trading.positions(),
     queryFn: () => fetchPositions({ status, limit, offset }),
+    enabled,
+    staleTime: 10 * 1000, // 10 seconds - short for trading accuracy
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * useGroupedPositionsQuery - Query hook for grouped trading positions
+ *
+ * Feature 069: 分單持倉合併顯示
+ *
+ * Features:
+ * - Returns positions grouped by groupId
+ * - Includes aggregate statistics for each group
+ * - Supports status filtering
+ *
+ * @param options Query options
+ * @returns Query result with grouped positions data
+ */
+export function useGroupedPositionsQuery(
+  options: Omit<UsePositionsQueryOptions, 'grouped' | 'limit' | 'offset'> = {}
+) {
+  const { status, enabled = true } = options;
+
+  return useQuery({
+    queryKey: queryKeys.trading.groupedPositions(),
+    queryFn: () => fetchGroupedPositions({ status }),
     enabled,
     staleTime: 10 * 1000, // 10 seconds - short for trading accuracy
     gcTime: 5 * 60 * 1000, // 5 minutes

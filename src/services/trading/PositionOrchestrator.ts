@@ -205,7 +205,7 @@ export class PositionOrchestrator {
    * 創建 PENDING 狀態的 Position 記錄
    */
   private async createPendingPosition(params: OpenPositionParams): Promise<Position> {
-    const { userId, symbol, longExchange, shortExchange, leverage } = params;
+    const { userId, symbol, longExchange, shortExchange, leverage, groupId } = params;
 
     const position = await this.prisma.position.create({
       data: {
@@ -222,10 +222,15 @@ export class PositionOrchestrator {
         status: 'PENDING',
         openFundingRateLong: 0,
         openFundingRateShort: 0,
+        // Feature 069: 分單開倉組別 ID
+        groupId: groupId ?? null,
       },
     });
 
-    logger.info({ positionId: position.id }, 'Created pending position');
+    logger.info(
+      { positionId: position.id, groupId: groupId ?? null },
+      'Created pending position',
+    );
 
     return position;
   }

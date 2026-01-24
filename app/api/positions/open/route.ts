@@ -81,7 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       takeProfitPercent: body.takeProfitPercent,
     });
 
-    const { symbol, longExchange, shortExchange, quantity, leverage } = validatedInput;
+    const { symbol, longExchange, shortExchange, quantity, leverage, groupId } = validatedInput;
     const { stopLossEnabled, stopLossPercent, takeProfitEnabled, takeProfitPercent } =
       stopLossTakeProfitInput;
 
@@ -98,6 +98,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         stopLossPercent,
         takeProfitEnabled,
         takeProfitPercent,
+        groupId,
       },
       'Open position request received',
     );
@@ -121,6 +122,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       stopLossPercent,
       takeProfitEnabled,
       takeProfitPercent,
+      // 分單開倉組別 ID (Feature 069)
+      groupId,
     });
 
     // 5. 記錄審計日誌 - 成功
@@ -161,7 +164,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // 7. 格式化回應（含停損停利資訊 Feature 038）
+    // 7. 格式化回應（含停損停利資訊 Feature 038, 分單開倉 Feature 069）
     const positionInfo: PositionInfo = {
       id: position.id,
       userId: position.userId,
@@ -183,6 +186,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       shortStopLossPrice: position.shortStopLossPrice ? Number(position.shortStopLossPrice) : null,
       longTakeProfitPrice: position.longTakeProfitPrice ? Number(position.longTakeProfitPrice) : null,
       shortTakeProfitPrice: position.shortTakeProfitPrice ? Number(position.shortTakeProfitPrice) : null,
+      // 分單開倉組別 (Feature 069)
+      groupId: position.groupId,
     };
 
     const response: OpenPositionResponse = {

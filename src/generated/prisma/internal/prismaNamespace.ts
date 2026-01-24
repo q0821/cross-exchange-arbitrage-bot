@@ -1885,7 +1885,8 @@ export const PositionScalarFieldEnum = {
   cachedFundingPnLUpdatedAt: 'cachedFundingPnLUpdatedAt',
   exitSuggested: 'exitSuggested',
   exitSuggestedAt: 'exitSuggestedAt',
-  exitSuggestedReason: 'exitSuggestedReason'
+  exitSuggestedReason: 'exitSuggestedReason',
+  groupId: 'groupId'
 } as const
 
 export type PositionScalarFieldEnum = (typeof PositionScalarFieldEnum)[keyof typeof PositionScalarFieldEnum]
