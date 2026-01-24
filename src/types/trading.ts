@@ -1175,15 +1175,19 @@ export interface HedgeModeConfig {
 
 /**
  * 訂單參數（不同交易所格式）
+ *
+ * 支援雙向持倉模式（Hedge Mode）和單向持倉模式（One-way Mode）：
+ * - 雙向模式：positionSide = 'LONG' | 'SHORT', posSide = 'long' | 'short'
+ * - 單向模式：positionSide = 'BOTH', posSide = 'net'
  */
 export interface OrderParams {
-  /** Binance positionSide 參數 */
-  positionSide?: 'LONG' | 'SHORT';
-  /** OKX posSide 參數 */
-  posSide?: 'long' | 'short';
+  /** Binance/BingX positionSide 參數（雙向: LONG/SHORT, 單向: BOTH） */
+  positionSide?: 'LONG' | 'SHORT' | 'BOTH';
+  /** OKX posSide 參數（雙向: long/short, 單向: net） */
+  posSide?: 'long' | 'short' | 'net';
   /** OKX tdMode 參數 */
   tdMode?: 'cross';
-  /** reduceOnly 參數 */
+  /** reduceOnly 參數（單向模式平倉時使用） */
   reduceOnly?: boolean;
 }
 

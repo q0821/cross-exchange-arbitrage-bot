@@ -13,6 +13,7 @@
 import { logger } from '@/lib/logger';
 import { TradingError } from '@/lib/errors';
 import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
+import { detectPositionMode } from './PositionModeDetector';
 import type {
   CcxtExchange,
   ExchangeConfig,
@@ -123,14 +124,34 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       }
     }
 
-    // OKX 預設使用 Hedge Mode
-    if (exchange === 'okx') {
-      isHedgeMode = true;
-    }
+    // OKX 和 BingX：動態偵測持倉模式
+    // 使用 CCXT 的 fetchPositionMode 方法查詢帳戶設定
+    if (exchange === 'okx' || exchange === 'bingx') {
+      try {
+        // 先載入市場資料，以便 fetchPositionMode 可以使用
+        await ccxtExchange.loadMarkets();
 
-    // BingX 預設使用 Hedge Mode（雙向持倉）
-    if (exchange === 'bingx') {
-      isHedgeMode = true;
+        // 使用任意一個交易對來查詢持倉模式（模式是帳戶級別的）
+        const sampleSymbol = 'BTC/USDT:USDT';
+        const positionMode = await detectPositionMode(
+          ccxtExchange,
+          exchange,
+          sampleSymbol,
+        );
+        isHedgeMode = positionMode.hedged;
+
+        logger.info(
+          { exchange, isHedgeMode, positionMode },
+          'Detected position mode via fetchPositionMode',
+        );
+      } catch (error) {
+        // 偵測失敗，預設使用雙向模式（較安全）
+        isHedgeMode = true;
+        logger.warn(
+          { exchange, error },
+          'Failed to detect position mode, defaulting to hedge mode',
+        );
+      }
     }
 
     logger.info(
