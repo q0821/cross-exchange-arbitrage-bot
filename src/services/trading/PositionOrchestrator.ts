@@ -578,11 +578,13 @@ export class PositionOrchestrator {
     );
 
     // 獲取用戶 ID 用於回滾
+    // 注意：closePosition 的 side 參數是「原始開倉方向」，內部會自動反轉為平倉方向
+    // LONG 倉位的原始開倉方向是 'buy'，SHORT 倉位的原始開倉方向是 'sell'
     const rollbackResult = await this.executeRollback(
       position.userId,
       successExchange as SupportedExchange,
       position.symbol,
-      successSide === 'LONG' ? 'sell' : 'buy',
+      successSide === 'LONG' ? 'buy' : 'sell',
       quantity.toNumber(),
     );
 
