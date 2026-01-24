@@ -264,25 +264,36 @@ export class UserConnectorFactory {
   }
 
   /**
-   * 查詢用戶在所有交易所的持倉
+   * 查詢用戶在所有交易所的持倉（平行查詢）
+   *
+   * @param userId - 用戶 ID
+   * @param targetExchanges - 要查詢的交易所列表（可選，預設查詢所有）
+   * @returns 持倉查詢結果
    */
-  async getPositionsForUser(userId: string): Promise<ExchangePositionsResult[]> {
-    const results: ExchangePositionsResult[] = [];
+  async getPositionsForUser(
+    userId: string,
+    targetExchanges?: ExchangeName[]
+  ): Promise<ExchangePositionsResult[]> {
     const supportedExchanges: ExchangeName[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
+    // 如果有指定交易所，只查詢指定的；否則查詢所有
+    const exchangesToQuery = targetExchanges
+      ? targetExchanges.filter((e) => supportedExchanges.includes(e))
+      : supportedExchanges;
+
     const userApiKeys = await this.getUserApiKeys(userId);
 
-    for (const exchange of supportedExchanges) {
+    // 使用 Promise.allSettled 平行查詢所有交易所
+    const promises = exchangesToQuery.map(async (exchange): Promise<ExchangePositionsResult> => {
       const apiKeyInfo = userApiKeys.find(
         (k) => k.exchange.toLowerCase() === exchange.toLowerCase()
       );
 
       if (!apiKeyInfo) {
-        results.push({
+        return {
           exchange,
           status: 'no_api_key',
           positions: [],
-        });
-        continue;
+        };
       }
 
       try {
@@ -295,24 +306,23 @@ export class UserConnectorFactory {
         );
 
         if (!connector) {
-          results.push({
+          return {
             exchange,
             status: 'no_api_key',
             positions: [],
             errorMessage: 'Connector not implemented',
-          });
-          continue;
+          };
         }
 
         await connector.connect();
         const positionInfo = await connector.getPositions();
         await connector.disconnect();
 
-        results.push({
+        return {
           exchange,
           status: 'success',
           positions: positionInfo.positions,
-        });
+        };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         logger.error({ error, userId, exchange }, 'Failed to get positions');
@@ -322,16 +332,35 @@ export class UserConnectorFactory {
           errorMessage.includes('429') ||
           errorMessage.includes('Too Many');
 
-        results.push({
+        return {
           exchange,
           status: isRateLimit ? 'rate_limited' : 'api_error',
           positions: [],
           errorMessage,
-        });
+        };
       }
-    }
+    });
 
-    return results;
+    const settledResults = await Promise.allSettled(promises);
+
+    // 處理 Promise.allSettled 結果
+    return settledResults.map((result, index) => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      }
+      // Promise rejected（理論上不應發生，因為內部已 catch）
+      const exchange = exchangesToQuery[index]!;
+      logger.error(
+        { exchange, reason: result.reason },
+        'Unexpected promise rejection in getPositionsForUser'
+      );
+      return {
+        exchange,
+        status: 'api_error' as const,
+        positions: [],
+        errorMessage: String(result.reason),
+      };
+    });
   }
 }
 
