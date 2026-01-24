@@ -45,12 +45,6 @@ vi.mock('ccxt', () => {
   };
 });
 
-// Mock env 模組
-vi.mock('@lib/env', () => ({
-  getCcxtHttpsProxyConfig: vi.fn(() => ({})),
-  getProxyUrl: vi.fn(() => undefined),
-}));
-
 // Mock logger
 vi.mock('@lib/logger', () => ({
   logger: {
@@ -67,17 +61,18 @@ import {
   createPublicExchange,
   type SupportedExchange,
 } from '@lib/ccxt-factory';
-import { getCcxtHttpsProxyConfig, getProxyUrl } from '@lib/env';
 
 describe('ccxt-factory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // 重設環境變數
     delete process.env.BINANCE_PORTFOLIO_MARGIN;
+    delete process.env.PROXY_URL;
   });
 
   afterEach(() => {
     delete process.env.BINANCE_PORTFOLIO_MARGIN;
+    delete process.env.PROXY_URL;
   });
 
   describe('createCcxtExchange', () => {
@@ -119,24 +114,21 @@ describe('ccxt-factory', () => {
 
     describe('Proxy 配置', () => {
       it('應該套用 https proxy 配置', () => {
-        vi.mocked(getCcxtHttpsProxyConfig).mockReturnValue({ httpsProxy: 'http://proxy:8080' });
-        vi.mocked(getProxyUrl).mockReturnValue('http://proxy:8080');
+        process.env.PROXY_URL = 'http://proxy:8080';
 
         const exchange = createCcxtExchange('binance');
         expect(exchange.httpsProxy).toBe('http://proxy:8080');
       });
 
       it('應該套用 socks proxy 配置', () => {
-        vi.mocked(getCcxtHttpsProxyConfig).mockReturnValue({ socksProxy: 'socks5://proxy:1080' });
-        vi.mocked(getProxyUrl).mockReturnValue('socks5://proxy:1080');
+        process.env.PROXY_URL = 'socks5://proxy:1080';
 
         const exchange = createCcxtExchange('binance');
         expect(exchange.socksProxy).toBe('socks5://proxy:1080');
       });
 
       it('無 proxy 時不應設定 proxy 屬性', () => {
-        vi.mocked(getCcxtHttpsProxyConfig).mockReturnValue({});
-        vi.mocked(getProxyUrl).mockReturnValue(undefined);
+        delete process.env.PROXY_URL;
 
         const exchange = createCcxtExchange('binance');
         expect(exchange.httpsProxy).toBeUndefined();

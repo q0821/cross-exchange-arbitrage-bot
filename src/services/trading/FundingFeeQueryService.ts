@@ -181,7 +181,7 @@ export class FundingFeeQueryService {
 
     try {
       // 如果沒有傳入實例，自動創建（向後相容）
-      const instance = ccxtExchange || await this.createUserCcxtExchange(exchange, userId);
+      const instance = ccxtExchange || await this.createCcxtExchange(exchange, userId);
 
       // 只有自動創建時才需要 loadMarkets（外部實例已載入）
       if (!ccxtExchange) {

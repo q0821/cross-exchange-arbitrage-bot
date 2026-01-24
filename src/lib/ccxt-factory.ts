@@ -1,12 +1,11 @@
 /**
  * CCXT Exchange Factory
  *
- * 統一管理 CCXT 實例創建，自動包含 proxy 配置
- * 避免每次創建實例都要手動設定 proxy
+ * 統一管理 CCXT 實例創建
+ * 支援可選的 proxy 配置（透過 PROXY_URL 環境變數）
  */
 
 import ccxt from 'ccxt';
-import { getCcxtHttpsProxyConfig, getProxyUrl } from './env';
 import { logger } from './logger';
 
 export type SupportedExchange = 'binance' | 'okx' | 'gateio' | 'mexc' | 'bingx';
@@ -21,14 +20,40 @@ export interface ExchangeConfig {
 }
 
 /**
+ * 取得 Proxy URL（如果有設定）
+ */
+function getProxyUrl(): string | undefined {
+  return process.env.PROXY_URL || undefined;
+}
+
+/**
+ * 取得 CCXT Proxy 配置
+ * 支援 HTTP/HTTPS 和 SOCKS proxy
+ */
+function getCcxtProxyConfig(): { httpsProxy?: string; socksProxy?: string } {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) {
+    return {};
+  }
+
+  // SOCKS proxy 使用 socksProxy 屬性
+  if (proxyUrl.startsWith('socks')) {
+    return { socksProxy: proxyUrl };
+  }
+
+  // HTTP/HTTPS proxy 使用 httpsProxy 屬性
+  return { httpsProxy: proxyUrl };
+}
+
+/**
  * 創建 CCXT Exchange 實例
- * 自動套用 proxy 配置
+ * 自動套用 proxy 配置（如果有設定 PROXY_URL）
  */
 export function createCcxtExchange(
   exchangeId: SupportedExchange,
   config: ExchangeConfig = {}
 ): ccxt.Exchange {
-  const proxyConfig = getCcxtHttpsProxyConfig();
+  const proxyConfig = getCcxtProxyConfig();
   const proxyUrl = getProxyUrl();
 
   // Binance 統一帳戶（Portfolio Margin）支援

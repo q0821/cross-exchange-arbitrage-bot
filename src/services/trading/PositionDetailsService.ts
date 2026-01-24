@@ -472,56 +472,6 @@ export class PositionDetailsService {
   }
 
   /**
-   * 查詢資金費率歷史（舊版方法，保留向後相容）
-   * @deprecated 改用 queryFundingFeesWithManager
-   */
-  private async queryFundingFees(
-    longExchange: SupportedExchange,
-    shortExchange: SupportedExchange,
-    symbol: string,
-    startTime: Date,
-    userId: string,
-  ): Promise<FundingFeeDetailsInfo | null> {
-    try {
-      const endTime = new Date();
-
-      const result = await this.fundingFeeQueryService.queryBilateralFundingFees(
-        longExchange,
-        shortExchange,
-        symbol,
-        startTime,
-        endTime,
-        userId,
-      );
-
-      // 轉換為前端友好的格式
-      return {
-        longEntries: result.longResult.entries.map((e) => ({
-          timestamp: e.timestamp,
-          datetime: e.datetime,
-          amount: e.amount.toString(),
-          symbol: e.symbol,
-          id: e.id,
-        })),
-        shortEntries: result.shortResult.entries.map((e) => ({
-          timestamp: e.timestamp,
-          datetime: e.datetime,
-          amount: e.amount.toString(),
-          symbol: e.symbol,
-          id: e.id,
-        })),
-        longTotal: result.longResult.totalAmount.toString(),
-        shortTotal: result.shortResult.totalAmount.toString(),
-        netTotal: result.totalFundingFee.toString(),
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.warn({ error: errorMessage, longExchange, shortExchange, symbol }, 'Failed to query funding fees');
-      return null;
-    }
-  }
-
-  /**
    * 計算年化報酬率
    */
   calculateAnnualizedReturn(
