@@ -10,8 +10,7 @@ import { createPrismaClient } from '@/lib/prisma-factory';
 import type * as ccxt from 'ccxt';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
-import { decrypt } from '../../lib/encryption';
-import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '../../lib/ccxt-factory';
+import { CcxtInstanceManager } from '../../lib/ccxt-instance-manager';
 import { FundingFeeQueryService } from './FundingFeeQueryService';
 import type {
   SupportedExchange,
@@ -72,22 +71,27 @@ export class PositionDetailsService {
 
     const leverage = position.longLeverage || position.shortLeverage || 1;
 
-    // 2. 並行查詢即時價格和資金費率
-    const [priceResult, fundingFeeResult] = await Promise.all([
-      this.fetchCurrentPrices(
-        position.symbol,
-        position.longExchange as SupportedExchange,
-        position.shortExchange as SupportedExchange,
-        userId,
-      ),
-      this.queryFundingFees(
-        position.longExchange as SupportedExchange,
-        position.shortExchange as SupportedExchange,
-        position.symbol,
-        position.openedAt || position.createdAt,
-        userId,
-      ),
-    ]);
+    // 創建 CCXT 實例管理器（請求級別共享實例）
+    const instanceManager = new CcxtInstanceManager(this.prisma);
+
+    try {
+      // 2. 並行查詢即時價格和資金費率（共享 CCXT 實例）
+      const [priceResult, fundingFeeResult] = await Promise.all([
+        this.fetchCurrentPricesWithManager(
+          instanceManager,
+          position.symbol,
+          position.longExchange as SupportedExchange,
+          position.shortExchange as SupportedExchange,
+        ),
+        this.queryFundingFeesWithManager(
+          instanceManager,
+          position.longExchange as SupportedExchange,
+          position.shortExchange as SupportedExchange,
+          position.symbol,
+          position.openedAt || position.createdAt,
+          userId,
+        ),
+      ]);
 
     // 3. 計算未實現損益
     let pnlResult: {
@@ -136,46 +140,157 @@ export class PositionDetailsService {
     // 5. 取得手續費資訊
     const fees = this.extractFees(position.trade);
 
-    const elapsedMs = Date.now() - startTime;
-    logger.info(
-      {
-        positionId,
-        symbol: position.symbol,
-        elapsedMs,
-        priceQuerySuccess: priceResult.success,
-        fundingFeeQuerySuccess: !!fundingFeeResult,
-      },
-      'Position details query completed',
-    );
+      const elapsedMs = Date.now() - startTime;
+      logger.info(
+        {
+          positionId,
+          symbol: position.symbol,
+          elapsedMs,
+          priceQuerySuccess: priceResult.success,
+          fundingFeeQuerySuccess: !!fundingFeeResult,
+        },
+        'Position details query completed',
+      );
 
-    return {
-      positionId: position.id,
-      symbol: position.symbol,
-      longExchange: position.longExchange,
-      shortExchange: position.shortExchange,
-      longEntryPrice: position.longEntryPrice.toString(),
-      shortEntryPrice: position.shortEntryPrice.toString(),
-      longPositionSize: position.longPositionSize.toString(),
-      shortPositionSize: position.shortPositionSize.toString(),
-      leverage,
-      openedAt: openedAt.toISOString(),
-      longCurrentPrice: priceResult.longCurrentPrice,
-      shortCurrentPrice: priceResult.shortCurrentPrice,
-      priceQuerySuccess: priceResult.success,
-      priceQueryError: priceResult.error,
-      ...pnlResult,
-      fundingFees: fundingFeeResult ?? undefined,
-      fundingFeeQuerySuccess: !!fundingFeeResult,
-      fundingFeeQueryError: fundingFeeResult ? undefined : '資金費率查詢失敗',
-      fees,
-      annualizedReturn,
-      annualizedReturnError,
-      queriedAt: new Date().toISOString(),
-    };
+      return {
+        positionId: position.id,
+        symbol: position.symbol,
+        longExchange: position.longExchange,
+        shortExchange: position.shortExchange,
+        longEntryPrice: position.longEntryPrice.toString(),
+        shortEntryPrice: position.shortEntryPrice.toString(),
+        longPositionSize: position.longPositionSize.toString(),
+        shortPositionSize: position.shortPositionSize.toString(),
+        leverage,
+        openedAt: openedAt.toISOString(),
+        longCurrentPrice: priceResult.longCurrentPrice,
+        shortCurrentPrice: priceResult.shortCurrentPrice,
+        priceQuerySuccess: priceResult.success,
+        priceQueryError: priceResult.error,
+        ...pnlResult,
+        fundingFees: fundingFeeResult ?? undefined,
+        fundingFeeQuerySuccess: !!fundingFeeResult,
+        fundingFeeQueryError: fundingFeeResult ? undefined : '資金費率查詢失敗',
+        fees,
+        annualizedReturn,
+        annualizedReturnError,
+        queriedAt: new Date().toISOString(),
+      };
+    } finally {
+      // 清理 CCXT 實例快取
+      instanceManager.clear();
+    }
   }
 
   /**
-   * 查詢即時價格
+   * 查詢即時價格（使用共享 CCXT 實例）
+   */
+  private async fetchCurrentPricesWithManager(
+    manager: CcxtInstanceManager,
+    symbol: string,
+    longExchange: SupportedExchange,
+    shortExchange: SupportedExchange,
+  ): Promise<PriceQueryResult> {
+    try {
+      const ccxtSymbol = this.convertToCcxtSymbol(symbol);
+
+      // 並行獲取兩個交易所的公開實例（自動共享實例）
+      const [longInstance, shortInstance] = await Promise.all([
+        manager.getPublicExchange(longExchange),
+        manager.getPublicExchange(shortExchange),
+      ]);
+
+      // 並行查詢價格（無需再次 loadMarkets）
+      const [longTicker, shortTicker] = await Promise.all([
+        this.fetchTickerWithTimeout(longInstance, ccxtSymbol, longExchange),
+        this.fetchTickerWithTimeout(shortInstance, ccxtSymbol, shortExchange),
+      ]);
+
+      if (longTicker === null || shortTicker === null) {
+        return {
+          success: false,
+          error: `無法取得${longTicker === null ? longExchange : shortExchange}即時價格`,
+        };
+      }
+
+      // 提取價格（優先 mark price）
+      const longPrice = this.extractPrice(longTicker);
+      const shortPrice = this.extractPrice(shortTicker);
+
+      if (longPrice === null || shortPrice === null) {
+        return {
+          success: false,
+          error: `價格資料無效：${longPrice === null ? longExchange : shortExchange}`,
+        };
+      }
+
+      return {
+        longCurrentPrice: longPrice,
+        shortCurrentPrice: shortPrice,
+        success: true,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ error: errorMessage, symbol, longExchange, shortExchange }, 'Failed to fetch current prices');
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
+   * 使用超時控制查詢單一 ticker
+   */
+  private async fetchTickerWithTimeout(
+    exchange: ccxt.Exchange,
+    ccxtSymbol: string,
+    exchangeName: SupportedExchange,
+  ): Promise<ccxt.Ticker | null> {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      try {
+        const ticker = await exchange.fetchTicker(ccxtSymbol);
+        clearTimeout(timeoutId);
+        return ticker;
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isTimeout = errorMessage.includes('abort') || errorMessage.includes('timeout');
+      logger.warn(
+        { error: errorMessage, exchange: exchangeName, ccxtSymbol, isTimeout },
+        isTimeout ? 'Ticker fetch timeout' : 'Failed to fetch ticker',
+      );
+      return null;
+    }
+  }
+
+  /**
+   * 從 ticker 提取價格（優先 mark price）
+   */
+  private extractPrice(ticker: ccxt.Ticker): number | null {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const tickerInfo = (ticker as any).info as Record<string, unknown> | undefined;
+    const price = tickerInfo?.markPrice
+      ? parseFloat(String(tickerInfo.markPrice))
+      : (ticker.last || null);
+
+    logger.debug(
+      { last: ticker.last, markPrice: tickerInfo?.markPrice, returnedPrice: price },
+      'Price extracted from ticker',
+    );
+
+    return price;
+  }
+
+  /**
+   * 查詢即時價格（舊版方法，保留向後相容）
+   * @deprecated 改用 fetchCurrentPricesWithManager
    */
   async fetchCurrentPrices(
     symbol: string,
@@ -299,7 +414,66 @@ export class PositionDetailsService {
   }
 
   /**
-   * 查詢資金費率歷史
+   * 查詢資金費率歷史（使用共享 CCXT 實例）
+   */
+  private async queryFundingFeesWithManager(
+    manager: CcxtInstanceManager,
+    longExchange: SupportedExchange,
+    shortExchange: SupportedExchange,
+    symbol: string,
+    startTime: Date,
+    userId: string,
+  ): Promise<FundingFeeDetailsInfo | null> {
+    try {
+      const endTime = new Date();
+
+      // 並行獲取兩個交易所的認證實例
+      const [longInstance, shortInstance] = await Promise.all([
+        manager.getAuthenticatedExchange(longExchange, userId),
+        manager.getAuthenticatedExchange(shortExchange, userId),
+      ]);
+
+      // 使用共享實例查詢資金費率
+      const result = await this.fundingFeeQueryService.queryBilateralFundingFeesWithInstances(
+        longExchange,
+        shortExchange,
+        symbol,
+        startTime,
+        endTime,
+        longInstance,
+        shortInstance,
+      );
+
+      // 轉換為前端友好的格式
+      return {
+        longEntries: result.longResult.entries.map((e) => ({
+          timestamp: e.timestamp,
+          datetime: e.datetime,
+          amount: e.amount.toString(),
+          symbol: e.symbol,
+          id: e.id,
+        })),
+        shortEntries: result.shortResult.entries.map((e) => ({
+          timestamp: e.timestamp,
+          datetime: e.datetime,
+          amount: e.amount.toString(),
+          symbol: e.symbol,
+          id: e.id,
+        })),
+        longTotal: result.longResult.totalAmount.toString(),
+        shortTotal: result.shortResult.totalAmount.toString(),
+        netTotal: result.totalFundingFee.toString(),
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn({ error: errorMessage, longExchange, shortExchange, symbol }, 'Failed to query funding fees');
+      return null;
+    }
+  }
+
+  /**
+   * 查詢資金費率歷史（舊版方法，保留向後相容）
+   * @deprecated 改用 queryFundingFeesWithManager
    */
   private async queryFundingFees(
     longExchange: SupportedExchange,
@@ -423,7 +597,8 @@ export class PositionDetailsService {
   }
 
   /**
-   * 創建已認證的 CCXT 交易所實例
+   * 創建已認證的 CCXT 交易所實例（舊版方法，保留向後相容）
+   * @deprecated 改用 CcxtInstanceManager.getAuthenticatedExchange
    *
    * 使用統一 CCXT 工廠確保 proxy 配置自動套用
    */
@@ -431,35 +606,12 @@ export class PositionDetailsService {
     exchange: SupportedExchange,
     userId: string,
   ): Promise<ccxt.Exchange> {
-    const apiKey = await this.prisma.apiKey.findFirst({
-      where: {
-        userId,
-        exchange,
-        isActive: true,
-      },
-    });
-
-    if (!apiKey) {
-      throw new Error(`No active API key found for ${exchange}`);
+    const manager = new CcxtInstanceManager(this.prisma);
+    try {
+      return await manager.getAuthenticatedExchange(exchange, userId);
+    } finally {
+      // 不清理快取，因為是單次調用
     }
-
-    const decryptedKey = decrypt(apiKey.encryptedKey);
-    const decryptedSecret = decrypt(apiKey.encryptedSecret);
-    const decryptedPassphrase = apiKey.encryptedPassphrase
-      ? decrypt(apiKey.encryptedPassphrase)
-      : undefined;
-
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
-    return createCcxtExchange(exchange as CcxtSupportedExchange, {
-      apiKey: decryptedKey,
-      secret: decryptedSecret,
-      password: decryptedPassphrase,
-      sandbox: apiKey.environment === 'TESTNET',
-      enableRateLimit: true,
-      options: {
-        defaultType: exchange === 'binance' ? 'future' : 'swap',
-      },
-    });
   }
 }
 
