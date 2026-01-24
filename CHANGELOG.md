@@ -8,6 +8,39 @@
 
 ### 效能優化
 
+#### 交易流程效能優化（2026-01-24）
+
+**背景**：開倉與平倉流程存在多處效能瓶頸，導致交易延遲較高。
+
+**優化內容**：
+
+1. **PositionCloser 並行創建 Trader**
+   - 改為並行執行 Trader 創建，減少等待時間
+
+2. **OrderPriceFetcher 指數退避策略**
+   - 使用指數退避取代固定延遲，提升重試效率
+
+3. **BalanceValidator WebSocket 快取**
+   - 支援 WebSocket 快取餘額查詢，減少 API 請求
+
+4. **GET /api/balances 並行查詢**
+   - 支援並行查詢與指定交易所參數
+
+5. **POST /api/positions/open 效能優化**
+   - 減少不必要的 API 請求
+
+6. **PositionDetailsService 共享 CCXT 實例**
+   - 減少重複的 `loadMarkets()` 調用
+
+7. **CCXT Factory 統一管理**
+   - 新增 `src/lib/ccxt-factory.ts` 統一管理 CCXT 實例創建
+   - 支援可選的 proxy 配置（透過 `PROXY_URL` 環境變數）
+   - 提供 `createCcxtExchange()`、`createAuthenticatedExchange()`、`createPublicExchange()` 函數
+
+**測試**：
+- 新增 `tests/unit/lib/ccxt-factory.test.ts` - CCXT Factory 測試
+- 新增開倉效能優化相關測試案例
+
 #### OI 獲取效能優化（2026-01-22）
 
 **問題**：`GET /api/symbol-groups` API 回應時間 2-4 秒，嚴重影響前端載入體驗。
