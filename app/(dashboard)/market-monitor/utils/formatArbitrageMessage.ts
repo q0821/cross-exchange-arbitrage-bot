@@ -172,6 +172,10 @@ function formatPriceRiskWarning(priceDiffPercent: number | null): string {
     return '\n⚠️ 【風險提示】無價差資訊，開倉前請自行確認兩交易所的價差！';
   }
 
+  if (riskLevel === 'favorable' && priceDiffPercent !== null) {
+    return `\n✅ 【價差有利】價差 ${Math.abs(priceDiffPercent).toFixed(2)}% 方向有利，開倉即有獲利！`;
+  }
+
   if (riskLevel === 'warning' && priceDiffPercent !== null) {
     return `\n⚠️ 【價差警告】價差 ${Math.abs(priceDiffPercent).toFixed(2)}% 超過 ${PRICE_DIFF_WARNING_THRESHOLD}%，開倉成本較高！`;
   }

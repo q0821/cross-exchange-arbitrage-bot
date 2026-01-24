@@ -1,0 +1,306 @@
+{
+  "common": {
+    "loading": "載入中...",
+    "error": "發生錯誤",
+    "save": "儲存",
+    "cancel": "取消",
+    "confirm": "確認",
+    "delete": "刪除",
+    "edit": "編輯",
+    "back": "返回",
+    "search": "搜尋",
+    "filter": "篩選",
+    "export": "匯出",
+    "refresh": "重新整理",
+    "noData": "沒有資料",
+    "actions": "操作",
+    "status": "狀態",
+    "createdAt": "建立時間",
+    "updatedAt": "更新時間",
+    "all": "全部",
+    "never": "從未",
+    "na": "N/A"
+  },
+  "nav": {
+    "dashboard": "儀表板",
+    "users": "用戶管理",
+    "trades": "交易紀錄",
+    "settings": "設定",
+    "logout": "登出",
+    "loggingOut": "登出中...",
+    "backToPlatform": "返回平台"
+  },
+  "login": {
+    "title": "管理員登入",
+    "subtitle": "平台管理控制台",
+    "email": "電子郵件",
+    "emailPlaceholder": "admin@example.com",
+    "password": "密碼",
+    "passwordPlaceholder": "請輸入密碼",
+    "submit": "登入",
+    "submitting": "登入中...",
+    "error": {
+      "default": "登入失敗",
+      "locked": "帳戶已鎖定，請稍後再試",
+      "inactive": "帳戶已被停用，請聯繫系統管理員",
+      "unexpected": "發生未預期的錯誤"
+    },
+    "notice": "此區域僅限管理人員存取。未經授權禁止進入。"
+  },
+  "dashboard": {
+    "title": "平台總覽",
+    "welcome": "歡迎回來",
+    "stats": {
+      "totalUsers": "總用戶數",
+      "activeUsers": "活躍用戶",
+      "weekActive": "本週活躍",
+      "inactive": "已停用",
+      "totalPositions": "總持倉數",
+      "totalTrades": "總交易數",
+      "totalPnl": "總損益",
+      "todayTrades": "今日交易",
+      "averageRoi": "平均投報率"
+    },
+    "subtitles": {
+      "newToday": "今日新增 {count} 位",
+      "todayCount": "今日 {count} 筆",
+      "loggedIn7Days": "7 天內登入"
+    },
+    "charts": {
+      "userGrowth": "用戶成長",
+      "tradingVolume": "交易量趨勢",
+      "pnlDistribution": "損益分佈"
+    },
+    "recentActivity": "近期活動",
+    "quickActions": "快速操作"
+  },
+  "users": {
+    "title": "用戶管理",
+    "addUser": "新增用戶",
+    "searchPlaceholder": "搜尋用戶名稱或電子郵件...",
+    "table": {
+      "name": "名稱",
+      "email": "電子郵件",
+      "role": "角色",
+      "status": "狀態",
+      "positions": "持倉數",
+      "trades": "交易數",
+      "lastLogin": "最後登入",
+      "actions": "操作"
+    },
+    "status": {
+      "active": "正常",
+      "inactive": "已停用",
+      "locked": "已鎖定"
+    },
+    "role": {
+      "admin": "管理員",
+      "user": "一般用戶"
+    },
+    "detail": {
+      "title": "用戶詳情",
+      "backToUsers": "返回用戶列表",
+      "basicInfo": "基本資訊",
+      "accountSecurity": "帳戶安全",
+      "tradingStats": "交易統計",
+      "preferences": "偏好設定",
+      "apiKeys": "API 金鑰",
+      "positions": "持倉列表",
+      "tradeHistory": "交易歷史",
+      "tabs": {
+        "info": "用戶資訊",
+        "positions": "持倉與交易"
+      },
+      "fields": {
+        "email": "電子郵件",
+        "role": "角色",
+        "created": "建立時間",
+        "lastLogin": "最後登入",
+        "passwordChanged": "密碼變更時間",
+        "status": "狀態",
+        "failedLoginAttempts": "登入失敗次數",
+        "lockedUntil": "鎖定至",
+        "notLocked": "未鎖定",
+        "activePositions": "活躍持倉",
+        "totalTrades": "總交易數",
+        "totalPnl": "總損益",
+        "timeBasis": "時間基準",
+        "apiKeyCount": "API 金鑰數量"
+      },
+      "statusValues": {
+        "active": "正常",
+        "suspended": "已停用"
+      }
+    },
+    "actions": {
+      "view": "查看詳情",
+      "edit": "編輯",
+      "resetPassword": "重設密碼",
+      "resetting": "重設中...",
+      "suspend": "停用",
+      "suspending": "停用中...",
+      "enable": "啟用",
+      "enabling": "啟用中...",
+      "delete": "刪除",
+      "deleting": "刪除中...",
+      "promoteToAdmin": "提升為管理員",
+      "promoting": "提升中...",
+      "demoteToUser": "降為一般用戶",
+      "demoting": "降級中..."
+    },
+    "confirm": {
+      "suspend": "確定要停用此用戶嗎？",
+      "delete": "請輸入 DELETE 以確認刪除此用戶：",
+      "resetPassword": "確定要重設此用戶的密碼嗎？",
+      "promoteToAdmin": "確定要將此用戶提升為管理員嗎？",
+      "demoteToUser": "確定要將此管理員降為一般用戶嗎？"
+    },
+    "messages": {
+      "newPassword": "新密碼：{password}\n\n請妥善保存此密碼。",
+      "promoteSuccess": "用戶已提升為管理員",
+      "demoteSuccess": "管理員已降為一般用戶",
+      "cannotDemoteSelf": "無法降級自己的帳戶"
+    },
+    "create": {
+      "title": "新增用戶",
+      "subtitle": "新增用戶至平台",
+      "nameLabel": "用戶名稱",
+      "namePlaceholder": "請輸入用戶名稱",
+      "emailLabel": "電子郵件",
+      "emailPlaceholder": "user@example.com",
+      "roleLabel": "角色",
+      "submit": "建立用戶",
+      "success": "用戶建立成功",
+      "passwordGenerated": "已為此用戶自動產生安全密碼：",
+      "generatedPasswordTitle": "產生的密碼",
+      "savePasswordWarning": "請妥善保存此密碼。此密碼只會顯示一次。",
+      "copyToClipboard": "複製到剪貼簿",
+      "createAnother": "再建立一位",
+      "viewAllUsers": "查看所有用戶",
+      "autoPasswordNote": "系統將自動為新用戶產生安全密碼。"
+    },
+    "confirmDelete": {
+      "title": "確認刪除用戶",
+      "message": "請輸入 DELETE 以確認刪除此用戶。此操作無法復原。",
+      "placeholder": "輸入 DELETE",
+      "confirm": "確認刪除",
+      "hasPositions": "此用戶仍有活躍持倉，無法刪除"
+    },
+    "pagination": {
+      "showing": "顯示 {from} - {to} 筆，共 {total} 筆",
+      "prev": "上一頁",
+      "next": "下一頁"
+    }
+  },
+  "positions": {
+    "title": "持倉列表",
+    "filter": {
+      "all": "全部",
+      "open": "進行中",
+      "closed": "已平倉"
+    },
+    "status": {
+      "OPEN": "進行中",
+      "OPENING": "開倉中",
+      "CLOSED": "已平倉",
+      "CLOSING": "平倉中"
+    },
+    "exportCsv": "匯出 CSV",
+    "exporting": "匯出中...",
+    "retry": "重試",
+    "noPositions": "沒有持倉資料",
+    "pagination": {
+      "page": "第 {page} 頁，共 {totalPages} 頁（{total} 筆）",
+      "prev": "上一頁",
+      "next": "下一頁"
+    },
+    "card": {
+      "long": "做多",
+      "short": "做空",
+      "entry": "入場價",
+      "size": "數量",
+      "leverage": "槓桿",
+      "openFundingRates": "開倉資金費率",
+      "stopLoss": "止損",
+      "takeProfit": "止盈",
+      "tradeResult": "交易結果",
+      "pricePnl": "價差損益",
+      "fundingPnl": "資金費率損益",
+      "totalPnl": "總損益",
+      "roi": "投資報酬率",
+      "closedAt": "平倉時間",
+      "duration": "{hours}小時"
+    },
+    "errors": {
+      "loadFailed": "載入持倉失敗",
+      "connectFailed": "無法連接伺服器",
+      "exportFailed": "匯出 CSV 失敗"
+    }
+  },
+  "trades": {
+    "title": "交易紀錄",
+    "subtitle": "查看平台上所有交易歷史",
+    "filters": {
+      "user": "用戶",
+      "symbol": "交易對",
+      "status": "狀態",
+      "dateRange": "日期範圍",
+      "pnlRange": "損益範圍",
+      "sortBy": "排序方式",
+      "order": "排序",
+      "date": "日期",
+      "pnl": "損益",
+      "desc": "降序",
+      "asc": "升序"
+    },
+    "placeholder": {
+      "symbol": "例如 BTCUSDT"
+    },
+    "table": {
+      "id": "交易 ID",
+      "user": "用戶",
+      "symbol": "交易對",
+      "side": "方向",
+      "quantity": "數量",
+      "entryPrice": "入場價",
+      "exitPrice": "出場價",
+      "pnl": "損益",
+      "pnlPercent": "損益率",
+      "openTime": "開倉時間",
+      "closeTime": "平倉時間",
+      "duration": "持倉時間",
+      "exchanges": "交易所",
+      "roi": "投資報酬率"
+    },
+    "side": {
+      "long": "做多",
+      "short": "做空"
+    },
+    "export": {
+      "csv": "匯出 CSV",
+      "excel": "匯出 Excel"
+    },
+    "summary": {
+      "totalTrades": "總交易數",
+      "winRate": "勝率",
+      "totalPnl": "總損益",
+      "avgPnl": "平均損益"
+    },
+    "pagination": {
+      "page": "第 {page} 頁，共 {totalPages} 頁（{total} 筆交易）",
+      "prev": "上一頁",
+      "next": "下一頁"
+    }
+  },
+  "theme": {
+    "toggle": "切換主題",
+    "light": "亮色模式",
+    "dark": "暗色模式",
+    "system": "跟隨系統"
+  },
+  "language": {
+    "toggle": "切換語言",
+    "zhTW": "繁體中文",
+    "en": "English"
+  }
+}

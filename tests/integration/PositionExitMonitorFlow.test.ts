@@ -77,6 +77,30 @@ vi.mock('@/lib/db', () => ({
         },
       ]),
     },
+    apiKey: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          id: 'apikey-binance-001',
+          userId: 'user-test-001',
+          exchange: 'binance',
+          encryptedKey: 'test-api-key',
+          encryptedSecret: 'test-api-secret',
+          encryptedPassphrase: null,
+          environment: 'MAINNET',
+          isActive: true,
+        },
+        {
+          id: 'apikey-okx-001',
+          userId: 'user-test-001',
+          exchange: 'okx',
+          encryptedKey: 'test-api-key',
+          encryptedSecret: 'test-api-secret',
+          encryptedPassphrase: 'test-passphrase',
+          environment: 'MAINNET',
+          isActive: true,
+        },
+      ]),
+    },
   },
 }));
 
@@ -104,7 +128,7 @@ vi.mock('@/lib/funding-pnl-calculator', () => ({
 }));
 
 // Mock encryption to avoid decryption errors in tests
-vi.mock('@lib/encryption', () => ({
+vi.mock('@/lib/encryption', () => ({
   encrypt: (value: string) => value,
   decrypt: (value: string) => value,
 }));
@@ -423,11 +447,12 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('PositionExitMonitor Integration Flow', 
   });
 
   describe('錯誤恢復', () => {
-    it('單一持倉處理失敗不應該影響其他持倉', async () => {
-      // Setup: 兩個持倉，第一個會失敗
+    it('單一持倉 API 失敗時應該使用快取值繼續處理', async () => {
+      // Setup: 兩個持倉，第一個的 API 會失敗但有快取值
       const position1 = createOpenPosition({
         id: 'position-001',
         userId: 'user-001',
+        cachedFundingPnL: new Decimal('5'), // 有快取值
       });
       const position2 = createOpenPosition({
         id: 'position-002',
@@ -436,7 +461,7 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('PositionExitMonitor Integration Flow', 
       mockFindMany.mockResolvedValue([position1, position2]);
       mockFindUnique.mockResolvedValue(createUserSettings());
 
-      // 第一個持倉的累計收益計算會失敗
+      // 第一個持倉的累計收益計算會失敗，但會使用快取值
       mockGetCumulativeFundingPnL
         .mockRejectedValueOnce(new Error('API error'))
         .mockResolvedValueOnce(new Decimal('10'));
@@ -447,8 +472,12 @@ describe.skipIf(!RUN_INTEGRATION_TESTS)('PositionExitMonitor Integration Flow', 
       fundingRateMonitor.emit('rate-updated', createPair(-50));
       await vi.runAllTimersAsync();
 
-      // Assert: 第二個持倉仍然應該收到通知
-      expect(mockEmitExitSuggested).toHaveBeenCalledTimes(1);
+      // Assert: 兩個持倉都應該收到通知（第一個使用快取值）
+      expect(mockEmitExitSuggested).toHaveBeenCalledTimes(2);
+      expect(mockEmitExitSuggested).toHaveBeenCalledWith(
+        'user-001',
+        expect.objectContaining({ positionId: 'position-001' })
+      );
       expect(mockEmitExitSuggested).toHaveBeenCalledWith(
         'user-002',
         expect.objectContaining({ positionId: 'position-002' })

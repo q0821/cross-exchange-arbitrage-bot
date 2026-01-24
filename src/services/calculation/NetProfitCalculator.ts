@@ -121,9 +121,9 @@ export class NetProfitCalculator {
       'Net profit calculated'
     );
 
-    // Warn if net profit is negative
+    // Log negative net profit at debug level (expected behavior, not a warning)
     if (netProfit.lessThan(0)) {
-      logger.warn(
+      logger.debug(
         {
           symbol,
           longExchange,

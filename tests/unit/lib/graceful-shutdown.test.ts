@@ -93,6 +93,7 @@ describe('graceful-shutdown', () => {
       httpServer: {
         close: vi.fn((cb: (err?: Error) => void) => cb()),
         closeAllConnections: vi.fn(), // Node.js 18.2+ API
+        listening: true, // 模擬 server 正在運行
       } as unknown as import('http').Server,
       io: {
         close: vi.fn((cb: (err?: Error) => void) => cb()),
@@ -404,6 +405,32 @@ describe('graceful-shutdown', () => {
       expect(servers.io.disconnectSockets).toHaveBeenCalledWith(true);
       // 應該強制關閉所有 HTTP 連線
       expect(servers.httpServer.closeAllConnections).toHaveBeenCalled();
+      expect(mockExit).toHaveBeenCalledWith(0);
+    });
+
+    it('應該在 HTTP server 未運行時跳過關閉操作', async () => {
+      const services = createMockServices();
+      const servers = createMockServers();
+      const prisma = createMockPrisma();
+      const mockExit = vi.fn();
+
+      // 模擬 HTTP server 未運行（避免 ERR_SERVER_NOT_RUNNING 錯誤）
+      (servers.httpServer as { listening: boolean }).listening = false;
+
+      const shutdown = createShutdownHandler(services, servers, prisma, {
+        logger: mockLogger as unknown as typeof import('@/lib/logger').logger,
+        exit: mockExit,
+      });
+
+      await shutdown();
+
+      // HTTP server 的 close 和 closeAllConnections 不應該被呼叫
+      expect(servers.httpServer.close).not.toHaveBeenCalled();
+      expect(servers.httpServer.closeAllConnections).not.toHaveBeenCalled();
+      // 應該記錄跳過訊息
+      expect(mockLogger.info).toHaveBeenCalledWith('HTTP server not running, skipping close');
+      // 其他服務應該正常關閉
+      expect(servers.io.close).toHaveBeenCalled();
       expect(mockExit).toHaveBeenCalledWith(0);
     });
 

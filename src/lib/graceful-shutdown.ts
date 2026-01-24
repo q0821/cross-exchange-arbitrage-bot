@@ -157,17 +157,21 @@ export function createShutdownHandler(
       );
       logger.info('Socket.io server closed');
 
-      // 5. 關閉 HTTP Server
-      logger.info('Closing HTTP server...');
-      // 強制關閉所有活躍的 TCP 連線（Node.js 18.2+）
-      // 這解決了 keep-alive 連線阻止 server.close() 完成的問題
-      servers.httpServer.closeAllConnections();
-      await closeWithTimeout(
-        (cb) => servers.httpServer.close(cb),
-        serviceTimeout,
-        'HTTP server',
-      );
-      logger.info('HTTP server closed');
+      // 5. 關閉 HTTP Server（先檢查是否正在運行）
+      if (servers.httpServer.listening) {
+        logger.info('Closing HTTP server...');
+        // 強制關閉所有活躍的 TCP 連線（Node.js 18.2+）
+        // 這解決了 keep-alive 連線阻止 server.close() 完成的問題
+        servers.httpServer.closeAllConnections();
+        await closeWithTimeout(
+          (cb) => servers.httpServer.close(cb),
+          serviceTimeout,
+          'HTTP server',
+        );
+        logger.info('HTTP server closed');
+      } else {
+        logger.info('HTTP server not running, skipping close');
+      }
 
       clearTimeout(forceExitTimeout);
       logger.info('Graceful shutdown completed');

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { env } from './env';
+import type { UserRole } from '@/generated/prisma/client';
 
 /**
  * JWT Token 工具
@@ -9,6 +10,7 @@ export interface JwtPayload {
   userId: string;
   email: string;
   tokenVersion: number; // Feature 061: 密碼變更後遞增以使舊 session 失效
+  role: UserRole; // Feature 068: 用戶角色
 }
 
 /**

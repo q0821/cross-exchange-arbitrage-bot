@@ -23,6 +23,11 @@ Auto-generated from all feature plans. Last updated: 2026-01-18
 - N/A (客戶端記憶體快取，無持久化儲存) (063-frontend-data-caching)
 - TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Prisma 7.x, Tailwind CSS, Radix UI (064-public-landing-page)
 - PostgreSQL 15 + TimescaleDB（現有 `OpportunityEndHistory` 模型） (064-public-landing-page)
+- TypeScript 5.8 + Node.js 20.x LTS + EventEmitter (Node.js built-in), CCXT 4.x, Prisma 7.x (066-specify-scripts-bash)
+- PostgreSQL 15 + TimescaleDB (existing, no changes) (066-specify-scripts-bash)
+- TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Socket.io 4.8.1, CCXT 4.x, Prisma 7.x, Decimal.js (067-position-exit-monitor)
+- PostgreSQL 15 + TimescaleDB（擴展 TradingSettings 和 Position 模型） (067-position-exit-monitor)
+- PostgreSQL 15+ with TimescaleDB (現有資料庫擴展) (068-admin-dashboard)
 
 ## Project Structure
 ```
@@ -542,6 +547,64 @@ type: 'markPrice' | 'fundingRate' | 'ticker' | 'balanceUpdate'
 - Unit: `tests/unit/services/ArbitrageOpportunityTracker.test.ts` (9 案例)
 - Integration: `tests/integration/ArbitrageOpportunityFlow.test.ts` (5 案例)
 
+## Feature 068: Admin Dashboard (平台管理後臺)
+
+### Key Paths
+- **Admin Auth**: `src/lib/admin/middleware.ts` - Admin JWT 驗證中間件
+- **Admin Auth Service**: `src/services/admin/AdminAuthService.ts` - 管理員登入、帳戶鎖定
+- **Dashboard Service**: `src/services/admin/AdminDashboardService.ts` - 平台統計數據
+- **User Service**: `src/services/admin/AdminUserService.ts` - 用戶 CRUD、停用/啟用
+- **Trade Service**: `src/services/admin/AdminTradeService.ts` - 持倉查詢、交易記錄匯出
+
+### API Endpoints
+- `POST /api/admin/auth/login` - 管理員登入
+- `GET /api/admin/dashboard` - 平台統計數據
+- `GET /api/admin/users` - 用戶列表（分頁、搜尋、篩選）
+- `POST /api/admin/users` - 新增用戶（自動產生密碼）
+- `GET /api/admin/users/[id]` - 用戶詳情
+- `PATCH /api/admin/users/[id]` - 更新用戶資訊
+- `DELETE /api/admin/users/[id]` - 刪除用戶（需確認文字）
+- `POST /api/admin/users/[id]/suspend` - 停用用戶
+- `POST /api/admin/users/[id]/enable` - 啟用用戶
+- `POST /api/admin/users/[id]/reset-password` - 重設密碼
+- `GET /api/admin/users/[id]/trades` - 用戶持倉/交易記錄（支援 CSV 匯出）
+- `GET /api/admin/trades` - 平台所有交易列表
+
+### Frontend Pages
+- `app/(admin)/admin-login/page.tsx` - 管理員登入頁
+- `app/(admin)/admin/layout.tsx` - 管理後臺版面（側邊欄）
+- `app/(admin)/admin/dashboard/page.tsx` - 平台儀表板
+- `app/(admin)/admin/users/page.tsx` - 用戶列表
+- `app/(admin)/admin/users/new/page.tsx` - 新增用戶
+- `app/(admin)/admin/users/[id]/page.tsx` - 用戶詳情（含停用/啟用/刪除功能）
+- `app/(admin)/admin/users/[id]/components/PositionsTab.tsx` - 用戶持倉標籤
+- `app/(admin)/admin/users/[id]/components/PositionDetailCard.tsx` - 持倉詳情卡片
+- `app/(admin)/admin/trades/page.tsx` - 平台交易列表
+
+### Data Model (Prisma)
+- `User.role` - 用戶角色 (`USER` | `ADMIN`)
+- `User.isActive` - 帳戶狀態
+- `User.failedLoginAttempts` - 登入失敗次數
+- `User.lockedUntil` - 帳戶鎖定時間
+- `User.tokenVersion` - Token 版本（停用時遞增以失效 session）
+- `AdminAuditLog` - 管理員操作審計日誌
+
+### Security Features
+- JWT Token 驗證（含 role 和 tokenVersion）
+- 登入失敗 5 次後鎖定 15 分鐘
+- 停用帳戶時 session 即時失效
+- 刪除用戶需輸入確認文字 "DELETE"
+- 管理員無法刪除自己
+- 有活躍持倉的用戶無法刪除
+
+### Tests
+- Unit: `tests/unit/lib/admin/middleware.test.ts` (10 案例)
+- Unit: `tests/unit/services/admin/AdminAuthService.test.ts` (24 案例)
+- Unit: `tests/unit/services/admin/AdminDashboardService.test.ts` (5 案例)
+- Unit: `tests/unit/services/admin/AdminUserService.test.ts` (27 案例)
+- Unit: `tests/unit/services/admin/AdminTradeService.test.ts` (12 案例)
+- **Total: 78 案例**
+
 ## Testing
 
 ### 測試架構
@@ -586,3 +649,7 @@ tests/
 - **手動觸發**：所有工作流程支援 `workflow_dispatch`
 
 <!-- MANUAL ADDITIONS END -->
+
+## Recent Changes
+- 068-admin-dashboard: Added TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Prisma 7.x, Tailwind CSS, Radix UI
+- 067-position-exit-monitor: Added TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Socket.io 4.8.1, CCXT 4.x, Prisma 7.x, Decimal.js

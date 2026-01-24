@@ -90,7 +90,7 @@ describe('NetProfitCalculator', () => {
       expect(result.totalFees.toString()).toBe('0.002');
     });
 
-    it('should log warning for negative net profit', async () => {
+    it('should log debug message for negative net profit', async () => {
       const { logger } = await import('@/lib/logger');
 
       calculator.calculate(
@@ -102,7 +102,7 @@ describe('NetProfitCalculator', () => {
         '0.001'  // High fee rate
       );
 
-      expect(logger.warn).toHaveBeenCalledWith(
+      expect(logger.debug).toHaveBeenCalledWith(
         expect.objectContaining({
           symbol: 'BTCUSDT',
         }),

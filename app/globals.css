@@ -448,6 +448,42 @@
   }
 }
 
+/* Admin 後台主題變數 */
+@layer base {
+  /* Admin Light Theme */
+  .admin-light {
+    --admin-bg: 210 20% 98%;           /* slate-50 equivalent */
+    --admin-bg-secondary: 0 0% 100%;    /* white */
+    --admin-fg: 222.2 84% 4.9%;         /* slate-900 equivalent */
+    --admin-fg-muted: 215.4 16.3% 46.9%; /* slate-500 equivalent */
+    --admin-border: 214.3 31.8% 91.4%;  /* slate-200 equivalent */
+    --admin-card: 0 0% 100%;            /* white */
+    --admin-card-hover: 210 20% 96%;    /* slate-100 equivalent */
+    --admin-sidebar-bg: 0 0% 100%;      /* white */
+    --admin-sidebar-border: 214.3 31.8% 91.4%;
+    --admin-accent: 38 92% 50%;         /* amber-500 */
+    --admin-accent-hover: 38 92% 45%;   /* amber-600 */
+    --admin-accent-bg: 38 92% 50% / 0.1;
+  }
+
+  /* Admin Dark Theme (預設暗色) */
+  .admin-dark,
+  .dark .admin-light {
+    --admin-bg: 222.2 47.4% 11.2%;      /* slate-900 equivalent */
+    --admin-bg-secondary: 217.2 32.6% 17.5%; /* slate-800 equivalent */
+    --admin-fg: 210 40% 98%;            /* slate-50 equivalent */
+    --admin-fg-muted: 215.4 16.3% 56.9%; /* slate-400 equivalent */
+    --admin-border: 217.2 32.6% 17.5%;  /* slate-700 equivalent */
+    --admin-card: 217.2 32.6% 17.5%;    /* slate-800 equivalent */
+    --admin-card-hover: 217.2 32.6% 20%; /* slate-700 equivalent */
+    --admin-sidebar-bg: 217.2 32.6% 17.5%; /* slate-800 */
+    --admin-sidebar-border: 217.2 32.6% 17.5%; /* slate-700 */
+    --admin-accent: 38 92% 50%;         /* amber-500 */
+    --admin-accent-hover: 38 92% 55%;   /* amber-400 */
+    --admin-accent-bg: 38 92% 50% / 0.1;
+  }
+}
+
 /* 背景漸層裝飾 - 大型發光色塊 */
 @layer base {
   .bg-gradient-mesh {
