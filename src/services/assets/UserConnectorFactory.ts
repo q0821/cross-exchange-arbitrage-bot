@@ -3,6 +3,7 @@ import { ApiKeyService } from '../apikey/ApiKeyService';
 import { logger } from '@lib/logger';
 import { decrypt } from '@lib/encryption';
 import { getProxyUrl } from '@lib/env';
+import { injectCachedMarkets, cacheMarketsFromExchange } from '@lib/ccxt-markets-cache';
 import { ProxyAgent } from 'undici';
 import {
   IExchangeConnector,
@@ -856,7 +857,18 @@ class OkxUserConnector implements IExchangeConnector {
   async getPositions(): Promise<PositionInfo> {
     if (!this.exchange) throw new Error('Not connected');
 
+    // 嘗試注入快取的 markets，避免 fetchPositions 內部調用 loadMarkets
+    const cacheHit = injectCachedMarkets(this.exchange, 'okx');
+    if (cacheHit) {
+      logger.debug('OKX markets injected from cache');
+    }
+
     const positions = await this.exchange.fetchPositions();
+
+    // 如果沒有命中快取，儲存 markets 供下次使用
+    if (!cacheHit) {
+      cacheMarketsFromExchange(this.exchange, 'okx');
+    }
 
     const filteredPositions = positions
       .filter((p) => parseFloat(p.contracts?.toString() || '0') > 0)
@@ -1007,8 +1019,19 @@ class MexcUserConnector implements IExchangeConnector {
   async getPositions(): Promise<PositionInfo> {
     if (!this.exchange) throw new Error('Not connected');
 
+    // 嘗試注入快取的 markets，避免 fetchPositions 內部調用 loadMarkets
+    const cacheHit = injectCachedMarkets(this.exchange, 'mexc');
+    if (cacheHit) {
+      logger.debug('MEXC markets injected from cache');
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const positions: any[] = await this.exchange.fetchPositions();
+
+    // 如果沒有命中快取，儲存 markets 供下次使用
+    if (!cacheHit) {
+      cacheMarketsFromExchange(this.exchange, 'mexc');
+    }
 
     const filteredPositions = positions
       .filter((p) => parseFloat(p.contracts?.toString() || '0') > 0)
@@ -1272,8 +1295,19 @@ class GateioUserConnector implements IExchangeConnector {
   async getPositions(): Promise<PositionInfo> {
     if (!this.exchange) throw new Error('Not connected');
 
+    // 嘗試注入快取的 markets，避免 fetchPositions 內部調用 loadMarkets
+    const cacheHit = injectCachedMarkets(this.exchange, 'gateio');
+    if (cacheHit) {
+      logger.debug('Gate.io markets injected from cache');
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const positions: any[] = await this.exchange.fetchPositions();
+
+    // 如果沒有命中快取，儲存 markets 供下次使用
+    if (!cacheHit) {
+      cacheMarketsFromExchange(this.exchange, 'gateio');
+    }
 
     const filteredPositions = positions
       .filter((p) => parseFloat(p.contracts?.toString() || '0') > 0)
@@ -1424,8 +1458,19 @@ class BingxUserConnector implements IExchangeConnector {
   async getPositions(): Promise<PositionInfo> {
     if (!this.exchange) throw new Error('Not connected');
 
+    // 嘗試注入快取的 markets，避免 fetchPositions 內部調用 loadMarkets
+    const cacheHit = injectCachedMarkets(this.exchange, 'bingx');
+    if (cacheHit) {
+      logger.debug('BingX markets injected from cache');
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const positions: any[] = await this.exchange.fetchPositions();
+
+    // 如果沒有命中快取，儲存 markets 供下次使用
+    if (!cacheHit) {
+      cacheMarketsFromExchange(this.exchange, 'bingx');
+    }
 
     const filteredPositions = positions
       .filter((p) => parseFloat(p.contracts?.toString() || '0') > 0)
