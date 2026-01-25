@@ -28,6 +28,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-18
 - TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Socket.io 4.8.1, CCXT 4.x, Prisma 7.x, Decimal.js (067-position-exit-monitor)
 - PostgreSQL 15 + TimescaleDB（擴展 TradingSettings 和 Position 模型） (067-position-exit-monitor)
 - PostgreSQL 15+ with TimescaleDB (現有資料庫擴展) (068-admin-dashboard)
+- TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Prisma 7.x, CCXT 4.x, Socket.io 4.8.1, Decimal.js (069-position-group-close)
+- PostgreSQL 15 + TimescaleDB（擴展現有 Position 模型） (069-position-group-close)
 
 ## Project Structure
 ```
@@ -605,6 +607,56 @@ type: 'markPrice' | 'fundingRate' | 'ticker' | 'balanceUpdate'
 - Unit: `tests/unit/services/admin/AdminTradeService.test.ts` (12 案例)
 - **Total: 78 案例**
 
+## Feature 069: 分單持倉合併顯示與批量平倉
+
+### Key Paths
+- **組合持倉服務**: `src/services/trading/PositionGroupService.ts` - 組合持倉查詢與驗證
+- **組合計算工具**: `src/lib/position-group.ts` - 分組計算、聚合統計
+- **組合類型定義**: `src/types/position-group.ts` - PositionGroup、Aggregate 類型
+- **批量平倉**: `src/services/trading/PositionCloser.ts` - closeBatchPositions 方法
+- **WebSocket 進度**: `src/services/websocket/PositionProgressEmitter.ts` - 批量平倉進度推送
+
+### API Endpoints
+- `GET /api/positions` - 查詢持倉列表（支援 grouped=true 參數）
+- `POST /api/positions/group/[groupId]/close` - 批量平倉指定組內所有持倉
+
+### Frontend Components
+- `app/(dashboard)/positions/components/PositionGroupCard.tsx` - 組合持倉卡片
+- `app/(dashboard)/positions/components/PositionGroupExpanded.tsx` - 組合持倉展開詳情
+- `app/(dashboard)/positions/components/BatchCloseDialog.tsx` - 批量平倉對話框
+- `app/(dashboard)/positions/hooks/useBatchClose.ts` - 批量平倉邏輯管理
+
+### Hooks
+- `hooks/queries/usePositionsQuery.ts` - useGroupedPositionsQuery 查詢組合持倉
+- `app/(dashboard)/market-monitor/hooks/useOpenPosition.ts` - executeSplitOpen 分單開倉
+
+### Data Model (Prisma)
+- `Position.groupId` - 組合 ID (UUID)，用於關聯分單開倉的持倉
+- `CloseReason.BATCH_CLOSE` - 批量平倉的平倉原因
+
+### WebSocket Events
+- `batch:close:progress` - 批量平倉進度
+- `batch:close:position:complete` - 單個持倉平倉完成
+- `batch:close:complete` - 批量平倉完成
+- `batch:close:failed` - 批量平倉失敗
+
+### User Stories
+1. **US1 組合持倉顯示**: 分單開倉後，相同 groupId 的持倉合併顯示為「組合持倉」卡片
+2. **US2 批量平倉**: 一鍵平倉組合內所有持倉，自動取消條件單
+3. **US3 向後相容**: 沒有 groupId 的持倉維持原有獨立顯示和操作
+4. **US4 統計資訊**: 組合持倉顯示加權平均開倉價格、總數量、總收益
+
+### Tests
+- Unit: `tests/unit/lib/position-group.test.ts` (16 案例)
+- Unit: `tests/unit/lib/position-group-aggregate.test.ts` (23 案例)
+- Unit: `tests/unit/services/PositionGroupService.test.ts` (12 案例)
+- Unit: `tests/unit/services/PositionOrchestrator.groupId.test.ts` (7 案例)
+- Unit: `tests/unit/services/PositionCloser.batch.test.ts` (9 案例)
+- Integration: `tests/integration/position-group-open.test.ts` (7 案例)
+- Integration: `tests/integration/batch-close.test.ts` (9 案例)
+- Integration: `tests/integration/position-backward-compat.test.ts` (8 案例)
+- **Total: 91 案例**
+
 ## Testing
 
 ### 測試架構
@@ -651,5 +703,6 @@ tests/
 <!-- MANUAL ADDITIONS END -->
 
 ## Recent Changes
+- 069-position-group-close: Added TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Prisma 7.x, CCXT 4.x, Socket.io 4.8.1, Decimal.js
 - 068-admin-dashboard: Added TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Prisma 7.x, Tailwind CSS, Radix UI
 - 067-position-exit-monitor: Added TypeScript 5.8 + Node.js 20.x LTS + Next.js 15, React 19, Socket.io 4.8.1, CCXT 4.x, Prisma 7.x, Decimal.js

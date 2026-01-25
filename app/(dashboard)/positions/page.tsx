@@ -6,19 +6,23 @@
  * Feature 035: Close Position (T011)
  * Feature 037: Mark Position Closed (T006)
  * Feature 063: Frontend Data Caching (T013) - TanStack Query integration
+ * Feature 069: Position Group Close (T017) - 組合持倉顯示
  */
 
 'use client';
 
 import { useState } from 'react';
-import { Briefcase, RefreshCw, AlertCircle, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Briefcase, RefreshCw, AlertCircle, Loader2, CheckCircle, XCircle, Layers } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { PositionCard } from './components/PositionCard';
 import { PositionCardSkeleton } from './components/PositionCardSkeleton';
+import { PositionGroupCard } from './components/PositionGroupCard';
 import { ClosePositionDialog } from './components/ClosePositionDialog';
 import { CloseProgressOverlay } from './components/CloseProgressOverlay';
+import { BatchCloseDialog } from './components/BatchCloseDialog';
 import { useClosePosition } from './hooks/useClosePosition';
-import { usePositionsQuery } from '@/hooks/queries/usePositionsQuery';
+import { useBatchClose } from './hooks/useBatchClose';
+import { useGroupedPositionsQuery, type Position } from '@/hooks/queries/usePositionsQuery';
 import { queryKeys } from '@/lib/query-keys';
 
 /**
@@ -41,22 +45,34 @@ export default function PositionsPage() {
   const [markingAsClosedId, setMarkingAsClosedId] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  // TanStack Query for positions data
+  // TanStack Query for grouped positions data (Feature 069)
   const {
     data,
     isLoading,
     isRefetching,
     error: queryError,
     refetch,
-  } = usePositionsQuery();
+  } = useGroupedPositionsQuery();
 
   const queryClient = useQueryClient();
 
   // 平倉功能
   const closePosition = useClosePosition();
 
-  const positions = data?.positions ?? [];
+  // Feature 069: 批量平倉功能
+  const batchClose = useBatchClose();
+
+  // Feature 069: 分組顯示支援
+  const ungroupedPositions = data?.positions ?? [];
+  const groups = data?.groups ?? [];
   const total = data?.total ?? 0;
+
+  // 合併未分組持倉和組內持倉為完整列表（用於舊功能相容）
+  const allPositions: Position[] = [
+    ...ungroupedPositions,
+    ...groups.flatMap((g) => g.positions),
+  ];
+
   const error = localError || (queryError?.message ?? null);
   const isRefreshing = isRefetching;
 
@@ -81,8 +97,37 @@ export default function PositionsPage() {
     if (success) {
       // 平倉成功，invalidate 快取讓 TanStack Query 自動刷新
       queryClient.invalidateQueries({ queryKey: queryKeys.trading.positions() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.trading.groupedPositions() });
       queryClient.invalidateQueries({ queryKey: queryKeys.assets.all });
     }
+  };
+
+  /**
+   * Feature 069: 處理組合批量平倉
+   */
+  const handleBatchClose = (groupId: string) => {
+    batchClose.startBatchClose(groupId);
+  };
+
+  /**
+   * Feature 069: 確認批量平倉
+   */
+  const handleConfirmBatchClose = async () => {
+    await batchClose.confirmBatchClose();
+  };
+
+  /**
+   * Feature 069: 取消批量平倉
+   */
+  const handleCancelBatchClose = () => {
+    batchClose.cancelBatchClose();
+  };
+
+  /**
+   * Feature 069: 重置批量平倉狀態
+   */
+  const handleResetBatchClose = () => {
+    batchClose.reset();
   };
 
   /**
@@ -125,21 +170,27 @@ export default function PositionsPage() {
   };
 
   // 找到正在平倉的持倉
-  const closingPosition = positions.find((p) => p.id === closePosition.closingPositionId);
+  const closingPosition = allPositions.find((p) => p.id === closePosition.closingPositionId);
 
-  // 分類持倉
-  const openPositions = positions.filter(
+  // Feature 069: 分類未分組持倉（已分組的由 PositionGroupCard 顯示）
+  const openPositions = ungroupedPositions.filter(
     (p) => p.status === 'OPEN' || p.status === 'OPENING'
   );
-  const pendingPositions = positions.filter(
+  const pendingPositions = ungroupedPositions.filter(
     (p) => p.status === 'PENDING'
   );
-  const partialPositions = positions.filter(
+  const partialPositions = ungroupedPositions.filter(
     (p) => p.status === 'PARTIAL'
   );
-  const failedPositions = positions.filter(
+  const failedPositions = ungroupedPositions.filter(
     (p) => p.status === 'FAILED'
   );
+
+  // Feature 069: 分類組合持倉（只顯示活躍的組合）
+  const openGroups = groups.filter((g) =>
+    g.positions.some((p) => p.status === 'OPEN' || p.status === 'OPENING')
+  );
+  // TODO: partialGroups 和 failedGroups 將在 User Story 3/4 使用
 
   if (isLoading) {
     return (
@@ -174,6 +225,13 @@ export default function PositionsPage() {
             <span className="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm font-medium">
               {total} 個持倉
             </span>
+            {/* Feature 069: 顯示組合數量 */}
+            {groups.length > 0 && (
+              <span className="inline-flex items-center gap-1 bg-secondary/10 text-secondary px-2 py-1 rounded-full text-sm font-medium">
+                <Layers className="w-3 h-3" />
+                {groups.length} 個組合
+              </span>
+            )}
           </div>
 
           <button
@@ -321,7 +379,30 @@ export default function PositionsPage() {
           </div>
         )}
 
-        {/* Open Positions */}
+        {/* Feature 069: Open Position Groups */}
+        {openGroups.length > 0 && (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Layers className="w-5 h-5 text-profit" />
+              <h2 className="text-lg font-semibold text-foreground">組合持倉</h2>
+              <span className="bg-profit/10 text-profit px-2 py-0.5 rounded-full text-xs font-medium">
+                {openGroups.length} 組
+              </span>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {openGroups.map((group) => (
+                <PositionGroupCard
+                  key={group.groupId}
+                  group={group}
+                  onBatchClose={handleBatchClose}
+                  isBatchClosing={batchClose.closingGroupId === group.groupId && batchClose.isClosing}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Open Positions (ungrouped) */}
         {openPositions.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
@@ -385,7 +466,7 @@ export default function PositionsPage() {
         )}
 
         {/* Empty State */}
-        {positions.length === 0 && !error && (
+        {allPositions.length === 0 && !error && (
           <div className="text-center py-12 glass-card">
             <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
             <h3 className="text-lg font-medium text-foreground mb-1">尚無持倉</h3>
@@ -419,6 +500,31 @@ export default function PositionsPage() {
           exchange={closePosition.progress.exchange}
         />
       )}
+
+      {/* Feature 069: Batch Close Dialog */}
+      {(() => {
+        // 從所有 groups 中查找（包括已關閉的），避免平倉後找不到 group
+        const closingGroup = groups.find((g) => g.groupId === batchClose.closingGroupId);
+        if (!batchClose.closingGroupId || batchClose.isIdle || !closingGroup) {
+          return null;
+        }
+        return (
+          <BatchCloseDialog
+            group={closingGroup}
+            isConfirming={batchClose.isConfirming}
+            isClosing={batchClose.isClosing}
+            isSuccess={batchClose.isSuccess}
+            isPartial={batchClose.isPartial}
+            isError={batchClose.isError}
+            progress={batchClose.progress}
+            result={batchClose.result}
+            error={batchClose.error}
+            onConfirm={handleConfirmBatchClose}
+            onCancel={handleCancelBatchClose}
+            onReset={handleResetBatchClose}
+          />
+        );
+      })()}
     </>
   );
 }

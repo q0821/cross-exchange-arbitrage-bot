@@ -372,6 +372,10 @@ export function useOpenPosition(): UseOpenPositionReturn {
       setIsLoading(true);
       setError(null);
 
+      // Feature 069: 生成共用 groupId 讓所有分組持倉可以合併顯示
+      // 使用瀏覽器原生 crypto API（不能使用 Node.js 的 crypto 模組）
+      const groupId = crypto.randomUUID();
+
       let completedCount = 0;
       let lastError: string | null = null;
 
@@ -384,9 +388,10 @@ export function useOpenPosition(): UseOpenPositionReturn {
           if (groupQuantity === undefined) {
             throw new Error(`Invalid quantity at index ${i}`);
           }
-          const groupData: OpenPositionData = {
+          const groupData = {
             ...data,
             quantity: groupQuantity,
+            groupId, // Feature 069: 傳遞 groupId
           };
 
           // 執行單組開倉

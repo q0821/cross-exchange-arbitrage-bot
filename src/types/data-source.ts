@@ -88,8 +88,33 @@ export const DEFAULT_DATA_SOURCE_CONFIG: DataSourceConfig = {
   fallbackDelay: 5000,        // 5 秒後切換到 REST
   recoveryDelay: 10000,       // 10 秒後切回 WebSocket
   restPollingInterval: 5000,  // REST 輪詢 5 秒
-  dataStaleThreshold: 30000,  // 30 秒沒有數據視為過期
+  dataStaleThreshold: 30000,  // 30 秒沒有數據視為過期（預設值，各交易所可覆寫）
 };
+
+/**
+ * 各交易所的數據過期閾值 (ms)
+ *
+ * 根據各交易所 WebSocket 推送頻率設定：
+ * - Binance: markPrice 每 1 秒推送，設 30 秒
+ * - OKX: funding-rate 每 60 秒推送，設 90 秒
+ * - Gate.io: futures.tickers 每 1 秒推送，設 30 秒
+ * - MEXC: 透過 CCXT watch，設 60 秒
+ * - BingX: markPrice 每 1 秒推送，設 30 秒
+ */
+export const EXCHANGE_STALE_THRESHOLDS: Record<ExchangeName, number> = {
+  binance: 30000,   // 30 秒
+  okx: 90000,       // 90 秒（funding-rate 每 60 秒推送一次）
+  gateio: 30000,    // 30 秒
+  mexc: 60000,      // 60 秒
+  bingx: 30000,     // 30 秒
+};
+
+/**
+ * 取得指定交易所的數據過期閾值
+ */
+export function getExchangeStaleThreshold(exchange: ExchangeName): number {
+  return EXCHANGE_STALE_THRESHOLDS[exchange] ?? DEFAULT_DATA_SOURCE_CONFIG.dataStaleThreshold;
+}
 
 /** 數據源管理器介面 */
 export interface IDataSourceManager {
@@ -191,7 +216,15 @@ export function createInitialDataSourceState(
   };
 }
 
-/** 判斷數據是否過期 */
+/**
+ * 判斷數據是否過期
+ *
+ * 優先使用各交易所特定的閾值（EXCHANGE_STALE_THRESHOLDS），
+ * 若未設定則使用 config 中的預設值。
+ *
+ * @param state - 數據源狀態
+ * @param config - 數據源配置（用於未設定交易所特定閾值時的 fallback）
+ */
 export function isDataStale(
   state: DataSourceState,
   config: DataSourceConfig = DEFAULT_DATA_SOURCE_CONFIG
@@ -200,8 +233,10 @@ export function isDataStale(
     return true;
   }
 
+  // 優先使用交易所特定的閾值，若未設定則使用 config 中的預設值
+  const threshold = EXCHANGE_STALE_THRESHOLDS[state.exchange] ?? config.dataStaleThreshold;
   const timeSinceLastData = Date.now() - state.lastDataReceivedAt.getTime();
-  return timeSinceLastData > config.dataStaleThreshold;
+  return timeSinceLastData > threshold;
 }
 
 /** 取得數據源健康度 */

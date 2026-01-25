@@ -67,7 +67,7 @@ export function RatesTable({
 }: RatesTableProps) {
   // 快照排序：只在排序條件改變時重新計算順序
   // 這是刻意的設計決策：避免因價格更新而頻繁重新排序，提升使用者體驗
-  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/preserve-manual-memoization
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- 刻意不依賴 ratesMap 以實現快照排序
   const sortedSymbols = useMemo(() => {
     const symbols = Array.from(ratesMap.keys());
 

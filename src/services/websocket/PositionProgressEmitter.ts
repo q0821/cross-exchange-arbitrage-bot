@@ -61,6 +61,21 @@ const WS_EVENTS = {
   CONDITIONAL_ORDER_FAILED: 'position:conditional:failed',
   /** 條件單部分設定成功 */
   CONDITIONAL_ORDER_PARTIAL: 'position:conditional:partial',
+  // ============================================================================
+  // Batch Close Events (Feature: 069-position-group-close)
+  // ============================================================================
+  /** 加入批量平倉房間 */
+  JOIN_BATCH_CLOSE_ROOM: 'batch:join',
+  /** 離開批量平倉房間 */
+  LEAVE_BATCH_CLOSE_ROOM: 'batch:leave',
+  /** 批量平倉進度更新 */
+  BATCH_CLOSE_PROGRESS: 'batch:close:progress',
+  /** 批量平倉單個持倉完成 */
+  BATCH_CLOSE_POSITION_COMPLETE: 'batch:close:position:complete',
+  /** 批量平倉全部完成 */
+  BATCH_CLOSE_COMPLETE: 'batch:close:complete',
+  /** 批量平倉失敗 */
+  BATCH_CLOSE_FAILED: 'batch:close:failed',
 } as const;
 
 /**
@@ -162,6 +177,21 @@ export class PositionProgressEmitter {
         logger.debug({ socketId: socket.id, positionId, roomName }, 'Client left position room');
       });
 
+      // Feature 069: 批量平倉房間
+      // 加入批量平倉房間
+      socket.on(WS_EVENTS.JOIN_BATCH_CLOSE_ROOM, (groupId: string) => {
+        const roomName = this.getBatchCloseRoomName(groupId);
+        socket.join(roomName);
+        logger.debug({ socketId: socket.id, groupId, roomName }, 'Client joined batch close room');
+      });
+
+      // 離開批量平倉房間
+      socket.on(WS_EVENTS.LEAVE_BATCH_CLOSE_ROOM, (groupId: string) => {
+        const roomName = this.getBatchCloseRoomName(groupId);
+        socket.leave(roomName);
+        logger.debug({ socketId: socket.id, groupId, roomName }, 'Client left batch close room');
+      });
+
       socket.on('disconnect', () => {
         logger.debug({ socketId: socket.id }, 'Client disconnected from position namespace');
       });
@@ -173,6 +203,14 @@ export class PositionProgressEmitter {
    */
   private getPositionRoomName(positionId: string): string {
     return `position:${positionId}`;
+  }
+
+  /**
+   * 獲取批量平倉房間名稱
+   * Feature: 069-position-group-close
+   */
+  private getBatchCloseRoomName(groupId: string): string {
+    return `batch:${groupId}`;
   }
 
   /**
@@ -609,6 +647,135 @@ export class PositionProgressEmitter {
     this.io.to(roomName).emit(WS_EVENTS.CONDITIONAL_ORDER_PARTIAL, event);
 
     logger.warn({ positionId, successCount: successDetails.length, failedCount: failedDetails.length }, 'Conditional order partial event emitted');
+  }
+
+  // ============================================================================
+  // Batch Close Events (Feature: 069-position-group-close)
+  // ============================================================================
+
+  /**
+   * 發送批量平倉進度更新
+   */
+  emitBatchCloseProgress(
+    groupId: string,
+    current: number,
+    total: number,
+    positionId: string,
+  ): void {
+    if (!this.io) {
+      logger.warn('PositionProgressEmitter not initialized');
+      return;
+    }
+
+    const event = {
+      groupId,
+      current,
+      total,
+      positionId,
+      progress: Math.round((current / total) * 100),
+      message: `正在平倉第 ${current}/${total} 個持倉...`,
+    };
+
+    const roomName = this.getBatchCloseRoomName(groupId);
+    this.io.to(roomName).emit(WS_EVENTS.BATCH_CLOSE_PROGRESS, event);
+
+    logger.debug({ groupId, current, total, positionId }, 'Batch close progress emitted');
+  }
+
+  /**
+   * 發送批量平倉單個持倉完成事件
+   */
+  emitBatchClosePositionComplete(
+    groupId: string,
+    positionId: string,
+    success: boolean,
+    error?: string,
+    current?: number,
+    total?: number,
+  ): void {
+    if (!this.io) {
+      logger.warn('PositionProgressEmitter not initialized');
+      return;
+    }
+
+    const event = {
+      groupId,
+      positionId,
+      success,
+      error,
+      current,
+      total,
+    };
+
+    const roomName = this.getBatchCloseRoomName(groupId);
+    this.io.to(roomName).emit(WS_EVENTS.BATCH_CLOSE_POSITION_COMPLETE, event);
+
+    logger.debug({ groupId, positionId, success }, 'Batch close position complete emitted');
+  }
+
+  /**
+   * 發送批量平倉全部完成事件
+   */
+  emitBatchCloseComplete(
+    groupId: string,
+    totalPositions: number,
+    closedPositions: number,
+    failedPositions: number,
+    results: Array<{ positionId: string; success: boolean; error?: string }>,
+  ): void {
+    if (!this.io) {
+      logger.warn('PositionProgressEmitter not initialized');
+      return;
+    }
+
+    const success = failedPositions === 0;
+    const message = success
+      ? `批量平倉完成，共 ${closedPositions} 個持倉已關閉`
+      : `批量平倉部分完成，成功 ${closedPositions} 個，失敗 ${failedPositions} 個`;
+
+    const event = {
+      groupId,
+      success,
+      totalPositions,
+      closedPositions,
+      failedPositions,
+      results,
+      message,
+    };
+
+    const roomName = this.getBatchCloseRoomName(groupId);
+    this.io.to(roomName).emit(WS_EVENTS.BATCH_CLOSE_COMPLETE, event);
+
+    logger.info(
+      { groupId, totalPositions, closedPositions, failedPositions, success },
+      'Batch close complete emitted',
+    );
+  }
+
+  /**
+   * 發送批量平倉失敗事件
+   */
+  emitBatchCloseFailed(
+    groupId: string,
+    error: string,
+    errorCode: string,
+  ): void {
+    if (!this.io) {
+      logger.warn('PositionProgressEmitter not initialized');
+      return;
+    }
+
+    const event = {
+      groupId,
+      error,
+      errorCode,
+      message: `批量平倉失敗: ${error}`,
+    };
+
+    const roomName = this.getBatchCloseRoomName(groupId);
+    this.io.to(roomName).emit(WS_EVENTS.BATCH_CLOSE_FAILED, event);
+
+    logger.warn({ groupId, error, errorCode }, 'Batch close failed emitted');
   }
 }
 

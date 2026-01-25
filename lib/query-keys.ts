@@ -24,6 +24,8 @@ export const queryKeys = {
   trading: {
     all: ['trading'] as const,
     positions: () => [...queryKeys.trading.all, 'positions'] as const,
+    // Feature 069: 分組後的持倉查詢鍵
+    groupedPositions: () => [...queryKeys.trading.all, 'groupedPositions'] as const,
     position: (id: string) => [...queryKeys.trading.all, 'position', id] as const,
     positionDetails: (id: string) => [...queryKeys.trading.all, 'position', id, 'details'] as const,
     trades: () => [...queryKeys.trading.all, 'trades'] as const,
