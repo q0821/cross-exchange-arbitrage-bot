@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# ============================================================================
+# Pre-commit Hook - Prisma Migration 一致性檢查
+# ============================================================================
+#
+# 功能：
+# - 檢查 schema.prisma 有變更時，是否同時有 migration 檔案
+# - 防止開發者忘記產生 migration 就 commit
+#
+# 繞過方式（不建議）：
+# - git commit --no-verify
+# - 但 CI 仍會攔截，最終無法合併到 main
+#
+# ============================================================================
+
+# Prisma Migration 一致性檢查
+if git diff --cached --name-only | grep -q "prisma/schema.prisma"; then
+  # schema.prisma 有變更，檢查是否有 migration
+  if ! git diff --cached --name-only | grep -q "prisma/migrations/"; then
+    echo ""
+    echo "============================================================"
+    echo "  Prisma Migration Check Failed"
+    echo "============================================================"
+    echo ""
+    echo "  prisma/schema.prisma 已修改，但缺少 migration 檔案！"
+    echo ""
+    echo "  請執行以下命令產生 migration："
+    echo ""
+    echo "    pnpm prisma migrate dev --name <migration_name>"
+    echo ""
+    echo "  然後將 migration 檔案加入暫存區："
+    echo ""
+    echo "    git add prisma/migrations/"
+    echo ""
+    echo "============================================================"
+    echo ""
+    exit 1
+  fi
+fi
+
+echo "Prisma migration check passed"

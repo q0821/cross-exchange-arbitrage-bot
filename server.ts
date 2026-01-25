@@ -1,5 +1,6 @@
 import { createServer } from 'http';
 import { parse } from 'url';
+import { execFileSync } from 'child_process';
 import next from 'next';
 import { initializeSocketServer } from './src/websocket/SocketServer';
 import { logger } from './src/lib/logger';
@@ -17,6 +18,36 @@ import {
   registerShutdownHandlers,
   type ShutdownServices,
 } from './src/lib/graceful-shutdown';
+
+// 在啟動時執行 Prisma migration
+function runMigrations(): void {
+  console.log('> Running database migrations...');
+  try {
+    const output = execFileSync('pnpm', ['prisma', 'migrate', 'deploy'], {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    console.log(output);
+    console.log('> Database migrations completed');
+  } catch (error) {
+    // Migration 可能因為「沒有待執行的 migration」而輸出到 stderr，這不是錯誤
+    const execError = error as { stdout?: string; stderr?: string; status?: number };
+    if (execError.stdout) {
+      console.log(execError.stdout);
+    }
+    if (execError.stderr && !execError.stderr.includes('No pending migrations')) {
+      console.error('> Migration warning:', execError.stderr);
+    }
+    // 只有在 exit code 非 0 時才記錄錯誤，但不要阻止啟動
+    if (execError.status && execError.status !== 0) {
+      logger.warn({ error }, 'Migration returned non-zero exit code, but continuing startup');
+    }
+    console.log('> Database migrations check completed');
+  }
+}
+
+// 執行 migration
+runMigrations();
 
 const prisma = createPrismaClient();
 

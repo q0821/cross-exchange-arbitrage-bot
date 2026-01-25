@@ -3,6 +3,7 @@
  * 顯示分單開倉後合併的組合持倉資訊
  *
  * Feature 069: 分單持倉合併顯示與批量平倉
+ * Feature: 持倉管理頁面顯示即時資金費率
  */
 
 'use client';
@@ -28,12 +29,20 @@ import {
 } from 'lucide-react';
 import type { PositionGroup } from '@/hooks/queries/usePositionsQuery';
 import { useGroupPositionDetails } from '../hooks/useGroupPositionDetails';
+import { PositionRatesDisplay } from './PositionRatesDisplay';
+import type { PositionRateInfo } from '../types/position-rates';
 
 interface PositionGroupCardProps {
   group: PositionGroup;
   onBatchClose?: (groupId: string) => void;
   isBatchClosing?: boolean;
   onExpandPosition?: (positionId: string) => void;
+  /** 即時費率資訊（可選） */
+  rateInfo?: PositionRateInfo | null;
+  /** WebSocket 連線狀態（用於費率顯示） */
+  isRatesConnected?: boolean;
+  /** 當前時間（用於倒計時計算） */
+  currentTime?: Date;
 }
 
 /**
@@ -105,6 +114,9 @@ export function PositionGroupCard({
   onBatchClose,
   isBatchClosing = false,
   onExpandPosition,
+  rateInfo,
+  isRatesConnected = false,
+  currentTime = new Date(),
 }: PositionGroupCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -224,6 +236,18 @@ export function PositionGroupCard({
             </p>
           </div>
         </div>
+
+        {/* Live Funding Rates - Feature: 持倉管理頁面顯示即時資金費率 */}
+        {(rateInfo !== undefined || isRatesConnected) && (
+          <div className="mt-4 pt-4 border-t border-border">
+            <PositionRatesDisplay
+              rateInfo={rateInfo ?? null}
+              isConnected={isRatesConnected}
+              currentTime={currentTime}
+              compact
+            />
+          </div>
+        )}
 
         {/* 統計資訊 */}
         <div className="mt-4 pt-4 border-t border-border">
