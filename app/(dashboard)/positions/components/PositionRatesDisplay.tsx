@@ -65,6 +65,8 @@ export function PositionRatesDisplay({
             side="long"
             currentTime={currentTime}
             compact
+            originalInterval={rateInfo.longExchange.originalInterval}
+            normalized1hPercent={rateInfo.longExchange.normalized1hPercent}
           />
         )}
         {rateInfo.shortExchange && (
@@ -75,6 +77,8 @@ export function PositionRatesDisplay({
             side="short"
             currentTime={currentTime}
             compact
+            originalInterval={rateInfo.shortExchange.originalInterval}
+            normalized1hPercent={rateInfo.shortExchange.normalized1hPercent}
           />
         )}
         <PositionSpreadBadge
@@ -101,6 +105,8 @@ export function PositionRatesDisplay({
             nextFundingTime={rateInfo.longExchange.nextFundingTime}
             side="long"
             currentTime={currentTime}
+            originalInterval={rateInfo.longExchange.originalInterval}
+            normalized1hPercent={rateInfo.longExchange.normalized1hPercent}
           />
         )}
         {rateInfo.shortExchange && (
@@ -110,6 +116,8 @@ export function PositionRatesDisplay({
             nextFundingTime={rateInfo.shortExchange.nextFundingTime}
             side="short"
             currentTime={currentTime}
+            originalInterval={rateInfo.shortExchange.originalInterval}
+            normalized1hPercent={rateInfo.shortExchange.normalized1hPercent}
           />
         )}
       </div>

@@ -24,6 +24,10 @@ interface PositionRateBadgeProps {
   currentTime?: Date;
   /** 緊湊模式 */
   compact?: boolean;
+  /** 原始費率週期（小時），如 8 表示每 8 小時結算一次 */
+  originalInterval?: number | null;
+  /** 標準化為 1 小時的費率（百分比），如 -0.0211 */
+  normalized1hPercent?: number | null;
 }
 
 /**
@@ -40,6 +44,16 @@ function formatExchange(exchange: string): string {
   return exchangeMap[exchange] || exchange;
 }
 
+/**
+ * 格式化標準化費率顯示
+ * @param percent 百分比值（如 -0.0211 表示 -0.0211%）
+ * @returns 格式化字串，如 "-0.0211%/h"
+ */
+function formatNormalized1h(percent: number): string {
+  const sign = percent >= 0 ? '+' : '';
+  return `${sign}${percent.toFixed(4)}%/h`;
+}
+
 export function PositionRateBadge({
   exchange,
   rate,
@@ -47,6 +61,8 @@ export function PositionRateBadge({
   side,
   currentTime = new Date(),
   compact = false,
+  originalInterval,
+  normalized1hPercent,
 }: PositionRateBadgeProps) {
   // 計算倒計時
   const timeUntilNext = useMemo(() => {
@@ -63,12 +79,24 @@ export function PositionRateBadge({
   const sideColor = side === 'long' ? 'text-profit' : 'text-loss';
   const sideLabel = side === 'long' ? '做多' : '做空';
 
+  // 是否有週期資訊可顯示
+  const hasIntervalInfo = originalInterval != null && originalInterval > 0;
+  const hasNormalized1h = normalized1hPercent != null;
+
   if (compact) {
     return (
       <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs ${bgColor}`}>
         <SideIcon className={`w-3 h-3 ${sideColor}`} />
         <span className="text-muted-foreground">{formatExchange(exchange)}</span>
-        <span className={`font-mono ${rateColor}`}>{formatRatePercent(rate)}</span>
+        <span className={`font-mono ${rateColor}`}>
+          {formatRatePercent(rate)}
+          {hasIntervalInfo && <span className="text-muted-foreground">/{originalInterval}h</span>}
+        </span>
+        {hasNormalized1h && (
+          <span className={`font-mono text-[10px] ${normalized1hPercent >= 0 ? 'text-profit' : 'text-loss'}`}>
+            = {formatNormalized1h(normalized1hPercent)}
+          </span>
+        )}
       </span>
     );
   }
@@ -86,8 +114,18 @@ export function PositionRateBadge({
           </span>
           <span className={`text-xs font-mono ${rateColor}`}>
             {formatRatePercent(rate)}
+            {hasIntervalInfo && (
+              <span className="text-muted-foreground"> / {originalInterval}h</span>
+            )}
           </span>
         </div>
+        {/* 標準化費率顯示 */}
+        {hasNormalized1h && (
+          <div className={`text-[10px] font-mono mt-0.5 ${normalized1hPercent >= 0 ? 'text-profit' : 'text-loss'}`}>
+            = {formatNormalized1h(normalized1hPercent)}
+          </div>
+        )}
+        {/* 倒計時顯示 */}
         {timeUntilNext !== null && (
           <div className="flex items-center gap-1 mt-0.5">
             <Clock className="w-3 h-3 text-muted-foreground" />

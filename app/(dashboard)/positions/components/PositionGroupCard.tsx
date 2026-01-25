@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   ArrowUpCircle,
   ArrowDownCircle,
@@ -122,6 +122,7 @@ export function PositionGroupCard({
   const [showDetails, setShowDetails] = useState(false);
 
   // Feature 069: Fetch aggregated details for all positions in the group
+  // Phase 2: 始終啟用以獲取統計數據（資金費率收益、未實現損益）
   const {
     details: groupDetails,
     isLoading: isLoadingDetails,
@@ -129,7 +130,7 @@ export function PositionGroupCard({
     refetch: refetchDetails,
   } = useGroupPositionDetails({
     group,
-    enabled: showDetails,
+    enabled: true, // 始終啟用以獲取即時統計數據
   });
 
   const handleToggleExpand = useCallback(() => {
@@ -156,17 +157,75 @@ export function PositionGroupCard({
   const hasStopLoss = aggregate.stopLossPercent !== null;
   const hasTakeProfit = aggregate.takeProfitPercent !== null;
 
-  // 計算總損益顯示
-  const totalPnL = aggregate.totalFundingPnL
-    ? parseFloat(aggregate.totalFundingPnL)
-    : null;
+  // Phase 2: 使用即時查詢的數據（如果有的話），否則 fallback 到快取數據
+  const totalFundingPnL = groupDetails?.totalFundingFee
+    ?? (aggregate.totalFundingPnL ? parseFloat(aggregate.totalFundingPnL) : null);
+  const totalUnrealizedPnL = groupDetails?.totalUnrealizedPnL
+    ?? (aggregate.totalUnrealizedPnL ? parseFloat(aggregate.totalUnrealizedPnL) : null);
+
+  // 計算總損益顯示（資金費率收益）
   const pnlColor =
-    totalPnL === null
+    totalFundingPnL === null
       ? 'text-muted-foreground'
-      : totalPnL >= 0
+      : totalFundingPnL >= 0
         ? 'text-profit'
         : 'text-loss';
-  const pnlSign = totalPnL !== null && totalPnL >= 0 ? '+' : '';
+  const pnlSign = totalFundingPnL !== null && totalFundingPnL >= 0 ? '+' : '';
+
+  // 未實現損益顏色
+  const unrealizedPnLColor =
+    totalUnrealizedPnL === null
+      ? 'text-muted-foreground'
+      : totalUnrealizedPnL >= 0
+        ? 'text-profit'
+        : 'text-loss';
+  const unrealizedPnLSign = totalUnrealizedPnL !== null && totalUnrealizedPnL >= 0 ? '+' : '';
+
+  // Phase 3: 動態計算年化報酬率
+  const annualizedReturn = useMemo(() => {
+    // 需要的數據：總收益、保證金、持倉時間
+    if (totalFundingPnL === null || totalUnrealizedPnL === null || !firstOpenedAt) {
+      return null;
+    }
+
+    // 總收益 = 未實現損益 + 資金費率收益
+    const totalPnL = totalUnrealizedPnL + totalFundingPnL;
+
+    // 持倉天數（最小 1 小時 = 1/24 天，避免除以 0）
+    const holdingMs = Date.now() - firstOpenedAt.getTime();
+    const holdingDays = Math.max(holdingMs / (1000 * 60 * 60 * 24), 1 / 24);
+
+    // 計算保證金：估算開倉價值 / 槓桿
+    // 開倉價值 = (多頭均價 + 空頭均價) / 2 × 總數量
+    const avgLongPrice = parseFloat(aggregate.avgLongEntryPrice);
+    const avgShortPrice = parseFloat(aggregate.avgShortEntryPrice);
+    const quantity = parseFloat(aggregate.totalQuantity);
+    const leverage = positions[0]?.leverage || 1;
+
+    if (isNaN(avgLongPrice) || isNaN(avgShortPrice) || isNaN(quantity) || leverage <= 0) {
+      return null;
+    }
+
+    // 單邊開倉價值
+    const singleSideValue = ((avgLongPrice + avgShortPrice) / 2) * quantity;
+    // 單邊保證金
+    const margin = singleSideValue / leverage;
+
+    if (margin <= 0) {
+      return null;
+    }
+
+    // 年化報酬率 = (總收益 / 保證金) / 持倉天數 × 365 × 100%
+    const apy = (totalPnL / margin) / holdingDays * 365 * 100;
+    return apy;
+  }, [totalFundingPnL, totalUnrealizedPnL, firstOpenedAt, aggregate, positions]);
+
+  const apyColor = annualizedReturn === null
+    ? 'text-muted-foreground'
+    : annualizedReturn >= 0
+      ? 'text-profit'
+      : 'text-loss';
+  const apySign = annualizedReturn !== null && annualizedReturn >= 0 ? '+' : '';
 
   return (
     <div className="glass-card border border-border shadow-xs hover:shadow-md transition-shadow">
@@ -251,7 +310,7 @@ export function PositionGroupCard({
 
         {/* 統計資訊 */}
         <div className="mt-4 pt-4 border-t border-border">
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-4 gap-4 text-center">
             <div>
               <p className="text-xs text-muted-foreground">總數量</p>
               <p className="text-sm font-semibold">
@@ -261,25 +320,31 @@ export function PositionGroupCard({
             <div>
               <p className="text-xs text-muted-foreground">資金費率收益</p>
               <p className={`text-sm font-semibold ${pnlColor}`}>
-                {totalPnL !== null
-                  ? `${pnlSign}$${formatNumber(aggregate.totalFundingPnL)}`
-                  : '-'}
+                {totalFundingPnL !== null
+                  ? `${pnlSign}$${formatNumber(totalFundingPnL.toString())}`
+                  : isLoadingDetails
+                    ? <Loader2 className="w-3 h-3 animate-spin inline" />
+                    : '-'}
               </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">未實現損益</p>
-              <p
-                className={`text-sm font-semibold ${
-                  aggregate.totalUnrealizedPnL !== null
-                    ? parseFloat(aggregate.totalUnrealizedPnL) >= 0
-                      ? 'text-profit'
-                      : 'text-loss'
-                    : 'text-muted-foreground'
-                }`}
-              >
-                {aggregate.totalUnrealizedPnL !== null
-                  ? `${parseFloat(aggregate.totalUnrealizedPnL) >= 0 ? '+' : ''}$${formatNumber(aggregate.totalUnrealizedPnL)}`
-                  : '-'}
+              <p className={`text-sm font-semibold ${unrealizedPnLColor}`}>
+                {totalUnrealizedPnL !== null
+                  ? `${unrealizedPnLSign}$${formatNumber(totalUnrealizedPnL.toString())}`
+                  : isLoadingDetails
+                    ? <Loader2 className="w-3 h-3 animate-spin inline" />
+                    : '-'}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">參考年化</p>
+              <p className={`text-sm font-semibold ${apyColor}`}>
+                {annualizedReturn !== null
+                  ? `${apySign}${annualizedReturn.toFixed(2)}%`
+                  : isLoadingDetails
+                    ? <Loader2 className="w-3 h-3 animate-spin inline" />
+                    : '-'}
               </p>
             </div>
           </div>
