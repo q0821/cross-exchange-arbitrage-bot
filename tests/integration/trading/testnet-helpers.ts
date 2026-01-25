@@ -11,13 +11,8 @@
 import type { PrismaClient } from '@/generated/prisma/client';
 import { encrypt } from '@/lib/encryption';
 import { logger } from '@/lib/logger';
+import { createCcxtExchange } from '@/lib/ccxt-factory';
 import type { SupportedExchange } from '@/types/trading';
-
-// 動態載入 CCXT
-async function loadCcxt() {
-  const ccxt = await import('ccxt');
-  return ccxt.default;
-}
 
 // ============================================================================
 // 常數配置
@@ -140,14 +135,11 @@ export async function createTestnetExchange(
 ): Promise<TestnetExchangeInstance> {
   const { exchange, apiKey, apiSecret, passphrase } = config;
 
-  // 動態載入 CCXT
-  const ccxt = await loadCcxt();
 
-   
   let ccxtExchange: any;
 
   if (exchange === 'binance') {
-    ccxtExchange = new ccxt.binance({
+    ccxtExchange = createCcxtExchange('binance', {
       apiKey,
       secret: apiSecret,
       sandbox: true, // 強制使用 Testnet
@@ -158,7 +150,7 @@ export async function createTestnetExchange(
       },
     });
   } else if (exchange === 'okx') {
-    ccxtExchange = new ccxt.okx({
+    ccxtExchange = createCcxtExchange('okx', {
       apiKey,
       secret: apiSecret,
       password: passphrase,

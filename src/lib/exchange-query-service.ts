@@ -116,7 +116,7 @@ export class ExchangeQueryService {
   async connect(apiKey: DecryptedApiKey): Promise<void> {
     this.apiKey = apiKey;
 
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+
     this.exchange = createCcxtExchange(this.exchangeName as CcxtSupportedExchange, {
       apiKey: apiKey.apiKey,
       secret: apiKey.secret,
@@ -174,7 +174,7 @@ export class ExchangeQueryService {
   private async recreateWithPortfolioMargin(): Promise<void> {
     if (!this.apiKey) return;
 
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+
     this.exchange = createCcxtExchange('binance', {
       apiKey: this.apiKey.apiKey,
       secret: this.apiKey.secret,

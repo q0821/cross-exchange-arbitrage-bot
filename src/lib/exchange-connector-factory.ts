@@ -61,7 +61,7 @@ class CcxtAuthenticatedConnector implements IAuthenticatedConnector {
   constructor(exchangeName: string, options: ConnectorOptions) {
     this.exchangeName = exchangeName;
 
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+
     this.exchange = createCcxtExchange(exchangeName as CcxtSupportedExchange, {
       apiKey: options.apiKey,
       secret: options.apiSecret,

@@ -3,24 +3,17 @@
  * 測試 fetchTime 和 fetchTickers
  */
 
-import ccxt from 'ccxt';
-import { getCcxtHttpsProxyConfig, getProxyUrl } from '../../src/lib/env';
+import { createPublicExchange } from '../../src/lib/ccxt-factory';
+import { getProxyUrl } from '../../src/lib/env';
 
 async function main() {
   console.log('=== Gate.io 公開 API 連線診斷 ===\n');
 
-  const proxyConfig = getCcxtHttpsProxyConfig();
   const proxyUrl = getProxyUrl();
-
   console.log('Proxy 配置:', proxyUrl ? proxyUrl : '無');
-  console.log('CCXT Proxy Config:', JSON.stringify(proxyConfig));
 
-  const exchange = new (ccxt as any).gateio({
-    enableRateLimit: true,
-    timeout: 30000,
-    ...proxyConfig,
-    options: { defaultType: 'swap' },
-  });
+
+  const exchange = createPublicExchange('gateio');
 
   console.log('\n1. 測試 fetchTime...');
   const startTime1 = Date.now();

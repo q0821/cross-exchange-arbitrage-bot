@@ -2,8 +2,8 @@
  * 測試 MEXC CCXT 下單功能支援情況
  */
 
-import ccxt from 'ccxt';
 import { config } from 'dotenv';
+import { createCcxtExchange } from '../../src/lib/ccxt-factory';
 
 config();
 
@@ -15,7 +15,8 @@ async function testMexcOrderSupport() {
   console.log('MEXC CCXT 下單功能支援檢查');
   console.log('='.repeat(60));
 
-  const mexc = new (ccxt as any).mexc({
+
+  const mexc = createCcxtExchange('mexc', {
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,

@@ -8,6 +8,7 @@
 
 import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../src/lib/encryption';
+import { createCcxtExchange } from '../src/lib/ccxt-factory';
 
 const prisma = new PrismaClient();
 
@@ -73,9 +74,8 @@ async function main() {
     // 3. 測試 CCXT 連線
     console.log('\n3. 測試 CCXT 連線...');
     try {
-      const ccxt = await import('ccxt');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const exchange = new (ccxt as any).mexc({
+
+      const exchange = createCcxtExchange('mexc', {
         apiKey,
         secret: apiSecret,
         enableRateLimit: true,

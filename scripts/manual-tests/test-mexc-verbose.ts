@@ -2,9 +2,9 @@
  * 詳細模式測試 MEXC Swap 下單
  */
 
-import ccxt from 'ccxt';
 import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../lib/encryption';
+import { createCcxtExchange } from '../../src/lib/ccxt-factory';
 
 const prisma = new PrismaClient();
 
@@ -26,12 +26,13 @@ async function testMexcVerbose() {
   const apiKey = decrypt(apiKeyRecord.encryptedKey);
   const apiSecret = decrypt(apiKeyRecord.encryptedSecret);
 
-  const mexc = new (ccxt as any).mexc({
+
+  // 注意：verbose 選項需要放在 options 中
+  const mexc = createCcxtExchange('mexc', {
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,
     timeout: 60000, // 60 秒超時
-    verbose: true,  // 詳細日誌
     options: {
       defaultType: 'swap',
     },

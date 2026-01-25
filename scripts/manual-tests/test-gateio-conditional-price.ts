@@ -7,8 +7,8 @@
 
 import { PrismaClient } from '@/generated/prisma/client';
 import Decimal from 'decimal.js';
-import * as ccxt from 'ccxt';
 import { decrypt } from '../lib/encryption';
+import { createCcxtExchange } from '../../src/lib/ccxt-factory';
 import { GateioConditionalOrderAdapter } from '../services/trading/adapters/GateioConditionalOrderAdapter';
 
 const prisma = new PrismaClient();
@@ -34,8 +34,8 @@ async function main() {
 
     console.log(`👤 用戶 ID: ${apiKey.userId}`);
 
-    // 創建 CCXT 實例
-    const gateio = new ccxt.gateio({
+
+    const gateio = createCcxtExchange('gateio', {
       apiKey: decrypt(apiKey.encryptedKey),
       secret: decrypt(apiKey.encryptedSecret),
       options: { defaultType: 'swap' },

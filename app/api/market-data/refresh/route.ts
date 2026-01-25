@@ -152,7 +152,7 @@ async function fetchExchangeMarketData(
   exchange: SupportedExchange,
 ): Promise<ExchangeMarketData> {
   try {
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+
     const exchangeInstance = createPublicExchange(exchange as CcxtSupportedExchange, {
       sandbox: false,
     });
