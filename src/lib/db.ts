@@ -4,10 +4,12 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { logger } from './logger';
 
 declare global {
-   
+
   var prisma: PrismaClient | undefined;
-   
+
   var __dbServicesInitialized: boolean | undefined;
+
+  var __beforeExitHandlerRegistered: boolean | undefined;
 }
 
 /**
@@ -70,18 +72,22 @@ const initializeServices = async () => {
       logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Failed to initialize ConditionalOrderMonitor');
     }
   }
-
-  // 優雅關閉資料庫連線
-  process.on('beforeExit', async () => {
-    await prisma.$disconnect();
-    logger.info('Database connection closed');
-  });
 };
 
 // 在 runtime 時初始化服務（非阻塞）
 if (!isBuildPhase()) {
   initializeServices().catch((error) => {
     logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Failed to initialize services');
+  });
+}
+
+// 優雅關閉資料庫連線
+// 使用全域 flag 防止重複註冊監聽器（避免 MaxListenersExceededWarning）
+if (!globalThis.__beforeExitHandlerRegistered) {
+  globalThis.__beforeExitHandlerRegistered = true;
+  process.on('beforeExit', async () => {
+    await prisma.$disconnect();
+    logger.info('Database connection closed');
   });
 }
 
