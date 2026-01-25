@@ -45,6 +45,52 @@ tests/
 | `prisma/schema.prisma` | 資料庫 Schema 定義 |
 | `config/symbols.json` | 交易對監控清單 |
 
+## Logging Strategy
+
+專案使用 Pino 作為日誌框架，依照 level 分流到不同目錄：
+
+### Log 目錄結構
+```
+logs/
+├── YYYY-MM-DD.log      # 完整日誌（所有 level）
+├── warning/
+│   └── YYYY-MM-DD.log  # 警告日誌（warn only）
+└── critical/
+    └── YYYY-MM-DD.log  # 嚴重錯誤（error, fatal）
+```
+
+### Log Level 說明
+| Level | 目錄 | 說明 |
+|:------|:-----|:-----|
+| trace, debug, info | `logs/` | 一般日誌，完整記錄 |
+| warn | `logs/warning/` | 警告，需關注但非緊急 |
+| error, fatal | `logs/critical/` | 嚴重錯誤，需立即處理 |
+
+### 使用方式
+```typescript
+import { logger, createLogger } from '@/lib/logger';
+
+// 使用預設 logger
+logger.info('message');
+
+// 使用領域 logger
+const tradingLogger = createLogger('trading');
+tradingLogger.error({ orderId }, 'Order failed');
+```
+
+### 預設領域 Logger
+- `exchangeLogger` - 交易所 API 相關
+- `tradingLogger` - 交易操作相關
+- `arbitrageLogger` - 套利邏輯相關
+- `wsLogger` - WebSocket 相關
+- `dbLogger` - 資料庫相關
+
+### 分析 Log
+使用 `/analyze-log` skill 快速分析日誌：
+```bash
+/analyze-log
+```
+
 ## Commands
 
 ### 開發
