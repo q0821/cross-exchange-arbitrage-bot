@@ -120,8 +120,11 @@ export function injectCachedMarkets(
 
   if (cachedMarkets) {
     exchange.markets = cachedMarkets;
-    exchange.markets_by_id = exchange.indexBy(cachedMarkets, 'id');
-    exchange.marketsById = exchange.markets_by_id;
+    // 建立 markets_by_id 索引（如果 indexBy 方法存在）
+    if (typeof exchange.indexBy === 'function') {
+      exchange.markets_by_id = exchange.indexBy(cachedMarkets, 'id');
+      exchange.marketsById = exchange.markets_by_id;
+    }
     return true;
   }
 
