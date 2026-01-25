@@ -1,15 +1,11 @@
 /**
  * 測試腳本：檢查 BingX CCXT 回應中的間隔欄位
  */
-import ccxt from 'ccxt';
+import { createPublicExchange } from '../../src/lib/ccxt-factory';
 
 async function testBingxInterval() {
-  const client = new (ccxt as any).bingx({
-    enableRateLimit: true,
-    options: {
-      defaultType: 'swap',
-    },
-  });
+
+  const client = createPublicExchange('bingx');
 
   try {
     // 測試幾個不同間隔的幣種

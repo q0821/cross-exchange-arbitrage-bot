@@ -17,12 +17,12 @@ export interface ExchangeConfig {
   password?: string; // OKX passphrase
   sandbox?: boolean;
   enableRateLimit?: boolean;
+  timeout?: number; // 連線超時（毫秒），預設 30000
   options?: Record<string, unknown>;
 }
 
 /**
  * 創建 CCXT Exchange 實例
- * 自動套用 proxy 配置
  */
 export function createCcxtExchange(
   exchangeId: SupportedExchange,
@@ -36,7 +36,7 @@ export function createCcxtExchange(
 
   const fullConfig: any = {
     enableRateLimit: config.enableRateLimit ?? true,
-    timeout: 30000, // 30 秒超時（透過代理需要較長時間）
+    timeout: config.timeout ?? 30000, // 預設 30 秒超時（透過代理需要較長時間）
     ...proxyConfig,
     ...config,
     options: {

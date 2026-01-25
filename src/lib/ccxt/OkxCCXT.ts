@@ -19,7 +19,7 @@ export class OkxCCXT {
   constructor(isTestnet: boolean = false) {
     const { apiKey, apiSecret, passphrase, testnet } = apiKeys.okx;
 
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+
     this.client = createCcxtExchange('okx', {
       apiKey,
       secret: apiSecret,

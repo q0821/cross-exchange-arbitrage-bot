@@ -24,6 +24,49 @@
 
 ### 改善
 
+#### 整併 CCXT Factory - 統一交易所實例創建（2026-01-25）
+
+**問題**：專案中多處直接使用 `new ccxt.xxx()` 創建交易所實例，未經過統一工廠，導致：
+- Proxy 配置不一致
+- 代碼重複，維護困難
+- 新增交易所時需修改多處
+
+**修復內容**：
+
+1. **修復核心 Connectors**
+   - `src/connectors/okx.ts`
+   - `src/connectors/mexc.ts`
+   - `src/connectors/bingx.ts`
+   - `src/connectors/gateio.ts`
+   - 改用 `createCcxtExchange()` 統一創建實例
+
+2. **修復 UserConnectorFactory**
+   - `src/services/assets/UserConnectorFactory.ts`
+   - 4 個 UserConnector 類別（OKX、MEXC、Gate.io、BingX）改用統一工廠
+
+3. **修復服務層**
+   - `src/services/monitor/FundingRateHistoryService.ts`
+   - `src/scripts/trading-validation/ExchangeQueryService.ts`
+
+4. **修復腳本檔案**
+   - `scripts/diagnostics/` - 4 個診斷腳本
+   - `scripts/manual-tests/` - 14 個手動測試腳本
+   - `tests/integration/trading/testnet-helpers.ts`
+
+5. **刪除廢棄檔案**
+   - 移除 `src/lib/ccxt/exchangeFactory.ts`（已被 `ccxt-factory.ts` 取代）
+
+6. **擴展 ExchangeConfig 介面**
+   - 新增 `timeout` 參數支援（UserConnector 需要 60 秒超時）
+
+**檔案變更**：37 個檔案
+
+**影響範圍**：
+- 所有交易所連線現在統一經過 `src/lib/ccxt-factory.ts`
+- 未來新增交易所只需修改工廠函數
+
+---
+
 #### `/api/funding-rate-stability` API 效能優化（2026-01-25）
 
 **問題**：API 在需要 proxy 的環境中回應緩慢，可能超過 15 秒。
@@ -316,7 +359,6 @@
 
 1. **修改 `CcxtExchangeFactory.ts`**
    - 改用 `createCcxtExchange()` 從 `@/lib/ccxt-factory` 創建實例
-   - 自動套用 proxy 配置
 
 2. **更新 `CLAUDE.md` 開發規範**
    - 新增規範 #11：CCXT 實例創建規範

@@ -90,7 +90,7 @@ export class FundingFeeQueryService {
       ? decrypt(apiKey.encryptedPassphrase)
       : undefined;
 
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+
     let ccxtExchange = createCcxtExchange(exchange as CcxtSupportedExchange, {
       apiKey: decryptedKey,
       secret: decryptedSecret,

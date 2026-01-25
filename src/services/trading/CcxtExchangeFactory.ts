@@ -67,7 +67,7 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       );
     }
 
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+
     // 參考：src/lib/ccxt-factory.ts
     // 類型轉換：ccxt.Exchange -> CcxtExchange（運行時具有完整方法）
     let ccxtExchange = createCcxtExchange(exchange as CcxtSupportedExchange, {

@@ -3,6 +3,7 @@ import { ApiKeyService } from '../apikey/ApiKeyService';
 import { logger } from '@lib/logger';
 import { decrypt } from '@lib/encryption';
 import { getProxyUrl } from '@lib/env';
+import { createCcxtExchange } from '@lib/ccxt-factory';
 import { injectCachedMarkets, cacheMarketsFromExchange } from '@lib/ccxt-markets-cache';
 import { ProxyAgent } from 'undici';
 import {
@@ -781,8 +782,8 @@ class BinanceUserConnector implements IExchangeConnector {
 class OkxUserConnector implements IExchangeConnector {
   readonly name: ExchangeName = 'okx';
   private connected: boolean = false;
-  private ccxt: typeof import('ccxt') | null = null;
-  private exchange: InstanceType<typeof import('ccxt').okx> | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private exchange: any = null;
 
   constructor(
     private readonly apiKey: string,
@@ -792,27 +793,14 @@ class OkxUserConnector implements IExchangeConnector {
   ) {}
 
   async connect(): Promise<void> {
-    this.ccxt = await import('ccxt');
-    const proxyUrl = getProxyUrl();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config: any = {
+    this.exchange = createCcxtExchange('okx', {
       apiKey: this.apiKey,
       secret: this.apiSecret,
       password: this.passphrase,
       sandbox: this.isTestnet,
-      timeout: 60000, // 60 秒超時
-      options: {
-        defaultType: 'swap',
-      },
-    };
-
-    if (proxyUrl) {
-      config.httpsProxy = proxyUrl;
-      logger.info({ proxy: proxyUrl }, 'OkxUserConnector CCXT using httpsProxy');
-    }
-
-    this.exchange = new this.ccxt.okx(config);
+      timeout: 60000, // 60 秒超時（UserConnector 需要較長時間）
+    });
     this.connected = true;
   }
 
@@ -871,8 +859,10 @@ class OkxUserConnector implements IExchangeConnector {
     }
 
     const filteredPositions = positions
-      .filter((p) => parseFloat(p.contracts?.toString() || '0') > 0)
-      .map((p) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((p: any) => parseFloat(p.contracts?.toString() || '0') > 0)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((p: any) => ({
         symbol: p.symbol,
         side: (p.side === 'long' ? 'LONG' : 'SHORT') as 'LONG' | 'SHORT',
         quantity: parseFloat(p.contracts?.toString() || '0'),
@@ -946,7 +936,6 @@ class OkxUserConnector implements IExchangeConnector {
 class MexcUserConnector implements IExchangeConnector {
   readonly name: ExchangeName = 'mexc';
   private connected: boolean = false;
-  private ccxt: typeof import('ccxt') | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private exchange: any = null;
 
@@ -957,26 +946,13 @@ class MexcUserConnector implements IExchangeConnector {
   ) {}
 
   async connect(): Promise<void> {
-    this.ccxt = await import('ccxt');
-    const proxyUrl = getProxyUrl();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config: any = {
+
+    this.exchange = createCcxtExchange('mexc', {
       apiKey: this.apiKey,
       secret: this.apiSecret,
       enableRateLimit: true,
-      timeout: 60000, // 60 秒超時
-      options: {
-        defaultType: 'swap',
-      },
-    };
-
-    if (proxyUrl) {
-      config.httpsProxy = proxyUrl;
-      logger.info({ proxy: proxyUrl }, 'MexcUserConnector CCXT using httpsProxy');
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.exchange = new (this.ccxt as any).mexc(config);
+      timeout: 60000, // 60 秒超時（UserConnector 需要較長時間）
+    });
     this.connected = true;
   }
 
@@ -1110,7 +1086,6 @@ class MexcUserConnector implements IExchangeConnector {
 class GateioUserConnector implements IExchangeConnector {
   readonly name: ExchangeName = 'gateio';
   private connected: boolean = false;
-  private ccxt: typeof import('ccxt') | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private exchange: any = null;
   private readonly proxyAgent: ProxyAgent | null = null;
@@ -1120,7 +1095,7 @@ class GateioUserConnector implements IExchangeConnector {
     private readonly apiSecret: string,
     readonly isTestnet: boolean = false
   ) {
-    // 初始化 Proxy Agent
+    // 初始化 Proxy Agent（用於 Native API 調用）
     const proxyUrl = getProxyUrl();
     if (proxyUrl) {
       this.proxyAgent = new ProxyAgent(proxyUrl);
@@ -1129,26 +1104,13 @@ class GateioUserConnector implements IExchangeConnector {
   }
 
   async connect(): Promise<void> {
-    this.ccxt = await import('ccxt');
-    const proxyUrl = getProxyUrl();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config: any = {
+
+    this.exchange = createCcxtExchange('gateio', {
       apiKey: this.apiKey,
       secret: this.apiSecret,
       enableRateLimit: true,
-      timeout: 60000, // 60 秒超時
-      options: {
-        defaultType: 'swap',
-      },
-    };
-
-    if (proxyUrl) {
-      config.httpsProxy = proxyUrl;
-      logger.info({ proxy: proxyUrl }, 'GateioUserConnector CCXT using httpsProxy');
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.exchange = new (this.ccxt as any).gateio(config);
+      timeout: 60000, // 60 秒超時（UserConnector 需要較長時間）
+    });
     this.connected = true;
   }
 
@@ -1385,7 +1347,6 @@ class GateioUserConnector implements IExchangeConnector {
 class BingxUserConnector implements IExchangeConnector {
   readonly name: ExchangeName = 'bingx';
   private connected: boolean = false;
-  private ccxt: typeof import('ccxt') | null = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private exchange: any = null;
 
@@ -1396,26 +1357,16 @@ class BingxUserConnector implements IExchangeConnector {
   ) {}
 
   async connect(): Promise<void> {
-    this.ccxt = await import('ccxt');
-    const proxyUrl = getProxyUrl();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const config: any = {
+
+    this.exchange = createCcxtExchange('bingx', {
       apiKey: this.apiKey,
       secret: this.apiSecret,
       enableRateLimit: true,
-      timeout: 60000, // 60 秒超時
+      timeout: 60000, // 60 秒超時（UserConnector 需要較長時間）
       options: {
         defaultType: 'swap',
       },
-    };
-
-    if (proxyUrl) {
-      config.httpsProxy = proxyUrl;
-      logger.info({ proxy: proxyUrl }, 'BingxUserConnector CCXT using httpsProxy');
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.exchange = new (this.ccxt as any).bingx(config);
+    });
     this.connected = true;
   }
 

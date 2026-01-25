@@ -3,8 +3,8 @@
  * 測試 CCXT 是否真的支援 MEXC 合約交易
  */
 
-import ccxt from 'ccxt';
 import { config } from 'dotenv';
+import { createCcxtExchange } from '../../src/lib/ccxt-factory';
 
 config();
 
@@ -21,7 +21,8 @@ async function testMexcFutures() {
   console.log('MEXC Futures API 功能驗證');
   console.log('='.repeat(60));
 
-  const mexc = new (ccxt as any).mexc({
+
+  const mexc = createCcxtExchange('mexc', {
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,

@@ -2,20 +2,15 @@
  * 測試 MEXC Contract API 連通性
  */
 
-import ccxt from 'ccxt';
+import { createPublicExchange } from '../../src/lib/ccxt-factory';
 
 async function testMexcContractApi() {
   console.log('='.repeat(60));
   console.log('MEXC Contract API 連通性測試');
   console.log('='.repeat(60));
 
-  const mexc = new (ccxt as any).mexc({
-    enableRateLimit: true,
-    timeout: 30000,
-    options: {
-      defaultType: 'swap',
-    },
-  });
+
+  const mexc = createPublicExchange('mexc');
 
   // 1. 測試公開的合約 API 端點
   console.log('\n1️⃣ 測試公開合約 API...');
