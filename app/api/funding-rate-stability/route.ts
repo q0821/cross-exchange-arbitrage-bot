@@ -13,7 +13,7 @@ import { handleError } from '@/src/middleware/errorHandler';
 import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
-import { FundingRateHistoryService } from '@/src/services/monitor/FundingRateHistoryService';
+import { getFundingRateHistoryService } from '@/src/services/monitor/FundingRateHistoryService';
 import type { ExchangeName } from '@/src/connectors/types';
 
 /** 請求參數驗證 schema */
@@ -87,19 +87,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       'Funding rate stability check requested'
     );
 
-    // 3. 查詢兩個交易所的穩定性
-    const service = new FundingRateHistoryService({
-      hoursToCheck: 24,
-      flipThreshold: 2,
-    });
+    // 3. 查詢兩個交易所的穩定性（使用 Singleton 快取）
+    const service = getFundingRateHistoryService();
 
     const [longResult, shortResult] = await Promise.all([
       service.checkStability(validated.longExchange as ExchangeName, validated.symbol),
       service.checkStability(validated.shortExchange as ExchangeName, validated.symbol),
     ]);
-
-    // 清理資源
-    service.destroy();
 
     // 4. 組合警告訊息
     const hasUnstableExchange = !longResult.isStable || !shortResult.isStable;
