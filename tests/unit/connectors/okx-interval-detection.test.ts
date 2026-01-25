@@ -48,6 +48,13 @@ vi.mock('../../../src/lib/config', () => ({
   },
 }));
 
+// Mock axios（避免 Native API fallback 時真實發送請求）
+vi.mock('axios', () => ({
+  default: {
+    get: vi.fn().mockRejectedValue(new Error('Network error')),
+  },
+}));
+
 describe('OKXConnector - Interval Detection (User Story 1)', () => {
   let connector: OKXConnector;
 
@@ -181,6 +188,9 @@ describe('OKXConnector - Interval Detection (User Story 1)', () => {
           },
         });
 
+        // Mock Native API fallback 以避免真實 HTTP 請求
+        vi.spyOn(connector as any, 'getFundingIntervalFromNativeAPIWithRetry').mockResolvedValue(null);
+
         const interval = await connector.getFundingInterval('BTCUSDT');
 
         expect(interval).toBe(8); // Default fallback
@@ -203,6 +213,9 @@ describe('OKXConnector - Interval Detection (User Story 1)', () => {
             fundingTime: '1700000000000', // Only fundingTime, missing nextFundingTime
           },
         });
+
+        // Mock Native API fallback 以避免真實 HTTP 請求
+        vi.spyOn(connector as any, 'getFundingIntervalFromNativeAPIWithRetry').mockResolvedValue(null);
 
         const interval = await connector.getFundingInterval('BTCUSDT');
 

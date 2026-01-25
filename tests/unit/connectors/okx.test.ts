@@ -47,6 +47,13 @@ vi.mock('../../../src/lib/config', () => ({
   },
 }));
 
+// Mock axios（避免 Native API fallback 時真實發送請求）
+vi.mock('axios', () => ({
+  default: {
+    get: vi.fn().mockRejectedValue(new Error('Network error')),
+  },
+}));
+
 describe('OKXConnector.getFundingInterval', () => {
   let connector: OKXConnector;
 
@@ -112,6 +119,9 @@ describe('OKXConnector.getFundingInterval', () => {
         fundingTimestamp: Date.now(),
         info: {}, // No fundingTime or nextFundingTime fields
       });
+
+      // Mock Native API fallback 以避免真實 HTTP 請求
+      vi.spyOn(connector as any, 'getFundingIntervalFromNativeAPIWithRetry').mockResolvedValue(null);
 
       const interval = await connector.getFundingInterval('BTCUSDT');
 
