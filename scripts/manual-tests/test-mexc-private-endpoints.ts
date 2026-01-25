@@ -2,9 +2,9 @@
  * 測試 MEXC Contract 私有 API 端點
  */
 
-import ccxt from 'ccxt';
 import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../lib/encryption';
+import { createCcxtExchange } from '../../src/lib/ccxt-factory';
 
 const prisma = new PrismaClient();
 
@@ -26,7 +26,8 @@ async function testMexcPrivateEndpoints() {
   const apiKey = decrypt(apiKeyRecord.encryptedKey);
   const apiSecret = decrypt(apiKeyRecord.encryptedSecret);
 
-  const mexc = new (ccxt as any).mexc({
+
+  const mexc = createCcxtExchange('mexc', {
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,

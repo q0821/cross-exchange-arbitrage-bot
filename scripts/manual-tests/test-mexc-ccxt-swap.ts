@@ -3,9 +3,9 @@
  * 根據 CCXT 官方文件設定參數
  */
 
-import ccxt from 'ccxt';
 import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../lib/encryption';
+import { createCcxtExchange } from '../../src/lib/ccxt-factory';
 
 const prisma = new PrismaClient();
 
@@ -32,8 +32,8 @@ async function testMexcCcxtSwap() {
   const apiKey = decrypt(apiKeyRecord.encryptedKey);
   const apiSecret = decrypt(apiKeyRecord.encryptedSecret);
 
-  // 根據 CCXT 文件設定 MEXC 交易所
-  const mexc = new (ccxt as any).mexc({
+
+  const mexc = createCcxtExchange('mexc', {
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,

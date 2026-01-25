@@ -169,7 +169,7 @@ export async function GET(
  */
 async function getCurrentPrice(symbol: string, exchange: SupportedExchange): Promise<number> {
   try {
-    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+
     const ccxtExchange = createPublicExchange(exchange as CcxtSupportedExchange, {
       sandbox: false,
     });

@@ -6,7 +6,7 @@
  * Date: 2025-10-22
  */
 
-import ccxt from 'ccxt'
+import { createCcxtExchange } from '../../src/lib/ccxt-factory'
 
 async function testOKXConnection() {
   console.log('=== OKX 正式網 API 測試 ===\n')
@@ -15,7 +15,8 @@ async function testOKXConnection() {
   console.log('📡 測試 1: CCXT 基本連接')
   console.log('─'.repeat(60))
 
-  const okx = new ccxt.okx({
+
+  const okx = createCcxtExchange('okx', {
     apiKey: process.env.OKX_API_KEY || '',
     secret: process.env.OKX_API_SECRET || '',
     password: process.env.OKX_API_PASSWORD || '',

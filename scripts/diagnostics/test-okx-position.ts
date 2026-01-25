@@ -4,7 +4,7 @@
 
 import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../src/lib/encryption';
-import * as ccxt from 'ccxt';
+import { createCcxtExchange } from '../src/lib/ccxt-factory';
 
 const prisma = new PrismaClient();
 
@@ -47,8 +47,8 @@ async function main() {
 
   console.log('API Key found, creating CCXT exchange instance...\n');
 
-  // Create OKX exchange instance
-  const exchange = new ccxt.okx({
+
+  const exchange = createCcxtExchange('okx', {
     apiKey: decryptedKey,
     secret: decryptedSecret,
     password: decryptedPassphrase,

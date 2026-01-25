@@ -4,8 +4,9 @@
  * Feature: 049-trading-validation-script
  */
 
-import * as ccxt from 'ccxt';
+import type * as ccxt from 'ccxt';
 import { logger } from '../../lib/logger';
+import { createCcxtExchange, type SupportedExchange } from '../../lib/ccxt-factory';
 import type {
   ExchangeName,
   ExchangePosition,
@@ -33,24 +34,18 @@ export class ExchangeQueryService {
    */
   async connect(apiKey: DecryptedApiKey): Promise<void> {
     this.apiKey = apiKey;
-    const exchangeClass = this.getExchangeClass();
 
-    const config: any = {
+
+    this.exchange = createCcxtExchange(this.exchangeName as SupportedExchange, {
       apiKey: apiKey.apiKey,
       secret: apiKey.secret,
+      password: this.exchangeName === 'okx' ? apiKey.passphrase : undefined,
       enableRateLimit: true,
       options: {
         defaultType: 'swap',
         adjustForTimeDifference: true,
       },
-    };
-
-    // OKX 需要 passphrase
-    if (this.exchangeName === 'okx' && apiKey.passphrase) {
-      config.password = apiKey.passphrase;
-    }
-
-    this.exchange = new exchangeClass(config);
+    });
 
     // Binance 需要檢測是否為 Portfolio Margin 帳戶
     if (this.exchangeName === 'binance') {
@@ -105,7 +100,8 @@ export class ExchangeQueryService {
   private async recreateWithPortfolioMargin(): Promise<void> {
     if (!this.apiKey) return;
 
-    this.exchange = new ccxt.binance({
+
+    this.exchange = createCcxtExchange('binance', {
       apiKey: this.apiKey.apiKey,
       secret: this.apiKey.secret,
       enableRateLimit: true,
@@ -116,24 +112,6 @@ export class ExchangeQueryService {
       },
     });
     this.marketsLoaded = false;
-  }
-
-  /**
-   * 取得交易所類別
-   */
-  private getExchangeClass(): typeof ccxt.Exchange {
-    switch (this.exchangeName) {
-      case 'binance':
-        return ccxt.binance;
-      case 'okx':
-        return ccxt.okx;
-      case 'gateio':
-        return ccxt.gate;
-      case 'bingx':
-        return ccxt.bingx;
-      default:
-        throw new Error(`不支援的交易所: ${this.exchangeName}`);
-    }
   }
 
   /**

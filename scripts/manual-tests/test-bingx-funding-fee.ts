@@ -1,9 +1,9 @@
 /**
  * 測試 BingX 資金費率查詢 - 嘗試不同參數
  */
-import * as ccxt from 'ccxt';
 import { prisma } from '../lib/db';
 import { decrypt } from '../lib/encryption';
+import { createCcxtExchange } from '../../src/lib/ccxt-factory';
 
 async function testBingxFundingFee() {
   console.log('=== BingX 資金費率查詢測試 ===\n');
@@ -18,7 +18,8 @@ async function testBingxFundingFee() {
     return;
   }
 
-  const bingx = new ccxt.bingx({
+
+  const bingx = createCcxtExchange('bingx', {
     apiKey: decrypt(apiKey.encryptedKey),
     secret: decrypt(apiKey.encryptedSecret),
     enableRateLimit: true,

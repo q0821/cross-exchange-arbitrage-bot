@@ -6,18 +6,13 @@
  * Date: 2025-10-22
  */
 
-import ccxt from 'ccxt'
+import { createPublicExchange } from '../../src/lib/ccxt-factory'
 
 async function testOKXFundingHistory() {
   console.log('=== OKX 資金費率對比測試 ===\n')
 
-  const okx = new ccxt.okx({
-    enableRateLimit: true,
-    options: {
-      defaultType: 'swap',
-      sandboxMode: false, // 正式網
-    },
-  })
+
+  const okx = createPublicExchange('okx')
 
   try {
     await okx.loadMarkets()

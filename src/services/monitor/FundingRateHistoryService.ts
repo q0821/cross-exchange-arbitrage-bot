@@ -18,6 +18,7 @@ import axios, { AxiosInstance } from 'axios';
 import ccxt from 'ccxt';
 import { HttpsProxyAgent } from 'https-proxy-agent';
 import { logger } from '../../lib/logger';
+import { createCcxtExchange } from '../../lib/ccxt-factory';
 import type { ExchangeName } from '../../connectors/types';
 
 /** 單筆歷史資金費率記錄 */
@@ -178,20 +179,18 @@ export class FundingRateHistoryService {
     }
 
     let instance: ccxt.Exchange;
-    // 使用 any 斷言繞過 CCXT 型別限制（專案慣例）
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ccxtLib = ccxt as any;
+
 
     switch (exchange) {
       case 'gateio':
-        instance = new ccxtLib.gateio({
+        instance = createCcxtExchange('gateio', {
           options: { defaultType: 'swap' },
-        }) as ccxt.Exchange;
+        });
         break;
       case 'bingx':
-        instance = new ccxtLib.bingx({
+        instance = createCcxtExchange('bingx', {
           options: { defaultType: 'swap' },
-        }) as ccxt.Exchange;
+        });
         break;
       default:
         throw new Error(`CCXT instance not needed for ${exchange}`);

@@ -14,7 +14,8 @@ import ccxt from 'ccxt';
 import axios from 'axios';
 import Decimal from 'decimal.js';
 import { BaseExchangeConnector } from './base.js';
-import { getProxyUrl, getCcxtHttpsProxyConfig, createProxyAgent } from '../lib/env.js';
+import { createProxyAgent } from '../lib/env.js';
+import { createCcxtExchange } from '../lib/ccxt-factory.js';
 import {
   FundingRateData,
   PriceData,
@@ -57,39 +58,28 @@ export class BingxConnector extends BaseExchangeConnector {
   async connect(): Promise<void> {
     try {
       const { apiKey, apiSecret, testnet } = apiKeys.bingx;
-      const proxyUrl = getProxyUrl();
-      const proxyConfig = getCcxtHttpsProxyConfig();
 
-      // 建立 CCXT 客戶端（可以沒有 API Key，仍能存取公開 API）
-      const config: any = {
+
+      // BingX 可以沒有 API Key，仍能存取公開 API
+      this.client = createCcxtExchange('bingx', {
+        apiKey: apiKey || undefined,
+        secret: apiSecret || undefined,
         enableRateLimit: true,
-        timeout: 30000, // 30 秒超時（透過代理需要較長時間）
-        ...proxyConfig,
         options: {
-          defaultType: 'swap', // 使用永續合約
           ...(testnet && { sandboxMode: true }),
         },
-      };
+      });
 
-      // 如果有 API Key 則加入配置（用於私有 API）
       if (apiKey && apiSecret) {
-        config.apiKey = apiKey;
-        config.secret = apiSecret;
         logger.info('BingX connector initialized with API credentials');
       } else {
         logger.info('BingX connector initialized without API credentials (public data only)');
       }
 
-      this.client = new (ccxt as any).bingx(config) as ccxt.Exchange;
-
       // 測試連線
       await this.testConnection();
 
       this.connected = true;
-
-      if (proxyUrl) {
-        logger.info({ proxy: proxyUrl }, 'BingX using proxy');
-      }
       logger.info({ testnet, hasApiKey: !!apiKey }, 'BingX connector connected');
       this.emit('connected');
     } catch (error) {

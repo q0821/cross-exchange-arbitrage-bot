@@ -8,7 +8,7 @@
 
 import { PrismaClient } from '@/generated/prisma/client';
 import { decrypt } from '../lib/encryption';
-import ccxt from 'ccxt';
+import { createCcxtExchange } from '../../src/lib/ccxt-factory';
 
 const prisma = new PrismaClient();
 
@@ -50,7 +50,8 @@ async function testMexcFullTrade() {
 
   // 2. 初始化 CCXT
   console.log('\n2️⃣ 初始化 MEXC 連接器...');
-  const mexc = new (ccxt as any).mexc({
+
+  const mexc = createCcxtExchange('mexc', {
     apiKey,
     secret: apiSecret,
     enableRateLimit: true,

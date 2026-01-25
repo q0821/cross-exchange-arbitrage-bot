@@ -15,7 +15,7 @@ import {
   OrderSide,
 } from './types.js';
 import { apiKeys } from '../lib/config.js';
-import { getProxyUrl, getCcxtHttpsProxyConfig } from '../lib/env.js';
+import { createCcxtExchange } from '../lib/ccxt-factory.js';
 import { exchangeLogger as logger } from '../lib/logger.js';
 import {
   ExchangeApiError,
@@ -58,25 +58,16 @@ export class OKXConnector extends BaseExchangeConnector {
         });
       }
 
-      const proxyUrl = getProxyUrl();
-      const proxyConfig = getCcxtHttpsProxyConfig();
 
-      this.client = new (ccxt as any).okx({
+      this.client = createCcxtExchange('okx', {
         apiKey,
         secret: apiSecret,
         password: passphrase,
         enableRateLimit: true,
-        timeout: 30000, // 30 秒超時（透過代理需要較長時間）
-        ...proxyConfig,
         options: {
-          defaultType: 'swap', // 使用永續合約
           ...(testnet && { sandboxMode: true }),
         },
-      }) as ccxt.Exchange;
-
-      if (proxyUrl) {
-        logger.info({ proxy: proxyUrl }, 'OKX using proxy');
-      }
+      });
 
       // 測試連線
       await this.testConnection();
