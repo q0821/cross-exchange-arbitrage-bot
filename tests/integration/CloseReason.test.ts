@@ -33,11 +33,12 @@ describe.skipIf(!RUN_INTEGRATION)('CloseReason Integration', () => {
       expect(CloseReason.SHORT_TP_TRIGGERED).toBe('SHORT_TP_TRIGGERED');
       expect(CloseReason.BOTH_TRIGGERED).toBe('BOTH_TRIGGERED');
       expect(CloseReason.UNCONFIRMED_TRIGGER).toBe('UNCONFIRMED_TRIGGER');
+      expect(CloseReason.BATCH_CLOSE).toBe('BATCH_CLOSE'); // Feature 069: 批量平倉
     });
 
-    it('should have exactly 7 close reason values', () => {
+    it('should have exactly 8 close reason values', () => {
       const values = Object.values(CloseReason);
-      expect(values).toHaveLength(7);
+      expect(values).toHaveLength(8);
     });
   });
 

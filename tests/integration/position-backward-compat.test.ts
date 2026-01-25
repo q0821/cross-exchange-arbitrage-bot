@@ -86,22 +86,22 @@ describe.skipIf(!RUN_INTEGRATION)(
     describe('Ungrouped positions display', () => {
       it('should return ungrouped positions separately from groups', async () => {
         // Create ungrouped positions (null groupId)
-        const ungrouped1 = await createTestPosition(prisma, testUserId, {
+        await createTestPosition(prisma, testUserId, {
           groupId: null,
           symbol: 'BTCUSDT',
         });
-        const ungrouped2 = await createTestPosition(prisma, testUserId, {
+        await createTestPosition(prisma, testUserId, {
           groupId: null,
           symbol: 'ETHUSDT',
         });
 
         // Create grouped positions
         const groupId = PositionGroupService.generateGroupId();
-        const grouped1 = await createTestPosition(prisma, testUserId, {
+        await createTestPosition(prisma, testUserId, {
           groupId,
           symbol: 'BTCUSDT',
         });
-        const grouped2 = await createTestPosition(prisma, testUserId, {
+        await createTestPosition(prisma, testUserId, {
           groupId,
           symbol: 'BTCUSDT',
         });
@@ -246,11 +246,9 @@ describe.skipIf(!RUN_INTEGRATION)(
           groupId: null,
         });
 
-        const groupService = new PositionGroupService(prisma);
-
-        // Should return false for null groupId (no group to validate)
-        // Note: validateGroupOwnership expects a valid groupId
-        // For ungrouped positions, we shouldn't call this method
+        // PositionGroupService is not needed here as ungrouped positions
+        // don't have a groupId to validate
+        // For ungrouped positions, we just verify the groupId is null
         expect(position.groupId).toBeNull();
       });
     });
