@@ -6,6 +6,40 @@
 
 ## [Unreleased]
 
+### 修復
+
+#### 修復 MaxListenersExceededWarning 警告（2026-01-25）
+
+**問題**：Next.js 開發伺服器運行時出現 `MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 exit listeners added to [process]` 警告。
+
+**根因**：Hot Module Replacement (HMR) 期間 `registerShutdownHandlers()` 被重複呼叫，導致 SIGTERM/SIGINT listeners 累積超過 Node.js 預設上限（10 個）。
+
+**修復**：
+- 新增 `globalThis.__shutdownHandlersRegistered` 標記防止重複註冊
+- `resetShutdownState()` 同步重置該標記以支援測試
+
+**檔案變更**：`src/lib/graceful-shutdown.ts`
+
+---
+
+### 改善
+
+#### Prisma 生成檔案改為不追蹤（2026-01-25）
+
+**背景**：Prisma 自動生成的 client 檔案（`src/generated/prisma/`）在不同分支間容易產生合併衝突，且這些檔案可由 `prisma generate` 100% 重現。
+
+**變更**：
+- 將 `src/generated/prisma/` 加入 `.gitignore`
+- 從 Git 歷史移除生成檔案（保留本地）
+- 利用現有的 `postinstall` hook 自動生成：`"postinstall": "prisma generate"`
+
+**影響**：
+- Clone 專案後需執行 `pnpm install`（會自動觸發 `prisma generate`）
+- CI/CD 流程不受影響（`pnpm install` 時自動生成）
+- 避免無意義的合併衝突
+
+---
+
 ### 新增
 
 #### Feature 069: 分單持倉合併顯示與批量平倉（2026-01-25）
