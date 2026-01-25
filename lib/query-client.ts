@@ -1,11 +1,52 @@
 import { isServer, QueryClient, QueryCache, MutationCache } from '@tanstack/react-query';
 
 /**
+ * Extract error message from various error types
+ */
+function extractErrorMessage(error: unknown): string {
+  // Standard Error instance
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // String error
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  // Object with message property (common pattern)
+  if (error && typeof error === 'object') {
+    // Check for message property
+    if ('message' in error && typeof error.message === 'string') {
+      return error.message;
+    }
+    // Check for error property (API response format)
+    if ('error' in error) {
+      const errorProp = (error as { error: unknown }).error;
+      if (typeof errorProp === 'string') {
+        return errorProp;
+      }
+      if (errorProp && typeof errorProp === 'object' && 'message' in errorProp) {
+        return String((errorProp as { message: unknown }).message);
+      }
+    }
+    // Try to stringify the object
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Unknown error (non-serializable)';
+    }
+  }
+
+  return 'Unknown error';
+}
+
+/**
  * Global error handler for TanStack Query
  * Feature 063: Frontend Data Caching (T040)
  */
 function handleQueryError(error: unknown, query?: unknown) {
-  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  const errorMessage = extractErrorMessage(error);
 
   // Log error in development
   if (process.env.NODE_ENV === 'development') {

@@ -115,6 +115,7 @@ export type PositionMinAggregateOutputType = {
   exitSuggested: boolean | null
   exitSuggestedAt: Date | null
   exitSuggestedReason: string | null
+  groupId: string | null
 }
 
 export type PositionMaxAggregateOutputType = {
@@ -164,6 +165,7 @@ export type PositionMaxAggregateOutputType = {
   exitSuggested: boolean | null
   exitSuggestedAt: Date | null
   exitSuggestedReason: string | null
+  groupId: string | null
 }
 
 export type PositionCountAggregateOutputType = {
@@ -213,6 +215,7 @@ export type PositionCountAggregateOutputType = {
   exitSuggested: number
   exitSuggestedAt: number
   exitSuggestedReason: number
+  groupId: number
   _all: number
 }
 
@@ -306,6 +309,7 @@ export type PositionMinAggregateInputType = {
   exitSuggested?: true
   exitSuggestedAt?: true
   exitSuggestedReason?: true
+  groupId?: true
 }
 
 export type PositionMaxAggregateInputType = {
@@ -355,6 +359,7 @@ export type PositionMaxAggregateInputType = {
   exitSuggested?: true
   exitSuggestedAt?: true
   exitSuggestedReason?: true
+  groupId?: true
 }
 
 export type PositionCountAggregateInputType = {
@@ -404,6 +409,7 @@ export type PositionCountAggregateInputType = {
   exitSuggested?: true
   exitSuggestedAt?: true
   exitSuggestedReason?: true
+  groupId?: true
   _all?: true
 }
 
@@ -540,6 +546,7 @@ export type PositionGroupByOutputType = {
   exitSuggested: boolean
   exitSuggestedAt: Date | null
   exitSuggestedReason: string | null
+  groupId: string | null
   _count: PositionCountAggregateOutputType | null
   _avg: PositionAvgAggregateOutputType | null
   _sum: PositionSumAggregateOutputType | null
@@ -612,6 +619,7 @@ export type PositionWhereInput = {
   exitSuggested?: Prisma.BoolFilter<"Position"> | boolean
   exitSuggestedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
   exitSuggestedReason?: Prisma.StringNullableFilter<"Position"> | string | null
+  groupId?: Prisma.UuidNullableFilter<"Position"> | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   trade?: Prisma.XOR<Prisma.TradeNullableScalarRelationFilter, Prisma.TradeWhereInput> | null
 }
@@ -663,6 +671,7 @@ export type PositionOrderByWithRelationInput = {
   exitSuggested?: Prisma.SortOrder
   exitSuggestedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   exitSuggestedReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  groupId?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   trade?: Prisma.TradeOrderByWithRelationInput
 }
@@ -717,6 +726,7 @@ export type PositionWhereUniqueInput = Prisma.AtLeast<{
   exitSuggested?: Prisma.BoolFilter<"Position"> | boolean
   exitSuggestedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
   exitSuggestedReason?: Prisma.StringNullableFilter<"Position"> | string | null
+  groupId?: Prisma.UuidNullableFilter<"Position"> | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   trade?: Prisma.XOR<Prisma.TradeNullableScalarRelationFilter, Prisma.TradeWhereInput> | null
 }, "id">
@@ -768,6 +778,7 @@ export type PositionOrderByWithAggregationInput = {
   exitSuggested?: Prisma.SortOrder
   exitSuggestedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   exitSuggestedReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  groupId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.PositionCountOrderByAggregateInput
   _avg?: Prisma.PositionAvgOrderByAggregateInput
   _max?: Prisma.PositionMaxOrderByAggregateInput
@@ -825,6 +836,7 @@ export type PositionScalarWhereWithAggregatesInput = {
   exitSuggested?: Prisma.BoolWithAggregatesFilter<"Position"> | boolean
   exitSuggestedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Position"> | Date | string | null
   exitSuggestedReason?: Prisma.StringNullableWithAggregatesFilter<"Position"> | string | null
+  groupId?: Prisma.UuidNullableWithAggregatesFilter<"Position"> | string | null
 }
 
 export type PositionCreateInput = {
@@ -873,6 +885,7 @@ export type PositionCreateInput = {
   exitSuggested?: boolean
   exitSuggestedAt?: Date | string | null
   exitSuggestedReason?: string | null
+  groupId?: string | null
   user: Prisma.UserCreateNestedOneWithoutPositionsInput
   trade?: Prisma.TradeCreateNestedOneWithoutPositionInput
 }
@@ -924,6 +937,7 @@ export type PositionUncheckedCreateInput = {
   exitSuggested?: boolean
   exitSuggestedAt?: Date | string | null
   exitSuggestedReason?: string | null
+  groupId?: string | null
   trade?: Prisma.TradeUncheckedCreateNestedOneWithoutPositionInput
 }
 
@@ -973,6 +987,7 @@ export type PositionUpdateInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutPositionsNestedInput
   trade?: Prisma.TradeUpdateOneWithoutPositionNestedInput
 }
@@ -1024,6 +1039,7 @@ export type PositionUncheckedUpdateInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trade?: Prisma.TradeUncheckedUpdateOneWithoutPositionNestedInput
 }
 
@@ -1074,6 +1090,7 @@ export type PositionCreateManyInput = {
   exitSuggested?: boolean
   exitSuggestedAt?: Date | string | null
   exitSuggestedReason?: string | null
+  groupId?: string | null
 }
 
 export type PositionUpdateManyMutationInput = {
@@ -1122,6 +1139,7 @@ export type PositionUpdateManyMutationInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type PositionUncheckedUpdateManyInput = {
@@ -1171,6 +1189,7 @@ export type PositionUncheckedUpdateManyInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type PositionListRelationFilter = {
@@ -1230,6 +1249,7 @@ export type PositionCountOrderByAggregateInput = {
   exitSuggested?: Prisma.SortOrder
   exitSuggestedAt?: Prisma.SortOrder
   exitSuggestedReason?: Prisma.SortOrder
+  groupId?: Prisma.SortOrder
 }
 
 export type PositionAvgOrderByAggregateInput = {
@@ -1300,6 +1320,7 @@ export type PositionMaxOrderByAggregateInput = {
   exitSuggested?: Prisma.SortOrder
   exitSuggestedAt?: Prisma.SortOrder
   exitSuggestedReason?: Prisma.SortOrder
+  groupId?: Prisma.SortOrder
 }
 
 export type PositionMinOrderByAggregateInput = {
@@ -1349,6 +1370,7 @@ export type PositionMinOrderByAggregateInput = {
   exitSuggested?: Prisma.SortOrder
   exitSuggestedAt?: Prisma.SortOrder
   exitSuggestedReason?: Prisma.SortOrder
+  groupId?: Prisma.SortOrder
 }
 
 export type PositionSumOrderByAggregateInput = {
@@ -1491,6 +1513,7 @@ export type PositionCreateWithoutUserInput = {
   exitSuggested?: boolean
   exitSuggestedAt?: Date | string | null
   exitSuggestedReason?: string | null
+  groupId?: string | null
   trade?: Prisma.TradeCreateNestedOneWithoutPositionInput
 }
 
@@ -1540,6 +1563,7 @@ export type PositionUncheckedCreateWithoutUserInput = {
   exitSuggested?: boolean
   exitSuggestedAt?: Date | string | null
   exitSuggestedReason?: string | null
+  groupId?: string | null
   trade?: Prisma.TradeUncheckedCreateNestedOneWithoutPositionInput
 }
 
@@ -1619,6 +1643,7 @@ export type PositionScalarWhereInput = {
   exitSuggested?: Prisma.BoolFilter<"Position"> | boolean
   exitSuggestedAt?: Prisma.DateTimeNullableFilter<"Position"> | Date | string | null
   exitSuggestedReason?: Prisma.StringNullableFilter<"Position"> | string | null
+  groupId?: Prisma.UuidNullableFilter<"Position"> | string | null
 }
 
 export type PositionCreateWithoutTradeInput = {
@@ -1667,6 +1692,7 @@ export type PositionCreateWithoutTradeInput = {
   exitSuggested?: boolean
   exitSuggestedAt?: Date | string | null
   exitSuggestedReason?: string | null
+  groupId?: string | null
   user: Prisma.UserCreateNestedOneWithoutPositionsInput
 }
 
@@ -1717,6 +1743,7 @@ export type PositionUncheckedCreateWithoutTradeInput = {
   exitSuggested?: boolean
   exitSuggestedAt?: Date | string | null
   exitSuggestedReason?: string | null
+  groupId?: string | null
 }
 
 export type PositionCreateOrConnectWithoutTradeInput = {
@@ -1781,6 +1808,7 @@ export type PositionUpdateWithoutTradeInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutPositionsNestedInput
 }
 
@@ -1831,6 +1859,7 @@ export type PositionUncheckedUpdateWithoutTradeInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type PositionCreateManyUserInput = {
@@ -1879,6 +1908,7 @@ export type PositionCreateManyUserInput = {
   exitSuggested?: boolean
   exitSuggestedAt?: Date | string | null
   exitSuggestedReason?: string | null
+  groupId?: string | null
 }
 
 export type PositionUpdateWithoutUserInput = {
@@ -1927,6 +1957,7 @@ export type PositionUpdateWithoutUserInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trade?: Prisma.TradeUpdateOneWithoutPositionNestedInput
 }
 
@@ -1976,6 +2007,7 @@ export type PositionUncheckedUpdateWithoutUserInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trade?: Prisma.TradeUncheckedUpdateOneWithoutPositionNestedInput
 }
 
@@ -2025,6 +2057,7 @@ export type PositionUncheckedUpdateManyWithoutUserInput = {
   exitSuggested?: Prisma.BoolFieldUpdateOperationsInput | boolean
   exitSuggestedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   exitSuggestedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  groupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -2076,6 +2109,7 @@ export type PositionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs
   exitSuggested?: boolean
   exitSuggestedAt?: boolean
   exitSuggestedReason?: boolean
+  groupId?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   trade?: boolean | Prisma.Position$tradeArgs<ExtArgs>
 }, ExtArgs["result"]["position"]>
@@ -2127,6 +2161,7 @@ export type PositionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exte
   exitSuggested?: boolean
   exitSuggestedAt?: boolean
   exitSuggestedReason?: boolean
+  groupId?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["position"]>
 
@@ -2177,6 +2212,7 @@ export type PositionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exte
   exitSuggested?: boolean
   exitSuggestedAt?: boolean
   exitSuggestedReason?: boolean
+  groupId?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["position"]>
 
@@ -2227,9 +2263,10 @@ export type PositionSelectScalar = {
   exitSuggested?: boolean
   exitSuggestedAt?: boolean
   exitSuggestedReason?: boolean
+  groupId?: boolean
 }
 
-export type PositionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "symbol" | "longExchange" | "longOrderId" | "longEntryPrice" | "longPositionSize" | "longLeverage" | "longExitPrice" | "longCloseOrderId" | "shortExchange" | "shortOrderId" | "shortEntryPrice" | "shortPositionSize" | "shortLeverage" | "shortExitPrice" | "shortCloseOrderId" | "status" | "openFundingRateLong" | "openFundingRateShort" | "unrealizedPnL" | "openedAt" | "closedAt" | "failureReason" | "createdAt" | "updatedAt" | "stopLossEnabled" | "stopLossPercent" | "longStopLossPrice" | "longStopLossOrderId" | "shortStopLossPrice" | "shortStopLossOrderId" | "takeProfitEnabled" | "takeProfitPercent" | "longTakeProfitPrice" | "longTakeProfitOrderId" | "shortTakeProfitPrice" | "shortTakeProfitOrderId" | "conditionalOrderStatus" | "conditionalOrderError" | "closeReason" | "cachedFundingPnL" | "cachedFundingPnLUpdatedAt" | "exitSuggested" | "exitSuggestedAt" | "exitSuggestedReason", ExtArgs["result"]["position"]>
+export type PositionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "symbol" | "longExchange" | "longOrderId" | "longEntryPrice" | "longPositionSize" | "longLeverage" | "longExitPrice" | "longCloseOrderId" | "shortExchange" | "shortOrderId" | "shortEntryPrice" | "shortPositionSize" | "shortLeverage" | "shortExitPrice" | "shortCloseOrderId" | "status" | "openFundingRateLong" | "openFundingRateShort" | "unrealizedPnL" | "openedAt" | "closedAt" | "failureReason" | "createdAt" | "updatedAt" | "stopLossEnabled" | "stopLossPercent" | "longStopLossPrice" | "longStopLossOrderId" | "shortStopLossPrice" | "shortStopLossOrderId" | "takeProfitEnabled" | "takeProfitPercent" | "longTakeProfitPrice" | "longTakeProfitOrderId" | "shortTakeProfitPrice" | "shortTakeProfitOrderId" | "conditionalOrderStatus" | "conditionalOrderError" | "closeReason" | "cachedFundingPnL" | "cachedFundingPnLUpdatedAt" | "exitSuggested" | "exitSuggestedAt" | "exitSuggestedReason" | "groupId", ExtArgs["result"]["position"]>
 export type PositionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   trade?: boolean | Prisma.Position$tradeArgs<ExtArgs>
@@ -2294,6 +2331,7 @@ export type $PositionPayload<ExtArgs extends runtime.Types.Extensions.InternalAr
     exitSuggested: boolean
     exitSuggestedAt: Date | null
     exitSuggestedReason: string | null
+    groupId: string | null
   }, ExtArgs["result"]["position"]>
   composites: {}
 }
@@ -2765,6 +2803,7 @@ export interface PositionFieldRefs {
   readonly exitSuggested: Prisma.FieldRef<"Position", 'Boolean'>
   readonly exitSuggestedAt: Prisma.FieldRef<"Position", 'DateTime'>
   readonly exitSuggestedReason: Prisma.FieldRef<"Position", 'String'>
+  readonly groupId: Prisma.FieldRef<"Position", 'String'>
 }
     
 

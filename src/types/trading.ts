@@ -53,6 +53,8 @@ export const OpenPositionRequestSchema = z.object({
   shortExchange: z.enum(SUPPORTED_EXCHANGES, { message: '不支援的做空交易所' }),
   quantity: z.number().positive('數量必須大於 0'),
   leverage: z.union([z.literal(1), z.literal(2)]).default(1),
+  // Feature 069: 分單開倉組別 ID
+  groupId: z.string().uuid().optional(),
 }).refine(
   (data) => data.longExchange !== data.shortExchange,
   { message: '做多和做空交易所不能相同' },
@@ -129,6 +131,8 @@ export interface PositionInfo {
   shortStopLossPrice?: number | null;
   longTakeProfitPrice?: number | null;
   shortTakeProfitPrice?: number | null;
+  // 分單開倉組別 (Feature 069)
+  groupId?: string | null;
 }
 
 /**
@@ -206,6 +210,8 @@ export interface OpenPositionParams {
   stopLossPercent?: number;
   takeProfitEnabled?: boolean;
   takeProfitPercent?: number;
+  // 分單開倉組別 ID (Feature 069)
+  groupId?: string;
 }
 
 /**
