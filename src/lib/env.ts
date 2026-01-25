@@ -4,13 +4,8 @@
  * 在應用啟動時驗證所有環境變數，提供型別安全的存取方式。
  * 驗證失敗時會提供清楚的錯誤訊息。
  */
-import dns from 'dns';
 import dotenv from 'dotenv';
 import { z } from 'zod';
-
-// 設定 DNS 優先使用 IPv4
-// 解決 Squid proxy 無法連接 IPv6 的問題（OKX、BingX 等交易所）
-dns.setDefaultResultOrder('ipv4first');
 
 // 確保在驗證前載入 .env 檔案
 dotenv.config();
@@ -207,16 +202,16 @@ const serverEnvSchema = z.object({
   ENABLE_CONDITIONAL_ORDER_MONITOR: booleanString,
 
   // -------------------------------------------------------------------------
+  // Proxy 配置
+  // -------------------------------------------------------------------------
+  PROXY_URL: z.string().optional(),
+
+  // -------------------------------------------------------------------------
   // 測試配置
   // -------------------------------------------------------------------------
   API_BASE_URL: z.string().optional().default('http://localhost:3000'),
   TEST_TOKEN: optionalString,
   TRADING_VALIDATION_ALLOW_PROD: booleanString,
-
-  // -------------------------------------------------------------------------
-  // Proxy 配置
-  // -------------------------------------------------------------------------
-  PROXY_URL: optionalString,
 });
 
 // ============================================================================
@@ -379,8 +374,6 @@ function getDefaultServerEnv(): Partial<ServerEnv> {
     API_BASE_URL: 'http://localhost:3000',
     TEST_TOKEN: '',
     TRADING_VALIDATION_ALLOW_PROD: false,
-    // Proxy
-    PROXY_URL: '',
   };
 }
 
@@ -494,11 +487,12 @@ export function getApiKeys() {
   };
 }
 
+// ============================================================================
+// Proxy 相關函式
+// ============================================================================
+
 /**
- * 取得 Proxy 配置
- * 支援 HTTP/HTTPS/SOCKS5 proxy
- *
- * @returns proxy URL 或 undefined（未設定時）
+ * 取得 Proxy URL
  */
 export function getProxyUrl(): string | undefined {
   return env.PROXY_URL || undefined;
@@ -518,44 +512,6 @@ export function isSocksProxy(): boolean {
   const proxyUrl = getProxyUrl();
   if (!proxyUrl) return false;
   return proxyUrl.startsWith('socks4://') || proxyUrl.startsWith('socks5://') || proxyUrl.startsWith('socks5h://');
-}
-
-/**
- * 取得 CCXT proxy 配置（舊版，使用 httpProxy/socksProxy）
- * 注意：httpProxy 在某些環境下可能不起作用，建議使用 getCcxtAgentConfig
- *
- * @deprecated 建議使用 getCcxtAgentConfig
- * @returns CCXT proxy 配置物件，可直接展開到 CCXT 建構函數
- */
-export function getCcxtProxyConfig(): { httpProxy?: string; socksProxy?: string } {
-  const proxyUrl = getProxyUrl();
-  if (!proxyUrl) {
-    return {};
-  }
-
-  if (isSocksProxy()) {
-    return { socksProxy: proxyUrl };
-  }
-
-  return { httpProxy: proxyUrl };
-}
-
-/**
- * 取得 CCXT agent 配置
- * 使用 https-proxy-agent 或 socks-proxy-agent 建立 agent
- *
- * 注意：此方法在某些情況下可能無法正確使用 proxy
- * 建議使用 getCcxtHttpsProxyConfig
- *
- * @deprecated 建議使用 getCcxtHttpsProxyConfig
- * @returns Promise<{ agent?: Agent }> - CCXT agent 配置物件
- */
-export async function getCcxtAgentConfig(): Promise<{ agent?: import('http').Agent }> {
-  const agent = await createProxyAgent();
-  if (!agent) {
-    return {};
-  }
-  return { agent };
 }
 
 /**
