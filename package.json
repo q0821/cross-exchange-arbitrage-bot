@@ -105,6 +105,7 @@
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18",
     "telegraf": "^4.16.3",
+    "undici": "^7.19.1",
     "ws": "^8.18.0",
     "zod": "^4.2.1"
   },
