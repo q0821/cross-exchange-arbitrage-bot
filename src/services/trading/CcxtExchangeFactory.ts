@@ -5,13 +5,21 @@
  * 包含不同交易所的特殊設定處理
  *
  * Feature: 062-refactor-trading-srp
+ *
+ * 重要：使用 @/lib/ccxt-factory 統一創建 CCXT 實例
+ * 確保 proxy 配置自動套用，避免 IP 白名單問題
  */
 
-import ccxt from 'ccxt';
 import { logger } from '@/lib/logger';
 import { TradingError } from '@/lib/errors';
+import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
+import {
+  injectCachedMarkets,
+  cacheMarketsFromExchange,
+} from '@/lib/ccxt-markets-cache';
 import { detectOkxPositionMode } from './okx-position-mode';
 import type {
+  CcxtExchange,
   ExchangeConfig,
   ExchangeInstance,
   IBinanceAccountDetector,
@@ -49,59 +57,29 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
     exchange: SupportedExchange,
     config: ExchangeConfig,
   ): Promise<ExchangeInstance> {
-    const exchangeMap: Record<SupportedExchange, string> = {
-      binance: 'binance',
-      okx: 'okx',
-      mexc: 'mexc',
-      gateio: 'gateio',
-      bingx: 'bingx',
-    };
-
-    const exchangeId = exchangeMap[exchange];
-    
-    // 驗證 exchangeId
-    if (!exchangeId) {
+    // 驗證 exchange 類型
+    const supportedExchanges: SupportedExchange[] = ['binance', 'okx', 'mexc', 'gateio', 'bingx'];
+    if (!supportedExchanges.includes(exchange)) {
       throw new TradingError(
         `Unsupported exchange: ${exchange}`,
         { exchange },
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ExchangeClass = (ccxt as any)[exchangeId];
-
-    // 驗證 ExchangeClass
-    if (!ExchangeClass) {
-      throw new TradingError(
-        `Exchange class not found for: ${exchangeId}`,
-        { exchange, exchangeId },
-      );
-    }
-
-    // 建立基礎 CCXT 配置
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const ccxtConfig: any = {
+    // 使用統一工廠創建 CCXT 實例（自動套用 proxy 配置）
+    // 參考：src/lib/ccxt-factory.ts
+    // 類型轉換：ccxt.Exchange -> CcxtExchange（運行時具有完整方法）
+    let ccxtExchange = createCcxtExchange(exchange as CcxtSupportedExchange, {
       apiKey: config.apiKey,
       secret: config.apiSecret,
+      password: config.passphrase, // OKX passphrase
       sandbox: config.isTestnet,
       enableRateLimit: true,
-      timeout: 30000, // 30 秒超時
       options: {
-        defaultType: 'swap',
+        // Binance 使用 future 類型，其他交易所使用 swap
+        defaultType: exchange === 'binance' ? 'future' : 'swap',
       },
-    };
-
-    // Binance 使用 future 類型
-    if (exchange === 'binance') {
-      ccxtConfig.options.defaultType = 'future';
-    }
-
-    // OKX 需要 passphrase
-    if (config.passphrase && exchange === 'okx') {
-      ccxtConfig.password = config.passphrase;
-    }
-
-    let ccxtExchange = new ExchangeClass(ccxtConfig);
+    }) as unknown as CcxtExchange;
 
     // 動態偵測 Binance 帳戶類型和持倉模式
     let isPortfolioMargin = false;
@@ -123,32 +101,25 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       // 如果是 Portfolio Margin，需要重新創建 exchange 實例並啟用 portfolioMargin 選項
       if (isPortfolioMargin) {
         logger.info('Recreating Binance exchange with Portfolio Margin enabled');
-        ccxtConfig.options.portfolioMargin = true;
-        ccxtExchange = new ExchangeClass(ccxtConfig);
-        // 重新載入市場資料
-        try {
-          await ccxtExchange.loadMarkets();
-        } catch (error) {
-          logger.error({ exchange, error }, 'Failed to load markets for Portfolio Margin');
-          throw new TradingError(
-            `Failed to load ${exchange} markets (Portfolio Margin)`,
-            {
-              exchange,
-              isPortfolioMargin: true,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          );
-        }
+        ccxtExchange = createCcxtExchange(exchange as CcxtSupportedExchange, {
+          apiKey: config.apiKey,
+          secret: config.apiSecret,
+          sandbox: config.isTestnet,
+          enableRateLimit: true,
+          options: {
+            defaultType: 'future',
+            portfolioMargin: true,
+          },
+        }) as unknown as CcxtExchange;
+        // 移除這裡的 loadMarkets()，將在最後統一處理並使用 cache
       }
     }
 
     // OKX：使用專門的 OKX API 偵測持倉模式
     // 原因：CCXT 的 fetchPositionMode 對 OKX 支援有問題
+    // detectOkxPositionMode 使用 privateGetAccountConfig API，不需要 markets
     if (exchange === 'okx') {
       try {
-        // 先載入市場資料
-        await ccxtExchange.loadMarkets();
-
         // 使用 OKX 專用的 API 偵測（privateGetAccountConfig）
         const okxMode = await detectOkxPositionMode(ccxtExchange);
         isHedgeMode = okxMode === 'long_short_mode';
@@ -178,8 +149,18 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
     );
 
     // 載入市場資料以獲取合約大小（contractSize）
+    // 使用 cache 機制避免重複調用 loadMarkets()
     try {
-      await ccxtExchange.loadMarkets();
+      // 先嘗試從 cache 注入
+      const cacheHit = injectCachedMarkets(ccxtExchange, exchange);
+      if (!cacheHit) {
+        // cache miss：調用 loadMarkets 並儲存快取
+        await ccxtExchange.loadMarkets();
+        cacheMarketsFromExchange(ccxtExchange, exchange);
+        logger.info({ exchange }, 'Markets loaded and cached');
+      } else {
+        logger.debug({ exchange }, 'Markets loaded from cache');
+      }
     } catch (error) {
       logger.error({ exchange, error }, 'Failed to load markets');
       throw new TradingError(
@@ -195,7 +176,8 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       ccxt: ccxtExchange,
       isPortfolioMargin,
       isHedgeMode,
-      markets: ccxtExchange.markets,
+      // 此時 loadMarkets() 或 cache 注入已成功執行，markets 必定存在
+      markets: ccxtExchange.markets!,
     };
   }
 }
