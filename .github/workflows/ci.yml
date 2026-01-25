@@ -42,6 +42,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # 需要完整歷史來比較 schema.prisma 變更
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -59,6 +62,49 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm db:generate
+
+      - name: Check Prisma migration consistency
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          echo "Checking Prisma migration consistency..."
+
+          # 取得 base commit（PR 的基底或前一個 commit）
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            COMPARE_BASE="origin/$BASE_REF"
+          else
+            # Push 到 main 時，比較前一個 commit
+            COMPARE_BASE="HEAD~1"
+          fi
+
+          # 檢查 schema.prisma 是否有變更
+          SCHEMA_CHANGED=$(git diff --name-only "$COMPARE_BASE"...HEAD | grep -c "prisma/schema.prisma" || true)
+
+          # 檢查 migrations 目錄是否有變更
+          MIGRATION_CHANGED=$(git diff --name-only "$COMPARE_BASE"...HEAD | grep -c "prisma/migrations/" || true)
+
+          echo "Schema changed: $SCHEMA_CHANGED"
+          echo "Migration changed: $MIGRATION_CHANGED"
+
+          # 如果 schema 有變更但 migration 沒有變更，報錯
+          if [ "$SCHEMA_CHANGED" -gt 0 ] && [ "$MIGRATION_CHANGED" -eq 0 ]; then
+            echo ""
+            echo "::error::Prisma Migration Check Failed"
+            echo ""
+            echo "prisma/schema.prisma has been modified but no migration files found!"
+            echo ""
+            echo "Please run the following command locally to generate a migration:"
+            echo "  pnpm prisma migrate dev --name <migration_name>"
+            echo ""
+            echo "Then commit the migration files:"
+            echo "  git add prisma/migrations/"
+            echo "  git commit --amend --no-edit"
+            echo ""
+            exit 1
+          fi
+
+          echo "Prisma migration consistency check passed"
 
       - name: Run ESLint
         run: pnpm lint
