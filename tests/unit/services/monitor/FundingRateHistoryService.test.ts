@@ -6,7 +6,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import axios from 'axios';
 import {
   FundingRateHistoryService,
   calculateFlipCount,
@@ -14,9 +13,16 @@ import {
   type FundingRateHistory,
 } from '../../../../src/services/monitor/FundingRateHistoryService';
 
-// Mock axios
-vi.mock('axios');
-const mockedAxios = vi.mocked(axios);
+// Mock axios - 需要 mock axios.create() 返回帶有 get 方法的實例
+const mockGet = vi.fn();
+vi.mock('axios', () => ({
+  default: {
+    get: vi.fn(),
+    create: vi.fn(() => ({
+      get: mockGet,
+    })),
+  },
+}));
 
 // Mock logger
 vi.mock('../../../../src/lib/logger', () => ({
@@ -204,11 +210,11 @@ describe('FundingRateHistoryService', () => {
         ],
       };
 
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockGet.mockResolvedValueOnce(mockResponse);
 
       const history = await service.getHistory('binance', 'BTCUSDT', 24);
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect(mockGet).toHaveBeenCalledWith(
         'https://fapi.binance.com/fapi/v1/fundingRate',
         expect.objectContaining({
           params: expect.objectContaining({
@@ -224,7 +230,7 @@ describe('FundingRateHistoryService', () => {
     });
 
     it('應該處理 Binance API 錯誤', async () => {
-      mockedAxios.get.mockRejectedValueOnce(new Error('API Error'));
+      mockGet.mockRejectedValueOnce(new Error('API Error'));
 
       const history = await service.getHistory('binance', 'BTCUSDT', 24);
 
@@ -243,11 +249,11 @@ describe('FundingRateHistoryService', () => {
         },
       };
 
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockGet.mockResolvedValueOnce(mockResponse);
 
       const history = await service.getHistory('okx', 'BTCUSDT', 24);
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect(mockGet).toHaveBeenCalledWith(
         'https://www.okx.com/api/v5/public/funding-rate-history',
         expect.objectContaining({
           params: expect.objectContaining({
@@ -261,7 +267,7 @@ describe('FundingRateHistoryService', () => {
     });
 
     it('應該處理 OKX API 錯誤', async () => {
-      mockedAxios.get.mockRejectedValueOnce(new Error('API Error'));
+      mockGet.mockRejectedValueOnce(new Error('API Error'));
 
       const history = await service.getHistory('okx', 'BTCUSDT', 24);
 
@@ -279,7 +285,7 @@ describe('FundingRateHistoryService', () => {
         ],
       };
 
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockGet.mockResolvedValueOnce(mockResponse);
 
       const result = await service.checkStability('binance', 'BTCUSDT');
 
@@ -299,7 +305,7 @@ describe('FundingRateHistoryService', () => {
         ],
       };
 
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockGet.mockResolvedValueOnce(mockResponse);
 
       const result = await service.checkStability('binance', 'BTCUSDT');
 
@@ -318,7 +324,7 @@ describe('FundingRateHistoryService', () => {
     });
 
     it('無法取得歷史資料時應該返回預設值', async () => {
-      mockedAxios.get.mockResolvedValueOnce({ data: [] });
+      mockGet.mockResolvedValueOnce({ data: [] });
 
       const result = await service.checkStability('binance', 'BTCUSDT');
 
@@ -332,7 +338,7 @@ describe('FundingRateHistoryService', () => {
   describe('checkStabilityBatch()', () => {
     it('應該批量檢查多個交易所', async () => {
       // Mock Binance response (stable)
-      mockedAxios.get.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         data: [
           { symbol: 'BTCUSDT', fundingRate: '0.0001', fundingTime: Date.now() - 8 * 60 * 60 * 1000 },
           { symbol: 'BTCUSDT', fundingRate: '0.0002', fundingTime: Date.now() },
@@ -340,7 +346,7 @@ describe('FundingRateHistoryService', () => {
       });
 
       // Mock OKX response (unstable)
-      mockedAxios.get.mockResolvedValueOnce({
+      mockGet.mockResolvedValueOnce({
         data: {
           data: [
             { instId: 'BTC-USDT-SWAP', fundingRate: '0.0001', fundingTime: String(Date.now() - 16 * 60 * 60 * 1000) },
@@ -363,11 +369,11 @@ describe('FundingRateHistoryService', () => {
 
   describe('symbol conversion', () => {
     it('應該正確轉換 OKX symbol 格式', async () => {
-      mockedAxios.get.mockResolvedValueOnce({ data: { data: [] } });
+      mockGet.mockResolvedValueOnce({ data: { data: [] } });
 
       await service.getHistory('okx', 'BTCUSDT', 24);
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect(mockGet).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           params: expect.objectContaining({
@@ -378,11 +384,11 @@ describe('FundingRateHistoryService', () => {
     });
 
     it('應該正確轉換 ETHUSDT 格式', async () => {
-      mockedAxios.get.mockResolvedValueOnce({ data: { data: [] } });
+      mockGet.mockResolvedValueOnce({ data: { data: [] } });
 
       await service.getHistory('okx', 'ETHUSDT', 24);
 
-      expect(mockedAxios.get).toHaveBeenCalledWith(
+      expect(mockGet).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           params: expect.objectContaining({
@@ -402,7 +408,7 @@ describe('FundingRateHistoryService', () => {
         ],
       };
 
-      mockedAxios.get.mockResolvedValueOnce(mockResponse);
+      mockGet.mockResolvedValueOnce(mockResponse);
 
       const result = await service.checkStability('binance', 'BTCUSDT');
 
