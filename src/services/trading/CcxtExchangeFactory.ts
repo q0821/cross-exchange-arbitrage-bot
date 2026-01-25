@@ -10,6 +10,7 @@
 import ccxt from 'ccxt';
 import { logger } from '@/lib/logger';
 import { TradingError } from '@/lib/errors';
+import { detectOkxPositionMode } from './okx-position-mode';
 import type {
   ExchangeConfig,
   ExchangeInstance,
@@ -141,9 +142,29 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       }
     }
 
-    // OKX 預設使用 Hedge Mode
+    // OKX：使用專門的 OKX API 偵測持倉模式
+    // 原因：CCXT 的 fetchPositionMode 對 OKX 支援有問題
     if (exchange === 'okx') {
-      isHedgeMode = true;
+      try {
+        // 先載入市場資料
+        await ccxtExchange.loadMarkets();
+
+        // 使用 OKX 專用的 API 偵測（privateGetAccountConfig）
+        const okxMode = await detectOkxPositionMode(ccxtExchange);
+        isHedgeMode = okxMode === 'long_short_mode';
+
+        logger.info(
+          { exchange, isHedgeMode, okxMode },
+          'Detected OKX position mode via privateGetAccountConfig',
+        );
+      } catch (error) {
+        // 偵測失敗，預設使用雙向模式（較安全）
+        isHedgeMode = true;
+        logger.warn(
+          { exchange, error },
+          'Failed to detect OKX position mode, defaulting to hedge mode',
+        );
+      }
     }
 
     // BingX 預設使用 Hedge Mode（雙向持倉）
