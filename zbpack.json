@@ -1,5 +1,5 @@
 {
   "build_command": "rm -rf .next node_modules/.cache && pnpm install --frozen-lockfile && pnpm build",
-  "start_command": "pnpm start",
+  "start_command": "pnpm prisma migrate deploy && pnpm start",
   "node_version": "20"
 }
