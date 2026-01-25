@@ -38,6 +38,9 @@ coverage/
 # Note: migration.sql files should be committed for production deployments
 # prisma/migrations/**/migration.sql
 
+# Prisma generated client (自動生成，由 postinstall hook 產生)
+src/generated/prisma/
+
 # Database
 *.db
 *.sqlite
