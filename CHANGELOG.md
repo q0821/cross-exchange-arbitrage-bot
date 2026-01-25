@@ -24,6 +24,29 @@
 
 ### 改善
 
+#### `/api/funding-rate-stability` API 效能優化（2026-01-25）
+
+**問題**：API 在需要 proxy 的環境中回應緩慢，可能超過 15 秒。
+
+**根因**：
+- Axios 請求沒有套用 proxy 配置
+- 每次請求都建立新的 Service 實例
+- 超時時間過短（10 秒）
+
+**修復**：
+1. **條件式 Proxy 配置** - 只有在設定 `PROXY_URL` 環境變數時才啟用 proxy，沒有設定時維持原本行為（直接連線）
+2. **Singleton 快取** - 使用 `getFundingRateHistoryService()` 取得快取的服務實例，避免重複建立 CCXT/Axios 實例
+3. **增加超時時間** - 從 10 秒增加到 30 秒
+
+**檔案變更**：
+- `src/services/monitor/FundingRateHistoryService.ts` - 新增 axios 實例與 proxy 配置
+- `app/api/funding-rate-stability/route.ts` - 改用 singleton 模式
+- `tests/unit/services/monitor/FundingRateHistoryService.test.ts` - 更新 mock 方式
+
+**向後相容性**：沒有設定 `PROXY_URL` 時，行為與原本完全相同。
+
+---
+
 #### Prisma 生成檔案改為不追蹤（2026-01-25）
 
 **背景**：Prisma 自動生成的 client 檔案（`src/generated/prisma/`）在不同分支間容易產生合併衝突，且這些檔案可由 `prisma generate` 100% 重現。

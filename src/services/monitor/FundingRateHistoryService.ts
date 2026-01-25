@@ -14,8 +14,9 @@
  * - MEXC: 不支援（無歷史費率 API）
  */
 
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import ccxt from 'ccxt';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { logger } from '../../lib/logger';
 import type { ExchangeName } from '../../connectors/types';
 
@@ -141,8 +142,30 @@ export class FundingRateHistoryService {
   // CCXT 交易所實例快取
   private ccxtInstances: Map<ExchangeName, ccxt.Exchange> = new Map();
 
+  // Axios 實例（含條件式 proxy 配置）
+  private axiosInstance: AxiosInstance;
+
   constructor(config: Partial<StabilityConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+
+    // 建立 axios 實例（條件式 proxy 配置）
+    const proxyUrl = process.env.PROXY_URL;
+
+    // ✅ 只有在有設定 PROXY_URL 時才使用 proxy
+    // ✅ 沒有 PROXY_URL 時，行為與原本完全相同（直接連線）
+    if (proxyUrl) {
+      const agent = new HttpsProxyAgent(proxyUrl);
+      this.axiosInstance = axios.create({
+        timeout: 30000,
+        httpAgent: agent,
+        httpsAgent: agent,
+      });
+      logger.debug({ proxyUrl: proxyUrl.replace(/\/\/.*@/, '//<credentials>@') }, 'FundingRateHistoryService using proxy');
+    } else {
+      this.axiosInstance = axios.create({
+        timeout: 30000,
+      });
+    }
   }
 
   /**
@@ -222,14 +245,13 @@ export class FundingRateHistoryService {
       const startTime = endTime - hours * 60 * 60 * 1000;
 
       // Binance API 一次最多返回 1000 筆，8h 間隔的話 24h 只有 3 筆
-      const response = await axios.get(`${this.binanceBaseUrl}/fapi/v1/fundingRate`, {
+      const response = await this.axiosInstance.get(`${this.binanceBaseUrl}/fapi/v1/fundingRate`, {
         params: {
           symbol,
           startTime,
           endTime,
           limit: 100,
         },
-        timeout: 10000,
       });
 
       const data = response.data as Array<{
@@ -276,12 +298,11 @@ export class FundingRateHistoryService {
       // OKX 使用 instId 格式：BTC-USDT-SWAP
       const instId = this.convertToOkxSymbol(symbol);
 
-      const response = await axios.get(`${this.okxBaseUrl}/api/v5/public/funding-rate-history`, {
+      const response = await this.axiosInstance.get(`${this.okxBaseUrl}/api/v5/public/funding-rate-history`, {
         params: {
           instId,
           limit: 100,
         },
-        timeout: 10000,
       });
 
       const data = response.data?.data as Array<{
