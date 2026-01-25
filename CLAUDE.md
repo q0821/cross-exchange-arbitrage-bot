@@ -208,21 +208,21 @@ CREATE INDEX IF NOT EXISTS "my_index" ON "my_table"(...);
 ### 11. CCXT 實例創建規範
 - **禁止**：直接使用 `new ccxt.binance()` 或類似方式創建 CCXT 實例
 - **應該**：使用 `src/lib/ccxt-factory.ts` 的工廠函數創建實例
-- **原因**：確保 proxy 配置自動套用，避免 IP 白名單錯誤（Binance -2015 錯誤）
+- **原因**：確保統一配置（proxy、timeout、rate limit 等），避免配置不一致問題
 - **範例**：
   ```typescript
-  // ❌ 錯誤 - 可能遺漏 proxy 設定
+  // ❌ 錯誤 - 可能遺漏統一配置
   import ccxt from 'ccxt';
   const exchange = new ccxt.binance({ apiKey, secret });
 
-  // ✅ 正確 - 自動套用 proxy
-  import { createAuthenticatedExchange } from '@/lib/ccxt-factory';
-  const exchange = createAuthenticatedExchange('binance', { apiKey, apiSecret });
+  // ✅ 正確 - 使用統一工廠
+  import { createCcxtExchange } from '@/lib/ccxt-factory';
+  const exchange = createCcxtExchange('binance', { apiKey, secret });
   ```
 - **統一工廠提供的函數**：
-  - `createCcxtExchange()` - 基礎創建函數
-  - `createAuthenticatedExchange()` - 帶認證的實例
-  - `createPublicExchange()` - 公開 API 實例（無需認證）
+  - `createCcxtExchange(exchangeId, config)` - 基礎創建函數，支援所有交易所
+  - `createPublicExchange(exchangeId)` - 公開 API 實例（無需認證）
+- **適用範圍**：所有 connectors、services、scripts 皆已整併使用統一工廠
 
 ## ⚠️ Speckit 工作流程強制要求 (NON-NEGOTIABLE)
 
