@@ -406,6 +406,8 @@ export class MarketRatesHandler {
           // Feature 012: 推送所有標準化版本（1h, 8h, 24h）
           normalized: exchangeData.normalized || {},
           originalInterval: exchangeData.originalFundingInterval,
+          // Feature: 持倉頁面即時費率 - 新增下次結算時間
+          nextFundingTime: exchangeData.rate.nextFundingTime?.toISOString() || null,
         };
       }
 
