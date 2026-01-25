@@ -13,6 +13,10 @@
 import { logger } from '@/lib/logger';
 import { TradingError } from '@/lib/errors';
 import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
+import {
+  injectCachedMarkets,
+  cacheMarketsFromExchange,
+} from '@/lib/ccxt-markets-cache';
 import { detectPositionMode } from './PositionModeDetector';
 import { detectOkxPositionMode } from './okx-position-mode';
 import type {
@@ -108,30 +112,15 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
             portfolioMargin: true,
           },
         }) as unknown as CcxtExchange;
-        // 重新載入市場資料
-        try {
-          await ccxtExchange.loadMarkets();
-        } catch (error) {
-          logger.error({ exchange, error }, 'Failed to load markets for Portfolio Margin');
-          throw new TradingError(
-            `Failed to load ${exchange} markets (Portfolio Margin)`,
-            {
-              exchange,
-              isPortfolioMargin: true,
-              error: error instanceof Error ? error.message : String(error),
-            },
-          );
-        }
+        // 移除這裡的 loadMarkets()，將在最後統一處理並使用 cache
       }
     }
 
     // OKX：使用專門的 OKX API 偵測持倉模式
     // 原因：CCXT 的 fetchPositionMode 對 OKX 支援有問題
+    // detectOkxPositionMode 使用 privateGetAccountConfig API，不需要 markets
     if (exchange === 'okx') {
       try {
-        // 先載入市場資料
-        await ccxtExchange.loadMarkets();
-
         // 使用 OKX 專用的 API 偵測（privateGetAccountConfig）
         const okxMode = await detectOkxPositionMode(ccxtExchange);
         isHedgeMode = okxMode === 'long_short_mode';
@@ -150,11 +139,19 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       }
     }
 
-    // BingX：使用 CCXT 的 fetchPositionMode 偵測持倉模式
+    // BingX：使用 CCXT 的 fetchPositionMode 方法
+    // fetchPositionMode 需要 markets，所以需要先載入
     if (exchange === 'bingx') {
       try {
-        // 先載入市場資料，以便 fetchPositionMode 可以使用
-        await ccxtExchange.loadMarkets();
+        // 使用 cache 機制載入市場資料
+        const cacheHit = injectCachedMarkets(ccxtExchange, exchange);
+        if (!cacheHit) {
+          await ccxtExchange.loadMarkets();
+          cacheMarketsFromExchange(ccxtExchange, exchange);
+          logger.info({ exchange }, 'Markets loaded and cached (BingX position mode detection)');
+        } else {
+          logger.debug({ exchange }, 'Markets loaded from cache (BingX position mode detection)');
+        }
 
         // 使用任意一個交易對來查詢持倉模式（模式是帳戶級別的）
         const sampleSymbol = 'BTC/USDT:USDT';
@@ -167,14 +164,14 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
 
         logger.info(
           { exchange, isHedgeMode, positionMode },
-          'Detected position mode via fetchPositionMode',
+          'Detected BingX position mode via fetchPositionMode',
         );
       } catch (error) {
         // 偵測失敗，預設使用雙向模式（較安全）
         isHedgeMode = true;
         logger.warn(
           { exchange, error },
-          'Failed to detect position mode, defaulting to hedge mode',
+          'Failed to detect BingX position mode, defaulting to hedge mode',
         );
       }
     }
@@ -185,24 +182,37 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
     );
 
     // 載入市場資料以獲取合約大小（contractSize）
-    try {
-      await ccxtExchange.loadMarkets();
-    } catch (error) {
-      logger.error({ exchange, error }, 'Failed to load markets');
-      throw new TradingError(
-        `Failed to load ${exchange} markets`,
-        {
-          exchange,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      );
+    // 使用 cache 機制避免重複調用 loadMarkets()
+    // BingX 已在上方處理過，這裡跳過
+    if (exchange !== 'bingx') {
+      try {
+        // 先嘗試從 cache 注入
+        const cacheHit = injectCachedMarkets(ccxtExchange, exchange);
+        if (!cacheHit) {
+          // cache miss：調用 loadMarkets 並儲存快取
+          await ccxtExchange.loadMarkets();
+          cacheMarketsFromExchange(ccxtExchange, exchange);
+          logger.info({ exchange }, 'Markets loaded and cached');
+        } else {
+          logger.debug({ exchange }, 'Markets loaded from cache');
+        }
+      } catch (error) {
+        logger.error({ exchange, error }, 'Failed to load markets');
+        throw new TradingError(
+          `Failed to load ${exchange} markets`,
+          {
+            exchange,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        );
+      }
     }
 
     return {
       ccxt: ccxtExchange,
       isPortfolioMargin,
       isHedgeMode,
-      // 此時 loadMarkets() 已成功執行，markets 必定存在
+      // 此時 loadMarkets() 或 cache 注入已成功執行，markets 必定存在
       markets: ccxtExchange.markets!,
     };
   }
