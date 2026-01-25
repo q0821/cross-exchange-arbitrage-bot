@@ -539,6 +539,25 @@ export function getCcxtHttpsProxyConfig(): { httpsProxy?: string; socksProxy?: s
 }
 
 /**
+ * 取得 CCXT proxy 配置（使用 httpProxy）
+ * @deprecated 請使用 getCcxtHttpsProxyConfig()，CCXT 4.x 建議使用 httpsProxy
+ */
+export function getCcxtProxyConfig(): { httpProxy?: string; socksProxy?: string } {
+  const proxyUrl = getProxyUrl();
+  if (!proxyUrl) {
+    return {};
+  }
+
+  // SOCKS proxy 使用 socksProxy 屬性
+  if (isSocksProxy()) {
+    return { socksProxy: proxyUrl };
+  }
+
+  // HTTP/HTTPS proxy 使用 httpProxy 屬性（deprecated，建議改用 httpsProxy）
+  return { httpProxy: proxyUrl };
+}
+
+/**
  * 建立 Proxy Agent
  * 根據 proxy URL 的協議自動選擇正確的 agent 類型
  *
