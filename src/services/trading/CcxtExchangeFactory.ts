@@ -10,9 +10,11 @@
  * 確保 proxy 配置自動套用，避免 IP 白名單問題
  */
 
+import type * as ccxt from 'ccxt';
+import { PrismaClient } from '@/generated/prisma/client';
 import { logger } from '@/lib/logger';
 import { TradingError } from '@/lib/errors';
-import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
+import { createCcxtExchange, createPublicExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
 import {
   injectCachedMarkets,
   cacheMarketsFromExchange,
@@ -21,6 +23,7 @@ import {
   getCachedAccountType,
   setCachedAccountType,
 } from '@/lib/account-type-cache';
+import { decrypt } from '@/lib/encryption';
 import { detectPositionMode } from './PositionModeDetector';
 import { detectOkxPositionMode } from './okx-position-mode';
 import type {
@@ -276,6 +279,148 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       // 此時 loadMarkets() 或 cache 注入已成功執行，markets 必定存在
       markets: ccxtExchange.markets!,
     };
+  }
+
+  /**
+   * 創建公開 CCXT 實例（用於 fetchTicker 等不需認證的操作）
+   * 使用全局 markets 快取
+   *
+   * @param exchange - 交易所名稱
+   * @returns CCXT Exchange 實例（已載入市場資訊）
+   */
+  static async createPublicExchangeWithCache(
+    exchange: SupportedExchange,
+  ): Promise<ccxt.Exchange> {
+    const instance = createPublicExchange(exchange as CcxtSupportedExchange);
+
+    const cacheHit = injectCachedMarkets(instance, exchange);
+    if (!cacheHit) {
+      await instance.loadMarkets();
+      cacheMarketsFromExchange(instance, exchange);
+      logger.debug({ exchange }, 'Public instance: markets loaded and cached');
+    } else {
+      logger.debug({ exchange }, 'Public instance: markets loaded from global cache');
+    }
+
+    return instance;
+  }
+
+  /**
+   * 創建認證 CCXT 實例（用於 fetchFundingHistory 等需認證的查詢操作）
+   * 使用全局 markets 快取和帳戶類型快取
+   *
+   * 注意：此方法不偵測 hedge mode，僅用於查詢操作，不用於交易
+   * 交易操作請使用 create() 方法
+   *
+   * @param exchange - 交易所名稱
+   * @param userId - 用戶 ID
+   * @param prisma - Prisma Client 實例
+   * @returns CCXT Exchange 實例（已載入市場資訊）
+   */
+  static async createAuthenticatedExchangeForQuery(
+    exchange: SupportedExchange,
+    userId: string,
+    prisma: PrismaClient,
+  ): Promise<ccxt.Exchange> {
+    // 查詢並解密 API Key
+    const apiKey = await prisma.apiKey.findFirst({
+      where: { userId, exchange, isActive: true },
+    });
+
+    if (!apiKey) {
+      throw new TradingError(`No active API key found for ${exchange}`, { exchange, userId });
+    }
+
+    const decryptedKey = decrypt(apiKey.encryptedKey);
+    const decryptedSecret = decrypt(apiKey.encryptedSecret);
+    const decryptedPassphrase = apiKey.encryptedPassphrase
+      ? decrypt(apiKey.encryptedPassphrase)
+      : undefined;
+
+    let instance = createCcxtExchange(exchange as CcxtSupportedExchange, {
+      apiKey: decryptedKey,
+      secret: decryptedSecret,
+      password: decryptedPassphrase,
+      sandbox: apiKey.environment === 'TESTNET',
+      enableRateLimit: true,
+      options: {
+        defaultType: exchange === 'binance' ? 'future' : 'swap',
+      },
+    });
+
+    // Binance Portfolio Margin 偵測（使用帳戶類型快取）
+    if (exchange === 'binance') {
+      const cachedAccountType = getCachedAccountType(exchange, decryptedKey);
+
+      let isPortfolioMargin = false;
+      if (cachedAccountType) {
+        isPortfolioMargin = cachedAccountType.isPortfolioMargin;
+        logger.debug({ exchange }, 'Using cached Binance account type (query)');
+      } else {
+        // 執行簡化版偵測
+        isPortfolioMargin = await CcxtExchangeFactory.detectBinancePortfolioMargin(instance);
+        setCachedAccountType(exchange, decryptedKey, { isPortfolioMargin, isHedgeMode: false });
+        logger.info({ exchange, isPortfolioMargin }, 'Binance account type detected and cached (query)');
+      }
+
+      if (isPortfolioMargin) {
+        logger.info('Recreating Binance exchange with Portfolio Margin enabled (query)');
+        instance = createCcxtExchange(exchange as CcxtSupportedExchange, {
+          apiKey: decryptedKey,
+          secret: decryptedSecret,
+          password: decryptedPassphrase,
+          sandbox: apiKey.environment === 'TESTNET',
+          enableRateLimit: true,
+          options: {
+            defaultType: 'future',
+            portfolioMargin: true,
+          },
+        });
+      }
+    }
+
+    // 使用全局 markets 快取
+    const cacheHit = injectCachedMarkets(instance, exchange);
+    if (!cacheHit) {
+      await instance.loadMarkets();
+      cacheMarketsFromExchange(instance, exchange);
+      logger.debug({ exchange }, 'Authenticated instance (query): markets loaded and cached');
+    } else {
+      logger.debug({ exchange }, 'Authenticated instance (query): markets loaded from global cache');
+    }
+
+    return instance;
+  }
+
+  /**
+   * 偵測 Binance 帳戶類型（標準合約 vs Portfolio Margin）
+   * 簡化版，僅偵測 Portfolio Margin，不偵測 hedge mode
+   */
+  private static async detectBinancePortfolioMargin(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ccxtExchange: any,
+  ): Promise<boolean> {
+    // 先嘗試標準 Futures API
+    try {
+      await ccxtExchange.fapiPrivateGetPositionSideDual();
+      logger.info('Binance standard Futures account detected (query)');
+      return false;
+    } catch {
+      logger.debug('Standard Futures API failed, trying Portfolio Margin (query)');
+    }
+
+    // 標準 API 失敗，嘗試 Portfolio Margin API
+    try {
+      await ccxtExchange.papiGetUmPositionSideDual();
+      logger.info('Binance Portfolio Margin account detected (query)');
+      return true;
+    } catch {
+      logger.debug('Portfolio Margin API also failed (query)');
+    }
+
+    // 無法偵測，預設標準帳戶
+    logger.info('Binance account type detection failed, defaulting to standard (query)');
+    return false;
   }
 }
 

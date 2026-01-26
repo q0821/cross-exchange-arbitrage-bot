@@ -10,7 +10,7 @@ import { createPrismaClient } from '@/lib/prisma-factory';
 import type * as ccxt from 'ccxt';
 import { Decimal } from 'decimal.js';
 import { logger } from '../../lib/logger';
-import { CcxtInstanceManager } from '../../lib/ccxt-instance-manager';
+import { CcxtExchangeFactory } from './CcxtExchangeFactory';
 import { FundingFeeQueryService } from './FundingFeeQueryService';
 import type {
   SupportedExchange,
@@ -71,27 +71,21 @@ export class PositionDetailsService {
 
     const leverage = position.longLeverage || position.shortLeverage || 1;
 
-    // 創建 CCXT 實例管理器（請求級別共享實例）
-    const instanceManager = new CcxtInstanceManager(this.prisma);
-
-    try {
-      // 2. 並行查詢即時價格和資金費率（共享 CCXT 實例）
-      const [priceResult, fundingFeeResult] = await Promise.all([
-        this.fetchCurrentPricesWithManager(
-          instanceManager,
-          position.symbol,
-          position.longExchange as SupportedExchange,
-          position.shortExchange as SupportedExchange,
-        ),
-        this.queryFundingFeesWithManager(
-          instanceManager,
-          position.longExchange as SupportedExchange,
-          position.shortExchange as SupportedExchange,
-          position.symbol,
-          position.openedAt || position.createdAt,
-          userId,
-        ),
-      ]);
+    // 2. 並行查詢即時價格和資金費率（使用 CcxtExchangeFactory 靜態方法）
+    const [priceResult, fundingFeeResult] = await Promise.all([
+      this.fetchCurrentPrices(
+        position.symbol,
+        position.longExchange as SupportedExchange,
+        position.shortExchange as SupportedExchange,
+      ),
+      this.queryFundingFees(
+        position.longExchange as SupportedExchange,
+        position.shortExchange as SupportedExchange,
+        position.symbol,
+        position.openedAt || position.createdAt,
+        userId,
+      ),
+    ]);
 
     // 3. 計算未實現損益
     let pnlResult: {
@@ -152,41 +146,36 @@ export class PositionDetailsService {
         'Position details query completed',
       );
 
-      return {
-        positionId: position.id,
-        symbol: position.symbol,
-        longExchange: position.longExchange,
-        shortExchange: position.shortExchange,
-        longEntryPrice: position.longEntryPrice.toString(),
-        shortEntryPrice: position.shortEntryPrice.toString(),
-        longPositionSize: position.longPositionSize.toString(),
-        shortPositionSize: position.shortPositionSize.toString(),
-        leverage,
-        openedAt: openedAt.toISOString(),
-        longCurrentPrice: priceResult.longCurrentPrice,
-        shortCurrentPrice: priceResult.shortCurrentPrice,
-        priceQuerySuccess: priceResult.success,
-        priceQueryError: priceResult.error,
-        ...pnlResult,
-        fundingFees: fundingFeeResult ?? undefined,
-        fundingFeeQuerySuccess: !!fundingFeeResult,
-        fundingFeeQueryError: fundingFeeResult ? undefined : '資金費率查詢失敗',
-        fees,
-        annualizedReturn,
-        annualizedReturnError,
-        queriedAt: new Date().toISOString(),
-      };
-    } finally {
-      // 清理 CCXT 實例快取
-      instanceManager.clear();
-    }
+    return {
+      positionId: position.id,
+      symbol: position.symbol,
+      longExchange: position.longExchange,
+      shortExchange: position.shortExchange,
+      longEntryPrice: position.longEntryPrice.toString(),
+      shortEntryPrice: position.shortEntryPrice.toString(),
+      longPositionSize: position.longPositionSize.toString(),
+      shortPositionSize: position.shortPositionSize.toString(),
+      leverage,
+      openedAt: openedAt.toISOString(),
+      longCurrentPrice: priceResult.longCurrentPrice,
+      shortCurrentPrice: priceResult.shortCurrentPrice,
+      priceQuerySuccess: priceResult.success,
+      priceQueryError: priceResult.error,
+      ...pnlResult,
+      fundingFees: fundingFeeResult ?? undefined,
+      fundingFeeQuerySuccess: !!fundingFeeResult,
+      fundingFeeQueryError: fundingFeeResult ? undefined : '資金費率查詢失敗',
+      fees,
+      annualizedReturn,
+      annualizedReturnError,
+      queriedAt: new Date().toISOString(),
+    };
   }
 
   /**
-   * 查詢即時價格（使用共享 CCXT 實例）
+   * 查詢即時價格（使用 CcxtExchangeFactory）
    */
-  private async fetchCurrentPricesWithManager(
-    manager: CcxtInstanceManager,
+  private async fetchCurrentPrices(
     symbol: string,
     longExchange: SupportedExchange,
     shortExchange: SupportedExchange,
@@ -194,13 +183,13 @@ export class PositionDetailsService {
     try {
       const ccxtSymbol = this.convertToCcxtSymbol(symbol);
 
-      // 並行獲取兩個交易所的公開實例（自動共享實例）
+      // 並行獲取兩個交易所的公開實例（使用全局快取）
       const [longInstance, shortInstance] = await Promise.all([
-        manager.getPublicExchange(longExchange),
-        manager.getPublicExchange(shortExchange),
+        CcxtExchangeFactory.createPublicExchangeWithCache(longExchange),
+        CcxtExchangeFactory.createPublicExchangeWithCache(shortExchange),
       ]);
 
-      // 並行查詢價格（無需再次 loadMarkets）
+      // 並行查詢價格
       const [longTicker, shortTicker] = await Promise.all([
         this.fetchTickerWithTimeout(longInstance, ccxtSymbol, longExchange),
         this.fetchTickerWithTimeout(shortInstance, ccxtSymbol, shortExchange),
@@ -289,97 +278,6 @@ export class PositionDetailsService {
   }
 
   /**
-   * 查詢即時價格（舊版方法，保留向後相容）
-   * @deprecated 改用 fetchCurrentPricesWithManager
-   */
-  async fetchCurrentPrices(
-    symbol: string,
-    longExchange: SupportedExchange,
-    shortExchange: SupportedExchange,
-    userId: string,
-  ): Promise<PriceQueryResult> {
-    try {
-      const ccxtSymbol = this.convertToCcxtSymbol(symbol);
-
-      // 並行查詢兩個交易所的價格
-      const [longPrice, shortPrice] = await Promise.all([
-        this.fetchSinglePrice(longExchange, ccxtSymbol, userId),
-        this.fetchSinglePrice(shortExchange, ccxtSymbol, userId),
-      ]);
-
-      if (longPrice === null || shortPrice === null) {
-        return {
-          success: false,
-          error: `無法取得${longPrice === null ? longExchange : shortExchange}即時價格`,
-        };
-      }
-
-      return {
-        longCurrentPrice: longPrice,
-        shortCurrentPrice: shortPrice,
-        success: true,
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error({ error: errorMessage, symbol, longExchange, shortExchange }, 'Failed to fetch current prices');
-      return {
-        success: false,
-        error: errorMessage,
-      };
-    }
-  }
-
-  /**
-   * 查詢單一交易所價格（含超時處理）
-   */
-  private async fetchSinglePrice(
-    exchange: SupportedExchange,
-    ccxtSymbol: string,
-    userId: string,
-  ): Promise<number | null> {
-    try {
-      const ccxtExchange = await this.createUserCcxtExchange(exchange, userId);
-
-      // 必須先載入市場資訊，CCXT 才能正確解析永續合約 symbol
-      await ccxtExchange.loadMarkets();
-
-      // 使用 AbortController 實作 5 秒超時（loadMarkets 後 fetchTicker 應該很快）
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      try {
-        const ticker = await ccxtExchange.fetchTicker(ccxtSymbol);
-        clearTimeout(timeoutId);
-
-        // 優先使用 mark price，若無則使用 last price
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tickerInfo = (ticker as any).info as Record<string, unknown> | undefined;
-        const price = tickerInfo?.markPrice
-          ? parseFloat(String(tickerInfo.markPrice))
-          : (ticker.last || null);
-
-        logger.debug(
-          { exchange, ccxtSymbol, last: ticker.last, markPrice: tickerInfo?.markPrice, returnedPrice: price },
-          'Price fetched successfully',
-        );
-
-        return price;
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        throw fetchError;
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const isTimeout = errorMessage.includes('abort') || errorMessage.includes('timeout');
-      logger.warn(
-        { error: errorMessage, exchange, ccxtSymbol, isTimeout },
-        isTimeout ? 'Price fetch timeout' : 'Failed to fetch price from exchange',
-      );
-      return null;
-    }
-  }
-
-  /**
    * 計算未實現損益
    */
   calculateUnrealizedPnL(
@@ -414,10 +312,9 @@ export class PositionDetailsService {
   }
 
   /**
-   * 查詢資金費率歷史（使用共享 CCXT 實例）
+   * 查詢資金費率歷史（使用 CcxtExchangeFactory）
    */
-  private async queryFundingFeesWithManager(
-    manager: CcxtInstanceManager,
+  private async queryFundingFees(
     longExchange: SupportedExchange,
     shortExchange: SupportedExchange,
     symbol: string,
@@ -427,13 +324,13 @@ export class PositionDetailsService {
     try {
       const endTime = new Date();
 
-      // 並行獲取兩個交易所的認證實例
+      // 並行獲取兩個交易所的認證實例（使用全局快取）
       const [longInstance, shortInstance] = await Promise.all([
-        manager.getAuthenticatedExchange(longExchange, userId),
-        manager.getAuthenticatedExchange(shortExchange, userId),
+        CcxtExchangeFactory.createAuthenticatedExchangeForQuery(longExchange, userId, this.prisma),
+        CcxtExchangeFactory.createAuthenticatedExchangeForQuery(shortExchange, userId, this.prisma),
       ]);
 
-      // 使用共享實例查詢資金費率
+      // 查詢資金費率
       const result = await this.fundingFeeQueryService.queryBilateralFundingFeesWithInstances(
         longExchange,
         shortExchange,
@@ -544,24 +441,6 @@ export class PositionDetailsService {
       }
     }
     return symbol;
-  }
-
-  /**
-   * 創建已認證的 CCXT 交易所實例（舊版方法，保留向後相容）
-   * @deprecated 改用 CcxtInstanceManager.getAuthenticatedExchange
-   *
-   * 使用統一 CCXT 工廠確保 proxy 配置自動套用
-   */
-  private async createUserCcxtExchange(
-    exchange: SupportedExchange,
-    userId: string,
-  ): Promise<ccxt.Exchange> {
-    const manager = new CcxtInstanceManager(this.prisma);
-    try {
-      return await manager.getAuthenticatedExchange(exchange, userId);
-    } finally {
-      // 不清理快取，因為是單次調用
-    }
   }
 }
 
