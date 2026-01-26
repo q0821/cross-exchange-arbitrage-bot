@@ -7,6 +7,7 @@
  * Feature 037: Mark Position Closed (T006)
  * Feature 063: Frontend Data Caching (T013) - TanStack Query integration
  * Feature 069: Position Group Close (T017) - 組合持倉顯示
+ * Feature: 持倉管理頁面顯示即時資金費率
  */
 
 'use client';
@@ -22,6 +23,7 @@ import { CloseProgressOverlay } from './components/CloseProgressOverlay';
 import { BatchCloseDialog } from './components/BatchCloseDialog';
 import { useClosePosition } from './hooks/useClosePosition';
 import { useBatchClose } from './hooks/useBatchClose';
+import { usePositionRates } from './hooks/usePositionRates';
 import { useGroupedPositionsQuery, type Position } from '@/hooks/queries/usePositionsQuery';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -61,6 +63,9 @@ export default function PositionsPage() {
 
   // Feature 069: 批量平倉功能
   const batchClose = useBatchClose();
+
+  // Feature: 即時資金費率
+  const { isConnected: isRatesConnected, getRateForPosition, currentTime } = usePositionRates();
 
   // Feature 069: 分組顯示支援
   const ungroupedPositions = data?.positions ?? [];
@@ -271,6 +276,9 @@ export default function PositionsPage() {
                   position={position as any}
                   onMarkAsClosed={handleMarkAsClosed}
                   isMarkingAsClosed={markingAsClosedId === position.id}
+                  rateInfo={getRateForPosition(position.symbol, position.longExchange, position.shortExchange)}
+                  isRatesConnected={isRatesConnected}
+                  currentTime={currentTime}
                 />
               ))}
             </div>
@@ -396,6 +404,9 @@ export default function PositionsPage() {
                   group={group}
                   onBatchClose={handleBatchClose}
                   isBatchClosing={batchClose.closingGroupId === group.groupId && batchClose.isClosing}
+                  rateInfo={getRateForPosition(group.symbol, group.longExchange, group.shortExchange)}
+                  isRatesConnected={isRatesConnected}
+                  currentTime={currentTime}
                 />
               ))}
             </div>
@@ -420,6 +431,9 @@ export default function PositionsPage() {
                   isClosing={closePosition.closingPositionId === position.id && closePosition.isLoading}
                   onMarkAsClosed={handleMarkAsClosed}
                   isMarkingAsClosed={markingAsClosedId === position.id}
+                  rateInfo={getRateForPosition(position.symbol, position.longExchange, position.shortExchange)}
+                  isRatesConnected={isRatesConnected}
+                  currentTime={currentTime}
                 />
               ))}
             </div>
@@ -437,7 +451,13 @@ export default function PositionsPage() {
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {pendingPositions.map((position) => (
-                <PositionCard key={position.id} position={position as any} />
+                <PositionCard
+                  key={position.id}
+                  position={position as any}
+                  rateInfo={getRateForPosition(position.symbol, position.longExchange, position.shortExchange)}
+                  isRatesConnected={isRatesConnected}
+                  currentTime={currentTime}
+                />
               ))}
             </div>
           </div>
@@ -459,6 +479,9 @@ export default function PositionsPage() {
                   position={position as any}
                   onMarkAsClosed={handleMarkAsClosed}
                   isMarkingAsClosed={markingAsClosedId === position.id}
+                  rateInfo={getRateForPosition(position.symbol, position.longExchange, position.shortExchange)}
+                  isRatesConnected={isRatesConnected}
+                  currentTime={currentTime}
                 />
               ))}
             </div>

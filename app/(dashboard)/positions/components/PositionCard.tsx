@@ -6,6 +6,7 @@
  * Feature 037: Mark Position Closed (T005)
  * Feature 045: Position Details View
  * Feature 063: Frontend Data Caching (T014) - TanStack Query integration
+ * Feature: 持倉管理頁面顯示即時資金費率
  */
 
 'use client';
@@ -30,6 +31,8 @@ import type { ExchangeName } from '@/app/(dashboard)/market-monitor/types';
 import { getExchangeTradingUrl } from '@/app/(dashboard)/market-monitor/utils/formatArbitrageMessage';
 import { usePositionDetailsQuery } from '@/hooks/queries/usePositionDetailsQuery';
 import { PositionDetailsPanel } from './PositionDetailsPanel';
+import { PositionRatesDisplay } from './PositionRatesDisplay';
+import type { PositionRateInfo } from '../types/position-rates';
 
 interface PositionCardProps {
   position: PositionInfo;
@@ -37,6 +40,12 @@ interface PositionCardProps {
   isClosing?: boolean;
   onMarkAsClosed?: (positionId: string) => void;
   isMarkingAsClosed?: boolean;
+  /** 即時費率資訊（可選） */
+  rateInfo?: PositionRateInfo | null;
+  /** WebSocket 連線狀態（用於費率顯示） */
+  isRatesConnected?: boolean;
+  /** 當前時間（用於倒計時計算） */
+  currentTime?: Date;
 }
 
 const STATUS_CONFIG: Record<PositionStatus, {
@@ -135,6 +144,9 @@ export function PositionCard({
   isClosing = false,
   onMarkAsClosed,
   isMarkingAsClosed = false,
+  rateInfo,
+  isRatesConnected = false,
+  currentTime = new Date(),
 }: PositionCardProps) {
   const statusConfig = STATUS_CONFIG[position.status] || STATUS_CONFIG.PENDING;
   const StatusIcon = statusConfig.icon;
@@ -233,6 +245,17 @@ export function PositionCard({
             <span className="font-medium text-foreground">{position.leverage}x</span>
           </div>
         </div>
+
+        {/* Live Funding Rates - Feature: 持倉管理頁面顯示即時資金費率 */}
+        {position.status === 'OPEN' && (rateInfo !== undefined || isRatesConnected) && (
+          <div className="mt-3 pt-3 border-t border-border">
+            <PositionRatesDisplay
+              rateInfo={rateInfo ?? null}
+              isConnected={isRatesConnected}
+              currentTime={currentTime}
+            />
+          </div>
+        )}
 
         {/* Stop Loss / Take Profit Info (Feature 038) */}
         {(position.stopLossEnabled || position.takeProfitEnabled) && (

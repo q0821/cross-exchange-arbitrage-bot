@@ -33,6 +33,7 @@ export interface ExchangeRateData {
     '24h'?: number;  // 標準化為 24 小時基準的費率
   };
   originalInterval?: number; // 原始資金費率週期（小時數）
+  nextFundingTime?: string | null; // 下次結算時間 (ISO 8601)
 }
 
 export interface BestArbitragePair {

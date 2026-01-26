@@ -1,9 +1,16 @@
--- Migration: add_position_group_id
--- Description: 新增分單開倉組別 ID 欄位 (Feature 069)
--- Created: 2026-01-25
+-- Feature 069: 分單持倉合併顯示與批量平倉
+-- 新增 Position.groupId 欄位用於關聯分單開倉的持倉
 
--- AlterTable: Add groupId column (冪等)
-ALTER TABLE "positions" ADD COLUMN IF NOT EXISTS "groupId" UUID;
+-- AlterTable: 新增 groupId 欄位 (冪等)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'positions' AND column_name = 'groupId'
+    ) THEN
+        ALTER TABLE "positions" ADD COLUMN "groupId" UUID;
+    END IF;
+END $$;
 
--- CreateIndex (冪等)
+-- CreateIndex: 加速組別查詢 (冪等)
 CREATE INDEX IF NOT EXISTS "positions_groupId_idx" ON "positions"("groupId");

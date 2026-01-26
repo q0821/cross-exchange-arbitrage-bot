@@ -1,15 +1,12 @@
 import 'dotenv/config';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@/generated/prisma/client';
 import { logger } from './logger';
+import { createPrismaClient } from './prisma-factory';
 
 declare global {
-
-  var prisma: PrismaClient | undefined;
-
+  // eslint-disable-next-line no-var
   var __dbServicesInitialized: boolean | undefined;
-
-  var __beforeExitHandlerRegistered: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var __dbBeforeExitRegistered: boolean | undefined;
 }
 
 /**
@@ -22,16 +19,8 @@ const isBuildPhase = (): boolean => {
   return phase === 'phase-production-build' || phase === 'phase-export';
 };
 
-const prismaClientSingleton = () => {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
-  return new PrismaClient({ adapter });
-};
-
-const prisma = globalThis.prisma ?? prismaClientSingleton();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalThis.prisma = prisma;
-}
+// 使用統一的 Prisma 工廠函數（singleton）
+const prisma = createPrismaClient();
 
 /**
  * 初始化服務 - 只在 runtime 執行，避免在 build 階段執行
@@ -72,22 +61,21 @@ const initializeServices = async () => {
       logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Failed to initialize ConditionalOrderMonitor');
     }
   }
+
+  // 優雅關閉資料庫連線 - 使用 globalThis 防止重複註冊
+  if (!globalThis.__dbBeforeExitRegistered) {
+    globalThis.__dbBeforeExitRegistered = true;
+    process.on('beforeExit', async () => {
+      await prisma.$disconnect();
+      logger.info('Database connection closed');
+    });
+  }
 };
 
 // 在 runtime 時初始化服務（非阻塞）
 if (!isBuildPhase()) {
   initializeServices().catch((error) => {
     logger.error({ error: error instanceof Error ? error.message : String(error) }, 'Failed to initialize services');
-  });
-}
-
-// 優雅關閉資料庫連線
-// 使用全域 flag 防止重複註冊監聽器（避免 MaxListenersExceededWarning）
-if (!globalThis.__beforeExitHandlerRegistered) {
-  globalThis.__beforeExitHandlerRegistered = true;
-  process.on('beforeExit', async () => {
-    await prisma.$disconnect();
-    logger.info('Database connection closed');
   });
 }
 
