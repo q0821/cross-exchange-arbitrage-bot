@@ -24,11 +24,13 @@ interface BatchCloseResponse {
   groupId: string;
   totalPositions: number;
   closedPositions: number;
+  partialPositions: number;
   failedPositions: number;
   results: Array<{
     positionId: string;
     success: boolean;
     error?: string;
+    isPartial?: boolean;
   }>;
   message: string;
 }
@@ -132,22 +134,38 @@ export async function POST(
     );
 
     // 5. 構建回應
-    const message = result.success
-      ? `批量平倉完成，共 ${result.closedPositions} 個持倉已關閉`
-      : result.totalPositions === 0
-        ? '此組沒有待平倉的持倉'
-        : `批量平倉部分完成，成功 ${result.closedPositions} 個，失敗 ${result.failedPositions} 個`;
+    let message: string;
+    if (result.success) {
+      message = `批量平倉完成，共 ${result.closedPositions} 個持倉已關閉`;
+    } else if (result.totalPositions === 0) {
+      message = '此組沒有待平倉的持倉';
+    } else {
+      // 構建詳細的狀態訊息
+      const parts: string[] = [];
+      if (result.closedPositions > 0) {
+        parts.push(`成功 ${result.closedPositions} 個`);
+      }
+      if (result.partialPositions > 0) {
+        parts.push(`部分成功 ${result.partialPositions} 個`);
+      }
+      if (result.failedPositions > 0) {
+        parts.push(`失敗 ${result.failedPositions} 個`);
+      }
+      message = `批量平倉部分完成，${parts.join('，')}`;
+    }
 
     const response: BatchCloseResponse = {
       success: result.success,
       groupId,
       totalPositions: result.totalPositions,
       closedPositions: result.closedPositions,
+      partialPositions: result.partialPositions,
       failedPositions: result.failedPositions,
       results: result.results.map((r) => ({
         positionId: r.positionId,
         success: r.success,
         error: r.error,
+        isPartial: r.isPartial,
       })),
       message,
     };
@@ -159,6 +177,7 @@ export async function POST(
         groupId,
         totalPositions: result.totalPositions,
         closedPositions: result.closedPositions,
+        partialPositions: result.partialPositions,
         failedPositions: result.failedPositions,
         success: result.success,
       },
@@ -167,7 +186,7 @@ export async function POST(
 
     // 6. 返回適當的 HTTP 狀態碼
     // 全部成功: 200
-    // 部分成功: 207 Multi-Status
+    // 部分成功（包含 partialPositions）: 207 Multi-Status
     // 全部失敗: 500
     // 沒有持倉: 200 (空操作也算成功)
     const statusCode =
@@ -175,7 +194,7 @@ export async function POST(
         ? 200
         : result.success
           ? 200
-          : result.closedPositions > 0
+          : (result.closedPositions > 0 || result.partialPositions > 0)
             ? 207
             : 500;
 

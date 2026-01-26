@@ -150,12 +150,14 @@ export interface CloseBatchPositionsResult {
   success: boolean;
   /** 總持倉數量 */
   totalPositions: number;
-  /** 成功平倉數量 */
+  /** 成功平倉數量（雙邊都成功） */
   closedPositions: number;
-  /** 失敗數量 */
+  /** 部分平倉數量（一邊成功一邊失敗） */
+  partialPositions: number;
+  /** 完全失敗數量（雙邊都失敗或發生錯誤） */
   failedPositions: number;
   /** 每個持倉的結果 */
-  results: Array<{ success: boolean; positionId: string; error?: string }>;
+  results: Array<{ success: boolean; positionId: string; error?: string; isPartial?: boolean }>;
 }
 
 /**
@@ -286,6 +288,7 @@ export class PositionCloser {
         success: true,
         totalPositions: 0,
         closedPositions: 0,
+        partialPositions: 0,
         failedPositions: 0,
         results: [],
       };
@@ -297,8 +300,9 @@ export class PositionCloser {
     );
 
     // 2. 逐一平倉（使用 BATCH_CLOSE 作為 closeReason）
-    const results: Array<{ success: boolean; positionId: string; error?: string }> = [];
+    const results: Array<{ success: boolean; positionId: string; error?: string; isPartial?: boolean }> = [];
     let closedPositions = 0;
+    let partialPositions = 0;
     let failedPositions = 0;
 
     for (let i = 0; i < positions.length; i++) {
@@ -333,12 +337,13 @@ export class PositionCloser {
             'Batch close: position closed successfully',
           );
         } else {
-          // closePosition 返回 PARTIAL_CLOSE
-          failedPositions++;
+          // closePosition 返回 PARTIAL_CLOSE（一邊成功一邊失敗）
+          partialPositions++;
           results.push({
             success: false,
             positionId: position.id,
             error: 'PARTIAL_CLOSE',
+            isPartial: true,
           });
           logger.warn(
             { positionId: position.id, current, total: totalPositions },
@@ -346,12 +351,14 @@ export class PositionCloser {
           );
         }
       } catch (error) {
+        // 完全失敗（雙邊都失敗或發生錯誤）
         failedPositions++;
         const errorMessage = error instanceof Error ? error.message : String(error);
         results.push({
           success: false,
           positionId: position.id,
           error: errorMessage,
+          isPartial: false,
         });
         logger.warn(
           { positionId: position.id, current, total: totalPositions, error: errorMessage },
@@ -361,10 +368,11 @@ export class PositionCloser {
       }
     }
 
-    const success = failedPositions === 0;
+    // 只有當沒有任何部分失敗或完全失敗時，才算全部成功
+    const success = partialPositions === 0 && failedPositions === 0;
 
     logger.info(
-      { userId, groupId, totalPositions, closedPositions, failedPositions, success },
+      { userId, groupId, totalPositions, closedPositions, partialPositions, failedPositions, success },
       'Batch position close completed',
     );
 
@@ -372,6 +380,7 @@ export class PositionCloser {
       success,
       totalPositions,
       closedPositions,
+      partialPositions,
       failedPositions,
       results,
     };
@@ -965,6 +974,22 @@ export class PositionCloser {
             }),
       },
     });
+
+    // 嘗試取消成功平倉那一邊的條件單
+    // 例如：如果 Long 成功平倉，則取消 Long 的停損停利單
+    // 失敗的一邊保留條件單，因為倉位還在
+    try {
+      await this.cancelSingleSideConditionalOrders(position, successSide);
+    } catch (error) {
+      logger.warn(
+        {
+          positionId: position.id,
+          side: successSide,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to cancel conditional orders for closed side in partial close',
+      );
+    }
 
     return {
       success: false,
