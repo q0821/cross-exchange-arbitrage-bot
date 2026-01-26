@@ -49,6 +49,28 @@ vi.mock('@/lib/logger', () => ({
   },
 }));
 
+vi.mock('@/lib/ccxt-markets-cache', () => ({
+  loadMarketsWithCache: vi.fn().mockResolvedValue({
+    'BTC/USDT:USDT': { id: 'btcusdt', contractSize: 1, symbol: 'BTC/USDT:USDT' },
+  }),
+  getCachedMarkets: vi.fn().mockReturnValue(null),
+  setCachedMarkets: vi.fn(),
+  clearCachedMarkets: vi.fn(),
+  clearAllCachedMarkets: vi.fn(),
+  injectCachedMarkets: vi.fn().mockReturnValue(false),
+  cacheMarketsFromExchange: vi.fn(),
+}));
+
+vi.mock('@/lib/account-type-cache', () => ({
+  getCachedAccountType: vi.fn().mockReturnValue({
+    isPortfolioMargin: false,
+    isHedgeMode: true,
+  }),
+  setCachedAccountType: vi.fn(),
+  clearCachedAccountType: vi.fn(),
+  clearAllAccountTypeCache: vi.fn(),
+}));
+
 vi.mock('ccxt', () => {
   class MockExchangeClass {
     createMarketOrder = (...args: unknown[]) => mockFnStore.createMarketOrder(...args);
