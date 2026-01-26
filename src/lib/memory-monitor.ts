@@ -3,9 +3,16 @@
  *
  * 定期記錄 Node.js 記憶體使用狀況到 log
  * 用於監控生產環境的記憶體趨勢，及早發現記憶體洩漏
+ *
+ * Feature: 066-memory-monitoring
+ * - 整合資料結構大小監控
+ * - 記憶體日誌分流到 logs/memory/YYYY-MM-DD.log
  */
 
 import { logger } from './logger';
+import { memoryLogger } from './memory-logger';
+import { DataStructureRegistry } from './data-structure-registry';
+import type { DataStructureStats } from '@/types/memory-stats';
 
 /**
  * 記憶體統計資訊
@@ -23,6 +30,20 @@ export interface MemoryStats {
   arrayBuffers: number;
   /** Heap 使用率 (%) */
   heapUsagePercent: number;
+}
+
+/**
+ * 擴展記憶體統計資訊（含資料結構）
+ * Feature: 066-memory-monitoring
+ */
+export interface ExtendedMemoryStats extends MemoryStats {
+  /** 資料結構摘要 */
+  dataStructures: {
+    totalServices: number;
+    totalItems: number;
+  };
+  /** 資料結構詳細資訊 */
+  dataStructureDetails: DataStructureStats[];
 }
 
 // 全域變數
@@ -49,31 +70,70 @@ export function getMemoryStats(): MemoryStats {
 }
 
 /**
+ * 取得擴展記憶體統計（含資料結構）
+ * Feature: 066-memory-monitoring
+ */
+export function getExtendedMemoryStats(): ExtendedMemoryStats {
+  const basicStats = getMemoryStats();
+  const dataStructureDetails = DataStructureRegistry.getAllStats();
+
+  const totalItems = dataStructureDetails.reduce((sum, ds) => sum + ds.totalItems, 0);
+
+  return {
+    ...basicStats,
+    dataStructures: {
+      totalServices: dataStructureDetails.length,
+      totalItems,
+    },
+    dataStructureDetails,
+  };
+}
+
+/**
  * 記錄記憶體使用狀況
+ * Feature: 066-memory-monitoring - 整合資料結構統計並分流日誌
  */
 function logMemoryUsage(): void {
-  const stats = getMemoryStats();
+  const extendedStats = getExtendedMemoryStats();
   const uptimeSeconds = startTime ? Math.floor((Date.now() - startTime.getTime()) / 1000) : 0;
 
   // 更新峰值
-  if (stats.heapUsed > peakHeapUsed) {
-    peakHeapUsed = stats.heapUsed;
+  if (extendedStats.heapUsed > peakHeapUsed) {
+    peakHeapUsed = extendedStats.heapUsed;
   }
 
-  // 根據記憶體使用狀況選擇 log 級別
-  const logData = {
-    ...stats,
+  // 完整資料寫入 memoryLogger（logs/memory/）
+  const fullLogData = {
+    heapUsed: extendedStats.heapUsed,
+    heapTotal: extendedStats.heapTotal,
+    heapUsagePercent: extendedStats.heapUsagePercent,
+    rss: extendedStats.rss,
+    external: extendedStats.external,
+    arrayBuffers: extendedStats.arrayBuffers,
     peakHeapUsedMB: Math.round(peakHeapUsed * 100) / 100,
     uptimeMinutes: Math.round(uptimeSeconds / 60),
+    dataStructures: extendedStats.dataStructures,
+    dataStructureDetails: extendedStats.dataStructureDetails,
+  };
+
+  memoryLogger.info(fullLogData, 'Memory snapshot');
+
+  // 摘要資料寫入主 logger
+  const summaryLogData = {
+    heapUsedMB: extendedStats.heapUsed,
+    heapUsagePercent: extendedStats.heapUsagePercent,
+    peakHeapUsedMB: Math.round(peakHeapUsed * 100) / 100,
+    uptimeMinutes: Math.round(uptimeSeconds / 60),
+    dataStructureItems: extendedStats.dataStructures.totalItems,
   };
 
   // 超過 1GB 使用警告級別，超過 2GB 使用錯誤級別
-  if (stats.heapUsed > 2048) {
-    logger.error(logData, 'Memory usage CRITICAL - heap > 2GB');
-  } else if (stats.heapUsed > 1024) {
-    logger.warn(logData, 'Memory usage HIGH - heap > 1GB');
+  if (extendedStats.heapUsed > 2048) {
+    logger.error(summaryLogData, 'Memory usage CRITICAL - heap > 2GB');
+  } else if (extendedStats.heapUsed > 1024) {
+    logger.warn(summaryLogData, 'Memory usage HIGH - heap > 1GB');
   } else {
-    logger.info(logData, 'Memory usage');
+    logger.info(summaryLogData, 'Memory usage');
   }
 }
 
