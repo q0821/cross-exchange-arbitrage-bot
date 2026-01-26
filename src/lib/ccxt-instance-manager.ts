@@ -7,6 +7,10 @@
  * - PositionDetailsService.getPositionDetails() 內創建 manager
  * - 共享實例給多個子服務（價格查詢、資金費率查詢）
  * - 請求結束時調用 clear() 清理資源
+ *
+ * 效能優化：
+ * - 使用 account-type-cache 避免重複偵測 Binance Portfolio Margin
+ * - 使用 ccxt-markets-cache 避免重複調用 loadMarkets()
  */
 
 import type * as ccxt from 'ccxt';
@@ -14,6 +18,14 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { createCcxtExchange, createPublicExchange, type SupportedExchange } from './ccxt-factory';
 import { decrypt } from './encryption';
 import { logger } from './logger';
+import {
+  injectCachedMarkets,
+  cacheMarketsFromExchange,
+} from './ccxt-markets-cache';
+import {
+  getCachedAccountType,
+  setCachedAccountType,
+} from './account-type-cache';
 
 export class CcxtInstanceManager {
   private prisma: PrismaClient;
@@ -26,7 +38,7 @@ export class CcxtInstanceManager {
 
   /**
    * 獲取公開 API 實例（用於 fetchTicker 等不需認證的操作）
-   * 已自動調用 loadMarkets()
+   * 已自動調用 loadMarkets()（使用全局快取加速）
    *
    * @param exchange - 交易所名稱
    * @returns CCXT Exchange 實例（已載入市場資訊）
@@ -38,19 +50,27 @@ export class CcxtInstanceManager {
     }
 
     const instance = createPublicExchange(exchange);
-    await instance.loadMarkets();
-    this.publicInstances.set(exchange, instance);
 
-    logger.debug({ exchange }, 'Created and cached public CCXT instance');
+    // 使用全局 markets 快取加速
+    const cacheHit = injectCachedMarkets(instance, exchange);
+    if (!cacheHit) {
+      await instance.loadMarkets();
+      cacheMarketsFromExchange(instance, exchange);
+      logger.debug({ exchange }, 'Public instance: markets loaded and cached');
+    } else {
+      logger.debug({ exchange }, 'Public instance: markets loaded from global cache');
+    }
+
+    this.publicInstances.set(exchange, instance);
     return instance;
   }
 
   /**
    * 獲取認證 API 實例（用於 fetchFundingHistory 等需認證的操作）
-   * 已自動調用 loadMarkets()
+   * 已自動調用 loadMarkets()（使用全局快取加速）
    *
    * 特殊處理：
-   * - Binance Portfolio Margin 偵測與重建（如需要）
+   * - Binance Portfolio Margin 偵測與重建（使用帳戶類型快取）
    *
    * @param exchange - 交易所名稱
    * @param userId - 用戶 ID（用於查詢 API Key）
@@ -95,9 +115,23 @@ export class CcxtInstanceManager {
       },
     });
 
-    // Binance Portfolio Margin 偵測（僅在需要時執行）
+    // Binance Portfolio Margin 偵測（使用帳戶類型快取）
     if (exchange === 'binance' && detectPortfolioMargin) {
-      const isPortfolioMargin = await this.detectBinanceAccountType(instance);
+      // 先檢查帳戶類型快取
+      const cachedAccountType = getCachedAccountType(exchange, decryptedKey);
+
+      let isPortfolioMargin = false;
+      if (cachedAccountType) {
+        isPortfolioMargin = cachedAccountType.isPortfolioMargin;
+        logger.debug({ exchange }, 'Using cached Binance account type (CcxtInstanceManager)');
+      } else {
+        // 快取不存在或已過期，執行偵測
+        isPortfolioMargin = await this.detectBinanceAccountType(instance);
+        // 寫入快取（isHedgeMode 這裡不偵測，設為 false）
+        setCachedAccountType(exchange, decryptedKey, { isPortfolioMargin, isHedgeMode: false });
+        logger.info({ exchange, isPortfolioMargin }, 'Binance account type detected and cached (CcxtInstanceManager)');
+      }
+
       if (isPortfolioMargin) {
         logger.info('Recreating Binance exchange with Portfolio Margin enabled (CcxtInstanceManager)');
         instance = createCcxtExchange(exchange, {
@@ -114,10 +148,17 @@ export class CcxtInstanceManager {
       }
     }
 
-    await instance.loadMarkets();
-    this.authenticatedInstances.set(key, instance);
+    // 使用全局 markets 快取加速
+    const cacheHit = injectCachedMarkets(instance, exchange);
+    if (!cacheHit) {
+      await instance.loadMarkets();
+      cacheMarketsFromExchange(instance, exchange);
+      logger.debug({ exchange }, 'Authenticated instance: markets loaded and cached');
+    } else {
+      logger.debug({ exchange }, 'Authenticated instance: markets loaded from global cache');
+    }
 
-    logger.debug({ exchange, userId }, 'Created and cached authenticated CCXT instance');
+    this.authenticatedInstances.set(key, instance);
     return instance;
   }
 
