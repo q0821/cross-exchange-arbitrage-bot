@@ -10,13 +10,20 @@
  * 確保 proxy 配置自動套用，避免 IP 白名單問題
  */
 
+import type * as ccxt from 'ccxt';
+import { PrismaClient } from '@/generated/prisma/client';
 import { logger } from '@/lib/logger';
 import { TradingError } from '@/lib/errors';
-import { createCcxtExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
+import { createCcxtExchange, createPublicExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
 import {
   injectCachedMarkets,
   cacheMarketsFromExchange,
 } from '@/lib/ccxt-markets-cache';
+import {
+  getCachedAccountType,
+  setCachedAccountType,
+} from '@/lib/account-type-cache';
+import { decrypt } from '@/lib/encryption';
 import { detectPositionMode } from './PositionModeDetector';
 import { detectOkxPositionMode } from './okx-position-mode';
 import type {
@@ -87,16 +94,33 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
     let isHedgeMode = false;
 
     if (exchange === 'binance') {
-      const accountType = await this.binanceAccountDetector.detect(ccxtExchange);
-      isPortfolioMargin = accountType.isPortfolioMargin;
-      isHedgeMode = accountType.isHedgeMode;
+      // 先檢查快取
+      const cachedAccountType = getCachedAccountType(exchange, config.apiKey);
 
-      // 如果偵測失敗，記錄警告提示用戶可能需要手動配置
-      if (accountType.detectionFailed) {
-        logger.warn(
+      if (cachedAccountType) {
+        // 使用快取的帳戶類型
+        isPortfolioMargin = cachedAccountType.isPortfolioMargin;
+        isHedgeMode = cachedAccountType.isHedgeMode;
+        logger.info(
           { exchange, isPortfolioMargin, isHedgeMode },
-          'Binance account type detection failed, using defaults. Consider setting hedge mode manually if needed.',
+          'Using cached Binance account type',
         );
+      } else {
+        // 快取不存在或已過期，執行偵測
+        const accountType = await this.binanceAccountDetector.detect(ccxtExchange);
+        isPortfolioMargin = accountType.isPortfolioMargin;
+        isHedgeMode = accountType.isHedgeMode;
+
+        // 如果偵測失敗，記錄警告提示用戶可能需要手動配置
+        if (accountType.detectionFailed) {
+          logger.warn(
+            { exchange, isPortfolioMargin, isHedgeMode },
+            'Binance account type detection failed, using defaults. Consider setting hedge mode manually if needed.',
+          );
+        } else {
+          // 偵測成功，寫入快取
+          setCachedAccountType(exchange, config.apiKey, { isPortfolioMargin, isHedgeMode });
+        }
       }
 
       // 如果是 Portfolio Margin，需要重新創建 exchange 實例並啟用 portfolioMargin 選項
@@ -120,59 +144,99 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
     // 原因：CCXT 的 fetchPositionMode 對 OKX 支援有問題
     // detectOkxPositionMode 使用 privateGetAccountConfig API，不需要 markets
     if (exchange === 'okx') {
-      try {
-        // 使用 OKX 專用的 API 偵測（privateGetAccountConfig）
-        const okxMode = await detectOkxPositionMode(ccxtExchange);
-        isHedgeMode = okxMode === 'long_short_mode';
+      // 先檢查快取
+      const cachedAccountType = getCachedAccountType(exchange, config.apiKey);
 
+      if (cachedAccountType) {
+        // 使用快取的帳戶類型
+        isHedgeMode = cachedAccountType.isHedgeMode;
         logger.info(
-          { exchange, isHedgeMode, okxMode },
-          'Detected OKX position mode via privateGetAccountConfig',
+          { exchange, isHedgeMode },
+          'Using cached OKX account type',
         );
-      } catch (error) {
-        // 偵測失敗，預設使用雙向模式（較安全）
-        isHedgeMode = true;
-        logger.warn(
-          { exchange, error },
-          'Failed to detect OKX position mode, defaulting to hedge mode',
-        );
+      } else {
+        try {
+          // 使用 OKX 專用的 API 偵測（privateGetAccountConfig）
+          const okxMode = await detectOkxPositionMode(ccxtExchange);
+          isHedgeMode = okxMode === 'long_short_mode';
+
+          // 偵測成功，寫入快取（OKX 不使用 Portfolio Margin）
+          setCachedAccountType(exchange, config.apiKey, { isPortfolioMargin: false, isHedgeMode });
+
+          logger.info(
+            { exchange, isHedgeMode, okxMode },
+            'Detected OKX position mode via privateGetAccountConfig',
+          );
+        } catch (error) {
+          // 偵測失敗，預設使用雙向模式（較安全），不寫入快取
+          isHedgeMode = true;
+          logger.warn(
+            { exchange, error },
+            'Failed to detect OKX position mode, defaulting to hedge mode',
+          );
+        }
       }
     }
 
     // BingX：使用 CCXT 的 fetchPositionMode 方法
     // fetchPositionMode 需要 markets，所以需要先載入
     if (exchange === 'bingx') {
-      try {
-        // 使用 cache 機制載入市場資料
-        const cacheHit = injectCachedMarkets(ccxtExchange, exchange);
-        if (!cacheHit) {
+      // 先檢查快取
+      const cachedAccountType = getCachedAccountType(exchange, config.apiKey);
+
+      if (cachedAccountType) {
+        // 使用快取的帳戶類型
+        isHedgeMode = cachedAccountType.isHedgeMode;
+        logger.info(
+          { exchange, isHedgeMode },
+          'Using cached BingX account type',
+        );
+
+        // 仍需載入 markets（後續操作需要）
+        const marketsCacheHit = injectCachedMarkets(ccxtExchange, exchange);
+        if (!marketsCacheHit) {
           await ccxtExchange.loadMarkets();
           cacheMarketsFromExchange(ccxtExchange, exchange);
-          logger.info({ exchange }, 'Markets loaded and cached (BingX position mode detection)');
+          logger.info({ exchange }, 'Markets loaded and cached (BingX)');
         } else {
-          logger.debug({ exchange }, 'Markets loaded from cache (BingX position mode detection)');
+          logger.debug({ exchange }, 'Markets loaded from cache (BingX)');
         }
+      } else {
+        try {
+          // 使用 cache 機制載入市場資料
+          const cacheHit = injectCachedMarkets(ccxtExchange, exchange);
+          if (!cacheHit) {
+            await ccxtExchange.loadMarkets();
+            cacheMarketsFromExchange(ccxtExchange, exchange);
+            logger.info({ exchange }, 'Markets loaded and cached (BingX position mode detection)');
+          } else {
+            logger.debug({ exchange }, 'Markets loaded from cache (BingX position mode detection)');
+          }
 
-        // 使用任意一個交易對來查詢持倉模式（模式是帳戶級別的）
-        const sampleSymbol = 'BTC/USDT:USDT';
-        const positionMode = await detectPositionMode(
-          ccxtExchange,
-          exchange,
-          sampleSymbol,
-        );
-        isHedgeMode = positionMode.hedged;
+          // 使用任意一個交易對來查詢持倉模式（模式是帳戶級別的）
+          const sampleSymbol = 'BTC/USDT:USDT';
+          const positionMode = await detectPositionMode(
+            ccxtExchange,
+            exchange,
+            sampleSymbol,
+          );
+          isHedgeMode = positionMode.hedged;
 
-        logger.info(
-          { exchange, isHedgeMode, positionMode },
-          'Detected BingX position mode via fetchPositionMode',
-        );
-      } catch (error) {
-        // 偵測失敗，預設使用雙向模式（較安全）
-        isHedgeMode = true;
-        logger.warn(
-          { exchange, error },
-          'Failed to detect BingX position mode, defaulting to hedge mode',
-        );
+          // 偵測成功，寫入快取（BingX 不使用 Portfolio Margin）
+          setCachedAccountType(exchange, config.apiKey, { isPortfolioMargin: false, isHedgeMode });
+
+          logger.info(
+            { exchange, isHedgeMode, positionMode },
+            'Detected BingX position mode via fetchPositionMode',
+          );
+        } catch (error) {
+          // 偵測失敗，預設使用雙向模式（較安全），不寫入快取
+          isHedgeMode = true;
+          logger.warn(
+            { exchange, error },
+            'Failed to detect BingX position mode, defaulting to hedge mode',
+          );
+        }
       }
     }
 
@@ -215,6 +279,148 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       // 此時 loadMarkets() 或 cache 注入已成功執行，markets 必定存在
       markets: ccxtExchange.markets!,
     };
+  }
+
+  /**
+   * 創建公開 CCXT 實例（用於 fetchTicker 等不需認證的操作）
+   * 使用全局 markets 快取
+   *
+   * @param exchange - 交易所名稱
+   * @returns CCXT Exchange 實例（已載入市場資訊）
+   */
+  static async createPublicExchangeWithCache(
+    exchange: SupportedExchange,
+  ): Promise<ccxt.Exchange> {
+    const instance = createPublicExchange(exchange as CcxtSupportedExchange);
+
+    const cacheHit = injectCachedMarkets(instance, exchange);
+    if (!cacheHit) {
+      await instance.loadMarkets();
+      cacheMarketsFromExchange(instance, exchange);
+      logger.debug({ exchange }, 'Public instance: markets loaded and cached');
+    } else {
+      logger.debug({ exchange }, 'Public instance: markets loaded from global cache');
+    }
+
+    return instance;
+  }
+
+  /**
+   * 創建認證 CCXT 實例（用於 fetchFundingHistory 等需認證的查詢操作）
+   * 使用全局 markets 快取和帳戶類型快取
+   *
+   * 注意：此方法不偵測 hedge mode，僅用於查詢操作，不用於交易
+   * 交易操作請使用 create() 方法
+   *
+   * @param exchange - 交易所名稱
+   * @param userId - 用戶 ID
+   * @param prisma - Prisma Client 實例
+   * @returns CCXT Exchange 實例（已載入市場資訊）
+   */
+  static async createAuthenticatedExchangeForQuery(
+    exchange: SupportedExchange,
+    userId: string,
+    prisma: PrismaClient,
+  ): Promise<ccxt.Exchange> {
+    // 查詢並解密 API Key
+    const apiKey = await prisma.apiKey.findFirst({
+      where: { userId, exchange, isActive: true },
+    });
+
+    if (!apiKey) {
+      throw new TradingError(`No active API key found for ${exchange}`, { exchange, userId });
+    }
+
+    const decryptedKey = decrypt(apiKey.encryptedKey);
+    const decryptedSecret = decrypt(apiKey.encryptedSecret);
+    const decryptedPassphrase = apiKey.encryptedPassphrase
+      ? decrypt(apiKey.encryptedPassphrase)
+      : undefined;
+
+    let instance = createCcxtExchange(exchange as CcxtSupportedExchange, {
+      apiKey: decryptedKey,
+      secret: decryptedSecret,
+      password: decryptedPassphrase,
+      sandbox: apiKey.environment === 'TESTNET',
+      enableRateLimit: true,
+      options: {
+        defaultType: exchange === 'binance' ? 'future' : 'swap',
+      },
+    });
+
+    // Binance Portfolio Margin 偵測（使用帳戶類型快取）
+    if (exchange === 'binance') {
+      const cachedAccountType = getCachedAccountType(exchange, decryptedKey);
+
+      let isPortfolioMargin = false;
+      if (cachedAccountType) {
+        isPortfolioMargin = cachedAccountType.isPortfolioMargin;
+        logger.debug({ exchange }, 'Using cached Binance account type (query)');
+      } else {
+        // 執行簡化版偵測
+        isPortfolioMargin = await CcxtExchangeFactory.detectBinancePortfolioMargin(instance);
+        setCachedAccountType(exchange, decryptedKey, { isPortfolioMargin, isHedgeMode: false });
+        logger.info({ exchange, isPortfolioMargin }, 'Binance account type detected and cached (query)');
+      }
+
+      if (isPortfolioMargin) {
+        logger.info('Recreating Binance exchange with Portfolio Margin enabled (query)');
+        instance = createCcxtExchange(exchange as CcxtSupportedExchange, {
+          apiKey: decryptedKey,
+          secret: decryptedSecret,
+          password: decryptedPassphrase,
+          sandbox: apiKey.environment === 'TESTNET',
+          enableRateLimit: true,
+          options: {
+            defaultType: 'future',
+            portfolioMargin: true,
+          },
+        });
+      }
+    }
+
+    // 使用全局 markets 快取
+    const cacheHit = injectCachedMarkets(instance, exchange);
+    if (!cacheHit) {
+      await instance.loadMarkets();
+      cacheMarketsFromExchange(instance, exchange);
+      logger.debug({ exchange }, 'Authenticated instance (query): markets loaded and cached');
+    } else {
+      logger.debug({ exchange }, 'Authenticated instance (query): markets loaded from global cache');
+    }
+
+    return instance;
+  }
+
+  /**
+   * 偵測 Binance 帳戶類型（標準合約 vs Portfolio Margin）
+   * 簡化版，僅偵測 Portfolio Margin，不偵測 hedge mode
+   */
+  private static async detectBinancePortfolioMargin(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ccxtExchange: any,
+  ): Promise<boolean> {
+    // 先嘗試標準 Futures API
+    try {
+      await ccxtExchange.fapiPrivateGetPositionSideDual();
+      logger.info('Binance standard Futures account detected (query)');
+      return false;
+    } catch {
+      logger.debug('Standard Futures API failed, trying Portfolio Margin (query)');
+    }
+
+    // 標準 API 失敗，嘗試 Portfolio Margin API
+    try {
+      await ccxtExchange.papiGetUmPositionSideDual();
+      logger.info('Binance Portfolio Margin account detected (query)');
+      return true;
+    } catch {
+      logger.debug('Portfolio Margin API also failed (query)');
+    }
+
+    // 無法偵測，預設標準帳戶
+    logger.info('Binance account type detection failed, defaulting to standard (query)');
+    return false;
   }
 }
 
