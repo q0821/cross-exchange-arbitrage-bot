@@ -13,6 +13,7 @@ import type { FundingRatePair, ExchangeRateData } from '../../models/FundingRate
 import { FundingRateRecord } from '../../models/FundingRate';
 import type { FundingRateReceived } from '../../types/websocket-events';
 import type { ExchangeName } from '../../connectors/types';
+import type { DataStructureStats, Monitorable } from '../../types/memory-stats';
 import { logger } from '../../lib/logger';
 import {
   DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED,
@@ -63,7 +64,7 @@ declare global {
  * 單例模式，確保全局只有一個實例
  * 使用 globalThis 解決 Next.js HMR 模組隔離問題
  */
-export class RatesCache {
+export class RatesCache implements Monitorable {
   private static instance: RatesCache | null = null;
 
   private cache = new Map<string, CachedRatePair>();
@@ -477,6 +478,20 @@ export class RatesCache {
    */
   size(): number {
     return this.cache.size;
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    return {
+      name: 'RatesCache',
+      sizes: {
+        cache: this.cache.size,
+      },
+      totalItems: this.cache.size,
+    };
   }
 
   /**

@@ -27,6 +27,7 @@ import {
   getDataSourceHealth,
   supportsWebSocket,
 } from '../../types/data-source';
+import type { DataStructureStats, Monitorable } from '../../types/memory-stats';
 import { logger } from '../../lib/logger';
 
 // ==================== DataSourceManager 類別 ====================
@@ -44,7 +45,7 @@ export interface DataSourceManagerOptions {
  *
  * 管理多交易所多數據類型的數據源切換
  */
-export class DataSourceManager extends EventEmitter implements IDataSourceManager {
+export class DataSourceManager extends EventEmitter implements IDataSourceManager, Monitorable {
   private static instance: DataSourceManager | null = null;
 
   private states: Map<string, DataSourceState> = new Map();
@@ -490,6 +491,24 @@ export class DataSourceManager extends EventEmitter implements IDataSourceManage
       { config: this.config },
       'DataSourceManager config updated'
     );
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    const statesSize = this.states.size;
+    const recoveryTimersSize = this.recoveryTimers.size;
+
+    return {
+      name: 'DataSourceManager',
+      sizes: {
+        states: statesSize,
+        recoveryTimers: recoveryTimersSize,
+      },
+      totalItems: statesSize + recoveryTimersSize,
+    };
   }
 
   /**

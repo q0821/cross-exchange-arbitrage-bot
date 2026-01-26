@@ -21,6 +21,7 @@ import { calculatePnL, PnLCalculationInput } from '@/lib/pnl-calculator';
 import { PositionCloser, CloseSingleSideResult } from '@/services/trading/PositionCloser';
 import { DiscordNotifier } from '@/services/notification/DiscordNotifier';
 import { SlackNotifier } from '@/services/notification/SlackNotifier';
+import type { DataStructureStats, Monitorable } from '@/types/memory-stats';
 import {
   buildTriggerNotificationMessage,
   buildEmergencyNotificationMessage,
@@ -57,7 +58,7 @@ export interface HandleTriggerResult {
 /**
  * 條件單監控服務
  */
-export class ConditionalOrderMonitor {
+export class ConditionalOrderMonitor implements Monitorable {
   private readonly prisma: PrismaClient;
   private readonly positionCloser: PositionCloser;
   private readonly discordNotifier: DiscordNotifier;
@@ -277,6 +278,20 @@ export class ConditionalOrderMonitor {
         '[條件單監控] 已清理 _processedByWs Set',
       );
     }
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    return {
+      name: 'ConditionalOrderMonitor',
+      sizes: {
+        processedByWs: this._processedByWs.size,
+      },
+      totalItems: this._processedByWs.size,
+    };
   }
 
   /**

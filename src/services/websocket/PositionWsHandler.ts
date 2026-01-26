@@ -14,6 +14,7 @@ import Decimal from 'decimal.js';
 import { logger } from '../../lib/logger';
 import type { ExchangeName } from '../../connectors/types';
 import type { PositionChanged, PositionClosed } from '../../types/internal-events';
+import type { DataStructureStats, Monitorable } from '../../types/memory-stats';
 
 // ==================== 類型定義 ====================
 
@@ -67,7 +68,7 @@ export interface PositionWsHandlerOptions {
  *
  * 處理 WebSocket 持倉變更事件
  */
-export class PositionWsHandler extends EventEmitter {
+export class PositionWsHandler extends EventEmitter implements Monitorable {
   private static instance: PositionWsHandler | null = null;
   private positions: Map<string, PositionState> = new Map();
   private lastUpdateTimes: Map<string, number> = new Map();
@@ -317,6 +318,26 @@ export class PositionWsHandler extends EventEmitter {
       clearInterval(this.flushTimer);
       this.flushTimer = null;
     }
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    const positionsSize = this.positions.size;
+    const pendingUpdatesSize = this.pendingUpdates.size;
+    const lastUpdateTimesSize = this.lastUpdateTimes.size;
+
+    return {
+      name: 'PositionWsHandler',
+      sizes: {
+        positions: positionsSize,
+        pendingUpdates: pendingUpdatesSize,
+        lastUpdateTimes: lastUpdateTimesSize,
+      },
+      totalItems: positionsSize + pendingUpdatesSize + lastUpdateTimesSize,
+    };
   }
 
   /**
