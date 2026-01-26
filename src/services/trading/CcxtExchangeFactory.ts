@@ -15,10 +15,7 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { logger } from '@/lib/logger';
 import { TradingError } from '@/lib/errors';
 import { createCcxtExchange, createPublicExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
-import {
-  injectCachedMarkets,
-  cacheMarketsFromExchange,
-} from '@/lib/ccxt-markets-cache';
+import { loadMarketsWithCache } from '@/lib/ccxt-markets-cache';
 import {
   getCachedAccountType,
   setCachedAccountType,
@@ -192,26 +189,14 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
           'Using cached BingX account type',
         );
 
-        // 仍需載入 markets（後續操作需要）
-        const marketsCacheHit = injectCachedMarkets(ccxtExchange, exchange);
-        if (!marketsCacheHit) {
-          await ccxtExchange.loadMarkets();
-          cacheMarketsFromExchange(ccxtExchange, exchange);
-          logger.info({ exchange }, 'Markets loaded and cached (BingX)');
-        } else {
-          logger.debug({ exchange }, 'Markets loaded from cache (BingX)');
-        }
+        // 仍需載入 markets（後續操作需要），使用 Singleflight 避免重複載入
+        await loadMarketsWithCache(ccxtExchange, exchange);
+        logger.debug({ exchange }, 'Markets loaded (BingX, cached account type)');
       } else {
         try {
-          // 使用 cache 機制載入市場資料
-          const cacheHit = injectCachedMarkets(ccxtExchange, exchange);
-          if (!cacheHit) {
-            await ccxtExchange.loadMarkets();
-            cacheMarketsFromExchange(ccxtExchange, exchange);
-            logger.info({ exchange }, 'Markets loaded and cached (BingX position mode detection)');
-          } else {
-            logger.debug({ exchange }, 'Markets loaded from cache (BingX position mode detection)');
-          }
+          // 使用 Singleflight 載入市場資料，避免重複載入
+          await loadMarketsWithCache(ccxtExchange, exchange);
+          logger.debug({ exchange }, 'Markets loaded (BingX position mode detection)');
 
           // 使用任意一個交易對來查詢持倉模式（模式是帳戶級別的）
           const sampleSymbol = 'BTC/USDT:USDT';
@@ -246,20 +231,12 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
     );
 
     // 載入市場資料以獲取合約大小（contractSize）
-    // 使用 cache 機制避免重複調用 loadMarkets()
+    // 使用 Singleflight 避免 Cache Stampede（快取踩踏）
     // BingX 已在上方處理過，這裡跳過
     if (exchange !== 'bingx') {
       try {
-        // 先嘗試從 cache 注入
-        const cacheHit = injectCachedMarkets(ccxtExchange, exchange);
-        if (!cacheHit) {
-          // cache miss：調用 loadMarkets 並儲存快取
-          await ccxtExchange.loadMarkets();
-          cacheMarketsFromExchange(ccxtExchange, exchange);
-          logger.info({ exchange }, 'Markets loaded and cached');
-        } else {
-          logger.debug({ exchange }, 'Markets loaded from cache');
-        }
+        await loadMarketsWithCache(ccxtExchange, exchange);
+        logger.debug({ exchange }, 'Markets loaded');
       } catch (error) {
         logger.error({ exchange, error }, 'Failed to load markets');
         throw new TradingError(
@@ -293,14 +270,9 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
   ): Promise<ccxt.Exchange> {
     const instance = createPublicExchange(exchange as CcxtSupportedExchange);
 
-    const cacheHit = injectCachedMarkets(instance, exchange);
-    if (!cacheHit) {
-      await instance.loadMarkets();
-      cacheMarketsFromExchange(instance, exchange);
-      logger.debug({ exchange }, 'Public instance: markets loaded and cached');
-    } else {
-      logger.debug({ exchange }, 'Public instance: markets loaded from global cache');
-    }
+    // 使用 Singleflight 避免 Cache Stampede
+    await loadMarketsWithCache(instance, exchange);
+    logger.debug({ exchange }, 'Public instance: markets loaded');
 
     return instance;
   }
@@ -379,15 +351,9 @@ export class CcxtExchangeFactory implements ICcxtExchangeFactory {
       }
     }
 
-    // 使用全局 markets 快取
-    const cacheHit = injectCachedMarkets(instance, exchange);
-    if (!cacheHit) {
-      await instance.loadMarkets();
-      cacheMarketsFromExchange(instance, exchange);
-      logger.debug({ exchange }, 'Authenticated instance (query): markets loaded and cached');
-    } else {
-      logger.debug({ exchange }, 'Authenticated instance (query): markets loaded from global cache');
-    }
+    // 使用 Singleflight 避免 Cache Stampede
+    await loadMarketsWithCache(instance, exchange);
+    logger.debug({ exchange }, 'Authenticated instance (query): markets loaded');
 
     return instance;
   }
