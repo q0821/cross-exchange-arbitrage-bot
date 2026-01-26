@@ -22,6 +22,31 @@
 
 ---
 
+### 效能優化
+
+#### 帳戶類型偵測快取（2026-01-26）
+
+**問題**：每次開倉都會執行帳戶類型偵測，呼叫交易所 API：
+- Binance: `fapiPrivateGetPositionSideDual` 或 `papiGetUmPositionSideDual` (1-2 次)
+- OKX: `privateGetAccountConfig` (1 次)
+- BingX: `fetchPositionMode` (1 次)
+
+這些設定短期內不會改變，但每次開倉都重複偵測會增加 1-2 秒延遲。
+
+**解決方案**：
+- 新增 `src/lib/account-type-cache.ts` 帳戶類型快取模組
+- 快取 TTL 為 3 分鐘，平衡效能與及時性
+- Key 格式：`${exchange}:${apiKey.substring(0, 8)}`
+
+**修改檔案**：
+- `src/lib/account-type-cache.ts`（新增）
+- `src/services/trading/CcxtExchangeFactory.ts`（整合快取）
+- `tests/unit/lib/account-type-cache.test.ts`（新增，13 個測試案例）
+
+**效益**：連續開倉時可節省 1-2 秒/次的 API 呼叫時間。
+
+---
+
 ### 改善
 
 #### 整併 CCXT Factory - 統一交易所實例創建（2026-01-25）
