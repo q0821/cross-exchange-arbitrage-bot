@@ -45,6 +45,22 @@
 
 **效益**：連續開倉時可節省 1-2 秒/次的 API 呼叫時間。
 
+#### CcxtInstanceManager 快取整合（2026-01-26）
+
+**問題**：`GET /api/positions/[id]/details` API 回應緩慢，每次請求都重新執行：
+- Binance Portfolio Margin 偵測（2 次 API 呼叫）
+- `loadMarkets()`（每交易所 1-3 秒）
+
+**根因**：`CcxtInstanceManager`（用於 PositionDetailsService）沒有使用專案已有的快取機制，而 `CcxtExchangeFactory`（用於開倉）已有完善的快取。
+
+**解決方案**：
+- 整合 `account-type-cache`：Binance 帳戶類型偵測結果快取（TTL 3 分鐘）
+- 整合 `ccxt-markets-cache`：交易所市場資料快取（TTL 30 分鐘）
+
+**修改檔案**：`src/lib/ccxt-instance-manager.ts`
+
+**效益**：快取命中時，查詢持倉詳情可節省 2-6 秒的 API 呼叫時間。
+
 ---
 
 ### 改善
