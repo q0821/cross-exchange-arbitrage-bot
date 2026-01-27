@@ -509,7 +509,12 @@ export class BinanceFundingWs extends EventEmitter {
     this.reconnectionManager.clearTimer();
 
     if (this.ws) {
-      this.ws.close();
+      try {
+        this.ws.close();
+      } catch {
+        // 忽略 WebSocket 關閉錯誤（例如連線尚未建立）
+        // ws 套件在 CONNECTING 狀態呼叫 close() 會拋出錯誤
+      }
       this.ws = null;
     }
 
