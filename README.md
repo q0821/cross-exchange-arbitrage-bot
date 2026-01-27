@@ -11,7 +11,7 @@
 ## 專案狀態
 
 **當前版本**: v1.0.0 (Web 多用戶平台 + 完整交易功能)
-**最後更新**: 2026-01-21
+**最後更新**: 2026-01-26
 
 ### 已完成功能
 
@@ -271,7 +271,7 @@ pnpm tsx scripts/diagnostics/test-okx-position.ts
 
 ### 其他工具
 ```bash
-pnpm update-oi-symbols    # 更新 OI 監控清單
+pnpm update-oi-symbols    # 更新監控交易對清單（依 24hr Volume 排序）
 pnpm validate-trading     # 驗證交易設定
 pnpm lint                 # ESLint 檢查
 pnpm format               # Prettier 格式化
@@ -357,6 +357,8 @@ pnpm format               # Prettier 格式化
 |------|------|
 | `ENABLE_CONDITIONAL_ORDER_MONITOR` | 啟用條件單監控 |
 | `ENABLE_POSITION_EXIT_MONITOR` | 啟用平倉建議監控 |
+| `ENABLE_SYMBOLS_FILE_UPDATE` | 啟用 config/symbols.json 自動更新 |
+| `SYMBOLS_UPDATE_INTERVAL_MS` | 交易對清單自動更新間隔（預設 24 小時） |
 
 ## 部署
 
