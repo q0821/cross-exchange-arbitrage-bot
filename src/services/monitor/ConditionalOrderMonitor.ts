@@ -76,6 +76,9 @@ export class ConditionalOrderMonitor implements Monitorable {
   private handleTriggerDetected: ((event: { positionId: string }) => void) | null = null;
   private handleCloseProgress: ((event: { positionId: string; step: string }) => void) | null = null;
 
+  // Feature 066: 追蹤延遲清理的計時器，避免記憶體洩漏
+  private delayedCleanupTimers: Map<string, NodeJS.Timeout> = new Map();
+
   constructor(
     prisma: PrismaClient,
     intervalMs?: number,
@@ -107,10 +110,19 @@ export class ConditionalOrderMonitor implements Monitorable {
 
     this.handleCloseProgress = (event: { positionId: string; step: string }) => {
       if (event.step === 'completed' || event.step === 'failed') {
+        // Feature 066: 清理舊的計時器（若存在）以避免累積
+        const existingTimer = this.delayedCleanupTimers.get(event.positionId);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+        }
+
         // 延遲清理，確保不會在同一輪檢查中重複處理
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           this._processedByWs.delete(event.positionId);
+          this.delayedCleanupTimers.delete(event.positionId);
         }, this._intervalMs);
+
+        this.delayedCleanupTimers.set(event.positionId, timer);
       }
     };
 
@@ -254,6 +266,7 @@ export class ConditionalOrderMonitor implements Monitorable {
    * T017 (Feature 066): 清理所有資源
    * - 移除 TriggerDetector 監聽器
    * - 清空 _processedByWs Set
+   * - 清理所有延遲計時器
    */
   private cleanupResources(): void {
     // 移除 TriggerDetector 監聽器
@@ -266,6 +279,20 @@ export class ConditionalOrderMonitor implements Monitorable {
         this.triggerDetector.off('closeProgress', this.handleCloseProgress);
         this.handleCloseProgress = null;
       }
+    }
+
+    // Feature 066: 清理所有延遲清理計時器
+    const timerCount = this.delayedCleanupTimers.size;
+    for (const timer of this.delayedCleanupTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.delayedCleanupTimers.clear();
+
+    if (timerCount > 0) {
+      logger.debug(
+        { clearedCount: timerCount },
+        '[條件單監控] 已清理延遲計時器',
+      );
     }
 
     // 清空已處理的持倉 ID Set（FR-004）
@@ -289,8 +316,9 @@ export class ConditionalOrderMonitor implements Monitorable {
       name: 'ConditionalOrderMonitor',
       sizes: {
         processedByWs: this._processedByWs.size,
+        delayedCleanupTimers: this.delayedCleanupTimers.size,
       },
-      totalItems: this._processedByWs.size,
+      totalItems: this._processedByWs.size + this.delayedCleanupTimers.size,
     };
   }
 

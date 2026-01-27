@@ -170,10 +170,23 @@ export class ExchangeQueryService {
    * 重新建立 Binance exchange 並啟用 Portfolio Margin
    *
    * 使用統一 CCXT 工廠確保 proxy 配置自動套用
+   * Feature 066: 在重新創建前先關閉舊實例以防止記憶體洩漏
    */
   private async recreateWithPortfolioMargin(): Promise<void> {
     if (!this.apiKey) return;
 
+    // Feature 066: 關閉舊的 exchange 實例
+    if (this.exchange && 'close' in this.exchange && typeof (this.exchange as any).close === 'function') {
+      try {
+        await (this.exchange as any).close();
+        logger.debug({ exchange: this.exchangeName }, 'Old CCXT exchange closed before recreating');
+      } catch (error) {
+        logger.warn(
+          { error: error instanceof Error ? error.message : String(error) },
+          'Error closing old CCXT exchange (non-blocking)',
+        );
+      }
+    }
 
     this.exchange = createCcxtExchange('binance', {
       apiKey: this.apiKey.apiKey,
@@ -1044,10 +1057,29 @@ export class ExchangeQueryService {
 
   /**
    * 斷開連接
+   *
+   * Feature 066: 正確關閉 CCXT 實例以防止記憶體洩漏
+   * CCXT 實例持有 HTTP 連線池，必須明確調用 close() 來釋放資源
    */
   async disconnect(): Promise<void> {
-    this.exchange = null;
+    if (this.exchange) {
+      // 嘗試關閉 CCXT 實例（如果有 close 方法）
+      if ('close' in this.exchange && typeof (this.exchange as any).close === 'function') {
+        try {
+          await (this.exchange as any).close();
+          logger.debug({ exchange: this.exchangeName }, 'CCXT exchange closed');
+        } catch (error) {
+          logger.warn(
+            { error: error instanceof Error ? error.message : String(error), exchange: this.exchangeName },
+            'Error closing CCXT exchange (non-blocking)',
+          );
+        }
+      }
+      this.exchange = null;
+    }
     this.marketsLoaded = false;
+    this.apiKey = null;
+    this.isPortfolioMargin = false;
   }
 
   /**
