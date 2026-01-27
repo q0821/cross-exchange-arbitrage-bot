@@ -10,6 +10,7 @@ import { EventEmitter } from 'events';
 import Decimal from 'decimal.js';
 import type { ExchangeName } from '@/connectors/types';
 import type { BalanceChanged } from '@/types/internal-events';
+import type { DataStructureStats, Monitorable } from '@/types/memory-stats';
 import { logger } from '@/lib/logger';
 
 /** 餘額更新事件 */
@@ -35,7 +36,7 @@ interface BalanceHistoryEntry {
  *
  * 處理來自各交易所的餘額變更事件
  */
-export class BalanceWsHandler extends EventEmitter {
+export class BalanceWsHandler extends EventEmitter implements Monitorable {
   // 當前餘額: exchange -> asset -> balance
   private balances: Map<ExchangeName, Map<string, Decimal>> = new Map();
 
@@ -158,6 +159,33 @@ export class BalanceWsHandler extends EventEmitter {
   clear(): void {
     this.balances.clear();
     this.history.clear();
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    // 計算 balances Map 的總項目數（外層 Map + 內層所有 Map）
+    let balancesItemCount = this.balances.size;
+    for (const assetMap of this.balances.values()) {
+      balancesItemCount += assetMap.size;
+    }
+
+    // 計算 history Map 的總項目數（外層 Map + 內層所有陣列項目）
+    let historyItemCount = this.history.size;
+    for (const entries of this.history.values()) {
+      historyItemCount += entries.length;
+    }
+
+    return {
+      name: 'BalanceWsHandler',
+      sizes: {
+        balances: balancesItemCount,
+        history: historyItemCount,
+      },
+      totalItems: balancesItemCount + historyItemCount,
+    };
   }
 
   /**

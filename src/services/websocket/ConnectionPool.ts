@@ -17,6 +17,8 @@ import { logger } from '@/lib/logger';
 import type { ExchangeName } from '@/connectors/types';
 import type { FundingRateReceived } from '@/types/websocket-events';
 import type { BaseExchangeWs, WebSocketClientStats } from './BaseExchangeWs';
+import type { DataStructureStats, Monitorable } from '@/types/memory-stats';
+import { DataStructureRegistry } from '@/lib/data-structure-registry';
 
 // =============================================================================
 // 1. 類型定義
@@ -93,12 +95,13 @@ export interface ConnectionPoolEvents {
  * - 統一事件發送（資金費率、錯誤等）
  * - 支援動態擴縮
  */
-export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter {
+export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter implements Monitorable {
   private config: Required<ConnectionPoolConfig<T>>;
   private connections: Map<number, T> = new Map();
   private subscriptions: Map<string, number> = new Map(); // symbol -> connectionIndex
   private nextConnectionIndex = 0;
   private isDestroyed = false;
+  private registryKey: string;
 
   constructor(config: ConnectionPoolConfig<T>) {
     super();
@@ -109,6 +112,10 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter {
       createClient: config.createClient,
       autoScale: config.autoScale ?? true,
     };
+
+    // Feature 066: 註冊到 DataStructureRegistry
+    this.registryKey = `ConnectionPool:${this.config.exchange}`;
+    DataStructureRegistry.register(this.registryKey, this);
 
     logger.debug(
       {
@@ -495,6 +502,24 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter {
     return Array.from(this.subscriptions.keys());
   }
 
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    const connectionsSize = this.connections.size;
+    const subscriptionsSize = this.subscriptions.size;
+
+    return {
+      name: `ConnectionPool:${this.config.exchange}`,
+      sizes: {
+        connections: connectionsSize,
+        subscriptions: subscriptionsSize,
+      },
+      totalItems: connectionsSize + subscriptionsSize,
+    };
+  }
+
   // =============================================================================
   // 6. 生命週期管理
   // =============================================================================
@@ -522,6 +547,9 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter {
    */
   destroy(): void {
     this.isDestroyed = true;
+
+    // Feature 066: 從 DataStructureRegistry 取消註冊
+    DataStructureRegistry.unregister(this.registryKey);
 
     for (const client of this.connections.values()) {
       client.destroy();

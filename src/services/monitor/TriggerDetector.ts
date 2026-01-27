@@ -21,6 +21,7 @@ import type {
   TriggerType,
   TriggerCloseProgress,
 } from '../../types/internal-events';
+import type { DataStructureStats, Monitorable } from '../../types/memory-stats';
 import type { CloseReason } from '@/generated/prisma/client';
 import type { PositionCloser } from '../trading/PositionCloser';
 
@@ -71,7 +72,7 @@ export interface TriggerDetectorOptions {
  *
  * 從 WebSocket 訂單事件偵測停損/停利觸發
  */
-export class TriggerDetector extends EventEmitter {
+export class TriggerDetector extends EventEmitter implements Monitorable {
   private static instance: TriggerDetector | null = null;
   private positions: Map<string, MonitoredPosition> = new Map();
   private processedOrders: Map<string, number> = new Map(); // orderId -> timestamp
@@ -588,6 +589,26 @@ export class TriggerDetector extends EventEmitter {
    */
   getRegisteredPositionCount(): number {
     return this.positions.size;
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    const positionsSize = this.positions.size;
+    const processedOrdersSize = this.processedOrders.size;
+    const closingPositionsSize = this.closingPositions.size;
+
+    return {
+      name: 'TriggerDetector',
+      sizes: {
+        positions: positionsSize,
+        processedOrders: processedOrdersSize,
+        closingPositions: closingPositionsSize,
+      },
+      totalItems: positionsSize + processedOrdersSize + closingPositionsSize,
+    };
   }
 
   /**

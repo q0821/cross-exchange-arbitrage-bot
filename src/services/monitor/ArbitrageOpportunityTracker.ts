@@ -11,6 +11,7 @@
 import type { EventEmitter } from 'events';
 import type { FundingRatePair } from '@/models/FundingRate';
 import type { ArbitrageOpportunityRepository } from '@/repositories/ArbitrageOpportunityRepository';
+import type { DataStructureStats, Monitorable } from '@/types/memory-stats';
 import { logger } from '@/lib/logger';
 import { TRACKER_OPPORTUNITY_THRESHOLD, TRACKER_OPPORTUNITY_END_THRESHOLD } from '@/lib/constants';
 
@@ -48,7 +49,7 @@ interface ActiveOpportunity {
  * 監聽 FundingRateMonitor 的 rate-updated 事件
  * 使用獨立的閾值邏輯判斷機會發現與結束
  */
-export class ArbitrageOpportunityTracker {
+export class ArbitrageOpportunityTracker implements Monitorable {
   private monitor: EventEmitter | null = null;
   private stats: TrackerStats = {
     opportunitiesRecorded: 0,
@@ -389,5 +390,19 @@ export class ArbitrageOpportunityTracker {
    */
   getEndThreshold(): number {
     return this.opportunityEndThreshold;
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    return {
+      name: 'ArbitrageOpportunityTracker',
+      sizes: {
+        activeOpportunities: this.activeOpportunities.size,
+      },
+      totalItems: this.activeOpportunities.size,
+    };
   }
 }
