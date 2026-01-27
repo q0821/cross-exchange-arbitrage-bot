@@ -312,12 +312,10 @@ export class OkxFundingWs extends BaseExchangeWs {
       // 快取標記價格
       this.markPriceCache.set(symbol, markPrice);
 
-      // 發送價格更新事件（可選）
-      // 如果只需要資金費率，可以不發送此事件
-      logger.debug(
-        { service: this.getLogPrefix(), symbol, markPrice: markPrice.toString() },
-        'Mark price updated'
-      );
+      // 發送 markPrice 事件，讓訂閱者知道連線是活躍的
+      // 這對於 DataSourceManager 的 stale 檢測很重要
+      // 因為 funding-rate 推送頻率很低（每 8 小時結算前），但 mark-price 每秒推送
+      this.emit('markPrice', { exchange: 'okx', symbol, markPrice });
     }
   }
 

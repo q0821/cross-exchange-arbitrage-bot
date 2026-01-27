@@ -567,6 +567,13 @@ export class PriceMonitor extends EventEmitter implements Monitorable {
         this.dataSourceManager.updateLastDataReceived('okx', 'fundingRate');
       });
 
+      // 監聽標記價格事件（用於保持連線活躍狀態）
+      // OKX funding-rate 推送頻率很低（每 8 小時結算前），但 mark-price 每秒推送
+      // 透過監聽 markPrice 來更新 lastDataReceivedAt，避免誤判為 stale
+      this.okxFundingWs.on('markPrice', () => {
+        this.dataSourceManager.updateLastDataReceived('okx', 'fundingRate');
+      });
+
       // 監聽連線事件
       this.okxFundingWs.on('connected', () => {
         this.wsConnected.set('okx', true);
