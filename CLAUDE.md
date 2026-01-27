@@ -170,6 +170,15 @@ DELETE FROM _prisma_migrations WHERE migration_name = '<orphan>';
 - **應該**：使用 `src/lib/ccxt-factory.ts` 的工廠函數創建實例
 - **統一工廠函數**：`createCcxtExchange(exchangeId, config)`, `createPublicExchange(exchangeId)`
 
+### 12. 資金費率結算週期（Funding Interval）
+- **重要事實**：所有交易所（Binance、OKX、Gate.io、BingX、MEXC）的資金費率結算週期都是**動態的**，支援 1h、4h、8h 三種週期
+- **禁止**：假設任何交易所使用固定 8 小時週期
+- **應該**：使用 `FundingIntervalCache` 或 `connector.getFundingInterval(symbol)` 動態取得
+- **關鍵檔案**：
+  - `src/lib/FundingIntervalCache.ts` - 快取各交易對的結算週期
+  - `src/lib/FundingRate.ts` - `getNormalizedRate()` 標準化計算
+- **WebSocket 流程**：必須在 `FundingRateReceived` 事件中包含 `fundingInterval` 欄位
+
 ## ⚠️ Speckit 工作流程強制要求 (NON-NEGOTIABLE)
 
 **在執行 `/speckit.implement` 之前，必須嚴格遵守以下規則：**
