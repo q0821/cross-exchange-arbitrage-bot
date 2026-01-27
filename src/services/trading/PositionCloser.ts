@@ -254,6 +254,7 @@ export class PositionCloser {
    * 批量平倉：關閉指定組內的所有持倉
    *
    * Feature: 069-position-group-close
+   * 優化：預先創建 CCXT 實例並重用，避免記憶體洩漏
    *
    * @param params 批量平倉參數
    * @returns 批量平倉結果
@@ -299,7 +300,42 @@ export class PositionCloser {
       'Found positions to close in batch',
     );
 
-    // 2. 逐一平倉（使用 BATCH_CLOSE 作為 closeReason）
+    // 2. 收集所有需要的交易所並預創建 CCXT 實例（避免重複創建導致記憶體洩漏）
+    const exchangeSet = new Set<SupportedExchange>();
+    for (const position of positions) {
+      exchangeSet.add(position.longExchange as SupportedExchange);
+      exchangeSet.add(position.shortExchange as SupportedExchange);
+    }
+
+    logger.info(
+      { userId, exchanges: Array.from(exchangeSet), positionCount: totalPositions },
+      'Pre-creating exchange traders for batch close',
+    );
+
+    // 預創建所有需要的 trader 實例
+    const traderMap = new Map<SupportedExchange, ExchangeTrader>();
+    const traderCreationPromises = Array.from(exchangeSet).map(async (exchange) => {
+      try {
+        const trader = await this.createUserTrader(userId, exchange);
+        traderMap.set(exchange, trader);
+        logger.info({ userId, exchange }, 'Exchange trader pre-created for batch close');
+      } catch (error) {
+        logger.error(
+          { userId, exchange, error: error instanceof Error ? error.message : String(error) },
+          'Failed to pre-create exchange trader',
+        );
+        throw error;
+      }
+    });
+
+    await Promise.all(traderCreationPromises);
+
+    logger.info(
+      { userId, traderCount: traderMap.size },
+      'All exchange traders pre-created successfully',
+    );
+
+    // 3. 逐一平倉（使用 BATCH_CLOSE 作為 closeReason，重用 trader 實例）
     const results: Array<{ success: boolean; positionId: string; error?: string; isPartial?: boolean }> = [];
     let closedPositions = 0;
     let partialPositions = 0;
@@ -319,11 +355,12 @@ export class PositionCloser {
       }
 
       try {
-        // 使用現有的 closePosition 方法，傳入 BATCH_CLOSE 作為 closeReason
-        const closeResult = await this.closePosition({
+        // 使用預創建的 trader 執行平倉（避免每次創建新實例）
+        const closeResult = await this.closePositionWithTraders({
           userId,
           positionId: position.id,
           closeReason: 'BATCH_CLOSE',
+          traderMap,
         });
 
         if (closeResult.success) {
@@ -384,6 +421,101 @@ export class PositionCloser {
       failedPositions,
       results,
     };
+  }
+
+  /**
+   * 使用預創建的 trader 執行平倉（批次平倉專用）
+   *
+   * @param params 平倉參數（包含預創建的 traderMap）
+   * @returns 平倉結果
+   */
+  private async closePositionWithTraders(params: {
+    userId: string;
+    positionId: string;
+    closeReason: CloseReason;
+    traderMap: Map<SupportedExchange, ExchangeTrader>;
+  }): Promise<ClosePositionResult> {
+    const { userId, positionId, closeReason, traderMap } = params;
+
+    // 使用分散式鎖執行平倉
+    return this.withCloseLock(positionId, async () => {
+      // 1. 獲取並驗證持倉
+      const position = await this.getAndValidatePosition(userId, positionId);
+
+      // 2. 更新狀態為 CLOSING
+      await this.updatePositionStatus(position.id, 'CLOSING');
+
+      try {
+        // 3. 從預創建的 Map 中取得 trader（而非創建新實例）
+        const longExchange = position.longExchange as SupportedExchange;
+        const shortExchange = position.shortExchange as SupportedExchange;
+
+        const longTrader = traderMap.get(longExchange);
+        const shortTrader = traderMap.get(shortExchange);
+
+        if (!longTrader || !shortTrader) {
+          throw new TradingError(
+            'Trader not found in pre-created map',
+            'TRADER_NOT_FOUND',
+            false,
+            { longExchange, shortExchange, availableExchanges: Array.from(traderMap.keys()) },
+          );
+        }
+
+        // 4. 使用預創建的 trader 執行雙邊平倉
+        const result = await this.executeBilateralCloseWithTraders(
+          longTrader,
+          shortTrader,
+          position.symbol,
+          longExchange,
+          shortExchange,
+          new Decimal(position.longPositionSize),
+          new Decimal(position.shortPositionSize),
+        );
+
+        // 5. 處理結果
+        return await this.handleCloseResult(position, result, closeReason);
+      } catch (error) {
+        // 更新 Position 狀態（如果還沒被更新為 PARTIAL）
+        const currentPosition = await this.prisma.position.findUnique({
+          where: { id: position.id },
+        });
+
+        if (currentPosition?.status === 'CLOSING') {
+          await this.updatePositionStatus(
+            position.id,
+            'OPEN', // 回復為 OPEN
+            error instanceof Error ? error.message : 'Unknown error',
+          );
+        }
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * 使用預創建的 trader 執行雙邊平倉（批次平倉專用）
+   */
+  private async executeBilateralCloseWithTraders(
+    longTrader: ExchangeTrader,
+    shortTrader: ExchangeTrader,
+    symbol: string,
+    longExchange: SupportedExchange,
+    shortExchange: SupportedExchange,
+    longQuantity: Decimal,
+    shortQuantity: Decimal,
+  ): Promise<BilateralCloseResult> {
+    const ccxtSymbol = this.formatSymbolForCcxt(symbol);
+
+    // 並行執行雙邊平倉
+    // Long position close: sell to close (reduceOnly)
+    // Short position close: buy to close (reduceOnly)
+    const [longResult, shortResult] = await Promise.all([
+      this.executeCloseOrder(longTrader, ccxtSymbol, 'sell', longQuantity.toNumber(), longExchange),
+      this.executeCloseOrder(shortTrader, ccxtSymbol, 'buy', shortQuantity.toNumber(), shortExchange),
+    ]);
+
+    return { longResult, shortResult };
   }
 
   /**
