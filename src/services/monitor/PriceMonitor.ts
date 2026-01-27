@@ -7,6 +7,7 @@
  */
 
 import { EventEmitter } from 'events';
+import Decimal from 'decimal.js';
 import type { IExchangeConnector, ExchangeName } from '../../connectors/types.js';
 import type { PriceData, PriceSource } from '../../types/service-interfaces.js';
 import type { FundingRateReceived } from '../../types/websocket-events.js';
@@ -85,6 +86,10 @@ export class PriceMonitor extends EventEmitter implements Monitorable {
 
   // 數據源管理器 (Feature 052: T054)
   private dataSourceManager: DataSourceManager;
+
+  // BingX REST fallback (Issue #25: 超出 WebSocket 訂閱限制的 symbols)
+  private bingxRestFallbackInterval: NodeJS.Timeout | null = null;
+  private bingxRestFallbackSymbols: string[] = [];
 
   // T012-T014 (Feature 066): 儲存 handler 參考以便在 stop() 時移除
   private restPollerHandlers: Map<string, { onTicker: (data: PriceData) => void; onError: (error: Error) => void }> = new Map();
@@ -370,6 +375,9 @@ export class PriceMonitor extends EventEmitter implements Monitorable {
 
     // 停止 WebSocket 客戶端 (Feature 052: T019)
     await this.stopWebSocket();
+
+    // 停止 BingX REST fallback (Issue #25)
+    this.stopBingxRestFallback();
 
     // T012-T014: 清理 DataSourceManager 監聯器
     this.cleanupListeners();
@@ -700,6 +708,15 @@ export class PriceMonitor extends EventEmitter implements Monitorable {
         this.dataSourceManager.disableWebSocket('bingx', 'fundingRate', `error: ${error.message}`);
       });
 
+      // 監聽被跳過的 symbols 事件（Issue #25: WebSocket 訂閱限制）
+      this.bingxFundingWs.on('skippedSymbols', (skippedSymbols: string[]) => {
+        logger.info(
+          { exchange: 'bingx', skippedCount: skippedSymbols.length },
+          'Starting REST API fallback for skipped BingX symbols'
+        );
+        this.startBingxRestFallback(skippedSymbols);
+      });
+
       // 連接並訂閱
       await this.bingxFundingWs.connect();
       await this.bingxFundingWs.subscribe(this.symbols);
@@ -710,6 +727,73 @@ export class PriceMonitor extends EventEmitter implements Monitorable {
         exchange: 'bingx',
         error: error instanceof Error ? error.message : String(error),
       }, 'Failed to start BingX WebSocket');
+    }
+  }
+
+  /**
+   * 啟動 BingX REST API fallback（用於超出 WebSocket 訂閱限制的 symbols）
+   * Issue #25: BingX WebSocket 最多 50 個訂閱，超出部分使用 REST API 輪詢
+   */
+  private startBingxRestFallback(symbols: string[]): void {
+    const connector = this.connectors.get('bingx');
+    if (!connector) {
+      logger.warn('BingX connector not available for REST fallback');
+      return;
+    }
+
+    this.bingxRestFallbackSymbols = symbols;
+
+    // 每 30 秒輪詢一次（避免過於頻繁）
+    const POLLING_INTERVAL = 30000;
+
+    const pollFundingRates = async () => {
+      for (const symbol of this.bingxRestFallbackSymbols) {
+        try {
+          const rate = await connector.getFundingRate(symbol);
+          if (rate) {
+            const data: FundingRateReceived = {
+              exchange: 'bingx',
+              symbol,
+              fundingRate: new Decimal(rate.fundingRate),
+              nextFundingTime: rate.nextFundingTime,
+              markPrice: rate.markPrice !== undefined ? new Decimal(rate.markPrice) : undefined,
+              indexPrice: rate.indexPrice !== undefined ? new Decimal(rate.indexPrice) : undefined,
+              fundingInterval: rate.fundingInterval,
+              source: 'rest',
+              receivedAt: new Date(),
+            };
+            this.handleWebSocketPriceUpdate(data);
+          }
+        } catch (error) {
+          logger.debug(
+            { exchange: 'bingx', symbol, error: error instanceof Error ? error.message : String(error) },
+            'BingX REST fallback failed for symbol'
+          );
+        }
+      }
+    };
+
+    // 立即執行一次
+    pollFundingRates();
+
+    // 設定定時輪詢
+    this.bingxRestFallbackInterval = setInterval(pollFundingRates, POLLING_INTERVAL);
+
+    logger.info(
+      { exchange: 'bingx', symbolCount: symbols.length, intervalMs: POLLING_INTERVAL },
+      'BingX REST fallback started'
+    );
+  }
+
+  /**
+   * 停止 BingX REST API fallback
+   */
+  private stopBingxRestFallback(): void {
+    if (this.bingxRestFallbackInterval) {
+      clearInterval(this.bingxRestFallbackInterval);
+      this.bingxRestFallbackInterval = null;
+      this.bingxRestFallbackSymbols = [];
+      logger.info({ exchange: 'bingx' }, 'BingX REST fallback stopped');
     }
   }
 
