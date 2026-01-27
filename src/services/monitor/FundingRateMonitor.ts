@@ -19,6 +19,9 @@ import type { TimeBasis } from '../../lib/validation/fundingRateSchemas';
 import { FundingRateNormalizer } from './FundingRateNormalizer';
 import { isSymbolSupported, ACTIVE_EXCHANGES } from '../../lib/exchanges/constants';
 import type { SupportedExchange } from '../../types/exchange-links';
+import type { DataStructureStats, Monitorable } from '../../types/memory-stats';
+import { getEventEmitterStats } from '../../lib/event-emitter-stats';
+import { DataStructureRegistry } from '../../lib/data-structure-registry';
 
 /**
  * 監控狀態
@@ -49,7 +52,7 @@ export interface MonitorEvents {
  * 資金費率監控服務
  * 負責定期從多個交易所獲取資金費率並計算差異
  */
-export class FundingRateMonitor extends EventEmitter {
+export class FundingRateMonitor extends EventEmitter implements Monitorable {
   private exchanges: Map<ExchangeName, IExchangeConnector> = new Map();
   private exchangeNames: ExchangeName[];
   private store: FundingRateStore;
@@ -205,6 +208,42 @@ export class FundingRateMonitor extends EventEmitter {
       enableArbitrageAssessment: this.enableArbitrageAssessment,
       filteredSymbolsByExchange: Object.keys(filterStats).length > 0 ? filterStats : undefined,
     }, 'FundingRateMonitor initialized');
+
+    // Feature 066: 註冊到 DataStructureRegistry
+    DataStructureRegistry.register('FundingRateMonitor', this);
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    const emitterStats = getEventEmitterStats(this);
+
+    // 計算 store 內部的資料量
+    const storeStats = {
+      exchangeCount: this.exchanges.size,
+      symbolCount: this.symbols.length,
+      activeOpportunities: this.activeOpportunities.size,
+    };
+
+    return {
+      name: 'FundingRateMonitor',
+      sizes: {
+        exchanges: this.exchanges.size,
+        symbols: this.symbols.length,
+        activeOpportunities: this.activeOpportunities.size,
+      },
+      totalItems: this.exchanges.size + this.symbols.length + this.activeOpportunities.size,
+      eventListenerCount: emitterStats.totalListeners,
+      details: {
+        listenersByEvent: emitterStats.listenersByEvent,
+        isRunning: this.isRunning,
+        enablePriceMonitor: this.enablePriceMonitor,
+        enableArbitrageAssessment: this.enableArbitrageAssessment,
+        ...storeStats,
+      },
+    };
   }
 
   /**

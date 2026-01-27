@@ -19,6 +19,7 @@ import type { FundingRateReceived } from '@/types/websocket-events';
 import type { BaseExchangeWs, WebSocketClientStats } from './BaseExchangeWs';
 import type { DataStructureStats, Monitorable } from '@/types/memory-stats';
 import { DataStructureRegistry } from '@/lib/data-structure-registry';
+import { getEventEmitterStats } from '@/lib/event-emitter-stats';
 
 // =============================================================================
 // 1. 類型定義
@@ -510,6 +511,20 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter imple
     const connectionsSize = this.connections.size;
     const subscriptionsSize = this.subscriptions.size;
 
+    // 計算自身的 EventEmitter listeners
+    const poolEmitterStats = getEventEmitterStats(this);
+
+    // 計算每個連線客戶端的 listener 數量（如果有實作 EventEmitter）
+    let clientListenerCount = 0;
+    const connectionDetails: Record<string, number> = {};
+    for (const [index, client] of this.connections) {
+      if (client instanceof EventEmitter) {
+        const clientStats = getEventEmitterStats(client);
+        clientListenerCount += clientStats.totalListeners;
+        connectionDetails[`connection_${index}`] = clientStats.totalListeners;
+      }
+    }
+
     return {
       name: `ConnectionPool:${this.config.exchange}`,
       sizes: {
@@ -517,6 +532,12 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter imple
         subscriptions: subscriptionsSize,
       },
       totalItems: connectionsSize + subscriptionsSize,
+      eventListenerCount: poolEmitterStats.totalListeners + clientListenerCount,
+      details: {
+        poolListeners: poolEmitterStats.listenersByEvent,
+        clientListenerTotal: clientListenerCount,
+        connectionDetails,
+      },
     };
   }
 

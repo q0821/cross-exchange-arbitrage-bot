@@ -8,6 +8,7 @@
 
 import type { PriceData } from '../../types/service-interfaces.js';
 import { logger } from '../logger.js';
+import type { DataStructureStats, Monitorable } from '../../types/memory-stats.js';
 
 /**
  * 快取配置
@@ -35,7 +36,7 @@ interface CacheEntry {
  * - 10 秒內的數據視為新鮮
  * - 自動淘汰最少使用的項目
  */
-export class PriceCache {
+export class PriceCache implements Monitorable {
   private config: Required<PriceCacheConfig>;
   private cache: Map<string, CacheEntry> = new Map();
 
@@ -248,6 +249,28 @@ export class PriceCache {
       maxSize: this.config.maxSize,
       utilizationPercent: (this.cache.size / this.config.maxSize) * 100,
       exchanges,
+    };
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    const cacheStats = this.getStats();
+
+    return {
+      name: 'PriceCache',
+      sizes: {
+        cache: this.cache.size,
+      },
+      totalItems: this.cache.size,
+      details: {
+        maxSize: cacheStats.maxSize,
+        utilizationPercent: Math.round(cacheStats.utilizationPercent * 100) / 100,
+        exchangeDistribution: cacheStats.exchanges,
+        staleTresholdMs: this.config.staleTresholdMs,
+      },
     };
   }
 }

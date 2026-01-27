@@ -15,6 +15,7 @@ import { logger } from '../../lib/logger';
 import type { ExchangeName } from '../../connectors/types';
 import type { PositionChanged, PositionClosed } from '../../types/internal-events';
 import type { DataStructureStats, Monitorable } from '../../types/memory-stats';
+import { getEventEmitterStats } from '../../lib/event-emitter-stats';
 
 // ==================== 類型定義 ====================
 
@@ -328,6 +329,7 @@ export class PositionWsHandler extends EventEmitter implements Monitorable {
     const positionsSize = this.positions.size;
     const pendingUpdatesSize = this.pendingUpdates.size;
     const lastUpdateTimesSize = this.lastUpdateTimes.size;
+    const emitterStats = getEventEmitterStats(this);
 
     return {
       name: 'PositionWsHandler',
@@ -337,6 +339,10 @@ export class PositionWsHandler extends EventEmitter implements Monitorable {
         lastUpdateTimes: lastUpdateTimesSize,
       },
       totalItems: positionsSize + pendingUpdatesSize + lastUpdateTimesSize,
+      eventListenerCount: emitterStats.totalListeners,
+      details: {
+        listenersByEvent: emitterStats.listenersByEvent,
+      },
     };
   }
 

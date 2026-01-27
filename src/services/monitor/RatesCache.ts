@@ -485,12 +485,27 @@ export class RatesCache implements Monitorable {
    * Feature: 066-memory-monitoring
    */
   getDataStructureStats(): DataStructureStats {
+    // 計算深層資料：每個 FundingRatePair 內的 exchanges Map 大小
+    let totalExchangeEntries = 0;
+    for (const cached of this.cache.values()) {
+      if (cached.exchanges) {
+        totalExchangeEntries += cached.exchanges.size;
+      }
+    }
+
     return {
       name: 'RatesCache',
       sizes: {
         cache: this.cache.size,
+        exchangeEntries: totalExchangeEntries,
       },
       totalItems: this.cache.size,
+      details: {
+        averageExchangesPerPair: this.cache.size > 0
+          ? Math.round((totalExchangeEntries / this.cache.size) * 100) / 100
+          : 0,
+        staleThresholdMs: this.staleThresholdMs,
+      },
     };
   }
 
