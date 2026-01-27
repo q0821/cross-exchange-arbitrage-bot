@@ -1055,7 +1055,10 @@ export class OKXConnector extends BaseExchangeConnector {
           continue;
         }
 
-        // 轉換為內部格式（OKX 固定 8 小時結算週期）
+        // 獲取資金費率週期（從快取或 API）
+        const fundingInterval = await this.getFundingInterval(symbol);
+
+        // 轉換為內部格式
         const data: FundingRateReceived = {
           exchange: 'okx',
           symbol,
@@ -1065,7 +1068,7 @@ export class OKXConnector extends BaseExchangeConnector {
             : new Date(),
           markPrice: parseResult.data.markPrice ? new Decimal(parseResult.data.markPrice) : undefined,
           indexPrice: parseResult.data.indexPrice ? new Decimal(parseResult.data.indexPrice) : undefined,
-          fundingInterval: 8,
+          fundingInterval,
           source: 'websocket',
           receivedAt: new Date(),
         };

@@ -502,13 +502,21 @@ export class BinanceConnector extends BaseExchangeConnector {
         this.fundingWsClient = new BinanceFundingWs({ wsUrl });
 
         // 設定事件處理
-        this.fundingWsClient.on('fundingRate', (data: FundingRateReceived) => {
+        this.fundingWsClient.on('fundingRate', async (data: FundingRateReceived) => {
+          // 動態取得 fundingInterval（從快取或 API）
+          let fundingInterval = data.fundingInterval;
+          if (!fundingInterval) {
+            const cached = this.intervalCache.get('binance', data.symbol);
+            fundingInterval = cached ?? 8; // 快取中有則使用，否則預設 8h
+          }
+          const enrichedData: FundingRateReceived = { ...data, fundingInterval };
+
           // 觸發所有符合的回調
           for (const [key, cb] of this.wsCallbacks) {
             if (key.startsWith('fundingRate:')) {
               const subSymbol = key.split(':')[1];
               if (subSymbol === '*' || subSymbol === data.symbol) {
-                cb(data);
+                cb(enrichedData);
               }
             }
           }
