@@ -262,10 +262,15 @@ export class RatesCache implements Monitorable {
       recordedAt: data.receivedAt,
     });
 
+    // 獲取已有的 originalFundingInterval（如果存在）
+    const existingData = pair.exchanges?.get(exchangeName);
+    const fundingInterval = data.fundingInterval ?? existingData?.originalFundingInterval ?? 8;
+
     // 創建 ExchangeRateData
     const newExchangeData: ExchangeRateData = {
       rate: newRate,
       price: markPrice?.toNumber(),
+      originalFundingInterval: fundingInterval,
     };
 
     // 更新交易所數據
@@ -299,11 +304,13 @@ export class RatesCache implements Monitorable {
       recordedAt: data.receivedAt,
     });
 
-    // 創建交易所數據 Map
+    // 創建交易所數據 Map（使用傳入的 fundingInterval 或預設 8h）
+    const fundingInterval = data.fundingInterval ?? 8;
     const exchanges = new Map<ExchangeName, ExchangeRateData>();
     exchanges.set(exchangeName, {
       rate,
       price: markPrice?.toNumber(),
+      originalFundingInterval: fundingInterval,
     });
 
     return {

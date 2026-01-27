@@ -658,7 +658,7 @@ export class GateioConnector extends BaseExchangeConnector {
           continue;
         }
 
-        // 轉換為內部格式
+        // 轉換為內部格式（Gate.io 固定 8 小時結算週期）
         const data: FundingRateReceived = {
           exchange: 'gateio',
           symbol,
@@ -668,6 +668,7 @@ export class GateioConnector extends BaseExchangeConnector {
             : new Date(),
           markPrice: parseResult.data.markPrice ? new Decimal(parseResult.data.markPrice) : undefined,
           indexPrice: parseResult.data.indexPrice ? new Decimal(parseResult.data.indexPrice) : undefined,
+          fundingInterval: 8,
           source: 'websocket',
           receivedAt: new Date(),
         };

@@ -391,6 +391,7 @@ export class BinanceFundingWs extends EventEmitter {
 
     const msg = result.data;
 
+    // Binance 固定 8 小時結算週期
     return {
       exchange: 'binance',
       symbol: msg.s,
@@ -398,6 +399,7 @@ export class BinanceFundingWs extends EventEmitter {
       nextFundingTime: new Date(msg.T),
       markPrice: new Decimal(msg.p),
       indexPrice: new Decimal(msg.i),
+      fundingInterval: 8,
       source: 'websocket',
       receivedAt: new Date(),
     };
