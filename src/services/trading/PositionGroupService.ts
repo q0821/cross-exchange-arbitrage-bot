@@ -120,7 +120,8 @@ export class PositionGroupService {
 
     const positionsForGroup: PositionForGroup[] = positions.map((pos) => ({
       id: pos.id,
-      groupId: pos.groupId,
+      // Feature 070: groupId 現為必填
+      groupId: pos.groupId!,
       symbol: pos.symbol,
       longExchange: pos.longExchange,
       shortExchange: pos.shortExchange,

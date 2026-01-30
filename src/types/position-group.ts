@@ -63,12 +63,10 @@ export interface PositionGroup {
 
 /**
  * 分組後的持倉回應
+ * Feature 070: 統一 groupId 架構 - 所有持倉都在 groups 陣列中
  */
 export interface GroupedPositionsResponse {
-  /** 單獨開倉的持倉列表（無 groupId） */
-  positions: Position[];
-
-  /** 組合持倉列表（有 groupId） */
+  /** 所有持倉組（每個 group 包含 1+ 個持倉） */
   groups: PositionGroup[];
 }
 

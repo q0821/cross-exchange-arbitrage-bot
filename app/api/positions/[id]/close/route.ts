@@ -202,6 +202,7 @@ export async function POST(
           status: updatedPosition.status as any,
           createdAt: updatedPosition.createdAt.toISOString(),
           updatedAt: updatedPosition.updatedAt.toISOString(),
+          groupId: updatedPosition.groupId,
         },
         trade: tradeInfo,
         message: '平倉成功',
@@ -275,6 +276,7 @@ export async function POST(
           status: updatedPosition.status as any,
           createdAt: updatedPosition.createdAt.toISOString(),
           updatedAt: updatedPosition.updatedAt.toISOString(),
+          groupId: updatedPosition.groupId,
         },
         partialClosed: {
           exchange: closedSide.exchange,
