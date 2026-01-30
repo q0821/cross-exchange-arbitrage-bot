@@ -6,6 +6,40 @@
 
 ## [Unreleased]
 
+### 改善
+
+#### 交易對更新腳本改用 24hr Volume + 定時自動更新（2026-01-26）
+
+**背景**：`update-oi-symbols.ts` 腳本使用舊的 API 方法逐一查詢每個交易對的 OI，需要 200+ 次 API 呼叫，執行時間 2-4 秒。且 `config/symbols.json` 只能透過手動執行腳本更新。
+
+**變更內容**：
+
+1. **腳本改用 24hr Volume API**
+   - 使用 `/fapi/v1/ticker/24hr` 單次 API 呼叫獲取所有交易對
+   - 依 24hr USDT 成交額排序（與 OI 高度相關）
+   - 執行時間從 2-4 秒降到 <1 秒
+   - API 呼叫從 200+ 次降到 1 次
+
+2. **新增定時自動更新功能**
+   - 在 `OIRefreshService` 新增 `config/symbols.json` 檔案更新功能
+   - 透過環境變數控制：`ENABLE_SYMBOLS_FILE_UPDATE=true`
+   - 獨立的檔案更新間隔：`SYMBOLS_UPDATE_INTERVAL_MS`（預設 24 小時）
+   - 啟動時立即更新一次，之後每隔指定間隔自動更新
+   - 無變更時跳過寫入，檔案更新失敗不影響服務運作
+
+**環境變數**：
+| 變數 | 說明 | 預設值 |
+|:-----|:-----|:-------|
+| `ENABLE_SYMBOLS_FILE_UPDATE` | 啟用 config/symbols.json 自動更新 | `false` |
+| `SYMBOLS_UPDATE_INTERVAL_MS` | 檔案更新間隔（毫秒） | `86400000` (24hr) |
+
+**檔案變更**：
+- `src/scripts/update-oi-symbols.ts` - 改用 24hr Volume API
+- `src/services/OIRefreshService.ts` - 新增檔案更新功能
+- `docs/update-oi-symbols.md` - 更新文件
+
+---
+
 ### 修復
 
 #### 修復 MaxListenersExceededWarning 警告（2026-01-25）

@@ -468,6 +468,7 @@ export interface FundingRateReceived {
   nextFundingRate?: Decimal;   // 預估下次資金費率
   markPrice?: Decimal;
   indexPrice?: Decimal;
+  fundingInterval?: number;    // 資金費率週期（小時），用於標準化計算
   source: 'websocket' | 'rest';
   receivedAt: Date;
 }

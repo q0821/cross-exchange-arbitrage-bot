@@ -7,11 +7,19 @@
  * Feature: 066-memory-monitoring
  * - 整合資料結構大小監控
  * - 記憶體日誌分流到 logs/memory/YYYY-MM-DD.log
+ * - Delta 變化量追蹤（識別潛在洩漏）
+ * - EventEmitter listener 數量追蹤
  */
 
 import { logger } from './logger';
 import { memoryLogger } from './memory-logger';
 import { DataStructureRegistry } from './data-structure-registry';
+import {
+  memoryDeltaTracker,
+  MemoryDeltaTracker,
+  type StatsSnapshot,
+  type TopGrower,
+} from './memory-delta-tracker';
 import type { DataStructureStats } from '@/types/memory-stats';
 
 /**
@@ -33,7 +41,7 @@ export interface MemoryStats {
 }
 
 /**
- * 擴展記憶體統計資訊（含資料結構）
+ * 擴展記憶體統計資訊（含資料結構和 Delta）
  * Feature: 066-memory-monitoring
  */
 export interface ExtendedMemoryStats extends MemoryStats {
@@ -41,9 +49,26 @@ export interface ExtendedMemoryStats extends MemoryStats {
   dataStructures: {
     totalServices: number;
     totalItems: number;
+    totalEventListeners: number;
   };
   /** 資料結構詳細資訊 */
   dataStructureDetails: DataStructureStats[];
+}
+
+/**
+ * Delta 統計資訊
+ */
+export interface DeltaStats {
+  /** Heap 使用量變化 (MB) */
+  heapDelta: string;
+  /** 總項目數變化 */
+  itemsDelta: string;
+  /** 總 listener 數變化 */
+  listenersDelta: string;
+  /** 增長最快的服務列表 */
+  topGrowers: TopGrower[];
+  /** 是否為首次快照 */
+  isFirstSnapshot: boolean;
 }
 
 // 全域變數
@@ -78,20 +103,49 @@ export function getExtendedMemoryStats(): ExtendedMemoryStats {
   const dataStructureDetails = DataStructureRegistry.getAllStats();
 
   const totalItems = dataStructureDetails.reduce((sum, ds) => sum + ds.totalItems, 0);
+  const totalEventListeners = dataStructureDetails.reduce(
+    (sum, ds) => sum + (ds.eventListenerCount ?? 0),
+    0
+  );
 
   return {
     ...basicStats,
     dataStructures: {
       totalServices: dataStructureDetails.length,
       totalItems,
+      totalEventListeners,
     },
     dataStructureDetails,
   };
 }
 
 /**
+ * 建立統計快照（用於 Delta 計算）
+ */
+function createStatsSnapshot(
+  extendedStats: ExtendedMemoryStats
+): StatsSnapshot {
+  const serviceStats = new Map<string, { items: number; listeners: number }>();
+
+  for (const ds of extendedStats.dataStructureDetails) {
+    serviceStats.set(ds.name, {
+      items: ds.totalItems,
+      listeners: ds.eventListenerCount ?? 0,
+    });
+  }
+
+  return {
+    timestamp: Date.now(),
+    heapUsed: extendedStats.heapUsed,
+    totalItems: extendedStats.dataStructures.totalItems,
+    totalEventListeners: extendedStats.dataStructures.totalEventListeners,
+    serviceStats,
+  };
+}
+
+/**
  * 記錄記憶體使用狀況
- * Feature: 066-memory-monitoring - 整合資料結構統計並分流日誌
+ * Feature: 066-memory-monitoring - 整合資料結構統計、Delta 追蹤並分流日誌
  */
 function logMemoryUsage(): void {
   const extendedStats = getExtendedMemoryStats();
@@ -102,18 +156,52 @@ function logMemoryUsage(): void {
     peakHeapUsed = extendedStats.heapUsed;
   }
 
+  // 建立快照並計算 Delta
+  const snapshot = createStatsSnapshot(extendedStats);
+  const deltaResult = memoryDeltaTracker.computeDelta(snapshot);
+  const topGrowers = memoryDeltaTracker.getTopGrowers(
+    deltaResult.serviceDeltas,
+    snapshot.serviceStats,
+    5
+  );
+
+  // Delta 統計（格式化為字串）
+  const deltaStats: DeltaStats = {
+    heapDelta: MemoryDeltaTracker.formatDelta(deltaResult.heapDelta),
+    itemsDelta: MemoryDeltaTracker.formatDelta(deltaResult.itemsDelta),
+    listenersDelta: MemoryDeltaTracker.formatDelta(deltaResult.listenersDelta),
+    topGrowers,
+    isFirstSnapshot: deltaResult.isFirstSnapshot,
+  };
+
   // 完整資料寫入 memoryLogger（logs/memory/）
   const fullLogData = {
-    heapUsed: extendedStats.heapUsed,
-    heapTotal: extendedStats.heapTotal,
-    heapUsagePercent: extendedStats.heapUsagePercent,
+    timestamp: new Date().toISOString(),
+    heap: {
+      used: extendedStats.heapUsed,
+      total: extendedStats.heapTotal,
+      percent: extendedStats.heapUsagePercent,
+      delta: deltaStats.heapDelta,
+    },
+    summary: {
+      totalEventListeners: extendedStats.dataStructures.totalEventListeners,
+      totalEventListenersDelta: deltaStats.listenersDelta,
+      totalItems: extendedStats.dataStructures.totalItems,
+      totalItemsDelta: deltaStats.itemsDelta,
+      topGrowers: deltaStats.topGrowers,
+    },
     rss: extendedStats.rss,
     external: extendedStats.external,
     arrayBuffers: extendedStats.arrayBuffers,
     peakHeapUsedMB: Math.round(peakHeapUsed * 100) / 100,
     uptimeMinutes: Math.round(uptimeSeconds / 60),
-    dataStructures: extendedStats.dataStructures,
-    dataStructureDetails: extendedStats.dataStructureDetails,
+    services: extendedStats.dataStructureDetails.map((ds) => ({
+      name: ds.name,
+      items: ds.totalItems,
+      listeners: ds.eventListenerCount ?? 0,
+      sizes: ds.sizes,
+      details: ds.details,
+    })),
   };
 
   memoryLogger.info(fullLogData, 'Memory snapshot');
@@ -121,10 +209,14 @@ function logMemoryUsage(): void {
   // 摘要資料寫入主 logger
   const summaryLogData = {
     heapUsedMB: extendedStats.heapUsed,
+    heapDelta: deltaStats.heapDelta,
     heapUsagePercent: extendedStats.heapUsagePercent,
     peakHeapUsedMB: Math.round(peakHeapUsed * 100) / 100,
     uptimeMinutes: Math.round(uptimeSeconds / 60),
     dataStructureItems: extendedStats.dataStructures.totalItems,
+    itemsDelta: deltaStats.itemsDelta,
+    eventListeners: extendedStats.dataStructures.totalEventListeners,
+    listenersDelta: deltaStats.listenersDelta,
   };
 
   // 超過 1GB 使用警告級別，超過 2GB 使用錯誤級別
@@ -134,6 +226,17 @@ function logMemoryUsage(): void {
     logger.warn(summaryLogData, 'Memory usage HIGH - heap > 1GB');
   } else {
     logger.info(summaryLogData, 'Memory usage');
+  }
+
+  // 如果有 topGrowers，額外記錄警告
+  if (topGrowers.length > 0 && !deltaResult.isFirstSnapshot) {
+    const significantGrowers = topGrowers.filter((g) => g.delta > 10);
+    if (significantGrowers.length > 0) {
+      logger.warn(
+        { topGrowers: significantGrowers },
+        'Significant data structure growth detected'
+      );
+    }
   }
 }
 
@@ -150,6 +253,9 @@ export function startMemoryMonitor(intervalMs = 60000): void {
 
   startTime = new Date();
   peakHeapUsed = 0;
+
+  // 重置 Delta 追蹤器
+  memoryDeltaTracker.reset();
 
   // 立即記錄一次
   logMemoryUsage();

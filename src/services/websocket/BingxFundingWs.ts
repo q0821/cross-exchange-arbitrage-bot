@@ -149,6 +149,7 @@ export class BingxFundingWs extends BaseExchangeWs {
    *
    * 注意：BingX 每連線最多 50 個訂閱，超過會導致連接被斷開
    * 此方法會自動限制訂閱數量並記錄警告
+   * 被跳過的 symbols 會透過 'skippedSymbols' 事件發出
    */
   override async subscribe(symbols: string[]): Promise<void> {
     if (!this.isConnected || !this.ws) {
@@ -169,14 +170,17 @@ export class BingxFundingWs extends BaseExchangeWs {
         },
         'BingX subscription limit reached, cannot add more symbols'
       );
+      // 發出 skippedSymbols 事件，讓調用方可以用 REST API fallback
+      this.emit('skippedSymbols', symbols);
       return;
     }
 
     // 限制訂閱數量
     let symbolsToSubscribe = symbols;
+    let skippedSymbols: string[] = [];
     if (symbols.length > availableSlots) {
       symbolsToSubscribe = symbols.slice(0, availableSlots);
-      const skippedSymbols = symbols.slice(availableSlots);
+      skippedSymbols = symbols.slice(availableSlots);
       logger.warn(
         {
           service: this.getLogPrefix(),
@@ -209,6 +213,11 @@ export class BingxFundingWs extends BaseExchangeWs {
 
     // 記錄已訂閱的交易對
     symbolsToSubscribe.forEach((symbol) => this.subscribedSymbols.add(symbol.toUpperCase()));
+
+    // 如果有被跳過的 symbols，發出事件讓調用方可以用 REST API fallback
+    if (skippedSymbols.length > 0) {
+      this.emit('skippedSymbols', skippedSymbols);
+    }
   }
 
   /**

@@ -292,6 +292,7 @@ describe('PositionCloser.closeBatchPositions', () => {
       expect(result.success).toBe(true);
       expect(result.totalPositions).toBe(0);
       expect(result.closedPositions).toBe(0);
+      expect(result.partialPositions).toBe(0);
       expect(result.failedPositions).toBe(0);
       expect(result.results).toHaveLength(0);
     });
@@ -415,7 +416,64 @@ describe('PositionCloser.closeBatchPositions', () => {
       expect(result.success).toBe(false);
       expect(result.totalPositions).toBe(2);
       expect(result.closedPositions).toBe(0);
+      expect(result.partialPositions).toBe(0);
       expect(result.failedPositions).toBe(2);
+    });
+
+    it('should track partial close positions separately', async () => {
+      // Arrange
+      const groupId = 'group-partial-close';
+      const userId = 'user-123';
+      const positions = [
+        createMockPosition({ id: 'pos-1', groupId }),
+        createMockPosition({ id: 'pos-2', groupId }),
+      ];
+
+      mockPrisma.position.findMany.mockResolvedValue(positions);
+      mockPrisma.position.findUnique.mockImplementation(({ where }: any) => {
+        return Promise.resolve(positions.find((p) => p.id === where.id));
+      });
+      mockPrisma.position.update.mockImplementation(({ where, data }: any) => {
+        const pos = positions.find((p) => p.id === where.id);
+        return Promise.resolve({ ...pos, ...data });
+      });
+      mockPrisma.trade.create.mockImplementation(({ data }: any) => {
+        return Promise.resolve({
+          id: `trade-${data.positionId}`,
+          ...data,
+        });
+      });
+
+      // Simulate partial close: long side succeeds, short side fails
+      let callCount = 0;
+      mockCreateMarketOrder.mockImplementation(() => {
+        callCount++;
+        if (callCount % 2 === 0) {
+          // Every other call (short side) fails
+          throw new Error('Short side close failed');
+        }
+        return Promise.resolve({
+          id: 'order-123',
+          average: 50050,
+          filled: 0.1,
+          fee: { cost: 0.5 },
+          info: {},
+        });
+      });
+
+      // Act
+      const result = await positionCloser.closeBatchPositions({
+        userId,
+        groupId,
+      });
+
+      // Assert
+      expect(result.success).toBe(false);
+      expect(result.totalPositions).toBe(2);
+      expect(result.closedPositions).toBe(0);
+      expect(result.partialPositions).toBe(2);
+      expect(result.failedPositions).toBe(0);
+      expect(result.results.every((r: any) => r.isPartial === true)).toBe(true);
     });
   });
 

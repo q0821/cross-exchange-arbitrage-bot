@@ -262,10 +262,15 @@ export class RatesCache implements Monitorable {
       recordedAt: data.receivedAt,
     });
 
+    // 獲取已有的 originalFundingInterval（如果存在）
+    const existingData = pair.exchanges?.get(exchangeName);
+    const fundingInterval = data.fundingInterval ?? existingData?.originalFundingInterval ?? 8;
+
     // 創建 ExchangeRateData
     const newExchangeData: ExchangeRateData = {
       rate: newRate,
       price: markPrice?.toNumber(),
+      originalFundingInterval: fundingInterval,
     };
 
     // 更新交易所數據
@@ -299,11 +304,13 @@ export class RatesCache implements Monitorable {
       recordedAt: data.receivedAt,
     });
 
-    // 創建交易所數據 Map
+    // 創建交易所數據 Map（使用傳入的 fundingInterval 或預設 8h）
+    const fundingInterval = data.fundingInterval ?? 8;
     const exchanges = new Map<ExchangeName, ExchangeRateData>();
     exchanges.set(exchangeName, {
       rate,
       price: markPrice?.toNumber(),
+      originalFundingInterval: fundingInterval,
     });
 
     return {
@@ -485,12 +492,27 @@ export class RatesCache implements Monitorable {
    * Feature: 066-memory-monitoring
    */
   getDataStructureStats(): DataStructureStats {
+    // 計算深層資料：每個 FundingRatePair 內的 exchanges Map 大小
+    let totalExchangeEntries = 0;
+    for (const cached of this.cache.values()) {
+      if (cached.exchanges) {
+        totalExchangeEntries += cached.exchanges.size;
+      }
+    }
+
     return {
       name: 'RatesCache',
       sizes: {
         cache: this.cache.size,
+        exchangeEntries: totalExchangeEntries,
       },
       totalItems: this.cache.size,
+      details: {
+        averageExchangesPerPair: this.cache.size > 0
+          ? Math.round((totalExchangeEntries / this.cache.size) * 100) / 100
+          : 0,
+        staleThresholdMs: this.staleThresholdMs,
+      },
     };
   }
 

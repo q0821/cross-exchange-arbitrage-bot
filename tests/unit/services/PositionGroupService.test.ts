@@ -117,6 +117,34 @@ describe('PositionGroupService', () => {
       );
     });
 
+    it('should filter by multiple statuses when array provided', async () => {
+      vi.mocked(mockPrisma.position.findMany).mockResolvedValue([]);
+
+      await service.getPositionsGrouped('user-1', ['OPEN', 'PARTIAL']);
+
+      expect(mockPrisma.position.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            status: { in: ['OPEN', 'PARTIAL'] },
+          }),
+        })
+      );
+    });
+
+    it('should not filter status when ALL is provided', async () => {
+      vi.mocked(mockPrisma.position.findMany).mockResolvedValue([]);
+
+      await service.getPositionsGrouped('user-1', 'ALL');
+
+      expect(mockPrisma.position.findMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+        },
+        orderBy: { createdAt: 'asc' },
+      });
+    });
+
     it('should calculate aggregate for groups', async () => {
       const mockPositions = [
         createMockPosition('pos-1', 'group-1', {

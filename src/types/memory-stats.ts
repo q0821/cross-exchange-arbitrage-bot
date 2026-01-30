@@ -15,6 +15,10 @@ export interface DataStructureStats {
   sizes: Record<string, number>;
   /** 總項目數 */
   totalItems: number;
+  /** EventEmitter listener 總數（可選，用於追蹤潛在的 listener 洩漏）*/
+  eventListenerCount?: number;
+  /** 額外診斷資訊（可選，用於儲存服務特定的詳細資料）*/
+  details?: Record<string, unknown>;
 }
 
 /**

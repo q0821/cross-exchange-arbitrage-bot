@@ -83,12 +83,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     // 4. 如果請求分組格式，使用 PositionGroupService
     if (grouped) {
       const groupService = new PositionGroupService(prisma);
-      // 只支援單一狀態篩選或 ALL
-      const status: PositionStatusFilter =
-        statusFilter && statusFilter.length === 1
-          ? (statusFilter[0] as PositionStatusFilter)
-          : 'ALL';
-      const groupedResult = await groupService.getPositionsGrouped(user.userId, status);
+      // 直接傳遞狀態陣列，讓 Service 處理多狀態過濾
+      const groupedResult = await groupService.getPositionsGrouped(
+        user.userId,
+        statusFilter as PositionStatusFilter
+      );
 
       // 計算總數
       const total = groupedResult.positions.length +

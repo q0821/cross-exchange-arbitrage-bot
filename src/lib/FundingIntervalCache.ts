@@ -1,3 +1,5 @@
+import type { DataStructureStats, Monitorable } from '../types/memory-stats';
+
 export interface CachedInterval {
   /** 間隔值(小時) */
   interval: number;
@@ -46,7 +48,7 @@ interface CacheStats {
  * 資金費率間隔快取
  * 用於避免重複 API 呼叫，預設 TTL 為 24 小時
  */
-export class FundingIntervalCache {
+export class FundingIntervalCache implements Monitorable {
   private cache: Map<string, CachedInterval>;
   private stats: CacheStats;
   private defaultTTL: number;
@@ -233,6 +235,29 @@ export class FundingIntervalCache {
       hits: this.stats.hits,
       misses: this.stats.misses,
       sets: this.stats.sets,
+    };
+  }
+
+  /**
+   * 取得資料結構統計資訊
+   * Feature: 066-memory-monitoring
+   */
+  getDataStructureStats(): DataStructureStats {
+    const cacheStats = this.getStats();
+
+    return {
+      name: 'FundingIntervalCache',
+      sizes: {
+        cache: this.cache.size,
+      },
+      totalItems: this.cache.size,
+      details: {
+        hitRate: Math.round(cacheStats.hitRate * 100) / 100,
+        hits: cacheStats.hits,
+        misses: cacheStats.misses,
+        sets: cacheStats.sets,
+        defaultTTLMs: this.defaultTTL,
+      },
     };
   }
 

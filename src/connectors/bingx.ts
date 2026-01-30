@@ -674,6 +674,9 @@ export class BingxConnector extends BaseExchangeConnector {
           continue;
         }
 
+        // 獲取資金費率週期（從快取或預設 8h）
+        const fundingInterval = await this.getFundingInterval(symbol);
+
         // 轉換為內部格式
         const data: FundingRateReceived = {
           exchange: 'bingx',
@@ -684,6 +687,7 @@ export class BingxConnector extends BaseExchangeConnector {
             : new Date(),
           markPrice: parseResult.data.markPrice ? new Decimal(parseResult.data.markPrice) : undefined,
           indexPrice: parseResult.data.indexPrice ? new Decimal(parseResult.data.indexPrice) : undefined,
+          fundingInterval,
           source: 'websocket',
           receivedAt: new Date(),
         };
@@ -738,6 +742,7 @@ export class BingxConnector extends BaseExchangeConnector {
           nextFundingTime: fundingRateData.nextFundingTime,
           markPrice: fundingRateData.markPrice ? new Decimal(fundingRateData.markPrice) : undefined,
           indexPrice: fundingRateData.indexPrice ? new Decimal(fundingRateData.indexPrice) : undefined,
+          fundingInterval: fundingRateData.fundingInterval,
           source: 'rest',
           receivedAt: new Date(),
         };

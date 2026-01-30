@@ -391,6 +391,7 @@ export class BinanceFundingWs extends EventEmitter {
 
     const msg = result.data;
 
+    // Binance 固定 8 小時結算週期
     return {
       exchange: 'binance',
       symbol: msg.s,
@@ -398,6 +399,7 @@ export class BinanceFundingWs extends EventEmitter {
       nextFundingTime: new Date(msg.T),
       markPrice: new Decimal(msg.p),
       indexPrice: new Decimal(msg.i),
+      fundingInterval: 8,
       source: 'websocket',
       receivedAt: new Date(),
     };
@@ -507,7 +509,12 @@ export class BinanceFundingWs extends EventEmitter {
     this.reconnectionManager.clearTimer();
 
     if (this.ws) {
-      this.ws.close();
+      try {
+        this.ws.close();
+      } catch {
+        // 忽略 WebSocket 關閉錯誤（例如連線尚未建立）
+        // ws 套件在 CONNECTING 狀態呼叫 close() 會拋出錯誤
+      }
       this.ws = null;
     }
 

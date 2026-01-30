@@ -29,6 +29,7 @@ import {
 } from '../../types/data-source';
 import type { DataStructureStats, Monitorable } from '../../types/memory-stats';
 import { logger } from '../../lib/logger';
+import { getEventEmitterStats } from '../../lib/event-emitter-stats';
 
 // ==================== DataSourceManager 類別 ====================
 
@@ -500,6 +501,7 @@ export class DataSourceManager extends EventEmitter implements IDataSourceManage
   getDataStructureStats(): DataStructureStats {
     const statesSize = this.states.size;
     const recoveryTimersSize = this.recoveryTimers.size;
+    const emitterStats = getEventEmitterStats(this);
 
     return {
       name: 'DataSourceManager',
@@ -508,6 +510,11 @@ export class DataSourceManager extends EventEmitter implements IDataSourceManage
         recoveryTimers: recoveryTimersSize,
       },
       totalItems: statesSize + recoveryTimersSize,
+      eventListenerCount: emitterStats.totalListeners,
+      details: {
+        listenersByEvent: emitterStats.listenersByEvent,
+        hasStaleCheckInterval: this.staleCheckInterval !== null,
+      },
     };
   }
 

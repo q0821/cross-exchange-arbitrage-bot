@@ -150,12 +150,14 @@ export interface CloseBatchPositionsResult {
   success: boolean;
   /** 總持倉數量 */
   totalPositions: number;
-  /** 成功平倉數量 */
+  /** 成功平倉數量（雙邊都成功） */
   closedPositions: number;
-  /** 失敗數量 */
+  /** 部分平倉數量（一邊成功一邊失敗） */
+  partialPositions: number;
+  /** 完全失敗數量（雙邊都失敗或發生錯誤） */
   failedPositions: number;
   /** 每個持倉的結果 */
-  results: Array<{ success: boolean; positionId: string; error?: string }>;
+  results: Array<{ success: boolean; positionId: string; error?: string; isPartial?: boolean }>;
 }
 
 /**
@@ -252,6 +254,7 @@ export class PositionCloser {
    * 批量平倉：關閉指定組內的所有持倉
    *
    * Feature: 069-position-group-close
+   * 優化：預先創建 CCXT 實例並重用，避免記憶體洩漏
    *
    * @param params 批量平倉參數
    * @returns 批量平倉結果
@@ -286,6 +289,7 @@ export class PositionCloser {
         success: true,
         totalPositions: 0,
         closedPositions: 0,
+        partialPositions: 0,
         failedPositions: 0,
         results: [],
       };
@@ -296,9 +300,45 @@ export class PositionCloser {
       'Found positions to close in batch',
     );
 
-    // 2. 逐一平倉（使用 BATCH_CLOSE 作為 closeReason）
-    const results: Array<{ success: boolean; positionId: string; error?: string }> = [];
+    // 2. 收集所有需要的交易所並預創建 CCXT 實例（避免重複創建導致記憶體洩漏）
+    const exchangeSet = new Set<SupportedExchange>();
+    for (const position of positions) {
+      exchangeSet.add(position.longExchange as SupportedExchange);
+      exchangeSet.add(position.shortExchange as SupportedExchange);
+    }
+
+    logger.info(
+      { userId, exchanges: Array.from(exchangeSet), positionCount: totalPositions },
+      'Pre-creating exchange traders for batch close',
+    );
+
+    // 預創建所有需要的 trader 實例
+    const traderMap = new Map<SupportedExchange, ExchangeTrader>();
+    const traderCreationPromises = Array.from(exchangeSet).map(async (exchange) => {
+      try {
+        const trader = await this.createUserTrader(userId, exchange);
+        traderMap.set(exchange, trader);
+        logger.info({ userId, exchange }, 'Exchange trader pre-created for batch close');
+      } catch (error) {
+        logger.error(
+          { userId, exchange, error: error instanceof Error ? error.message : String(error) },
+          'Failed to pre-create exchange trader',
+        );
+        throw error;
+      }
+    });
+
+    await Promise.all(traderCreationPromises);
+
+    logger.info(
+      { userId, traderCount: traderMap.size },
+      'All exchange traders pre-created successfully',
+    );
+
+    // 3. 逐一平倉（使用 BATCH_CLOSE 作為 closeReason，重用 trader 實例）
+    const results: Array<{ success: boolean; positionId: string; error?: string; isPartial?: boolean }> = [];
     let closedPositions = 0;
+    let partialPositions = 0;
     let failedPositions = 0;
 
     for (let i = 0; i < positions.length; i++) {
@@ -315,11 +355,12 @@ export class PositionCloser {
       }
 
       try {
-        // 使用現有的 closePosition 方法，傳入 BATCH_CLOSE 作為 closeReason
-        const closeResult = await this.closePosition({
+        // 使用預創建的 trader 執行平倉（避免每次創建新實例）
+        const closeResult = await this.closePositionWithTraders({
           userId,
           positionId: position.id,
           closeReason: 'BATCH_CLOSE',
+          traderMap,
         });
 
         if (closeResult.success) {
@@ -333,12 +374,13 @@ export class PositionCloser {
             'Batch close: position closed successfully',
           );
         } else {
-          // closePosition 返回 PARTIAL_CLOSE
-          failedPositions++;
+          // closePosition 返回 PARTIAL_CLOSE（一邊成功一邊失敗）
+          partialPositions++;
           results.push({
             success: false,
             positionId: position.id,
             error: 'PARTIAL_CLOSE',
+            isPartial: true,
           });
           logger.warn(
             { positionId: position.id, current, total: totalPositions },
@@ -346,12 +388,14 @@ export class PositionCloser {
           );
         }
       } catch (error) {
+        // 完全失敗（雙邊都失敗或發生錯誤）
         failedPositions++;
         const errorMessage = error instanceof Error ? error.message : String(error);
         results.push({
           success: false,
           positionId: position.id,
           error: errorMessage,
+          isPartial: false,
         });
         logger.warn(
           { positionId: position.id, current, total: totalPositions, error: errorMessage },
@@ -361,10 +405,11 @@ export class PositionCloser {
       }
     }
 
-    const success = failedPositions === 0;
+    // 只有當沒有任何部分失敗或完全失敗時，才算全部成功
+    const success = partialPositions === 0 && failedPositions === 0;
 
     logger.info(
-      { userId, groupId, totalPositions, closedPositions, failedPositions, success },
+      { userId, groupId, totalPositions, closedPositions, partialPositions, failedPositions, success },
       'Batch position close completed',
     );
 
@@ -372,9 +417,105 @@ export class PositionCloser {
       success,
       totalPositions,
       closedPositions,
+      partialPositions,
       failedPositions,
       results,
     };
+  }
+
+  /**
+   * 使用預創建的 trader 執行平倉（批次平倉專用）
+   *
+   * @param params 平倉參數（包含預創建的 traderMap）
+   * @returns 平倉結果
+   */
+  private async closePositionWithTraders(params: {
+    userId: string;
+    positionId: string;
+    closeReason: CloseReason;
+    traderMap: Map<SupportedExchange, ExchangeTrader>;
+  }): Promise<ClosePositionResult> {
+    const { userId, positionId, closeReason, traderMap } = params;
+
+    // 使用分散式鎖執行平倉
+    return this.withCloseLock(positionId, async () => {
+      // 1. 獲取並驗證持倉
+      const position = await this.getAndValidatePosition(userId, positionId);
+
+      // 2. 更新狀態為 CLOSING
+      await this.updatePositionStatus(position.id, 'CLOSING');
+
+      try {
+        // 3. 從預創建的 Map 中取得 trader（而非創建新實例）
+        const longExchange = position.longExchange as SupportedExchange;
+        const shortExchange = position.shortExchange as SupportedExchange;
+
+        const longTrader = traderMap.get(longExchange);
+        const shortTrader = traderMap.get(shortExchange);
+
+        if (!longTrader || !shortTrader) {
+          throw new TradingError(
+            'Trader not found in pre-created map',
+            'TRADER_NOT_FOUND',
+            false,
+            { longExchange, shortExchange, availableExchanges: Array.from(traderMap.keys()) },
+          );
+        }
+
+        // 4. 使用預創建的 trader 執行雙邊平倉
+        const result = await this.executeBilateralCloseWithTraders(
+          longTrader,
+          shortTrader,
+          position.symbol,
+          longExchange,
+          shortExchange,
+          new Decimal(position.longPositionSize),
+          new Decimal(position.shortPositionSize),
+        );
+
+        // 5. 處理結果
+        return await this.handleCloseResult(position, result, closeReason);
+      } catch (error) {
+        // 更新 Position 狀態（如果還沒被更新為 PARTIAL）
+        const currentPosition = await this.prisma.position.findUnique({
+          where: { id: position.id },
+        });
+
+        if (currentPosition?.status === 'CLOSING') {
+          await this.updatePositionStatus(
+            position.id,
+            'OPEN', // 回復為 OPEN
+            error instanceof Error ? error.message : 'Unknown error',
+          );
+        }
+        throw error;
+      }
+    });
+  }
+
+  /**
+   * 使用預創建的 trader 執行雙邊平倉（批次平倉專用）
+   */
+  private async executeBilateralCloseWithTraders(
+    longTrader: ExchangeTrader,
+    shortTrader: ExchangeTrader,
+    symbol: string,
+    longExchange: SupportedExchange,
+    shortExchange: SupportedExchange,
+    longQuantity: Decimal,
+    shortQuantity: Decimal,
+  ): Promise<BilateralCloseResult> {
+    const ccxtSymbol = this.formatSymbolForCcxt(symbol);
+
+    // 並行執行雙邊平倉
+    // Long position close: sell to close (reduceOnly)
+    // Short position close: buy to close (reduceOnly)
+    const [longResult, shortResult] = await Promise.all([
+      this.executeCloseOrder(longTrader, ccxtSymbol, 'sell', longQuantity.toNumber(), longExchange),
+      this.executeCloseOrder(shortTrader, ccxtSymbol, 'buy', shortQuantity.toNumber(), shortExchange),
+    ]);
+
+    return { longResult, shortResult };
   }
 
   /**
@@ -965,6 +1106,22 @@ export class PositionCloser {
             }),
       },
     });
+
+    // 嘗試取消成功平倉那一邊的條件單
+    // 例如：如果 Long 成功平倉，則取消 Long 的停損停利單
+    // 失敗的一邊保留條件單，因為倉位還在
+    try {
+      await this.cancelSingleSideConditionalOrders(position, successSide);
+    } catch (error) {
+      logger.warn(
+        {
+          positionId: position.id,
+          side: successSide,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Failed to cancel conditional orders for closed side in partial close',
+      );
+    }
 
     return {
       success: false,
