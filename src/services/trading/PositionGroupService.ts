@@ -28,17 +28,27 @@ export class PositionGroupService {
    * 取得用戶的分組持倉
    *
    * @param userId - 用戶 ID
-   * @param status - 狀態篩選（預設 OPEN）
+   * @param status - 狀態篩選（單一狀態、狀態陣列、或 'ALL'）
    * @returns 分組後的持倉回應
    */
   async getPositionsGrouped(
     userId: string,
     status?: PositionStatusFilter
   ): Promise<GroupedPositionsResponse> {
-    const where: { userId: string; status?: PositionWebStatus } = { userId };
+    const where: {
+      userId: string;
+      status?: PositionWebStatus | { in: PositionWebStatus[] };
+    } = { userId };
 
-    if (status && status !== 'ALL') {
-      where.status = status as PositionWebStatus;
+    if (status) {
+      if (Array.isArray(status)) {
+        // 多狀態過濾
+        where.status = { in: status };
+      } else if (status !== 'ALL') {
+        // 單一狀態過濾
+        where.status = status as PositionWebStatus;
+      }
+      // status === 'ALL' 時不加過濾條件
     }
 
     const positions = await this.prisma.position.findMany({

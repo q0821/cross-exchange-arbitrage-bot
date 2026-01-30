@@ -190,5 +190,8 @@ export interface OpenPositionWithGroupParams {
 
 /**
  * Position 狀態篩選
+ * - 單一狀態：'OPEN', 'CLOSED', etc.
+ * - 多狀態陣列：['OPEN', 'PARTIAL']
+ * - 'ALL'：不過濾狀態
  */
-export type PositionStatusFilter = PositionWebStatus | 'ALL';
+export type PositionStatusFilter = PositionWebStatus | PositionWebStatus[] | 'ALL';
