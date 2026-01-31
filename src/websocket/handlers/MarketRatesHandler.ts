@@ -17,6 +17,15 @@ import {
 } from '../../lib/constants';
 
 /**
+ * Socket 事件監聽器引用（用於清理）
+ */
+interface SocketListeners {
+  subscribeHandler: () => Promise<void>;
+  unsubscribeHandler: () => void;
+  setTimeBasisHandler: (data: { timeBasis: 1 | 4 | 8 | 24 }) => Promise<void>;
+}
+
+/**
  * MarketRatesHandler
  * 處理批量費率更新的 WebSocket 訂閱和推送邏輯
  */
@@ -24,17 +33,29 @@ export class MarketRatesHandler {
   private broadcastInterval: NodeJS.Timeout | null = null;
   private readonly BROADCAST_INTERVAL_MS = 2000; // 2 秒推送一次
 
+  /** 追蹤已註冊的 socket（防止重複註冊監聽器） */
+  private registeredSockets: WeakSet<Socket> = new WeakSet();
+
+  /** 儲存監聽器引用以便斷線時清理 */
+  private socketListeners: WeakMap<Socket, SocketListeners> = new WeakMap();
+
   constructor(private readonly io: SocketIOServer) {}
 
   /**
    * 註冊 WebSocket 事件處理器
    */
   register(socket: Socket): void {
+    // 防止重複註冊（避免事件監聽器累積導致記憶體洩漏）
+    if (this.registeredSockets.has(socket)) {
+      logger.debug({ socketId: socket.id }, 'Socket already registered, skipping');
+      return;
+    }
+
     const authenticatedSocket = socket as AuthenticatedSocket;
     const { userId, email } = authenticatedSocket.data;
 
-    // 訂閱市場監控更新
-    socket.on('subscribe:market-rates', async () => {
+    // 定義具名監聽器（保存引用以便斷線時清理）
+    const subscribeHandler = async (): Promise<void> => {
       const room = 'market-rates';
       socket.join(room);
 
@@ -85,10 +106,9 @@ export class MarketRatesHandler {
 
       // 立即發送一次當前數據
       this.sendRatesToSocket(socket);
-    });
+    };
 
-    // 取消訂閱市場監控更新
-    socket.on('unsubscribe:market-rates', () => {
+    const unsubscribeHandler = (): void => {
       const room = 'market-rates';
       socket.leave(room);
 
@@ -106,10 +126,9 @@ export class MarketRatesHandler {
         success: true,
         message: 'Unsubscribed from market rates updates',
       });
-    });
+    };
 
-    // 設定時間基準偏好（異步持久化到資料庫）
-    socket.on('set-time-basis', async (data: { timeBasis: 1 | 4 | 8 | 24 }) => {
+    const setTimeBasisHandler = async (data: { timeBasis: 1 | 4 | 8 | 24 }): Promise<void> => {
       try {
         const { timeBasis } = data;
 
@@ -182,6 +201,19 @@ export class MarketRatesHandler {
           code: 'INTERNAL_ERROR',
         });
       }
+    };
+
+    // 註冊事件監聽器
+    socket.on('subscribe:market-rates', subscribeHandler);
+    socket.on('unsubscribe:market-rates', unsubscribeHandler);
+    socket.on('set-time-basis', setTimeBasisHandler);
+
+    // 記錄已註冊狀態和監聽器引用（用於斷線時清理）
+    this.registeredSockets.add(socket);
+    this.socketListeners.set(socket, {
+      subscribeHandler,
+      unsubscribeHandler,
+      setTimeBasisHandler,
     });
 
     logger.debug(
@@ -191,6 +223,27 @@ export class MarketRatesHandler {
       },
       'MarketRatesHandler registered for socket',
     );
+  }
+
+  /**
+   * 取消註冊 socket 的事件監聽器（斷線時呼叫以防止記憶體洩漏）
+   */
+  unregister(socket: Socket): void {
+    const listeners = this.socketListeners.get(socket);
+    if (!listeners) {
+      return;
+    }
+
+    // 移除所有事件監聽器
+    socket.off('subscribe:market-rates', listeners.subscribeHandler);
+    socket.off('unsubscribe:market-rates', listeners.unsubscribeHandler);
+    socket.off('set-time-basis', listeners.setTimeBasisHandler);
+
+    // 清理追蹤狀態
+    this.socketListeners.delete(socket);
+    this.registeredSockets.delete(socket);
+
+    logger.debug({ socketId: socket.id }, 'MarketRatesHandler unregistered for socket');
   }
 
   /**
@@ -237,6 +290,14 @@ export class MarketRatesHandler {
   private broadcastRates(): void {
     try {
       const room = 'market-rates';
+
+      // 檢查是否有訂閱者，沒有則跳過（避免無謂的物件創建造成記憶體浪費）
+      const subscriberCount = this.io.sockets.adapter.rooms.get(room)?.size || 0;
+      if (subscriberCount === 0) {
+        logger.trace({ room }, 'No subscribers, skipping broadcast');
+        return;
+      }
+
       const rates = ratesCache.getAll();
       const stats = ratesCache.getStats();
 
