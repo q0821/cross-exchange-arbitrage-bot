@@ -71,6 +71,12 @@ export class MarketRatesHandler {
   /** 快取大小限制（防止記憶體無限增長） */
   private readonly MAX_CACHE_SIZE = 500;
 
+  /** 上次廣播的數據 hash（用於差異廣播） */
+  private lastBroadcastHash: string = '';
+
+  /** 上次廣播的 stats hash */
+  private lastStatsHash: string = '';
+
   constructor(private readonly io: SocketIOServer) {}
 
   /**
@@ -318,6 +324,7 @@ export class MarketRatesHandler {
 
   /**
    * 向所有訂閱者廣播批量費率更新
+   * 使用差異廣播機制：數據沒變則跳過，減少無效的 JSON 序列化和網路傳輸
    */
   private broadcastRates(): void {
     try {
@@ -348,51 +355,73 @@ export class MarketRatesHandler {
       // 格式化費率數據
       const formattedRates = this.formatRates(rates);
 
-      // 發送 rates:update 事件
-      this.io.to(room).emit('rates:update', {
-        type: 'rates:update',
-        data: {
-          rates: formattedRates,
-          timestamp: new Date().toISOString(),
-        },
-      });
+      // 差異廣播：計算整體 hash，相同則跳過 rates:update
+      const ratesHash = this.computeBroadcastHash(formattedRates);
+      const shouldBroadcastRates = ratesHash !== this.lastBroadcastHash;
 
-      // 發送 rates:stats 事件
-      this.io.to(room).emit('rates:stats', {
-        type: 'rates:stats',
-        data: {
-          totalSymbols: stats.totalSymbols,
-          opportunityCount: stats.opportunityCount,
-          approachingCount: stats.approachingCount,
-          maxSpread: stats.maxSpread
-            ? {
-                symbol: stats.maxSpread.symbol,
-                spread: stats.maxSpread.spread,
-              }
-            : null,
-          uptime: stats.uptime,
-          lastUpdate: stats.lastUpdate?.toISOString() || null,
-        },
-      });
+      if (shouldBroadcastRates) {
+        this.lastBroadcastHash = ratesHash;
 
-      logger.info(
-        {
-          room,
-          rateCount: rates.length,
-          opportunityCount: stats.opportunityCount,
-          subscriberCount: this.io.sockets.adapter.rooms.get(room)?.size || 0,
-          lastUpdate: stats.lastUpdate?.toISOString() || null,
-          sampleRateWithSpread: formattedRates[0]?.bestPair
-            ? {
-                symbol: formattedRates[0].symbol,
-                spreadPercent: formattedRates[0].bestPair.spreadPercent,
-                priceDiffPercent: formattedRates[0].bestPair.priceDiffPercent,
-                // netReturn removed - Feature 014: 移除淨收益欄位
-              }
-            : null,
-        },
-        'Broadcasted market rates update with price spread',
-      );
+        // 發送 rates:update 事件
+        this.io.to(room).emit('rates:update', {
+          type: 'rates:update',
+          data: {
+            rates: formattedRates,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+
+      // 差異廣播：計算 stats hash，相同則跳過 rates:stats
+      const statsHash = this.computeStatsHash(stats);
+      const shouldBroadcastStats = statsHash !== this.lastStatsHash;
+
+      if (shouldBroadcastStats) {
+        this.lastStatsHash = statsHash;
+
+        // 發送 rates:stats 事件
+        this.io.to(room).emit('rates:stats', {
+          type: 'rates:stats',
+          data: {
+            totalSymbols: stats.totalSymbols,
+            opportunityCount: stats.opportunityCount,
+            approachingCount: stats.approachingCount,
+            maxSpread: stats.maxSpread
+              ? {
+                  symbol: stats.maxSpread.symbol,
+                  spread: stats.maxSpread.spread,
+                }
+              : null,
+            uptime: stats.uptime,
+            lastUpdate: stats.lastUpdate?.toISOString() || null,
+          },
+        });
+      }
+
+      // 只在有實際廣播時記錄日誌
+      if (shouldBroadcastRates || shouldBroadcastStats) {
+        logger.info(
+          {
+            room,
+            rateCount: rates.length,
+            opportunityCount: stats.opportunityCount,
+            subscriberCount,
+            lastUpdate: stats.lastUpdate?.toISOString() || null,
+            broadcastedRates: shouldBroadcastRates,
+            broadcastedStats: shouldBroadcastStats,
+            sampleRateWithSpread: formattedRates[0]?.bestPair
+              ? {
+                  symbol: formattedRates[0].symbol,
+                  spreadPercent: formattedRates[0].bestPair.spreadPercent,
+                  priceDiffPercent: formattedRates[0].bestPair.priceDiffPercent,
+                }
+              : null,
+          },
+          'Broadcasted market rates update with price spread',
+        );
+      } else {
+        logger.trace({ room, subscriberCount }, 'Rates unchanged, skipped broadcast');
+      }
     } catch (error) {
       logger.error(
         {
@@ -617,6 +646,33 @@ export class MarketRatesHandler {
   clearFormatCache(): void {
     this.lastFormattedRates.clear();
     this.lastRatesHash.clear();
+    this.lastBroadcastHash = '';
+    this.lastStatsHash = '';
+  }
+
+  /**
+   * 計算廣播數據的整體 hash（用於差異廣播）
+   * 只比對關鍵欄位，避免時間戳導致的誤判
+   */
+  private computeBroadcastHash(rates: FormattedRate[]): string {
+    // 使用所有費率的關鍵數據組合成 hash
+    // 包含：symbol 數量、每個 symbol 的 bestPair spread、status
+    const parts: string[] = [rates.length.toString()];
+
+    for (const rate of rates) {
+      parts.push(
+        `${rate.symbol}:${rate.bestPair?.spreadPercent ?? 0}:${rate.status}`
+      );
+    }
+
+    return parts.join('|');
+  }
+
+  /**
+   * 計算統計數據的 hash（用於差異廣播）
+   */
+  private computeStatsHash(stats: import('../../services/monitor/RatesCache').MarketStats): string {
+    return `${stats.totalSymbols}:${stats.opportunityCount}:${stats.approachingCount}:${stats.maxSpread?.spread ?? 0}`;
   }
 
   /**

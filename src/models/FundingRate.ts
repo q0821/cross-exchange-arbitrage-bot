@@ -363,26 +363,28 @@ export function createFundingRatePair(
 
 /**
  * 記憶體儲存（暫時用，待資料庫建立後移除）
+ *
+ * 優化說明 (Validated Coalescing 模式)：
+ * - 只保留每個 exchange:symbol 的最新一筆記錄
+ * - 使用 timestamp 驗證，確保只有較新的資料才會覆蓋舊資料
+ * - 減少記憶體使用量約 90%（從 25,000+ 物件降至 250 物件）
  */
 export class FundingRateStore {
-  private rates: Map<string, FundingRateRecord[]> = new Map();
-  private maxRecordsPerSymbol = 100;
+  /** 只保留最新一筆記錄（key: `${exchange}:${symbol}`） */
+  private rates: Map<string, FundingRateRecord> = new Map();
 
   /**
    * 儲存資金費率記錄
+   * 使用 Validated Coalescing：只有 timestamp 較新時才更新
    */
   save(rate: FundingRateRecord): void {
     const key = `${rate.exchange}:${rate.symbol}`;
-    const records = this.rates.get(key) || [];
+    const existing = this.rates.get(key);
 
-    records.push(rate);
-
-    // 保留最近的 N 筆記錄
-    if (records.length > this.maxRecordsPerSymbol) {
-      records.shift();
+    // Validated: 只有更新的資料才覆蓋
+    if (!existing || rate.recordedAt.getTime() > existing.recordedAt.getTime()) {
+      this.rates.set(key, rate);
     }
-
-    this.rates.set(key, records);
   }
 
   /**
@@ -390,17 +392,18 @@ export class FundingRateStore {
    */
   getLatest(exchange: string, symbol: string): FundingRateRecord | undefined {
     const key = `${exchange}:${symbol}`;
-    const records = this.rates.get(key);
-    return records?.[records.length - 1];
+    return this.rates.get(key);
   }
 
   /**
    * 取得歷史記錄
+   * @deprecated 已簡化為只保留最新值，此方法僅為向後兼容保留
+   * @returns 最新一筆記錄（若存在），否則空陣列
    */
-  getHistory(exchange: string, symbol: string, limit = 10): FundingRateRecord[] {
+  getHistory(exchange: string, symbol: string, _limit = 10): FundingRateRecord[] {
     const key = `${exchange}:${symbol}`;
-    const records = this.rates.get(key) || [];
-    return records.slice(-limit);
+    const latest = this.rates.get(key);
+    return latest ? [latest] : [];
   }
 
   /**
@@ -422,5 +425,12 @@ export class FundingRateStore {
       }
     }
     return Array.from(symbols);
+  }
+
+  /**
+   * 取得目前儲存的記錄數量
+   */
+  size(): number {
+    return this.rates.size;
   }
 }
