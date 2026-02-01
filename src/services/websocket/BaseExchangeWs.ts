@@ -120,6 +120,8 @@ export interface BaseExchangeWsEvents {
   'reconnecting': (attempt: number) => void;
   /** 重新訂閱完成 */
   'resubscribed': (count: number) => void;
+  /** 達到最大重試次數 */
+  'maxRetriesReached': () => void;
 }
 
 // =============================================================================
@@ -393,13 +395,30 @@ export abstract class BaseExchangeWs extends EventEmitter {
 
   /**
    * 銷毀客戶端
+   *
+   * 注意：使用同步清理，避免 async disconnect() 無法 await 的問題
    */
   destroy(): void {
     this.isDestroyed = true;
-    this.disconnect();
+
+    // 同步清理 WebSocket（不等待 disconnect）
+    if (this.ws) {
+      try {
+        this.ws.removeAllListeners();
+        this.ws.on('error', () => {}); // 防止未捕獲錯誤
+        this.ws.terminate(); // 同步強制關閉
+      } catch {
+        // 忽略終止時的錯誤
+      }
+      this.ws = null;
+    }
+
+    this.isConnected = false;
+    this.connectionStartTime = null;
     this.reconnectionManager.destroy();
     this.healthChecker.destroy();
     this.removeAllListeners();
+
     logger.debug(
       { service: this.getLogPrefix(), connectionId: this.connectionId },
       'Client destroyed'
@@ -586,36 +605,45 @@ export abstract class BaseExchangeWs extends EventEmitter {
   }
 
   /**
+   * 清理現有連線（helper 方法）
+   */
+  private cleanupExistingConnection(): void {
+    if (!this.ws) return;
+
+    this.ws.removeAllListeners();
+    this.ws.on('error', () => {}); // 防止未捕獲錯誤
+    try {
+      this.ws.terminate();
+    } catch {
+      // 忽略終止錯誤
+    }
+    this.ws = null;
+    this.isConnected = false;
+  }
+
+  /**
    * 重連（內部方法）
+   *
+   * 注意：會檢查 canRetry() 和發出 maxRetriesReached 事件
    */
   protected async reconnect(): Promise<void> {
+    // 檢查是否還能重試
+    if (!this.reconnectionManager.canRetry()) {
+      logger.warn(
+        { service: this.getLogPrefix(), connectionId: this.connectionId },
+        'Max reconnect attempts reached'
+      );
+      this.emit('maxRetriesReached');
+      return;
+    }
+
     logger.info(
       { service: this.getLogPrefix(), connectionId: this.connectionId },
       'Reconnecting to WebSocket'
     );
 
     this.reconnectCount++;
-
-    // 先斷開現有連接
-    if (this.ws) {
-      this.ws.removeAllListeners();
-      // 加入臨時錯誤處理器，避免 close() 非同步錯誤成為 uncaught exception
-      this.ws.on('error', () => {});
-      // 安全終止連接：直接使用 terminate() 強制關閉
-      // readyState: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED
-      try {
-        // terminate() 是同步的，不會發出非同步錯誤
-        this.ws.terminate();
-      } catch (error) {
-        // 忽略終止錯誤
-        logger.debug(
-          { service: this.getLogPrefix(), error: error instanceof Error ? error.message : String(error) },
-          'Error during WebSocket cleanup (ignored)'
-        );
-      }
-      this.ws = null;
-      this.isConnected = false;
-    }
+    this.cleanupExistingConnection();
 
     try {
       await this.connect();
@@ -640,7 +668,8 @@ export abstract class BaseExchangeWs extends EventEmitter {
         'Reconnection failed'
       );
 
-      if (this.config.autoReconnect && !this.isDestroyed) {
+      // 再次檢查是否能重試（connect 失敗後 retryCount 可能已更新）
+      if (this.config.autoReconnect && !this.isDestroyed && this.reconnectionManager.canRetry()) {
         this.scheduleReconnect();
       }
     }

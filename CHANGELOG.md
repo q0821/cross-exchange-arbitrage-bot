@@ -58,6 +58,51 @@
 
 ### 效能優化
 
+#### 記憶體使用優化（2026-02-01）
+
+**問題**：運行 3 小時後，Heap 從 750 MB 穩定增長到 1.2 GB，峰值達 2 GB。Heap Snapshot 分析顯示 string/array/object 物件持續大量創建。
+
+**根因分析**：
+| 優先級 | 問題 | 影響 |
+|:------:|:-----|:-----|
+| P0 | `formatRates()` 每 2 秒全量重建物件 | ~126 萬物件/小時 |
+| P1 | `getStats()` 內部重複呼叫 `getAll()` | ~3.6 萬物件/小時 |
+| P1 | OKX `markPriceCache` 無大小限制 | 持續增長 |
+
+**修復內容**：
+
+1. **formatRates 差異快取**（`MarketRatesHandler.ts`）
+   - 新增 `lastFormattedRates` 和 `lastRatesHash` 快取
+   - 使用 hash 比對，只在資料變更時重建物件
+   - 預期節省 ~70% 物件創建
+
+2. **getStats 參數優化**（`RatesCache.ts`）
+   - `getStats()` 接受可選的 `rates` 參數
+   - 避免同一週期內重複呼叫 `getAll()`
+   - 預期節省 50% 陣列遍歷
+
+3. **OKX markPriceCache LRU 限制**（`OkxFundingWs.ts`）
+   - 新增 `MAX_MARK_PRICE_CACHE_SIZE = 500` 限制
+   - 實作 LRU 淘汰機制，防止無限增長
+
+4. **記憶體監控環境變數控制**
+   - `ENABLE_MEMORY_MONITOR`：是否啟用監控（預設 true）
+   - `MEMORY_MONITOR_INTERVAL_MS`：監控間隔（預設 5 分鐘）
+   - `ENABLE_HEAP_SNAPSHOT`：是否啟用 heap snapshot（預設 false）
+   - `HEAP_SNAPSHOT_THRESHOLD_MB`：觸發閾值（預設 100MB）
+
+**修改檔案**：
+- `src/websocket/handlers/MarketRatesHandler.ts`
+- `src/services/monitor/RatesCache.ts`
+- `src/services/websocket/OkxFundingWs.ts`
+- `src/lib/memory-monitor.ts`
+- `src/lib/heap-snapshot.ts`
+- `src/services/MonitorService.ts`
+
+**驗證結果**：11.5 小時運行後 Heap 穩定在 340-390 MB，無持續增長。
+
+---
+
 #### 帳戶類型偵測快取（2026-01-26）
 
 **問題**：每次開倉都會執行帳戶類型偵測，呼叫交易所 API：

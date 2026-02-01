@@ -381,11 +381,16 @@ export class RatesCache implements Monitorable {
    * Feature 022: 使用年化收益門檻判定
    * - opportunity: 年化收益 >= 800%
    * - approaching: 年化收益 600%-799%
+   *
+   * @param rates 可選的費率資料，若提供則直接使用，避免重複呼叫 getAll()
+   * @param opportunityThreshold 機會門檻（年化收益百分比）
    */
   getStats(
+    rates?: FundingRatePair[],
     opportunityThreshold = DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED
   ): MarketStats {
-    const rates = this.getAll();
+    // 若未提供 rates，則從快取中取得
+    const ratesData = rates ?? this.getAll();
     let opportunityCount = 0;
     let approachingCount = 0;
     let maxSpread: {
@@ -397,7 +402,7 @@ export class RatesCache implements Monitorable {
     // 計算接近門檻 (主門檻的 75%)
     const approachingThreshold = opportunityThreshold * APPROACHING_THRESHOLD_RATIO;
 
-    rates.forEach((rate) => {
+    ratesData.forEach((rate) => {
       // 使用 bestPair 的年化收益數據
       const annualizedReturn = rate.bestPair?.spreadAnnualized ?? 0;
       const spreadPercent = rate.bestPair?.spreadPercent ?? rate.spreadPercent ?? 0;
@@ -423,7 +428,7 @@ export class RatesCache implements Monitorable {
     });
 
     return {
-      totalSymbols: rates.length,
+      totalSymbols: ratesData.length,
       opportunityCount,
       approachingCount,
       maxSpread,

@@ -26,6 +26,29 @@ interface SocketListeners {
 }
 
 /**
+ * 格式化後的 bestPair 資料
+ */
+interface FormattedBestPair {
+  longExchange: string;
+  shortExchange: string;
+  spread: number;
+  spreadPercent: number;
+  annualizedReturn: number;
+  priceDiffPercent: number | null;
+}
+
+/**
+ * 格式化後的費率資料（用於快取比對）
+ */
+interface FormattedRate {
+  symbol: string;
+  exchanges: Record<string, unknown>;
+  bestPair: FormattedBestPair | null;
+  status: 'opportunity' | 'approaching' | 'normal';
+  timestamp: string;
+}
+
+/**
  * MarketRatesHandler
  * 處理批量費率更新的 WebSocket 訂閱和推送邏輯
  */
@@ -36,8 +59,17 @@ export class MarketRatesHandler {
   /** 追蹤已註冊的 socket（防止重複註冊監聽器） */
   private registeredSockets: WeakSet<Socket> = new WeakSet();
 
-  /** 儲存監聽器引用以便斷線時清理 */
+  /** 儲存監聯器引用以便斷線時清理 */
   private socketListeners: WeakMap<Socket, SocketListeners> = new WeakMap();
+
+  /** 快取格式化後的費率資料（用於差異比對減少物件創建） */
+  private lastFormattedRates: Map<string, FormattedRate> = new Map();
+
+  /** 快取費率資料的 hash（用於快速判斷是否需要重建物件） */
+  private lastRatesHash: Map<string, string> = new Map();
+
+  /** 快取大小限制（防止記憶體無限增長） */
+  private readonly MAX_CACHE_SIZE = 500;
 
   constructor(private readonly io: SocketIOServer) {}
 
@@ -299,7 +331,7 @@ export class MarketRatesHandler {
       }
 
       const rates = ratesCache.getAll();
-      const stats = ratesCache.getStats();
+      const stats = ratesCache.getStats(rates);  // 傳入 rates 避免重複呼叫 getAll()
 
       if (rates.length === 0) {
         logger.warn(
@@ -377,7 +409,7 @@ export class MarketRatesHandler {
   private sendRatesToSocket(socket: Socket): void {
     try {
       const rates = ratesCache.getAll();
-      const stats = ratesCache.getStats();
+      const stats = ratesCache.getStats(rates);  // 傳入 rates 避免重複呼叫 getAll()
 
       if (rates.length === 0) {
         logger.warn(
@@ -438,60 +470,162 @@ export class MarketRatesHandler {
 
   /**
    * 格式化費率數據為 WebSocket payload
+   * 使用差異快取機制：只在資料變更時重建物件，減少記憶體壓力
    */
-  private formatRates(rates: any[]): any[] {
+  private formatRates(rates: any[]): FormattedRate[] {
+    const result: FormattedRate[] = [];
+    const currentSymbols = new Set<string>();
+
+    for (const rate of rates) {
+      const symbol = rate.symbol;
+      currentSymbols.add(symbol);
+
+      // 計算 hash 用於快速判斷資料是否變更
+      const hash = this.computeRateHash(rate);
+
+      // 檢查快取命中
+      if (hash === this.lastRatesHash.get(symbol)) {
+        const cached = this.lastFormattedRates.get(symbol);
+        if (cached) {
+          result.push(cached);
+          continue;
+        }
+      }
+
+      // 快取未命中，建立新的格式化物件
+      const formatted = this.buildFormattedRate(rate);
+
+      // 更新快取（LRU：刪除再插入確保順序）
+      this.lastFormattedRates.delete(symbol);
+      this.lastFormattedRates.set(symbol, formatted);
+      this.lastRatesHash.delete(symbol);
+      this.lastRatesHash.set(symbol, hash);
+
+      result.push(formatted);
+    }
+
+    // 清理不再存在的交易對快取
+    this.cleanupStaleCache(currentSymbols);
+
+    // LRU 淘汰：超過限制時移除最舊的項目
+    this.enforceCacheLimit();
+
+    return result;
+  }
+
+  /**
+   * 計算費率資料的 hash（用於快速判斷是否需要重建物件）
+   */
+  private computeRateHash(rate: any): string {
+    const recordedAt = rate.recordedAt?.getTime() ?? 0;
+    const spreadPercent = rate.bestPair?.spreadPercent ?? 0;
+    const spreadAnnualized = rate.bestPair?.spreadAnnualized ?? 0;
+
+    // 包含交易所數量，確保交易所變更時也會重建
+    const exchangeCount = rate.exchanges?.size ?? 0;
+
+    return `${recordedAt}-${spreadPercent}-${spreadAnnualized}-${exchangeCount}`;
+  }
+
+  /**
+   * 建立單一費率的格式化物件
+   */
+  private buildFormattedRate(rate: any): FormattedRate {
     // 計算門檻（使用年化收益）
     const opportunityThreshold = DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED;
     const approachingThreshold = opportunityThreshold * APPROACHING_THRESHOLD_RATIO;
 
-    return rates.map((rate) => {
-      // Feature 022: 使用年化收益判斷狀態
-      const annualizedReturn = rate.bestPair?.spreadAnnualized ?? 0;
+    // Feature 022: 使用年化收益判斷狀態
+    const annualizedReturn = rate.bestPair?.spreadAnnualized ?? 0;
 
-      // 判斷狀態（基於年化收益門檻）
-      let status: 'opportunity' | 'approaching' | 'normal';
-      if (annualizedReturn >= opportunityThreshold) {
-        status = 'opportunity';
-      } else if (annualizedReturn >= approachingThreshold) {
-        status = 'approaching';
-      } else {
-        status = 'normal';
-      }
+    // 判斷狀態（基於年化收益門檻）
+    let status: 'opportunity' | 'approaching' | 'normal';
+    if (annualizedReturn >= opportunityThreshold) {
+      status = 'opportunity';
+    } else if (annualizedReturn >= approachingThreshold) {
+      status = 'approaching';
+    } else {
+      status = 'normal';
+    }
 
-      // 構建所有交易所的數據
-      const exchanges: Record<string, any> = {};
-      for (const [exchangeName, exchangeData] of rate.exchanges) {
-        exchanges[exchangeName] = {
-          rate: exchangeData.rate.fundingRate,
-          price: exchangeData.price || exchangeData.rate.markPrice || null,
-          // Feature 012: 推送所有標準化版本（1h, 8h, 24h）
-          normalized: exchangeData.normalized || {},
-          originalInterval: exchangeData.originalFundingInterval,
-          // Feature: 持倉頁面即時費率 - 新增下次結算時間
-          nextFundingTime: exchangeData.rate.nextFundingTime?.toISOString() || null,
-        };
-      }
-
-      // 構建 bestPair 信息
-      const bestPair = rate.bestPair
-        ? {
-            longExchange: rate.bestPair.longExchange,
-            shortExchange: rate.bestPair.shortExchange,
-            spread: rate.bestPair.spreadPercent / 100,
-            spreadPercent: rate.bestPair.spreadPercent,
-            annualizedReturn: rate.bestPair.spreadAnnualized,
-            priceDiffPercent: rate.bestPair.priceDiffPercent ?? null,
-            // netReturn field removed - Feature 014: 移除淨收益欄位
-          }
-        : null;
-
-      return {
-        symbol: rate.symbol,
-        exchanges,
-        bestPair,
-        status,
-        timestamp: rate.recordedAt.toISOString(),
+    // 構建所有交易所的數據
+    const exchanges: Record<string, any> = {};
+    for (const [exchangeName, exchangeData] of rate.exchanges) {
+      exchanges[exchangeName] = {
+        rate: exchangeData.rate.fundingRate,
+        price: exchangeData.price || exchangeData.rate.markPrice || null,
+        // Feature 012: 推送所有標準化版本（1h, 8h, 24h）
+        normalized: exchangeData.normalized || {},
+        originalInterval: exchangeData.originalFundingInterval,
+        // Feature: 持倉頁面即時費率 - 新增下次結算時間
+        nextFundingTime: exchangeData.rate.nextFundingTime?.toISOString() || null,
       };
-    });
+    }
+
+    // 構建 bestPair 信息
+    const bestPair = rate.bestPair
+      ? {
+          longExchange: rate.bestPair.longExchange,
+          shortExchange: rate.bestPair.shortExchange,
+          spread: rate.bestPair.spreadPercent / 100,
+          spreadPercent: rate.bestPair.spreadPercent,
+          annualizedReturn: rate.bestPair.spreadAnnualized,
+          priceDiffPercent: rate.bestPair.priceDiffPercent ?? null,
+          // netReturn field removed - Feature 014: 移除淨收益欄位
+        }
+      : null;
+
+    return {
+      symbol: rate.symbol,
+      exchanges,
+      bestPair,
+      status,
+      timestamp: rate.recordedAt.toISOString(),
+    };
+  }
+
+  /**
+   * 清理不再存在的交易對快取
+   */
+  private cleanupStaleCache(currentSymbols: Set<string>): void {
+    for (const symbol of this.lastFormattedRates.keys()) {
+      if (!currentSymbols.has(symbol)) {
+        this.lastFormattedRates.delete(symbol);
+        this.lastRatesHash.delete(symbol);
+      }
+    }
+  }
+
+  /**
+   * 強制執行快取大小限制（LRU 淘汰）
+   */
+  private enforceCacheLimit(): void {
+    while (this.lastFormattedRates.size > this.MAX_CACHE_SIZE) {
+      const firstKey = this.lastFormattedRates.keys().next().value;
+      if (firstKey) {
+        this.lastFormattedRates.delete(firstKey);
+        this.lastRatesHash.delete(firstKey);
+      } else {
+        break;
+      }
+    }
+  }
+
+  /**
+   * 清除格式化快取（用於測試或重置）
+   */
+  clearFormatCache(): void {
+    this.lastFormattedRates.clear();
+    this.lastRatesHash.clear();
+  }
+
+  /**
+   * 取得快取統計資訊（用於監控）
+   */
+  getFormatCacheStats(): { size: number; maxSize: number } {
+    return {
+      size: this.lastFormattedRates.size,
+      maxSize: this.MAX_CACHE_SIZE,
+    };
   }
 }

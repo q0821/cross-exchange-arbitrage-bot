@@ -400,3 +400,145 @@ describe('MarketRatesHandler - 記憶體洩漏防護', () => {
     });
   });
 });
+
+describe('MarketRatesHandler - formatRates 差異快取', () => {
+  let handler: MarketRatesHandler;
+  let mockIO: any;
+
+  beforeEach(() => {
+    mockIO = createMockIO();
+    handler = new MarketRatesHandler(mockIO as unknown as SocketIOServer);
+  });
+
+  afterEach(() => {
+    handler.stopBroadcasting();
+    handler.clearFormatCache();
+    vi.clearAllMocks();
+  });
+
+  /**
+   * 建立 Mock FundingRatePair
+   */
+  function createMockRate(symbol: string, spreadPercent: number, recordedAt: Date = new Date()) {
+    const exchanges = new Map();
+    exchanges.set('binance', {
+      rate: { fundingRate: 0.0001, nextFundingTime: new Date() },
+      price: 42000,
+      originalFundingInterval: 8,
+    });
+    exchanges.set('okx', {
+      rate: { fundingRate: 0.0002, nextFundingTime: new Date() },
+      price: 42001,
+      originalFundingInterval: 8,
+    });
+
+    return {
+      symbol,
+      exchanges,
+      bestPair: {
+        longExchange: 'binance',
+        shortExchange: 'okx',
+        spreadPercent,
+        spreadAnnualized: spreadPercent * 365 * 3,
+        priceDiffPercent: 0.01,
+      },
+      recordedAt,
+    };
+  }
+
+  describe('快取命中測試', () => {
+    it('相同資料應返回快取的物件引用', () => {
+      const mockRate = createMockRate('BTCUSDT', 0.01);
+      const rates = [mockRate];
+
+      // 第一次呼叫：快取未命中
+      const result1 = (handler as any).formatRates(rates);
+      expect(result1).toHaveLength(1);
+      expect(result1[0].symbol).toBe('BTCUSDT');
+
+      // 第二次呼叫：快取命中，應返回相同物件引用
+      const result2 = (handler as any).formatRates(rates);
+      expect(result2).toHaveLength(1);
+
+      // 驗證物件引用相同（快取命中）
+      expect(result2[0]).toBe(result1[0]);
+    });
+
+    it('資料變更時應重建物件', () => {
+      const mockRate1 = createMockRate('BTCUSDT', 0.01);
+      const result1 = (handler as any).formatRates([mockRate1]);
+
+      // 修改 spreadPercent（模擬資料變更）
+      const mockRate2 = createMockRate('BTCUSDT', 0.02);
+      const result2 = (handler as any).formatRates([mockRate2]);
+
+      // 驗證物件引用不同（快取失效）
+      expect(result2[0]).not.toBe(result1[0]);
+      expect(result2[0].bestPair.spreadPercent).toBe(0.02);
+    });
+
+    it('recordedAt 變更時應重建物件', () => {
+      const time1 = new Date('2024-01-01T00:00:00Z');
+      const time2 = new Date('2024-01-01T00:00:01Z');
+
+      const mockRate1 = createMockRate('BTCUSDT', 0.01, time1);
+      const result1 = (handler as any).formatRates([mockRate1]);
+
+      const mockRate2 = createMockRate('BTCUSDT', 0.01, time2);
+      const result2 = (handler as any).formatRates([mockRate2]);
+
+      // 驗證物件引用不同（時間戳變更）
+      expect(result2[0]).not.toBe(result1[0]);
+    });
+  });
+
+  describe('快取統計', () => {
+    it('getFormatCacheStats 應返回正確的快取大小', () => {
+      const rates = [
+        createMockRate('BTCUSDT', 0.01),
+        createMockRate('ETHUSDT', 0.02),
+        createMockRate('SOLUSDT', 0.03),
+      ];
+
+      (handler as any).formatRates(rates);
+
+      const stats = handler.getFormatCacheStats();
+      expect(stats.size).toBe(3);
+      expect(stats.maxSize).toBe(500);
+    });
+
+    it('clearFormatCache 應清空快取', () => {
+      const rates = [createMockRate('BTCUSDT', 0.01)];
+      (handler as any).formatRates(rates);
+
+      expect(handler.getFormatCacheStats().size).toBe(1);
+
+      handler.clearFormatCache();
+
+      expect(handler.getFormatCacheStats().size).toBe(0);
+    });
+  });
+
+  describe('過期快取清理', () => {
+    it('不再存在的交易對應從快取中移除', () => {
+      // 第一次有 3 個交易對
+      const rates1 = [
+        createMockRate('BTCUSDT', 0.01),
+        createMockRate('ETHUSDT', 0.02),
+        createMockRate('SOLUSDT', 0.03),
+      ];
+      (handler as any).formatRates(rates1);
+      expect(handler.getFormatCacheStats().size).toBe(3);
+
+      // 第二次只有 2 個交易對（SOLUSDT 被移除）
+      const rates2 = [
+        createMockRate('BTCUSDT', 0.01),
+        createMockRate('ETHUSDT', 0.02),
+      ];
+      (handler as any).formatRates(rates2);
+
+      // SOLUSDT 應該從快取中被清理
+      expect(handler.getFormatCacheStats().size).toBe(2);
+    });
+  });
+});
