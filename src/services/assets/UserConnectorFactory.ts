@@ -2,9 +2,9 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { ApiKeyService } from '../apikey/ApiKeyService';
 import { logger } from '@lib/logger';
 import { decrypt } from '@lib/encryption';
-import { getProxyUrl } from '@lib/env';
 import { createCcxtExchange } from '@lib/ccxt-factory';
 import { injectCachedMarkets, cacheMarketsFromExchange } from '@lib/ccxt-markets-cache';
+import { getSharedProxyAgent } from '@lib/shared-proxy-agent';
 import { ProxyAgent } from 'undici';
 import {
   IExchangeConnector,
@@ -376,7 +376,6 @@ class BinanceUserConnector implements IExchangeConnector {
   private readonly spotBaseUrl: string;
   private readonly futuresBaseUrl: string;
   private readonly portfolioMarginBaseUrl: string;
-  private readonly proxyAgent: ProxyAgent | null = null;
 
   constructor(
     private readonly apiKey: string,
@@ -393,13 +392,7 @@ class BinanceUserConnector implements IExchangeConnector {
       : 'https://fapi.binance.com';
     // Portfolio Margin API - 統一保證金帳戶
     this.portfolioMarginBaseUrl = 'https://papi.binance.com';
-
-    // 初始化 Proxy Agent
-    const proxyUrl = getProxyUrl();
-    if (proxyUrl) {
-      this.proxyAgent = new ProxyAgent(proxyUrl);
-      logger.info({ proxy: proxyUrl }, 'BinanceUserConnector using proxy');
-    }
+    // 注意：ProxyAgent 改用共享單例 (getSharedProxyAgent())，不在此創建
   }
 
   async connect(): Promise<void> {
@@ -430,7 +423,7 @@ class BinanceUserConnector implements IExchangeConnector {
 
     const url = `${baseUrl}${endpoint}?${queryString}&signature=${signature}`;
 
-    // 準備 fetch 選項，如果有 proxy 則加入 dispatcher
+    // 準備 fetch 選項，使用共享的 ProxyAgent
     const fetchOptions: RequestInit & { dispatcher?: ProxyAgent } = {
       method: 'GET',
       headers: {
@@ -438,8 +431,9 @@ class BinanceUserConnector implements IExchangeConnector {
       },
     };
 
-    if (this.proxyAgent) {
-      fetchOptions.dispatcher = this.proxyAgent;
+    const proxyAgent = getSharedProxyAgent();
+    if (proxyAgent) {
+      fetchOptions.dispatcher = proxyAgent;
     }
 
     const response = await fetch(url, fetchOptions);
@@ -458,8 +452,9 @@ class BinanceUserConnector implements IExchangeConnector {
   private async getSpotPrices(): Promise<Record<string, number>> {
     try {
       const fetchOptions: RequestInit & { dispatcher?: ProxyAgent } = {};
-      if (this.proxyAgent) {
-        fetchOptions.dispatcher = this.proxyAgent;
+      const proxyAgent = getSharedProxyAgent();
+      if (proxyAgent) {
+        fetchOptions.dispatcher = proxyAgent;
       }
 
       const response = await fetch(`${this.spotBaseUrl}/api/v3/ticker/price`, fetchOptions);
@@ -805,7 +800,20 @@ class OkxUserConnector implements IExchangeConnector {
   }
 
   async disconnect(): Promise<void> {
-    this.exchange = null;
+    if (this.exchange) {
+      // 關閉 CCXT 內部連線池
+      if ('close' in this.exchange && typeof this.exchange.close === 'function') {
+        try {
+          await this.exchange.close();
+        } catch (error) {
+          logger.warn(
+            { error: error instanceof Error ? error.message : String(error) },
+            'Error closing OKX CCXT exchange (non-blocking)'
+          );
+        }
+      }
+      this.exchange = null;
+    }
     this.connected = false;
   }
 
@@ -957,7 +965,20 @@ class MexcUserConnector implements IExchangeConnector {
   }
 
   async disconnect(): Promise<void> {
-    this.exchange = null;
+    if (this.exchange) {
+      // 關閉 CCXT 內部連線池
+      if ('close' in this.exchange && typeof this.exchange.close === 'function') {
+        try {
+          await this.exchange.close();
+        } catch (error) {
+          logger.warn(
+            { error: error instanceof Error ? error.message : String(error) },
+            'Error closing MEXC CCXT exchange (non-blocking)'
+          );
+        }
+      }
+      this.exchange = null;
+    }
     this.connected = false;
   }
 
@@ -1088,19 +1109,13 @@ class GateioUserConnector implements IExchangeConnector {
   private connected: boolean = false;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private exchange: any = null;
-  private readonly proxyAgent: ProxyAgent | null = null;
 
   constructor(
     private readonly apiKey: string,
     private readonly apiSecret: string,
     readonly isTestnet: boolean = false
   ) {
-    // 初始化 Proxy Agent（用於 Native API 調用）
-    const proxyUrl = getProxyUrl();
-    if (proxyUrl) {
-      this.proxyAgent = new ProxyAgent(proxyUrl);
-      logger.info({ proxy: proxyUrl }, 'GateioUserConnector using proxy');
-    }
+    // 注意：ProxyAgent 改用共享單例 (getSharedProxyAgent())，不在此創建
   }
 
   async connect(): Promise<void> {
@@ -1115,7 +1130,20 @@ class GateioUserConnector implements IExchangeConnector {
   }
 
   async disconnect(): Promise<void> {
-    this.exchange = null;
+    if (this.exchange) {
+      // 關閉 CCXT 內部連線池
+      if ('close' in this.exchange && typeof this.exchange.close === 'function') {
+        try {
+          await this.exchange.close();
+        } catch (error) {
+          logger.warn(
+            { error: error instanceof Error ? error.message : String(error) },
+            'Error closing Gate.io CCXT exchange (non-blocking)'
+          );
+        }
+      }
+      this.exchange = null;
+    }
     this.connected = false;
   }
 
@@ -1189,7 +1217,7 @@ class GateioUserConnector implements IExchangeConnector {
     const signString = `${method}\n${url}\n${queryString}\n${bodyHash}\n${timestamp}`;
     const signature = crypto.createHmac('sha512', this.apiSecret).update(signString).digest('hex');
 
-    // 準備 fetch 選項，如果有 proxy 則加入 dispatcher
+    // 準備 fetch 選項，使用共享的 ProxyAgent
     const fetchOptions: RequestInit & { dispatcher?: ProxyAgent } = {
       method,
       headers: {
@@ -1200,8 +1228,9 @@ class GateioUserConnector implements IExchangeConnector {
       },
     };
 
-    if (this.proxyAgent) {
-      fetchOptions.dispatcher = this.proxyAgent;
+    const proxyAgent = getSharedProxyAgent();
+    if (proxyAgent) {
+      fetchOptions.dispatcher = proxyAgent;
     }
 
     const response = await fetch(`https://api.gateio.ws${url}`, fetchOptions);
@@ -1371,7 +1400,20 @@ class BingxUserConnector implements IExchangeConnector {
   }
 
   async disconnect(): Promise<void> {
-    this.exchange = null;
+    if (this.exchange) {
+      // 關閉 CCXT 內部連線池
+      if ('close' in this.exchange && typeof this.exchange.close === 'function') {
+        try {
+          await this.exchange.close();
+        } catch (error) {
+          logger.warn(
+            { error: error instanceof Error ? error.message : String(error) },
+            'Error closing BingX CCXT exchange (non-blocking)'
+          );
+        }
+      }
+      this.exchange = null;
+    }
     this.connected = false;
   }
 

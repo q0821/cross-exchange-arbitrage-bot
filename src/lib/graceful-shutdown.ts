@@ -12,6 +12,7 @@ import type { Server as HttpServer } from 'http';
 import type { Server as SocketIOServer } from 'socket.io';
 import type { PrismaClient } from '@/generated/prisma/client';
 import { logger as defaultLogger } from './logger';
+import { closeSharedProxyAgent } from './shared-proxy-agent';
 
 // 防止重複執行 shutdown
 let isShuttingDown = false;
@@ -140,6 +141,10 @@ export function createShutdownHandler(
       // 2. 關閉 Redis
       logger.info('Closing Redis connection...');
       await services.closeRedisClient();
+
+      // 2.5. 關閉共享的 ProxyAgent
+      logger.info('Closing shared ProxyAgent...');
+      await closeSharedProxyAgent();
 
       // 3. 關閉資料庫連線
       logger.info('Closing database connection...');
