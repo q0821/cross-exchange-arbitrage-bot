@@ -54,8 +54,10 @@ vi.mock('../../../src/lib/db', () => ({
 /**
  * 建立 Mock Socket
  */
+type EventHandler = (...args: unknown[]) => void;
+
 function createMockSocket(id: string = 'test-socket-id'): any {
-  const eventHandlers: Map<string, Function[]> = new Map();
+  const eventHandlers: Map<string, EventHandler[]> = new Map();
 
   return {
     id,
@@ -67,13 +69,13 @@ function createMockSocket(id: string = 'test-socket-id'): any {
     emit: vi.fn(),
     join: vi.fn(),
     leave: vi.fn(),
-    on: vi.fn((event: string, handler: Function) => {
+    on: vi.fn((event: string, handler: EventHandler) => {
       if (!eventHandlers.has(event)) {
         eventHandlers.set(event, []);
       }
       eventHandlers.get(event)!.push(handler);
     }),
-    off: vi.fn((event: string, handler: Function) => {
+    off: vi.fn((event: string, handler: EventHandler) => {
       const handlers = eventHandlers.get(event);
       if (handlers) {
         const index = handlers.indexOf(handler);
