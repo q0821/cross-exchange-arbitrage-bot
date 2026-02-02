@@ -180,10 +180,21 @@ export function initializeSingletonGetters(): void {
   // TriggerDetector
   DataStructureRegistry.registerSingletonGetter('TriggerDetector', () => {
     try {
-       
+
       const { TriggerDetector } = require('@/services/monitor/TriggerDetector');
       const instance = TriggerDetector.getInstance();
       return isMonitorable(instance) ? instance : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // ConnectionPoolManager（WebSocket 訂閱數量彙總）
+  DataStructureRegistry.registerSingletonGetter('ConnectionPoolManager', () => {
+    try {
+
+      const { ConnectionPoolManager } = require('@/services/websocket/ConnectionPoolManager');
+      return isMonitorable(ConnectionPoolManager) ? ConnectionPoolManager : null;
     } catch {
       return null;
     }

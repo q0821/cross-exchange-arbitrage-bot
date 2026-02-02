@@ -131,9 +131,21 @@ export async function startMonitorService(): Promise<void> {
       logger.debug('[Feature 067] PositionExitMonitor disabled (set ENABLE_POSITION_EXIT_MONITOR=true to enable)');
     }
 
-    // 啟動記憶體監控（每 1 分鐘記錄一次）
-    const memoryMonitorInterval = parseInt(process.env.MEMORY_MONITOR_INTERVAL_MS || '60000', 10);
-    startMemoryMonitor(memoryMonitorInterval);
+    // 啟動記憶體監控
+    // 可透過環境變數控制：
+    //   ENABLE_MEMORY_MONITOR=false 關閉記憶體監控
+    //   MEMORY_MONITOR_INTERVAL_MS=60000 設定監控間隔（毫秒），預設 300000（5 分鐘）
+    const enableMemoryMonitor = process.env.ENABLE_MEMORY_MONITOR !== 'false';
+    if (enableMemoryMonitor) {
+      const memoryMonitorInterval = parseInt(process.env.MEMORY_MONITOR_INTERVAL_MS || '300000', 10);
+      startMemoryMonitor(memoryMonitorInterval);
+      logger.info(
+        { intervalMs: memoryMonitorInterval },
+        'Memory monitor enabled',
+      );
+    } else {
+      logger.info('Memory monitor disabled (ENABLE_MEMORY_MONITOR=false)');
+    }
 
     logger.info('Built-in funding rate monitor started successfully');
   } catch (error) {

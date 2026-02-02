@@ -77,6 +77,10 @@ export class RatesCache implements Monitorable {
   // Feature 029: 模擬追蹤服務
   private trackingService: SimulatedTrackingService | null = null;
 
+  // 定期清理機制
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private readonly DEFAULT_CLEANUP_INTERVAL_MS = 60000; // 預設每 60 秒清理一次
+
   private constructor() {
     logger.info('RatesCache initialized');
   }
@@ -381,11 +385,16 @@ export class RatesCache implements Monitorable {
    * Feature 022: 使用年化收益門檻判定
    * - opportunity: 年化收益 >= 800%
    * - approaching: 年化收益 600%-799%
+   *
+   * @param rates 可選的費率資料，若提供則直接使用，避免重複呼叫 getAll()
+   * @param opportunityThreshold 機會門檻（年化收益百分比）
    */
   getStats(
+    rates?: FundingRatePair[],
     opportunityThreshold = DEFAULT_OPPORTUNITY_THRESHOLD_ANNUALIZED
   ): MarketStats {
-    const rates = this.getAll();
+    // 若未提供 rates，則從快取中取得
+    const ratesData = rates ?? this.getAll();
     let opportunityCount = 0;
     let approachingCount = 0;
     let maxSpread: {
@@ -397,7 +406,7 @@ export class RatesCache implements Monitorable {
     // 計算接近門檻 (主門檻的 75%)
     const approachingThreshold = opportunityThreshold * APPROACHING_THRESHOLD_RATIO;
 
-    rates.forEach((rate) => {
+    ratesData.forEach((rate) => {
       // 使用 bestPair 的年化收益數據
       const annualizedReturn = rate.bestPair?.spreadAnnualized ?? 0;
       const spreadPercent = rate.bestPair?.spreadPercent ?? rate.spreadPercent ?? 0;
@@ -423,7 +432,7 @@ export class RatesCache implements Monitorable {
     });
 
     return {
-      totalSymbols: rates.length,
+      totalSymbols: ratesData.length,
       opportunityCount,
       approachingCount,
       maxSpread,
@@ -440,10 +449,11 @@ export class RatesCache implements Monitorable {
   }
 
   /**
-   * 標記系統啟動時間
+   * 標記系統啟動時間並啟動定期清理
    */
   markStart(): void {
     this.startTime = new Date();
+    this.startCleanup();
     logger.info('RatesCache marked as started');
   }
 
@@ -517,10 +527,68 @@ export class RatesCache implements Monitorable {
   }
 
   /**
+   * 啟動定期清理機制
+   * 主動清理過期項目，避免依賴 getAll() 的被動清理
+   *
+   * @param intervalMs 清理間隔（毫秒），預設 60 秒
+   */
+  startCleanup(intervalMs = this.DEFAULT_CLEANUP_INTERVAL_MS): void {
+    if (this.cleanupInterval) {
+      logger.warn('Cleanup interval already running');
+      return;
+    }
+
+    this.cleanupInterval = setInterval(() => {
+      this.performCleanup();
+    }, intervalMs);
+
+    logger.info({ intervalMs }, 'RatesCache cleanup started');
+  }
+
+  /**
+   * 停止定期清理機制
+   */
+  stopCleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+      logger.info('RatesCache cleanup stopped');
+    }
+  }
+
+  /**
+   * 執行清理操作：移除過期項目
+   */
+  private performCleanup(): void {
+    const now = Date.now();
+    const staleSymbols: string[] = [];
+
+    for (const [symbol, cached] of this.cache.entries()) {
+      if (now - cached.cachedAt.getTime() > this.staleThresholdMs) {
+        staleSymbols.push(symbol);
+      }
+    }
+
+    if (staleSymbols.length > 0) {
+      for (const symbol of staleSymbols) {
+        this.cache.delete(symbol);
+      }
+      logger.info(
+        {
+          removedCount: staleSymbols.length,
+          remainingCount: this.cache.size,
+        },
+        'RatesCache cleanup completed'
+      );
+    }
+  }
+
+  /**
    * 銷毀實例並清理 globalThis 引用
    * 用於防止 Next.js HMR 模式下的記憶體泄漏
    */
   destroy(): void {
+    this.stopCleanup();
     this.cache.clear();
     this.notificationService = null;
     this.trackingService = null;

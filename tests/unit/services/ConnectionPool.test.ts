@@ -344,9 +344,9 @@ describe('ConnectionPool', () => {
 
       await pool.disconnect();
 
-      // Pool should still have state but connections are disconnected
+      // disconnect() 會清空 connections Map（避免記憶體洩漏）
       const state = pool.getState();
-      expect(state.activeConnections).toBe(1);
+      expect(state.activeConnections).toBe(0);
     });
 
     it('should destroy pool and cleanup', async () => {

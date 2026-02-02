@@ -53,7 +53,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // 3. 從全局快取獲取數據
     const rates = ratesCache.getAll();
-    const stats = ratesCache.getStats(threshold);
+    const stats = ratesCache.getStats(rates, threshold);  // 傳入 rates 避免重複呼叫 getAll()
 
     // 4. 轉換數據格式為 API 響應格式
     const formattedRates = rates.map((rate) => {
