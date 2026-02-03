@@ -11,6 +11,9 @@ interface ProvidersProps {
   children: ReactNode;
 }
 
+// Production 環境不顯示 ReactQueryDevtools
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 /**
  * 應用程式 Providers 封裝
  * 包含主題切換功能和 TanStack Query 資料快取
@@ -28,7 +31,7 @@ export function Providers({ children }: ProvidersProps) {
       >
         {children}
       </NextThemesProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {isDevelopment && <ReactQueryDevtools initialIsOpen={false} />}
     </QueryClientProvider>
   );
 }

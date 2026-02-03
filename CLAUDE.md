@@ -263,6 +263,15 @@ tests/
 | `RUN_INTEGRATION_TESTS=true` | 啟用整合測試 |
 | `PERFORMANCE_TEST=true` | 啟用效能測試 |
 
+### Production 環境變數（Debug 功能控制）
+| 變數 | 預設值 | 說明 |
+|:-----|:-------|:-----|
+| `NODE_ENV` | `development` | `production` 時自動停用 ReactQueryDevtools |
+| `ENABLE_MEMORY_MONITOR` | dev: `true`, prod: `false` | 記憶體使用量監控（每分鐘記錄） |
+| `ENABLE_MEMORY_LEAK_TRACKER` | dev: `true`, prod: `false` | 記憶體洩漏追蹤（timers、handles、detached contexts） |
+
+**注意**：Zeabur 等 production 環境會自動設定 `NODE_ENV=production`，debug 功能會自動停用。
+
 ## CI/CD
 
 | 檔案 | 用途 | 觸發條件 |
