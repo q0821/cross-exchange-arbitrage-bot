@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { GateioConnector } from '../../../src/connectors/gateio';
+import { FundingIntervalCache } from '../../../src/lib/FundingIntervalCache';
 
 // Mock ccxt
 vi.mock('ccxt', () => ({
@@ -49,6 +50,8 @@ describe('GateioConnector.getFundingInterval', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    // 重置 FundingIntervalCache 單例，確保測試隔離
+    FundingIntervalCache.resetInstance();
     connector = new GateioConnector(false);
     await connector.connect();
   });
@@ -57,6 +60,8 @@ describe('GateioConnector.getFundingInterval', () => {
     if (connector && connector.isConnected()) {
       await connector.disconnect();
     }
+    // 確保每個測試後重置單例
+    FundingIntervalCache.resetInstance();
   });
 
   describe('getFundingInterval method', () => {
@@ -189,6 +194,8 @@ describe('GateioConnector Connection Management', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // 重置 FundingIntervalCache 單例，確保測試隔離
+    FundingIntervalCache.resetInstance();
     connector = new GateioConnector(false);
   });
 
@@ -196,6 +203,7 @@ describe('GateioConnector Connection Management', () => {
     if (connector && connector.isConnected()) {
       await connector.disconnect();
     }
+    FundingIntervalCache.resetInstance();
   });
 
   describe('connect', () => {
