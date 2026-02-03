@@ -1,0 +1,8 @@
+{
+  "$schema": "https://zeabur.com/schemas/zeabur.json",
+  "build_command": "pnpm build",
+  "start_command": "node --max-old-space-size=4096 node_modules/.bin/tsx server.ts",
+  "env": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  }
+}
