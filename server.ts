@@ -1,6 +1,7 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import { execFileSync } from 'child_process';
+import v8 from 'v8';
 import next from 'next';
 import { initializeSocketServer } from './src/websocket/SocketServer';
 import { logger } from './src/lib/logger';
@@ -77,15 +78,20 @@ app.prepare().then(() => {
 
   // 啟動伺服器
   httpServer.listen(port, async () => {
+    const heapStats = v8.getHeapStatistics();
+    const heapLimitMB = Math.round(heapStats.heap_size_limit / 1024 / 1024);
+
     logger.info(
       {
         port,
         hostname,
         env: process.env.NODE_ENV,
+        heapLimitMB,
       },
       'Server started successfully',
     );
     console.log(`> Ready on http://${hostname}:${port}`);
+    console.log(`> V8 Heap Limit: ${heapLimitMB} MB`);
     console.log(`> Socket.io enabled`);
 
     // 啟動內建的資金費率監控服務
