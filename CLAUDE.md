@@ -6,6 +6,7 @@
 - Prisma 7.x (ORM), CCXT 4.x (多交易所抽象)
 - PostgreSQL 15+ with TimescaleDB extension
 - Vitest 4.x, Decimal.js, TanStack Query 5.x
+- TypeScript 5.8+ / Node.js 20.x LTS + Prisma 7.x, Next.js 15, React 19, CCXT 4.x (070-unified-groupid)
 
 ## Key Files
 | 檔案 | 用途 |
@@ -131,6 +132,8 @@ TypeScript 5.8+ with strict mode: Follow standard conventions
 ### 7. 提交前驗證
 - 提交到 main 之前必須通過 ESLint 和 TypeScript check
 - 指令：`pnpm lint` + `pnpm exec tsc --noEmit`
+- **重要**：commit 前應執行 `pnpm build` 確保所有引用的模組都存在，避免部署失敗
+- **常見錯誤**：程式碼引用了未追蹤（untracked）的檔案，本地 TypeScript check 可能通過但部署時會失敗
 
 ### 8. Prisma 7 測試相容性
 - **禁止**：在測試中直接使用 `new PrismaClient()` 初始化
@@ -267,3 +270,6 @@ tests/
 | `.github/workflows/ci.yml` | Lint + 型別檢查 + 單元測試 | 每次 push/PR |
 | `.github/workflows/integration.yml` | 整合測試（PostgreSQL） | push to main |
 | `.github/workflows/e2e.yml` | Playwright E2E 測試 | push to main |
+
+## Recent Changes
+- 070-unified-groupid: Added TypeScript 5.8+ / Node.js 20.x LTS + Prisma 7.x, Next.js 15, React 19, CCXT 4.x
