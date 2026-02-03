@@ -12,7 +12,7 @@
     "build": "rm -rf .next && prisma generate && next build",
     "dev": "tsx watch server.ts",
     "dev:pretty": "tsx watch server.ts | pino-pretty",
-    "start": "prisma migrate deploy && node --max-old-space-size=4096 node_modules/.bin/tsx server.ts",
+    "start": "prisma migrate deploy && tsx server.ts",
     "cli": "tsx src/cli/index.ts",
     "test": "vitest",
     "test:watch": "vitest --watch",
