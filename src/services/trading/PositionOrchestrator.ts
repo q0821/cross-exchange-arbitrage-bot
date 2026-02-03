@@ -25,6 +25,7 @@ import type {
   LeverageOption,
 } from '../../types/trading';
 import { ConditionalOrderService } from './ConditionalOrderService';
+import { PositionGroupService } from './PositionGroupService';
 import { createBinanceAccountDetector } from './BinanceAccountDetector';
 import { createCcxtExchangeFactory } from './CcxtExchangeFactory';
 import { createPublicExchange, type SupportedExchange as CcxtSupportedExchange } from '@/lib/ccxt-factory';
@@ -208,6 +209,9 @@ export class PositionOrchestrator {
   private async createPendingPosition(params: OpenPositionParams): Promise<Position> {
     const { userId, symbol, longExchange, shortExchange, leverage, groupId } = params;
 
+    // Feature 070: 統一 groupId 架構 - 單獨開倉時自動生成 groupId
+    const effectiveGroupId = groupId ?? PositionGroupService.generateGroupId();
+
     const position = await this.prisma.position.create({
       data: {
         userId,
@@ -223,13 +227,13 @@ export class PositionOrchestrator {
         status: 'PENDING',
         openFundingRateLong: 0,
         openFundingRateShort: 0,
-        // Feature 069: 分單開倉組別 ID
-        groupId: groupId ?? null,
+        // Feature 069/070: 持倉組別 ID（所有持倉必須有 groupId）
+        groupId: effectiveGroupId,
       },
     });
 
     logger.info(
-      { positionId: position.id, groupId: groupId ?? null },
+      { positionId: position.id, groupId: effectiveGroupId },
       'Created pending position',
     );
 

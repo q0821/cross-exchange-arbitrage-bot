@@ -131,8 +131,8 @@ export interface PositionInfo {
   shortStopLossPrice?: number | null;
   longTakeProfitPrice?: number | null;
   shortTakeProfitPrice?: number | null;
-  // 分單開倉組別 (Feature 069)
-  groupId?: string | null;
+  // 持倉組別 (Feature 069/070: 所有持倉必須有 groupId)
+  groupId: string;
 }
 
 /**

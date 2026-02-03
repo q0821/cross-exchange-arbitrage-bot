@@ -83,9 +83,10 @@ describe('position-group utilities', () => {
         stopLossPercent: new Decimal('2'),
         takeProfitPercent: new Decimal('5'),
       },
+      // Feature 070: 單獨開倉也有 groupId
       {
         id: 'pos-3',
-        groupId: null,
+        groupId: 'group-2',  // 單獨開倉的獨立 groupId
         symbol: 'ETHUSDT',
         longExchange: 'binance',
         shortExchange: 'gateio',
@@ -102,28 +103,36 @@ describe('position-group utilities', () => {
       },
     ];
 
-    it('should separate grouped and ungrouped positions', () => {
+    // Feature 070: 所有持倉都在 groups 中
+    it('should group all positions by groupId', () => {
       const result = groupPositionsByGroupId(mockPositions);
 
-      expect(result.ungrouped).toHaveLength(1);
-      expect(result.ungrouped[0].id).toBe('pos-3');
-      expect(result.groups).toHaveLength(1);
-      expect(result.groups[0].groupId).toBe('group-1');
-      expect(result.groups[0].positions).toHaveLength(2);
+      // 現在有 2 個 group
+      expect(result.groups).toHaveLength(2);
+
+      // group-1 有 2 個持倉
+      const group1 = result.groups.find(g => g.groupId === 'group-1');
+      expect(group1).toBeDefined();
+      expect(group1!.positions).toHaveLength(2);
+
+      // group-2 有 1 個持倉（單獨開倉）
+      const group2 = result.groups.find(g => g.groupId === 'group-2');
+      expect(group2).toBeDefined();
+      expect(group2!.positions).toHaveLength(1);
+      expect(group2!.positions[0].id).toBe('pos-3');
     });
 
-    it('should return empty arrays for empty input', () => {
+    it('should return empty groups array for empty input', () => {
       const result = groupPositionsByGroupId([]);
-      expect(result.ungrouped).toHaveLength(0);
       expect(result.groups).toHaveLength(0);
     });
 
-    it('should handle only ungrouped positions', () => {
-      const ungroupedOnly = mockPositions.filter((p) => p.groupId === null);
-      const result = groupPositionsByGroupId(ungroupedOnly);
+    it('should handle single position groups (former ungrouped)', () => {
+      const singlePositionOnly = mockPositions.filter((p) => p.groupId === 'group-2');
+      const result = groupPositionsByGroupId(singlePositionOnly);
 
-      expect(result.ungrouped).toHaveLength(1);
-      expect(result.groups).toHaveLength(0);
+      expect(result.groups).toHaveLength(1);
+      expect(result.groups[0].positions).toHaveLength(1);
     });
   });
 
