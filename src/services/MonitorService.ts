@@ -13,6 +13,8 @@ import { join } from 'path';
 import '../lib/db';
 // 記憶體監控
 import { startMemoryMonitor, stopMemoryMonitor } from '../lib/memory-monitor';
+// 記憶體洩漏追蹤（追蹤 timers、handles、detached contexts）
+import { memoryLeakTracker } from '../lib/memory-leak-tracker';
 import { ACTIVE_EXCHANGES } from '../lib/exchanges/constants';
 // Feature 065: 套利機會追蹤
 import { ArbitrageOpportunityTracker } from './monitor/ArbitrageOpportunityTracker';
@@ -135,6 +137,10 @@ export async function startMonitorService(): Promise<void> {
     const memoryMonitorInterval = parseInt(process.env.MEMORY_MONITOR_INTERVAL_MS || '60000', 10);
     startMemoryMonitor(memoryMonitorInterval);
 
+    // 啟動記憶體洩漏追蹤器（追蹤 timers、handles、detached contexts）
+    // 使用與記憶體監控相同的間隔
+    memoryLeakTracker.start(memoryMonitorInterval);
+
     logger.info('Built-in funding rate monitor started successfully');
   } catch (error) {
     logger.error(
@@ -153,6 +159,9 @@ export async function startMonitorService(): Promise<void> {
 export async function stopMonitorService(): Promise<void> {
   // 停止記憶體監控
   stopMemoryMonitor();
+
+  // 停止記憶體洩漏追蹤器
+  memoryLeakTracker.stop();
 
   // Feature 067: 解除持倉平倉建議監控器綁定
   if (positionExitMonitorInstance) {

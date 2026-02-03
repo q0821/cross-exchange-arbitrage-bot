@@ -4,7 +4,7 @@
  * Task T011: 單元測試 Gate.io 資金費率解析
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Decimal from 'decimal.js';
 import crypto from 'crypto';
 import {
@@ -13,6 +13,7 @@ import {
   parseCcxtFundingRate,
 } from '@/lib/schemas/websocket-messages';
 import { toGateioSymbol, fromGateioSymbol } from '@/lib/symbol-converter';
+import { FundingIntervalCache } from '@/lib/FundingIntervalCache';
 import type { GateioTickerEvent, GateioOrderEvent } from '@/types/websocket-events';
 
 describe('GateioFundingWs', () => {
@@ -491,6 +492,201 @@ describe('GateioFundingWs', () => {
 
       const result = parseGateioOrderEvent(invalidChannel);
       expect(result.success).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // FundingIntervalCache 單例測試
+  // ==========================================================================
+  describe('FundingIntervalCache Singleton', () => {
+    beforeEach(() => {
+      // 重置單例以確保測試隔離
+      FundingIntervalCache.resetInstance();
+    });
+
+    afterEach(() => {
+      FundingIntervalCache.resetInstance();
+    });
+
+    it('should return the same instance from getInstance()', () => {
+      const instance1 = FundingIntervalCache.getInstance();
+      const instance2 = FundingIntervalCache.getInstance();
+
+      expect(instance1).toBe(instance2);
+    });
+
+    it('should share cache data between getInstance() calls', () => {
+      const cache1 = FundingIntervalCache.getInstance();
+      cache1.set('gateio', 'BTCUSDT', 4, 'native-api');
+
+      const cache2 = FundingIntervalCache.getInstance();
+      const interval = cache2.get('gateio', 'BTCUSDT');
+
+      expect(interval).toBe(4);
+    });
+
+    it('should allow separate instances via new()', () => {
+      const singleton = FundingIntervalCache.getInstance();
+      singleton.set('gateio', 'BTCUSDT', 8, 'native-api');
+
+      const separate = new FundingIntervalCache();
+      const interval = separate.get('gateio', 'BTCUSDT');
+
+      // 獨立實例不共享數據
+      expect(interval).toBeNull();
+    });
+
+    it('should return null for uncached symbols', () => {
+      const cache = FundingIntervalCache.getInstance();
+      const interval = cache.get('gateio', 'NONEXISTENT');
+
+      expect(interval).toBeNull();
+    });
+
+    it('should support 1h, 4h, 8h funding intervals', () => {
+      const cache = FundingIntervalCache.getInstance();
+
+      cache.set('gateio', 'BTCUSDT', 8, 'native-api');
+      cache.set('gateio', 'ETHUSDT', 4, 'native-api');
+      cache.set('gateio', 'SOLUSDT', 1, 'native-api');
+
+      expect(cache.get('gateio', 'BTCUSDT')).toBe(8);
+      expect(cache.get('gateio', 'ETHUSDT')).toBe(4);
+      expect(cache.get('gateio', 'SOLUSDT')).toBe(1);
+    });
+  });
+
+  // ==========================================================================
+  // calculateNextFundingTime 邏輯測試
+  // ==========================================================================
+  describe('calculateNextFundingTime Logic', () => {
+    /**
+     * 複製 GateioFundingWs 中的 calculateNextFundingTime 邏輯用於測試
+     * 實際程式碼無法直接 import 私有方法，所以複製邏輯進行驗證
+     */
+    function calculateNextFundingTime(fundingIntervalHours: number = 8, nowDate?: Date): Date {
+      const now = nowDate ?? new Date();
+      const utcHours = now.getUTCHours();
+      const utcMinutes = now.getUTCMinutes();
+
+      const currentTimeInHours = utcHours + utcMinutes / 60;
+      const nextSettlementMultiple = Math.ceil(currentTimeInHours / fundingIntervalHours);
+      let nextSettlementHour = nextSettlementMultiple * fundingIntervalHours;
+
+      // 如果剛好在結算時間點上，跳到下一個週期
+      if (currentTimeInHours === nextSettlementHour) {
+        nextSettlementHour += fundingIntervalHours;
+      }
+
+      const nextFunding = new Date(now);
+      nextFunding.setUTCMinutes(0, 0, 0);
+
+      if (nextSettlementHour >= 24) {
+        const daysToAdd = Math.floor(nextSettlementHour / 24);
+        nextFunding.setUTCDate(nextFunding.getUTCDate() + daysToAdd);
+        nextSettlementHour = nextSettlementHour % 24;
+      }
+
+      nextFunding.setUTCHours(nextSettlementHour);
+
+      return nextFunding;
+    }
+
+    describe('8h interval (UTC 00:00, 08:00, 16:00)', () => {
+      it('should return 08:00 when current time is 03:30', () => {
+        const now = new Date('2024-01-15T03:30:00Z');
+        const next = calculateNextFundingTime(8, now);
+
+        expect(next.getUTCHours()).toBe(8);
+        expect(next.getUTCMinutes()).toBe(0);
+        expect(next.getUTCDate()).toBe(15);
+      });
+
+      it('should return 16:00 when current time is 10:00', () => {
+        const now = new Date('2024-01-15T10:00:00Z');
+        const next = calculateNextFundingTime(8, now);
+
+        expect(next.getUTCHours()).toBe(16);
+        expect(next.getUTCMinutes()).toBe(0);
+      });
+
+      it('should return next day 00:00 when current time is 20:00', () => {
+        const now = new Date('2024-01-15T20:00:00Z');
+        const next = calculateNextFundingTime(8, now);
+
+        expect(next.getUTCHours()).toBe(0);
+        expect(next.getUTCMinutes()).toBe(0);
+        expect(next.getUTCDate()).toBe(16);
+      });
+
+      it('should skip to next period when exactly at settlement time 08:00', () => {
+        const now = new Date('2024-01-15T08:00:00Z');
+        const next = calculateNextFundingTime(8, now);
+
+        expect(next.getUTCHours()).toBe(16);
+      });
+    });
+
+    describe('4h interval (UTC 00:00, 04:00, 08:00, 12:00, 16:00, 20:00)', () => {
+      it('should return 04:00 when current time is 02:30', () => {
+        const now = new Date('2024-01-15T02:30:00Z');
+        const next = calculateNextFundingTime(4, now);
+
+        expect(next.getUTCHours()).toBe(4);
+      });
+
+      it('should return 12:00 when current time is 09:45', () => {
+        const now = new Date('2024-01-15T09:45:00Z');
+        const next = calculateNextFundingTime(4, now);
+
+        expect(next.getUTCHours()).toBe(12);
+      });
+
+      it('should return next day 00:00 when current time is 22:00', () => {
+        const now = new Date('2024-01-15T22:00:00Z');
+        const next = calculateNextFundingTime(4, now);
+
+        expect(next.getUTCHours()).toBe(0);
+        expect(next.getUTCDate()).toBe(16);
+      });
+
+      it('should skip to next period when exactly at settlement time 08:00', () => {
+        const now = new Date('2024-01-15T08:00:00Z');
+        const next = calculateNextFundingTime(4, now);
+
+        expect(next.getUTCHours()).toBe(12);
+      });
+    });
+
+    describe('1h interval (every hour)', () => {
+      it('should return 04:00 when current time is 03:15', () => {
+        const now = new Date('2024-01-15T03:15:00Z');
+        const next = calculateNextFundingTime(1, now);
+
+        expect(next.getUTCHours()).toBe(4);
+      });
+
+      it('should return 13:00 when current time is 12:59', () => {
+        const now = new Date('2024-01-15T12:59:00Z');
+        const next = calculateNextFundingTime(1, now);
+
+        expect(next.getUTCHours()).toBe(13);
+      });
+
+      it('should return next day 00:00 when current time is 23:30', () => {
+        const now = new Date('2024-01-15T23:30:00Z');
+        const next = calculateNextFundingTime(1, now);
+
+        expect(next.getUTCHours()).toBe(0);
+        expect(next.getUTCDate()).toBe(16);
+      });
+
+      it('should skip to next hour when exactly at settlement time 10:00', () => {
+        const now = new Date('2024-01-15T10:00:00Z');
+        const next = calculateNextFundingTime(1, now);
+
+        expect(next.getUTCHours()).toBe(11);
+      });
     });
   });
 });
