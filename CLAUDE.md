@@ -266,11 +266,11 @@ tests/
 ### Production 環境變數（Debug 功能控制）
 | 變數 | 預設值 | 說明 |
 |:-----|:-------|:-----|
-| `NODE_ENV` | `development` | `production` 時自動停用 ReactQueryDevtools |
+| `NEXT_PUBLIC_DISABLE_DEVTOOLS` | `false` | 設為 `true` 完全停用 ReactQueryDevtools（前端調試面板） |
 | `ENABLE_MEMORY_MONITOR` | dev: `true`, prod: `false` | 記憶體使用量監控（每分鐘記錄） |
 | `ENABLE_MEMORY_LEAK_TRACKER` | dev: `true`, prod: `false` | 記憶體洩漏追蹤（timers、handles、detached contexts） |
 
-**注意**：Zeabur 等 production 環境會自動設定 `NODE_ENV=production`，debug 功能會自動停用。
+**Zeabur Production 設定**：在環境變數中加入 `NEXT_PUBLIC_DISABLE_DEVTOOLS=true` 停用前端調試工具。
 
 ## CI/CD
 
