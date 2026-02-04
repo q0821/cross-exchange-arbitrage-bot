@@ -9,6 +9,9 @@ const nextConfig = {
   // 使用 standalone 輸出模式（適用於 Docker/容器化部署）
   output: 'standalone',
 
+  // 禁用開發指示器（左下角的 Next.js Dev Toolbar）
+  devIndicators: false,
+
   typescript: {
     // Ignore specs directory to prevent type conflicts
     tsconfigPath: './tsconfig.json',
