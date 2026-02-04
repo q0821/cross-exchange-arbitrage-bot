@@ -262,8 +262,8 @@ model Position {
   exitSuggestedAt             DateTime? @db.Timestamptz
   exitSuggestedReason         String?   @db.VarChar(50)
 
-  // ===== 分單開倉組別 (Feature 069) =====
-  groupId                     String?   @db.Uuid  // 分單開倉組別 ID，null 表示單獨開倉
+  // ===== 分單開倉組別 (Feature 069, 070) =====
+  groupId                     String    @db.Uuid @default(dbgenerated("gen_random_uuid()"))  // 持倉組別 ID（所有持倉必須有 groupId）
 
   // Relations
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)

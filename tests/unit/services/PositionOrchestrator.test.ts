@@ -175,6 +175,20 @@ const createMockPosition = (overrides: Partial<Position> = {}): Position => ({
   longTakeProfitOrderId: null,
   shortTakeProfitPrice: null,
   shortTakeProfitOrderId: null,
+  // Feature 050: 平倉相關欄位
+  closeReason: null,
+  longCloseOrderId: null,
+  longExitPrice: null,
+  shortCloseOrderId: null,
+  shortExitPrice: null,
+  // Feature 067: 平倉建議欄位
+  cachedFundingPnL: null,
+  cachedFundingPnLUpdatedAt: null,
+  exitSuggested: false,
+  exitSuggestedAt: null,
+  exitSuggestedReason: null,
+  // Feature 069/070: groupId（現為必填）
+  groupId: 'mock-group-id',
   ...overrides,
 });
 
@@ -337,6 +351,46 @@ describe('PositionOrchestrator', () => {
             }),
           }),
         );
+      });
+
+      // ===========================================================================
+      // Feature 070: 單獨開倉自動生成 groupId (T010)
+      // ===========================================================================
+
+      it('should auto-generate groupId when not provided (single open)', async () => {
+        // UUID v4 pattern for validation
+        const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+        const params = createBaseParams();
+        // Ensure no groupId is provided
+        expect(params.groupId).toBeUndefined();
+
+        await orchestrator.openPosition(params);
+
+        // Verify position.create was called with a valid UUID groupId
+        const createCalls = (mockPrisma.position.create as ReturnType<typeof vi.fn>).mock.calls;
+        expect(createCalls.length).toBeGreaterThan(0);
+
+        const createData = createCalls[0][0].data;
+        expect(createData.groupId).toBeDefined();
+        expect(createData.groupId).not.toBeNull();
+        expect(createData.groupId).toMatch(UUID_PATTERN);
+      });
+
+      it('should preserve explicit groupId when provided (split open)', async () => {
+        const explicitGroupId = '550e8400-e29b-41d4-a716-446655440000';
+
+        const params = createBaseParams();
+        params.groupId = explicitGroupId;
+
+        await orchestrator.openPosition(params);
+
+        // Verify position.create was called with the explicit groupId
+        const createCalls = (mockPrisma.position.create as ReturnType<typeof vi.fn>).mock.calls;
+        expect(createCalls.length).toBeGreaterThan(0);
+
+        const createData = createCalls[0][0].data;
+        expect(createData.groupId).toBe(explicitGroupId);
       });
 
       it('should set conditional orders when stopLossEnabled is true', async () => {

@@ -41,7 +41,8 @@ export class GateioConnector extends BaseExchangeConnector {
 
   constructor(isTestnet: boolean = false) {
     super('gateio', isTestnet);
-    this.intervalCache = new FundingIntervalCache();
+    // 使用全域單例，讓 WebSocket 客戶端也能存取快取中的 fundingInterval
+    this.intervalCache = FundingIntervalCache.getInstance();
   }
 
   async connect(): Promise<void> {
@@ -129,18 +130,21 @@ export class GateioConnector extends BaseExchangeConnector {
         const ccxtSymbol = this.toCcxtSymbol(symbol);
         const fundingRate = await this.client!.fetchFundingRate(ccxtSymbol);
 
-        // 🆕 獲取動態間隔
+        // 獲取動態間隔
         const interval = await this.getFundingInterval(symbol);
+
+        // 重新計算 nextFundingTime（CCXT 對 4h/1h 週期返回錯誤的結算時間）
+        const nextFundingTime = this.calculateNextFundingTime(interval);
 
         return {
           exchange: 'gateio',
           symbol: this.fromCcxtSymbol(fundingRate.symbol),
           fundingRate: fundingRate.fundingRate || 0,
-          nextFundingTime: new Date(fundingRate.fundingTimestamp || Date.now()),
+          nextFundingTime,
           markPrice: fundingRate.markPrice,
           indexPrice: fundingRate.indexPrice,
           recordedAt: new Date(),
-          fundingInterval: interval, // 🆕 使用動態間隔
+          fundingInterval: interval,
         } as FundingRateData;
       } catch (error) {
         throw this.handleApiError(error);
@@ -158,22 +162,28 @@ export class GateioConnector extends BaseExchangeConnector {
 
         const ratesArray = Object.values(fundingRates) as ccxt.FundingRate[];
 
-        // 🆕 批量獲取間隔值
+        // 批量獲取間隔值
         const intervalPromises = ratesArray.map((rate) =>
           this.getFundingInterval(this.fromCcxtSymbol(rate.symbol))
         );
         const intervals = await Promise.all(intervalPromises);
 
-        return ratesArray.map((rate, index) => ({
-          exchange: 'gateio',
-          symbol: this.fromCcxtSymbol(rate.symbol),
-          fundingRate: rate.fundingRate || 0,
-          nextFundingTime: new Date(rate.fundingTimestamp || Date.now()),
-          markPrice: rate.markPrice,
-          indexPrice: rate.indexPrice,
-          recordedAt: new Date(),
-          fundingInterval: intervals[index], // 🆕 使用動態間隔
-        })) as FundingRateData[];
+        return ratesArray.map((rate, index) => {
+          const interval = intervals[index] ?? 8;
+          // 重新計算 nextFundingTime（CCXT 對 4h/1h 週期返回錯誤的結算時間）
+          const nextFundingTime = this.calculateNextFundingTime(interval);
+
+          return {
+            exchange: 'gateio',
+            symbol: this.fromCcxtSymbol(rate.symbol),
+            fundingRate: rate.fundingRate || 0,
+            nextFundingTime,
+            markPrice: rate.markPrice,
+            indexPrice: rate.indexPrice,
+            recordedAt: new Date(),
+            fundingInterval: interval,
+          };
+        }) as FundingRateData[];
       } catch (error) {
         throw this.handleApiError(error);
       }
@@ -979,6 +989,49 @@ export class GateioConnector extends BaseExchangeConnector {
       default:
         return 'PENDING';
     }
+  }
+
+  /**
+   * 計算下次結算時間
+   *
+   * 根據不同的 fundingInterval 計算結算時間點：
+   * - 1h: 每小時整點（00:00, 01:00, 02:00, ...）
+   * - 4h: UTC 00:00, 04:00, 08:00, 12:00, 16:00, 20:00
+   * - 8h: UTC 00:00, 08:00, 16:00
+   *
+   * 注意：CCXT 的 fundingTimestamp 對 4h/1h 週期返回錯誤的值，
+   * 因此需要自行計算正確的下次結算時間。
+   *
+   * @param fundingIntervalHours 結算週期（小時），預設 8
+   */
+  private calculateNextFundingTime(fundingIntervalHours: number = 8): Date {
+    const now = new Date();
+    const utcHours = now.getUTCHours();
+    const utcMinutes = now.getUTCMinutes();
+
+    // 計算當前時間在週期內的位置
+    const currentTimeInHours = utcHours + utcMinutes / 60;
+    const nextSettlementMultiple = Math.ceil(currentTimeInHours / fundingIntervalHours);
+    let nextSettlementHour = nextSettlementMultiple * fundingIntervalHours;
+
+    // 如果剛好在結算時間點上，跳到下一個週期
+    if (currentTimeInHours === nextSettlementHour) {
+      nextSettlementHour += fundingIntervalHours;
+    }
+
+    const nextFunding = new Date(now);
+    nextFunding.setUTCMinutes(0, 0, 0);
+
+    // 處理跨日情況
+    if (nextSettlementHour >= 24) {
+      const daysToAdd = Math.floor(nextSettlementHour / 24);
+      nextFunding.setUTCDate(nextFunding.getUTCDate() + daysToAdd);
+      nextSettlementHour = nextSettlementHour % 24;
+    }
+
+    nextFunding.setUTCHours(nextSettlementHour);
+
+    return nextFunding;
   }
 
   private handleApiError(error: unknown): Error {

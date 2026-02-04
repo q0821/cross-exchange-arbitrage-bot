@@ -21,6 +21,7 @@ import { OkxFundingWs } from '../websocket/OkxFundingWs.js';
 import { GateioFundingWs } from '../websocket/GateioFundingWs.js';
 import { BingxFundingWs } from '../websocket/BingxFundingWs.js';
 import { DataSourceManager } from './DataSourceManager.js';
+import { FundingIntervalCache } from '../../lib/FundingIntervalCache.js';
 import type { DataStructureStats, Monitorable } from '../../types/memory-stats.js';
 import { getEventEmitterStats } from '../../lib/event-emitter-stats.js';
 import { DataStructureRegistry } from '../../lib/data-structure-registry.js';
@@ -625,12 +626,17 @@ export class PriceMonitor extends EventEmitter implements Monitorable {
 
   /**
    * 啟動 Gate.io WebSocket (Feature 054: 使用原生 WebSocket 客戶端)
+   *
+   * 注意：傳遞共享的 FundingIntervalCache 單例，讓 WebSocket 能查詢
+   * GateioConnector 透過 REST API 取得的動態結算週期（1h, 4h, 8h）
    */
   private async startGateioWebSocket(): Promise<void> {
     try {
       this.gateioFundingWs = new GateioFundingWs({
         autoReconnect: true,
         enableHealthCheck: true,
+        // 使用共享的 FundingIntervalCache 單例
+        intervalCache: FundingIntervalCache.getInstance(),
       });
 
       // 監聽資金費率事件

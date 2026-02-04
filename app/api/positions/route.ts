@@ -89,26 +89,24 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         statusFilter as PositionStatusFilter
       );
 
-      // 計算總數
-      const total = groupedResult.positions.length +
-        groupedResult.groups.reduce((sum, g) => sum + g.positions.length, 0);
+      // Feature 070: 計算總數（所有持倉都在 groups 中）
+      const total = groupedResult.groups.reduce((sum, g) => sum + g.positions.length, 0);
 
       logger.info(
         {
           correlationId,
           userId: user.userId,
-          ungroupedCount: groupedResult.positions.length,
           groupCount: groupedResult.groups.length,
           total,
         },
         'Get grouped positions request completed',
       );
 
+      // Feature 070: 回應只包含 groups，不再有獨立的 positions 陣列
       return NextResponse.json(
         {
           success: true,
           data: {
-            positions: groupedResult.positions.map(formatPositionInfo),
             groups: groupedResult.groups.map((g) => ({
               groupId: g.groupId,
               symbol: g.symbol,
@@ -227,7 +225,8 @@ function formatPositionInfo(p: {
     shortStopLossPrice: p.shortStopLossPrice ? p.shortStopLossPrice.toNumber() : null,
     longTakeProfitPrice: p.longTakeProfitPrice ? p.longTakeProfitPrice.toNumber() : null,
     shortTakeProfitPrice: p.shortTakeProfitPrice ? p.shortTakeProfitPrice.toNumber() : null,
-    // 分組資訊 (Feature 069)
-    groupId: p.groupId,
+    // 持倉組別 (Feature 069/070: 所有持倉必須有 groupId)
+    // Note: Prisma 類型可能顯示為 string | null，但 migration 已確保不會有 null
+    groupId: p.groupId!,
   };
 }

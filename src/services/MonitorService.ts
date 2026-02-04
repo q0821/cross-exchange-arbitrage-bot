@@ -13,6 +13,8 @@ import { join } from 'path';
 import '../lib/db';
 // 記憶體監控
 import { startMemoryMonitor, stopMemoryMonitor } from '../lib/memory-monitor';
+// 記憶體洩漏追蹤（追蹤 timers、handles、detached contexts）
+import { memoryLeakTracker } from '../lib/memory-leak-tracker';
 import { ACTIVE_EXCHANGES } from '../lib/exchanges/constants';
 // Feature 065: 套利機會追蹤
 import { ArbitrageOpportunityTracker } from './monitor/ArbitrageOpportunityTracker';
@@ -131,20 +133,33 @@ export async function startMonitorService(): Promise<void> {
       logger.debug('[Feature 067] PositionExitMonitor disabled (set ENABLE_POSITION_EXIT_MONITOR=true to enable)');
     }
 
-    // 啟動記憶體監控
-    // 可透過環境變數控制：
-    //   ENABLE_MEMORY_MONITOR=false 關閉記憶體監控
-    //   MEMORY_MONITOR_INTERVAL_MS=60000 設定監控間隔（毫秒），預設 300000（5 分鐘）
-    const enableMemoryMonitor = process.env.ENABLE_MEMORY_MONITOR !== 'false';
+    // 啟動記憶體監控（每 1 分鐘記錄一次）
+    // Production 環境預設停用，可透過 ENABLE_MEMORY_MONITOR=true 強制啟用
+    const isProduction = process.env.NODE_ENV === 'production';
+    const enableMemoryMonitor = isProduction
+      ? process.env.ENABLE_MEMORY_MONITOR === 'true'
+      : process.env.ENABLE_MEMORY_MONITOR !== 'false';
+
+    const memoryMonitorInterval = parseInt(process.env.MEMORY_MONITOR_INTERVAL_MS || '60000', 10);
+
     if (enableMemoryMonitor) {
-      const memoryMonitorInterval = parseInt(process.env.MEMORY_MONITOR_INTERVAL_MS || '300000', 10);
       startMemoryMonitor(memoryMonitorInterval);
-      logger.info(
-        { intervalMs: memoryMonitorInterval },
-        'Memory monitor enabled',
-      );
+      logger.info({ interval: memoryMonitorInterval }, 'Memory monitor started');
     } else {
-      logger.info('Memory monitor disabled (ENABLE_MEMORY_MONITOR=false)');
+      logger.debug('Memory monitor disabled (set ENABLE_MEMORY_MONITOR=true to enable in production)');
+    }
+
+    // 啟動記憶體洩漏追蹤器（追蹤 timers、handles、detached contexts）
+    // Production 環境預設停用，可透過 ENABLE_MEMORY_LEAK_TRACKER=true 強制啟用
+    const enableMemoryLeakTracker = isProduction
+      ? process.env.ENABLE_MEMORY_LEAK_TRACKER === 'true'
+      : process.env.ENABLE_MEMORY_LEAK_TRACKER !== 'false';
+
+    if (enableMemoryLeakTracker) {
+      memoryLeakTracker.start(memoryMonitorInterval);
+      logger.info({ interval: memoryMonitorInterval }, 'Memory leak tracker started');
+    } else {
+      logger.debug('Memory leak tracker disabled (set ENABLE_MEMORY_LEAK_TRACKER=true to enable in production)');
     }
 
     logger.info('Built-in funding rate monitor started successfully');
@@ -165,6 +180,9 @@ export async function startMonitorService(): Promise<void> {
 export async function stopMonitorService(): Promise<void> {
   // 停止記憶體監控
   stopMemoryMonitor();
+
+  // 停止記憶體洩漏追蹤器
+  memoryLeakTracker.stop();
 
   // Feature 067: 解除持倉平倉建議監控器綁定
   if (positionExitMonitorInstance) {

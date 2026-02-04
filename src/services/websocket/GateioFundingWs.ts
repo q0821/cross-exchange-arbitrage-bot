@@ -18,6 +18,7 @@ import { BaseExchangeWs, type BaseExchangeWsConfig } from './BaseExchangeWs';
 import { parseGateioTickerEvent, parseGateioOrderEvent } from '@/lib/schemas/websocket-messages';
 import { toGateioSymbol, fromGateioSymbol } from '@/lib/symbol-converter';
 import { logger } from '@/lib/logger';
+import { FundingIntervalCache } from '@/lib/FundingIntervalCache';
 import type { ExchangeName } from '@/connectors/types';
 import type { FundingRateReceived, OrderStatusChanged } from '@/types/websocket-events';
 
@@ -37,6 +38,12 @@ export interface GateioFundingWsConfig extends BaseExchangeWsConfig {
   wsUrl?: string;
   /** API 憑證（私有頻道需要） */
   credentials?: GateioCredentials;
+  /**
+   * 資金費率間隔快取
+   * 用於查詢各交易對的動態結算週期（1h, 4h, 8h）
+   * 若未提供，將使用全域單例 FundingIntervalCache.getInstance()
+   */
+  intervalCache?: FundingIntervalCache;
 }
 
 /** Gate.io 訂閱請求 */
@@ -80,6 +87,7 @@ export class GateioFundingWs extends BaseExchangeWs {
   protected readonly exchangeName: ExchangeName = 'gateio';
   private wsUrl: string;
   private credentials?: GateioCredentials;
+  private intervalCache: FundingIntervalCache;
 
   // 私有頻道狀態
   private isOrdersSubscribed = false;
@@ -89,12 +97,15 @@ export class GateioFundingWs extends BaseExchangeWs {
 
     this.wsUrl = config.wsUrl ?? 'wss://fx-ws.gateio.ws/v4/ws/usdt';
     this.credentials = config.credentials;
+    // 使用傳入的快取或全域單例
+    this.intervalCache = config.intervalCache ?? FundingIntervalCache.getInstance();
 
     logger.debug(
       {
         service: this.getLogPrefix(),
         wsUrl: this.wsUrl,
         hasCredentials: !!this.credentials,
+        hasIntervalCache: !!config.intervalCache,
       },
       'GateioFundingWs initialized'
     );
@@ -213,6 +224,9 @@ export class GateioFundingWs extends BaseExchangeWs {
 
   /**
    * 處理 futures.tickers 訊息
+   *
+   * Gate.io WebSocket futures.tickers 不包含 next_funding_time 和 funding_interval，
+   * 需要從 FundingIntervalCache 查詢動態結算週期，並計算下次結算時間。
    */
   private handleTickerMessage(message: unknown): void {
     const result = parseGateioTickerEvent(message);
@@ -231,14 +245,19 @@ export class GateioFundingWs extends BaseExchangeWs {
     for (const tickerData of tickerItems) {
       const symbol = fromGateioSymbol(tickerData.contract);
 
-      // 計算下次結算時間（Gate.io 不直接提供，需要根據當前時間計算）
-      const nextFundingTime = this.calculateNextFundingTime();
+      // 從快取查詢 fundingInterval（小時），預設 8h
+      // 快取由 GateioConnector.getFundingInterval() 透過 REST API 填充
+      const fundingInterval = this.intervalCache.get('gateio', symbol) ?? 8;
+
+      // 根據動態週期計算下次結算時間
+      const nextFundingTime = this.calculateNextFundingTime(fundingInterval);
 
       const fundingRateReceived: FundingRateReceived = {
         exchange: 'gateio',
         symbol,
         fundingRate: new Decimal(tickerData.funding_rate),
         nextFundingTime,
+        fundingInterval, // 新增：傳遞動態週期給下游
         nextFundingRate: tickerData.funding_rate_indicative
           ? new Decimal(tickerData.funding_rate_indicative)
           : undefined,
@@ -254,27 +273,41 @@ export class GateioFundingWs extends BaseExchangeWs {
 
   /**
    * 計算下次結算時間
-   * Gate.io 資金費率結算時間：UTC 00:00, 08:00, 16:00
+   *
+   * 根據不同的 fundingInterval 計算結算時間點：
+   * - 1h: 每小時整點（00:00, 01:00, 02:00, ...）
+   * - 4h: UTC 00:00, 04:00, 08:00, 12:00, 16:00, 20:00
+   * - 8h: UTC 00:00, 08:00, 16:00
+   *
+   * @param fundingIntervalHours 結算週期（小時），預設 8
    */
-  private calculateNextFundingTime(): Date {
+  private calculateNextFundingTime(fundingIntervalHours: number = 8): Date {
     const now = new Date();
     const utcHours = now.getUTCHours();
+    const utcMinutes = now.getUTCMinutes();
 
-    let nextHour: number;
-    if (utcHours < 8) {
-      nextHour = 8;
-    } else if (utcHours < 16) {
-      nextHour = 16;
-    } else {
-      nextHour = 24; // 次日 00:00
+    // 計算當前時間在週期內的位置
+    // 例如：週期 8h，當前 UTC 10:30，則 10.5 / 8 = 1.3125，下一個結算點是 ceil(1.3125) * 8 = 16
+    const currentTimeInHours = utcHours + utcMinutes / 60;
+    const nextSettlementMultiple = Math.ceil(currentTimeInHours / fundingIntervalHours);
+    let nextSettlementHour = nextSettlementMultiple * fundingIntervalHours;
+
+    // 如果剛好在結算時間點上，跳到下一個週期
+    if (currentTimeInHours === nextSettlementHour) {
+      nextSettlementHour += fundingIntervalHours;
     }
 
     const nextFunding = new Date(now);
-    nextFunding.setUTCHours(nextHour % 24, 0, 0, 0);
+    nextFunding.setUTCMinutes(0, 0, 0);
 
-    if (nextHour === 24) {
-      nextFunding.setUTCDate(nextFunding.getUTCDate() + 1);
+    // 處理跨日情況
+    if (nextSettlementHour >= 24) {
+      const daysToAdd = Math.floor(nextSettlementHour / 24);
+      nextFunding.setUTCDate(nextFunding.getUTCDate() + daysToAdd);
+      nextSettlementHour = nextSettlementHour % 24;
     }
+
+    nextFunding.setUTCHours(nextSettlementHour);
 
     return nextFunding;
   }

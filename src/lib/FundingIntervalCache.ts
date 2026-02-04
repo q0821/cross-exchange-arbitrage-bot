@@ -47,8 +47,14 @@ interface CacheStats {
 /**
  * 資金費率間隔快取
  * 用於避免重複 API 呼叫，預設 TTL 為 24 小時
+ *
+ * 支援單例模式（getInstance）讓多個服務共享快取：
+ * - GateioConnector (REST API) 透過 getFundingInterval() 填充快取
+ * - GateioFundingWs (WebSocket) 透過 get() 查詢快取計算 nextFundingTime
  */
 export class FundingIntervalCache implements Monitorable {
+  private static instance: FundingIntervalCache | null = null;
+
   private cache: Map<string, CachedInterval>;
   private stats: CacheStats;
   private defaultTTL: number;
@@ -61,6 +67,24 @@ export class FundingIntervalCache implements Monitorable {
       sets: 0,
     };
     this.defaultTTL = defaultTTL;
+  }
+
+  /**
+   * 取得全域單例實例
+   * 用於讓多個服務（如 GateioConnector 和 GateioFundingWs）共享快取
+   */
+  static getInstance(): FundingIntervalCache {
+    if (!FundingIntervalCache.instance) {
+      FundingIntervalCache.instance = new FundingIntervalCache();
+    }
+    return FundingIntervalCache.instance;
+  }
+
+  /**
+   * 重置單例（僅供測試使用）
+   */
+  static resetInstance(): void {
+    FundingIntervalCache.instance = null;
   }
 
   /**

@@ -1,6 +1,7 @@
 /**
  * Integration tests for position group open
  * Feature 069: 分單持倉合併顯示與批量平倉
+ * Feature 070: 統一持倉 groupId 架構
  *
  * @vitest-environment node
  */
@@ -14,8 +15,12 @@ import type { PrismaClient } from '@/generated/prisma/client';
 // Skip if not running integration tests
 const RUN_INTEGRATION = process.env.RUN_INTEGRATION_TESTS === 'true';
 
+// UUID v4 pattern for validation
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /**
  * Helper to create a test position with all required fields
+ * Feature 070: groupId is now required (auto-generated if not provided)
  */
 function createPositionData(
   userId: string,
@@ -30,13 +35,13 @@ function createPositionData(
     longLeverage: number;
     shortLeverage: number;
     status: 'OPEN' | 'PENDING' | 'CLOSED';
-    groupId: string | null;
+    groupId: string;  // Feature 070: No longer nullable
     openedAt: Date;
     cachedFundingPnL: Decimal;
     unrealizedPnL: Decimal;
   }> = {}
 ) {
-  return {
+  const data: any = {
     userId,
     symbol: overrides.symbol ?? 'BTCUSDT',
     longExchange: overrides.longExchange ?? 'binance',
@@ -48,7 +53,6 @@ function createPositionData(
     longLeverage: overrides.longLeverage ?? 3,
     shortLeverage: overrides.shortLeverage ?? 3,
     status: overrides.status ?? 'OPEN',
-    groupId: overrides.groupId ?? null,
     // Required fields
     openFundingRateLong: new Decimal('0.0001'),
     openFundingRateShort: new Decimal('0.00015'),
@@ -56,6 +60,14 @@ function createPositionData(
     cachedFundingPnL: overrides.cachedFundingPnL ?? undefined,
     unrealizedPnL: overrides.unrealizedPnL ?? undefined,
   };
+
+  // Feature 070: Only add groupId if explicitly provided
+  // If not provided, database will auto-generate
+  if (overrides.groupId !== undefined) {
+    data.groupId = overrides.groupId;
+  }
+
+  return data;
 }
 
 describe.skipIf(!RUN_INTEGRATION)('Position Group Open Integration', () => {
@@ -70,7 +82,7 @@ describe.skipIf(!RUN_INTEGRATION)('Position Group Open Integration', () => {
     // Create test user
     const user = await prisma.user.create({
       data: {
-        email: `test-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+        email: `test-group-open-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
         password: 'test-password-hash',
       },
     });
@@ -78,16 +90,19 @@ describe.skipIf(!RUN_INTEGRATION)('Position Group Open Integration', () => {
   });
 
   afterEach(async () => {
-    // Cleanup test data
-    if (testUserId) {
-      await prisma.position.deleteMany({ where: { userId: testUserId } });
-      await prisma.user.delete({ where: { id: testUserId } });
-    }
+    // Clean up test positions first (FK constraint)
+    await prisma.position.deleteMany({
+      where: { userId: testUserId },
+    });
+    // Clean up test user
+    await prisma.user.delete({
+      where: { id: testUserId },
+    });
     await prisma.$disconnect();
   });
 
-  describe('groupId assignment in database', () => {
-    it('should persist groupId when creating position with group', async () => {
+  describe('Position creation with groupId', () => {
+    it('should store position with explicit groupId', async () => {
       const groupId = PositionGroupService.generateGroupId();
 
       const position = await prisma.position.create({
@@ -103,17 +118,19 @@ describe.skipIf(!RUN_INTEGRATION)('Position Group Open Integration', () => {
       expect(fetched?.groupId).toBe(groupId);
     });
 
-    it('should allow null groupId for single position', async () => {
+    // Feature 070: Single positions now have auto-generated groupId
+    it('should auto-generate groupId for single position', async () => {
       const position = await prisma.position.create({
         data: createPositionData(testUserId, {
           symbol: 'ETHUSDT',
           longExchange: 'binance',
           shortExchange: 'gateio',
-          groupId: null,
         }),
       });
 
-      expect(position.groupId).toBeNull();
+      // Should have a valid UUID groupId
+      expect(position.groupId).not.toBeNull();
+      expect(position.groupId).toMatch(UUID_PATTERN);
     });
 
     it('should group multiple positions with same groupId', async () => {
@@ -147,7 +164,7 @@ describe.skipIf(!RUN_INTEGRATION)('Position Group Open Integration', () => {
   });
 
   describe('PositionGroupService with database', () => {
-    it('should fetch positions grouped by groupId', async () => {
+    it('should fetch all positions in groups array', async () => {
       const groupId1 = PositionGroupService.generateGroupId();
       const groupId2 = PositionGroupService.generateGroupId();
 
@@ -175,20 +192,20 @@ describe.skipIf(!RUN_INTEGRATION)('Position Group Open Integration', () => {
         }),
       });
 
-      // Create 1 ungrouped position
+      // Create a single position (auto-generated groupId)
       await prisma.position.create({
         data: createPositionData(testUserId, {
           symbol: 'SOLUSDT',
           longExchange: 'okx',
           shortExchange: 'mexc',
-          groupId: null,
         }),
       });
 
       const result = await service.getPositionsGrouped(testUserId, 'OPEN');
 
-      expect(result.positions).toHaveLength(1); // 1 ungrouped
-      expect(result.groups).toHaveLength(2); // 2 groups
+      // Feature 070: All positions in groups, no separate positions array
+      expect((result as any).positions).toBeUndefined();
+      expect(result.groups).toHaveLength(3); // 2 explicit groups + 1 auto-generated
 
       // Find group 1
       const group1 = result.groups.find((g) => g.groupId === groupId1);
@@ -200,6 +217,14 @@ describe.skipIf(!RUN_INTEGRATION)('Position Group Open Integration', () => {
       const group2 = result.groups.find((g) => g.groupId === groupId2);
       expect(group2).toBeDefined();
       expect(group2?.positions).toHaveLength(1);
+
+      // Find the single position group
+      const singleGroup = result.groups.find(
+        (g) => g.groupId !== groupId1 && g.groupId !== groupId2
+      );
+      expect(singleGroup).toBeDefined();
+      expect(singleGroup?.positions).toHaveLength(1);
+      expect(singleGroup?.aggregate.positionCount).toBe(1);
     });
 
     it('should validate group ownership correctly', async () => {
@@ -284,10 +309,8 @@ describe.skipIf(!RUN_INTEGRATION)('Position Group Open Integration', () => {
         '2024-01-01T10:00:00.000Z'
       );
     });
-  });
 
-  describe('groupId index performance', () => {
-    it('should efficiently query positions by groupId', async () => {
+    it('should query positions by groupId efficiently', async () => {
       const groupId = PositionGroupService.generateGroupId();
 
       // Create 10 positions in the group

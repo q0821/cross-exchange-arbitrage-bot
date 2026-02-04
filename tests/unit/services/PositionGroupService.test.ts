@@ -26,9 +26,10 @@ describe('PositionGroupService', () => {
     service = new PositionGroupService(mockPrisma);
   });
 
+  // Feature 070: groupId 現為必填
   const createMockPosition = (
     id: string,
-    groupId: string | null,
+    groupId: string,
     overrides: Partial<Position> = {}
   ): Position => ({
     id,
@@ -82,24 +83,33 @@ describe('PositionGroupService', () => {
   });
 
   describe('getPositionsGrouped', () => {
-    it('should return grouped and ungrouped positions', async () => {
+    // Feature 070: 所有持倉都在 groups 中，不再有獨立的 positions 陣列
+    it('should return all positions grouped by groupId', async () => {
       const mockPositions = [
         createMockPosition('pos-1', 'group-1'),
         createMockPosition('pos-2', 'group-1', {
           longPositionSize: new Decimal('0.2'),
         }),
-        createMockPosition('pos-3', null, { symbol: 'ETHUSDT' }),
+        createMockPosition('pos-3', 'group-2', { symbol: 'ETHUSDT' }),
       ];
 
       vi.mocked(mockPrisma.position.findMany).mockResolvedValue(mockPositions);
 
       const result = await service.getPositionsGrouped('user-1');
 
-      expect(result.positions).toHaveLength(1);
-      expect(result.positions[0].id).toBe('pos-3');
-      expect(result.groups).toHaveLength(1);
-      expect(result.groups[0].groupId).toBe('group-1');
-      expect(result.groups[0].positions).toHaveLength(2);
+      // Feature 070: 不再有 positions 屬性
+      expect(result.groups).toHaveLength(2);
+
+      // group-1 有 2 個持倉
+      const group1 = result.groups.find(g => g.groupId === 'group-1');
+      expect(group1).toBeDefined();
+      expect(group1!.positions).toHaveLength(2);
+
+      // group-2 有 1 個持倉（單獨開倉）
+      const group2 = result.groups.find(g => g.groupId === 'group-2');
+      expect(group2).toBeDefined();
+      expect(group2!.positions).toHaveLength(1);
+      expect(group2!.positions[0].id).toBe('pos-3');
     });
 
     it('should filter by status when provided', async () => {

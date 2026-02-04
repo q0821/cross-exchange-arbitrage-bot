@@ -6,8 +6,6 @@
 - Prisma 7.x (ORM), CCXT 4.x (多交易所抽象)
 - PostgreSQL 15+ with TimescaleDB extension
 - Vitest 4.x, Decimal.js, TanStack Query 5.x
-- TypeScript 5.8 + Node.js 20.x LTS + Pino (logger)、既有 MonitorStatsTracker、getMemoryStats()、DataSourceManager (071-cli-status-dashboard)
-- N/A（僅讀取現有資料，不持久化） (071-cli-status-dashboard)
 
 ## Key Files
 | 檔案 | 用途 |
@@ -133,6 +131,8 @@ TypeScript 5.8+ with strict mode: Follow standard conventions
 ### 7. 提交前驗證
 - 提交到 main 之前必須通過 ESLint 和 TypeScript check
 - 指令：`pnpm lint` + `pnpm exec tsc --noEmit`
+- **重要**：commit 前應執行 `pnpm build` 確保所有引用的模組都存在，避免部署失敗
+- **常見錯誤**：程式碼引用了未追蹤（untracked）的檔案，本地 TypeScript check 可能通過但部署時會失敗
 
 ### 8. Prisma 7 測試相容性
 - **禁止**：在測試中直接使用 `new PrismaClient()` 初始化
@@ -418,6 +418,15 @@ tests/
 | `RUN_INTEGRATION_TESTS=true` | 啟用整合測試 |
 | `PERFORMANCE_TEST=true` | 啟用效能測試 |
 
+### Production 環境變數（Debug 功能控制）
+| 變數 | 預設值 | 說明 |
+|:-----|:-------|:-----|
+| `NEXT_PUBLIC_DISABLE_DEVTOOLS` | `false` | 設為 `true` 完全停用 ReactQueryDevtools（前端調試面板） |
+| `ENABLE_MEMORY_MONITOR` | dev: `true`, prod: `false` | 記憶體使用量監控（每分鐘記錄） |
+| `ENABLE_MEMORY_LEAK_TRACKER` | dev: `true`, prod: `false` | 記憶體洩漏追蹤（timers、handles、detached contexts） |
+
+**Zeabur Production 設定**：在環境變數中加入 `NEXT_PUBLIC_DISABLE_DEVTOOLS=true` 停用前端調試工具。
+
 ## CI/CD
 
 | 檔案 | 用途 | 觸發條件 |
@@ -427,4 +436,5 @@ tests/
 | `.github/workflows/e2e.yml` | Playwright E2E 測試 | push to main |
 
 ## Recent Changes
-- 071-cli-status-dashboard: Added TypeScript 5.8 + Node.js 20.x LTS + Pino (logger)、既有 MonitorStatsTracker、getMemoryStats()、DataSourceManager
+- 071-cli-status-dashboard: Added CLI status dashboard
+- 070-unified-groupid: Added unified groupId for position management

@@ -15,10 +15,11 @@ import type {
 
 /**
  * 用於分組計算的 Position 子集類型
+ * Feature 070: groupId 現為必填
  */
 export interface PositionForGroup {
   id: string;
-  groupId: string | null;
+  groupId: string;  // Feature 070: 所有持倉必須有 groupId
   symbol: string;
   longExchange: string;
   shortExchange: string;
@@ -70,24 +71,20 @@ export function calculateWeightedAverage(values: WeightedValue[]): Decimal {
 
 /**
  * 將持倉按 groupId 分組
+ * Feature 070: 所有持倉都有 groupId，不再有 ungrouped 概念
  *
  * @param positions - 持倉列表
- * @returns 分組結果（ungrouped + groups）
+ * @returns 分組結果（groups 陣列）
  */
 export function groupPositionsByGroupId(
   positions: PositionForGroup[]
-): { ungrouped: PositionForGroup[]; groups: Array<{ groupId: string; positions: PositionForGroup[] }> } {
-  const ungrouped: PositionForGroup[] = [];
+): { groups: Array<{ groupId: string; positions: PositionForGroup[] }> } {
   const groupMap = new Map<string, PositionForGroup[]>();
 
   for (const position of positions) {
-    if (position.groupId === null) {
-      ungrouped.push(position);
-    } else {
-      const existing = groupMap.get(position.groupId) || [];
-      existing.push(position);
-      groupMap.set(position.groupId, existing);
-    }
+    const existing = groupMap.get(position.groupId) || [];
+    existing.push(position);
+    groupMap.set(position.groupId, existing);
   }
 
   const groups = Array.from(groupMap.entries()).map(([groupId, positions]) => ({
@@ -95,7 +92,7 @@ export function groupPositionsByGroupId(
     positions,
   }));
 
-  return { ungrouped, groups };
+  return { groups };
 }
 
 /**
@@ -226,16 +223,18 @@ export function calculatePositionGroupAggregate(
 
 /**
  * 將 Position 列表轉換為分組回應格式
+ * Feature 070: 所有持倉都放入 groups（不再有獨立的 positions 陣列）
  *
  * @param positions - 原始持倉列表
- * @returns 分組後的回應
+ * @returns 分組後的回應（只有 groups）
  */
 export function toGroupedPositionsResponse(
   positions: Position[]
 ): GroupedPositionsResponse {
   const positionsForGroup: PositionForGroup[] = positions.map((pos) => ({
     id: pos.id,
-    groupId: pos.groupId,
+    // Feature 070: groupId 現為必填，使用非空斷言
+    groupId: pos.groupId!,
     symbol: pos.symbol,
     longExchange: pos.longExchange,
     shortExchange: pos.shortExchange,
@@ -269,11 +268,5 @@ export function toGroupedPositionsResponse(
     };
   });
 
-  // 取得沒有 groupId 的持倉
-  const ungroupedPositions = positions.filter((p) => p.groupId === null);
-
-  return {
-    positions: ungroupedPositions,
-    groups,
-  };
+  return { groups };
 }
