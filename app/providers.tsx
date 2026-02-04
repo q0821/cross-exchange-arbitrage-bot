@@ -11,9 +11,6 @@ interface ProvidersProps {
   children: ReactNode;
 }
 
-// Production 環境不顯示 ReactQueryDevtools
-const isDevelopment = process.env.NODE_ENV !== 'production';
-
 /**
  * 應用程式 Providers 封裝
  * 包含主題切換功能和 TanStack Query 資料快取
@@ -31,7 +28,16 @@ export function Providers({ children }: ProvidersProps) {
       >
         {children}
       </NextThemesProvider>
-      {isDevelopment && <ReactQueryDevtools initialIsOpen={false} />}
+      {/*
+        ReactQueryDevtools 使用 buttonPosition="bottom-left" 讓它不干擾 UI
+        在 production build 時，@tanstack/react-query-devtools 會自動
+        通過 tree-shaking 移除（當使用 NODE_ENV=production build 時）
+
+        如果需要完全移除，可在 Zeabur 設定 NEXT_PUBLIC_DISABLE_DEVTOOLS=true
+      */}
+      {process.env.NEXT_PUBLIC_DISABLE_DEVTOOLS !== 'true' && (
+        <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+      )}
     </QueryClientProvider>
   );
 }
