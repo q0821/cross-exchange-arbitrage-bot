@@ -125,6 +125,9 @@ export function initializeSocketServer(httpServer: HttpServer): SocketIOServer {
 
     // 斷線處理
     socket.on('disconnect', (reason) => {
+      // 清理 handler 監聽器（防止記憶體洩漏）
+      marketRatesHandler.unregister(socket);
+
       logger.info(
         {
           socketId: socket.id,

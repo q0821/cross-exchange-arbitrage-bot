@@ -98,6 +98,9 @@ export class OkxFundingWs extends BaseExchangeWs {
   // 暫存標記價格，用於與資金費率合併
   private markPriceCache: Map<string, Decimal> = new Map();
 
+  /** 標記價格快取大小限制（防止記憶體無限增長） */
+  private readonly MAX_MARK_PRICE_CACHE_SIZE = 500;
+
   // 私有頻道狀態
   private isPrivateAuthenticated = false;
   private pendingOrderSubscription = false;
@@ -309,8 +312,17 @@ export class OkxFundingWs extends BaseExchangeWs {
       const symbol = fromOkxSymbol(item.instId);
       const markPrice = new Decimal(item.markPx);
 
-      // 快取標記價格
+      // LRU 快取標記價格：刪除再插入確保順序
+      this.markPriceCache.delete(symbol);
       this.markPriceCache.set(symbol, markPrice);
+
+      // LRU 淘汰：超過限制時移除最舊的項目
+      if (this.markPriceCache.size > this.MAX_MARK_PRICE_CACHE_SIZE) {
+        const firstKey = this.markPriceCache.keys().next().value;
+        if (firstKey) {
+          this.markPriceCache.delete(firstKey);
+        }
+      }
 
       // 發送 markPrice 事件，讓訂閱者知道連線是活躍的
       // 這對於 DataSourceManager 的 stale 檢測很重要
@@ -587,6 +599,16 @@ export class OkxFundingWs extends BaseExchangeWs {
    */
   clearMarkPriceCache(): void {
     this.markPriceCache.clear();
+  }
+
+  /**
+   * 取得標記價格快取統計資訊（用於監控）
+   */
+  getMarkPriceCacheStats(): { size: number; maxSize: number } {
+    return {
+      size: this.markPriceCache.size,
+      maxSize: this.MAX_MARK_PRICE_CACHE_SIZE,
+    };
   }
 
   /**

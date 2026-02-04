@@ -234,3 +234,113 @@ describe('RatesCache Cleanup', () => {
     });
   });
 });
+
+describe('RatesCache getStats 參數優化', () => {
+  let ratesCache: RatesCache;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    RatesCache.resetInstance();
+    ratesCache = RatesCache.getInstance();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    RatesCache.resetInstance();
+  });
+
+  // Helper to create mock FundingRatePair with bestPair
+  function createMockRateWithBestPair(
+    symbol: string,
+    spreadPercent = 0.01,
+    spreadAnnualized = 800
+  ): FundingRatePair {
+    return {
+      symbol,
+      spreadPercent,
+      exchanges: new Map(),
+      recordedAt: new Date(),
+      bestPair: {
+        longExchange: 'binance',
+        shortExchange: 'okx',
+        spreadPercent,
+        spreadAnnualized,
+        priceDiffPercent: 0.01,
+      },
+    };
+  }
+
+  describe('getStats with rates parameter', () => {
+    it('應該使用傳入的 rates 而不是再次呼叫 getAll()', () => {
+      // Arrange - 在快取中新增一些資料
+      ratesCache.set('BTCUSDT', createMockRateWithBestPair('BTCUSDT', 0.01, 900));
+      ratesCache.set('ETHUSDT', createMockRateWithBestPair('ETHUSDT', 0.02, 1000));
+
+      // 建立一個自訂的 rates 陣列（只有一個項目）
+      const customRates = [createMockRateWithBestPair('SOLUSDT', 0.03, 850)];
+
+      // Act - 傳入自訂 rates
+      const stats = ratesCache.getStats(customRates);
+
+      // Assert - 統計應該基於傳入的 rates，不是快取中的資料
+      expect(stats.totalSymbols).toBe(1); // 只有 SOLUSDT
+      expect(stats.opportunityCount).toBe(1); // 850% >= 800%
+    });
+
+    it('不傳入 rates 時應該呼叫 getAll()', () => {
+      // Arrange
+      ratesCache.set('BTCUSDT', createMockRateWithBestPair('BTCUSDT', 0.01, 900));
+      ratesCache.set('ETHUSDT', createMockRateWithBestPair('ETHUSDT', 0.02, 700));
+
+      // Act - 不傳入 rates
+      const stats = ratesCache.getStats();
+
+      // Assert - 應該使用快取中的資料
+      expect(stats.totalSymbols).toBe(2);
+      expect(stats.opportunityCount).toBe(1); // 只有 BTCUSDT >= 800%
+      expect(stats.approachingCount).toBe(1); // ETHUSDT 在 600%-800% 之間
+    });
+
+    it('傳入空陣列應該返回空統計', () => {
+      // Arrange - 快取中有資料
+      ratesCache.set('BTCUSDT', createMockRateWithBestPair('BTCUSDT', 0.01, 900));
+
+      // Act - 傳入空陣列
+      const stats = ratesCache.getStats([]);
+
+      // Assert
+      expect(stats.totalSymbols).toBe(0);
+      expect(stats.opportunityCount).toBe(0);
+      expect(stats.approachingCount).toBe(0);
+      expect(stats.maxSpread).toBeNull();
+    });
+
+    it('傳入 undefined 時應該 fallback 到 getAll()', () => {
+      // Arrange
+      ratesCache.set('BTCUSDT', createMockRateWithBestPair('BTCUSDT', 0.01, 900));
+
+      // Act
+      const stats = ratesCache.getStats(undefined);
+
+      // Assert
+      expect(stats.totalSymbols).toBe(1);
+    });
+  });
+
+  describe('getStats with custom threshold', () => {
+    it('應該支援同時傳入 rates 和 opportunityThreshold', () => {
+      // Arrange
+      const customRates = [
+        createMockRateWithBestPair('BTCUSDT', 0.01, 500),
+        createMockRateWithBestPair('ETHUSDT', 0.02, 400),
+      ];
+
+      // Act - 使用較低的門檻 (400%)
+      const stats = ratesCache.getStats(customRates, 400);
+
+      // Assert
+      expect(stats.opportunityCount).toBe(2); // 兩個都 >= 400%
+    });
+  });
+});

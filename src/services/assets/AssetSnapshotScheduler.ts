@@ -54,6 +54,8 @@ class AssetSnapshotScheduler {
 
   private intervalId: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
+  /** 任務執行中標誌，防止定時觸發與手動觸發重疊執行 */
+  private isJobRunning: boolean = false;
   private config: SchedulerConfig;
   private lastRunTime: Date | null = null;
   private totalSnapshots: number = 0;
@@ -183,6 +185,10 @@ class AssetSnapshotScheduler {
    * 手動觸發一次快照任務
    */
   async manualRun(): Promise<{ success: boolean; snapshotCount: number }> {
+    if (this.isJobRunning) {
+      logger.warn('Snapshot job already running, manual trigger skipped');
+      return { success: false, snapshotCount: 0 };
+    }
     logger.info('Manual snapshot job triggered');
     return this.runSnapshotJob();
   }
@@ -194,6 +200,13 @@ class AssetSnapshotScheduler {
     success: boolean;
     snapshotCount: number;
   }> {
+    // 防止重疊執行
+    if (this.isJobRunning) {
+      logger.warn('Snapshot job already running, skipping this cycle');
+      return { success: false, snapshotCount: 0 };
+    }
+
+    this.isJobRunning = true;
     const startTime = Date.now();
     let snapshotCount = 0;
 
@@ -289,6 +302,9 @@ class AssetSnapshotScheduler {
       }
 
       return { success: false, snapshotCount };
+    } finally {
+      // 確保任務標誌被重設
+      this.isJobRunning = false;
     }
   }
 

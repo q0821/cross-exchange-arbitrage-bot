@@ -16,6 +16,7 @@ import {
   resetCooldown,
   getHeapSnapshotDir,
   analyzeExistingSnapshot,
+  type HeapAnalysisReport,
 } from '@/lib/heap-snapshot';
 
 // Mock logger

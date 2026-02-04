@@ -54,10 +54,8 @@ vi.mock('../../../src/lib/db', () => ({
 /**
  * 建立 Mock Socket
  */
-type EventHandler = (...args: unknown[]) => void;
-
 function createMockSocket(id: string = 'test-socket-id'): any {
-  const eventHandlers: Map<string, EventHandler[]> = new Map();
+  const eventHandlers: Map<string, Function[]> = new Map();
 
   return {
     id,
@@ -69,13 +67,13 @@ function createMockSocket(id: string = 'test-socket-id'): any {
     emit: vi.fn(),
     join: vi.fn(),
     leave: vi.fn(),
-    on: vi.fn((event: string, handler: EventHandler) => {
+    on: vi.fn((event: string, handler: Function) => {
       if (!eventHandlers.has(event)) {
         eventHandlers.set(event, []);
       }
       eventHandlers.get(event)!.push(handler);
     }),
-    off: vi.fn((event: string, handler: EventHandler) => {
+    off: vi.fn((event: string, handler: Function) => {
       const handlers = eventHandlers.get(event);
       if (handlers) {
         const index = handlers.indexOf(handler);
@@ -288,7 +286,7 @@ describe('MarketRatesHandler - 記憶體洩漏防護', () => {
         handler.register(mockSocket);
       }
 
-      // 應該只有 3 個監聽器被註冊（第一次的）
+      // 應該只有 3 個監聯器被註冊（第一次的）
       expect(mockSocket.on).toHaveBeenCalledTimes(3);
     });
   });
