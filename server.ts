@@ -19,6 +19,7 @@ import {
   registerShutdownHandlers,
   type ShutdownServices,
 } from './src/lib/graceful-shutdown';
+import { createStatusDashboard } from './src/cli/status-dashboard';
 
 // 在啟動時執行 Prisma migration
 function runMigrations(): void {
@@ -129,6 +130,24 @@ app.prepare().then(() => {
       }
     } else {
       console.log(`> Asset snapshot scheduler disabled (set ENABLE_ASSET_SNAPSHOT=true to enable)`);
+    }
+
+    // 啟動 CLI 狀態儀表板 (Feature 071)
+    if (process.env.ENABLE_CLI_DASHBOARD !== 'false') {
+      try {
+        const dashboard = createStatusDashboard();
+        await dashboard.start();
+        console.log(`> CLI status dashboard enabled`);
+
+        // 將 dashboard 加入 shutdown 處理
+        process.on('SIGINT', () => dashboard.stop());
+        process.on('SIGTERM', () => dashboard.stop());
+      } catch (error) {
+        logger.error({ error }, 'Failed to start CLI status dashboard');
+        console.error('> Warning: CLI status dashboard failed to start');
+      }
+    } else {
+      console.log(`> CLI status dashboard disabled (set ENABLE_CLI_DASHBOARD=true to enable)`);
     }
   });
 

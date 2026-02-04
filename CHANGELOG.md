@@ -6,6 +6,48 @@
 
 ## [Unreleased]
 
+### 新功能
+
+#### Feature 071: CLI 狀態儀表板（2026-02-04）
+
+**背景**：運維人員需要在程式啟動後快速掌握系統健康狀態，包括運行時間、記憶體使用量、套利機會數量、WebSocket 連線狀態等關鍵指標。原本這些資訊分散在不同的 log 中，缺乏統一的即時監控介面。
+
+**變更內容**：
+
+1. **CLI 狀態儀表板核心功能**
+   - 系統健康狀態：運行時間、記憶體使用量、Proxy 狀態、公開 IP
+   - 業務指標：套利機會數量、監控交易對數量、交易所連接數
+   - WebSocket 連線狀態：各交易所連線狀態（已連線/已斷線/REST 模式）
+   - 錯誤統計：累計錯誤次數
+   - 每 10 秒自動刷新
+
+2. **TTY 自動偵測與優雅降級**
+   - TTY 環境：使用 ANSI 控制碼顯示互動式儀表板
+   - 非 TTY 環境（Docker/CI）：自動切換為 JSON 結構化日誌輸出
+
+3. **公開 IP 查詢工具**
+   - 使用 ipify API 查詢公開 IP
+   - 支援 5 分鐘快取和 5 秒 timeout
+   - 備用 API（icanhazip.com）支援
+
+**環境變數**：
+| 變數 | 說明 | 預設值 |
+|:-----|:-----|:-------|
+| `ENABLE_CLI_DASHBOARD` | 啟用/停用 CLI 狀態儀表板 | `true` |
+| `CLI_DASHBOARD_INTERVAL_MS` | 儀表板刷新間隔（毫秒） | `10000` |
+| `CLI_DASHBOARD_FORCE_TTY` | 強制 TTY 模式（除錯用） | `false` |
+
+**檔案變更**：
+- `src/cli/status-dashboard/`（新增）- 儀表板核心模組
+- `src/lib/public-ip.ts`（新增）- 公開 IP 查詢工具
+- `server.ts` - 整合儀表板啟動邏輯
+- `.env.example` - 新增環境變數說明
+- `tests/unit/cli/status-dashboard/`（新增）- 44 個單元測試
+
+**規格文件**：`specs/071-cli-status-dashboard/`
+
+---
+
 ### 改善
 
 #### Node.js V8 Heap 記憶體上限配置（2026-02-03）

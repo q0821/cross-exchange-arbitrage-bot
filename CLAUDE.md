@@ -6,6 +6,8 @@
 - Prisma 7.x (ORM), CCXT 4.x (多交易所抽象)
 - PostgreSQL 15+ with TimescaleDB extension
 - Vitest 4.x, Decimal.js, TanStack Query 5.x
+- TypeScript 5.8 + Node.js 20.x LTS + Pino (logger)、既有 MonitorStatsTracker、getMemoryStats()、DataSourceManager (071-cli-status-dashboard)
+- N/A（僅讀取現有資料，不持久化） (071-cli-status-dashboard)
 
 ## Key Files
 | 檔案 | 用途 |
@@ -423,3 +425,6 @@ tests/
 | `.github/workflows/ci.yml` | Lint + 型別檢查 + 單元測試 | 每次 push/PR |
 | `.github/workflows/integration.yml` | 整合測試（PostgreSQL） | push to main |
 | `.github/workflows/e2e.yml` | Playwright E2E 測試 | push to main |
+
+## Recent Changes
+- 071-cli-status-dashboard: Added TypeScript 5.8 + Node.js 20.x LTS + Pino (logger)、既有 MonitorStatsTracker、getMemoryStats()、DataSourceManager
