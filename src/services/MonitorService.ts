@@ -222,3 +222,11 @@ export async function stopMonitorService(): Promise<void> {
 export function getMonitorInstance(): FundingRateMonitor | null {
   return monitorInstance;
 }
+
+/**
+ * 獲取套利機會追蹤器實例
+ * Feature 065: 提供給外部模組（如 CLI Dashboard）存取追蹤器
+ */
+export function getTrackerInstance(): ArbitrageOpportunityTracker | null {
+  return trackerInstance;
+}

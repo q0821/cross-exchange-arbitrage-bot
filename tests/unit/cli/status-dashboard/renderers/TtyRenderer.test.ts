@@ -131,6 +131,53 @@ describe('TtyRenderer', () => {
     });
   });
 
+  describe('業務指標區塊', () => {
+    it('business 為 null 時應顯示載入中', () => {
+      const renderer = new TtyRenderer();
+      const state = createMockState({ business: null });
+
+      renderer.render(state);
+
+      expect(writtenOutput).toContain('載入中');
+    });
+
+    it('應該正確顯示最高 APY', () => {
+      const renderer = new TtyRenderer();
+      const state = createMockState({
+        business: {
+          activeOpportunities: 5,
+          topAPY: 1234.56,
+          monitoredSymbols: 100,
+          connectedExchanges: 5,
+          exchangeList: ['Binance', 'OKX'],
+        },
+      });
+
+      renderer.render(state);
+
+      expect(writtenOutput).toContain('最高 APY');
+      expect(writtenOutput).toContain('1234.56%');
+    });
+
+    it('topAPY 為 null 時應顯示 --', () => {
+      const renderer = new TtyRenderer();
+      const state = createMockState({
+        business: {
+          activeOpportunities: 0,
+          topAPY: null,
+          monitoredSymbols: 100,
+          connectedExchanges: 5,
+          exchangeList: ['Binance', 'OKX'],
+        },
+      });
+
+      renderer.render(state);
+
+      expect(writtenOutput).toContain('最高 APY');
+      expect(writtenOutput).toContain('--');
+    });
+  });
+
   describe('cleanup()', () => {
     it('應該輸出清屏', () => {
       const renderer = new TtyRenderer();

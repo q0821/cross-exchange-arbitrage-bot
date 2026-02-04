@@ -290,6 +290,83 @@ describe('ArbitrageOpportunityTracker', () => {
     });
   });
 
+  describe('getTopAPY()', () => {
+    it('無活躍機會時應該回傳 null', () => {
+      expect(tracker.getTopAPY()).toBeNull();
+    });
+
+    it('應該回傳最高的 APY', async () => {
+      // 建立一個機會
+      await tracker.handleRateUpdated(createPair(850));
+      expect(tracker.getTopAPY()).toBe(850);
+    });
+
+    it('多個機會時應該回傳最高值', async () => {
+      // 建立第一個機會 (BTCUSDT)
+      await tracker.handleRateUpdated(createPair(850));
+
+      // 建立第二個機會 (不同的 symbol)
+      const secondPair: FundingRatePair = {
+        symbol: 'ETHUSDT',
+        recordedAt: new Date(),
+        exchanges: new Map([
+          ['binance', { rate: {} as any, originalFundingInterval: 8 }],
+          ['gateio', { rate: {} as any, originalFundingInterval: 8 }],
+        ]),
+        bestPair: {
+          longExchange: 'binance',
+          shortExchange: 'gateio',
+          spreadPercent: 0.02,
+          spreadAnnualized: 1200, // 更高的 APY
+          priceDiffPercent: 0.1,
+        },
+      } as any;
+
+      await tracker.handleRateUpdated(secondPair);
+
+      expect(tracker.getActiveOpportunitiesCount()).toBe(2);
+      expect(tracker.getTopAPY()).toBe(1200);
+    });
+
+    it('機會結束後應該更新最高值', async () => {
+      // 建立兩個機會
+      await tracker.handleRateUpdated(createPair(850)); // BTCUSDT 850%
+
+      const secondPair: FundingRatePair = {
+        symbol: 'ETHUSDT',
+        recordedAt: new Date(),
+        exchanges: new Map([
+          ['binance', { rate: {} as any, originalFundingInterval: 8 }],
+          ['gateio', { rate: {} as any, originalFundingInterval: 8 }],
+        ]),
+        bestPair: {
+          longExchange: 'binance',
+          shortExchange: 'gateio',
+          spreadPercent: 0.02,
+          spreadAnnualized: 1200,
+          priceDiffPercent: 0.1,
+        },
+      } as any;
+      await tracker.handleRateUpdated(secondPair);
+
+      expect(tracker.getTopAPY()).toBe(1200);
+
+      // 結束高 APY 的機會（ETHUSDT APY 降到負值）
+      const endPair: FundingRatePair = {
+        ...secondPair,
+        bestPair: {
+          ...secondPair.bestPair!,
+          spreadAnnualized: -10, // 負值會結束機會
+        },
+      };
+      await tracker.handleRateUpdated(endPair);
+
+      // 現在只剩 BTCUSDT
+      expect(tracker.getActiveOpportunitiesCount()).toBe(1);
+      expect(tracker.getTopAPY()).toBe(850);
+    });
+  });
+
   describe('detach()', () => {
     it('應該正確解除 rate-updated 事件綁定', () => {
       tracker.attach(mockMonitor);

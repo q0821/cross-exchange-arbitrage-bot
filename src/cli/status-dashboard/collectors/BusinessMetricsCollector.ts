@@ -1,11 +1,11 @@
 /**
  * BusinessMetricsCollector - 業務指標收集器
  *
- * @description 收集套利機會數量、監控交易對數量、交易所連接數
+ * @description 收集套利機會數量、最高 APY、監控交易對數量、交易所連接數
  * @feature 071-cli-status-dashboard
  */
 
-import { getMonitorInstance } from '@/services/MonitorService';
+import { getMonitorInstance, getTrackerInstance } from '@/services/MonitorService';
 import { ACTIVE_EXCHANGES, EXCHANGE_CONFIGS } from '@/lib/exchanges/constants';
 import type { IStatusCollector, BusinessMetrics } from '../types';
 
@@ -14,14 +14,16 @@ export class BusinessMetricsCollector implements IStatusCollector<BusinessMetric
    * 收集業務指標
    */
   async collect(): Promise<BusinessMetrics> {
-    const [opportunities, symbols, exchanges] = await Promise.all([
+    const [opportunities, topAPY, symbols, exchanges] = await Promise.all([
       this.collectOpportunities(),
+      this.collectTopAPY(),
       this.collectMonitoredSymbols(),
       this.collectExchanges(),
     ]);
 
     return {
       activeOpportunities: opportunities,
+      topAPY,
       monitoredSymbols: symbols,
       connectedExchanges: exchanges.count,
       exchangeList: exchanges.list,
@@ -46,6 +48,19 @@ export class BusinessMetricsCollector implements IStatusCollector<BusinessMetric
       return stats.activeOpportunities ?? 0;
     } catch {
       return 0;
+    }
+  }
+
+  /**
+   * 收集最高年化報酬率
+   */
+  private collectTopAPY(): number | null {
+    try {
+      const tracker = getTrackerInstance();
+      if (!tracker) return null;
+      return tracker.getTopAPY();
+    } catch {
+      return null;
     }
   }
 

@@ -33,6 +33,8 @@ export interface SystemStatus {
 export interface BusinessMetrics {
   /** 當前活躍套利機會數量 */
   activeOpportunities: number;
+  /** 最高年化報酬率（%），null 表示無活躍機會 */
+  topAPY: number | null;
   /** 監控中的交易對數量 */
   monitoredSymbols: number;
   /** 已連接的交易所數量 */

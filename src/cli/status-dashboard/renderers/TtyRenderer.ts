@@ -164,9 +164,17 @@ export class TtyRenderer implements IDashboardRenderer {
     // 統一標籤寬度為 12（中文字元計為 2，"監控交易對:" 為 11 寬度）
     const LABEL_WIDTH = 12;
 
+    // 格式化最高 APY
+    const topAPYDisplay = business.topAPY !== null
+      ? `${ANSI.GREEN}${business.topAPY.toFixed(2)}%${ANSI.RESET}`
+      : `${ANSI.DIM}--${ANSI.RESET}`;
+
     return [
       this.renderLine(
         `  ${BOX.BRANCH} ${this.padRight('套利機會:', LABEL_WIDTH)} ${ANSI.GREEN}${business.activeOpportunities}${ANSI.RESET} 個`
+      ),
+      this.renderLine(
+        `  ${BOX.BRANCH} ${this.padRight('最高 APY:', LABEL_WIDTH)} ${topAPYDisplay}`
       ),
       this.renderLine(
         `  ${BOX.BRANCH} ${this.padRight('監控交易對:', LABEL_WIDTH)} ${ANSI.CYAN}${business.monitoredSymbols}${ANSI.RESET} 組`
