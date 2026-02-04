@@ -28,6 +28,17 @@ export { ConnectionStatusCollector } from './collectors/ConnectionStatusCollecto
 export { ErrorStatsCollector } from './collectors/ErrorStatsCollector';
 
 /**
+ * 偵測是否為終端機環境
+ *
+ * 當使用 pipe 時（如 `cmd | pino-pretty`），stdout 會被重定向，
+ * 但 stderr 和 stdin 通常仍連接到終端機。
+ * 因此檢查這三者任一為 TTY 就視為終端機環境。
+ */
+export function detectTty(): boolean {
+  return !!(process.stdout.isTTY || process.stderr.isTTY || process.stdin.isTTY);
+}
+
+/**
  * 根據環境選擇渲染器
  *
  * @param config 儀表板配置
@@ -39,10 +50,8 @@ export function selectRenderer(config: DashboardConfig): IDashboardRenderer {
     return new TtyRenderer();
   }
 
-  // 自動偵測 TTY
-  const isTty = process.stdout.isTTY ?? false;
-
-  if (isTty) {
+  // 自動偵測 TTY（檢查 stdout, stderr, stdin 任一為 TTY）
+  if (detectTty()) {
     return new TtyRenderer();
   }
 
