@@ -27,6 +27,7 @@ interface DashboardLogPayload {
   };
   publicIp: string | null;
   opportunities: number;
+  topAPY: number | null;
   symbols: number;
   exchanges: number;
   wsStatus: {
@@ -68,6 +69,7 @@ export class LogRenderer implements IDashboardRenderer {
       proxy: this.getProxy(state.system),
       publicIp: state.system?.publicIp ?? null,
       opportunities: state.business?.activeOpportunities ?? 0,
+      topAPY: state.business?.topAPY ?? null,
       symbols: state.business?.monitoredSymbols ?? 0,
       exchanges: state.business?.connectedExchanges ?? 0,
       wsStatus: this.getWsStatus(state.connection),

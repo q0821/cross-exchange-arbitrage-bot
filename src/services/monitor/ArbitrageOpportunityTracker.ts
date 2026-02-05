@@ -393,6 +393,25 @@ export class ArbitrageOpportunityTracker implements Monitorable {
   }
 
   /**
+   * 取得目前活躍機會中的最高年化報酬率
+   * @returns 最高 APY（百分比），若無活躍機會則回傳 null
+   */
+  getTopAPY(): number | null {
+    if (this.activeOpportunities.size === 0) {
+      return null;
+    }
+
+    let maxAPY = -Infinity;
+    for (const opportunity of this.activeOpportunities.values()) {
+      if (opportunity.lastAPY > maxAPY) {
+        maxAPY = opportunity.lastAPY;
+      }
+    }
+
+    return maxAPY === -Infinity ? null : maxAPY;
+  }
+
+  /**
    * 取得資料結構統計資訊
    * Feature: 066-memory-monitoring
    */

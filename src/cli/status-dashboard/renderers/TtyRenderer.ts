@@ -46,6 +46,16 @@ const DASHBOARD_WIDTH = 64;
 
 export class TtyRenderer implements IDashboardRenderer {
   /**
+   * 取得輸出目標
+   *
+   * 優先使用 stderr，因為當 stdout 被 pipe 時（如 `| pino-pretty`），
+   * stderr 仍然連接到終端機，可以正確顯示 ANSI 控制碼。
+   */
+  private get output(): NodeJS.WriteStream {
+    return process.stderr.isTTY ? process.stderr : process.stdout;
+  }
+
+  /**
    * 渲染儀表板
    */
   render(state: DashboardState): void {
@@ -85,14 +95,14 @@ export class TtyRenderer implements IDashboardRenderer {
     );
     lines.push(this.renderBottomBorder());
 
-    process.stdout.write(lines.join('\n') + '\n');
+    this.output.write(lines.join('\n') + '\n');
   }
 
   /**
    * 清理（清屏）
    */
   cleanup(): void {
-    process.stdout.write(ANSI.CLEAR_SCREEN + ANSI.MOVE_CURSOR_HOME);
+    this.output.write(ANSI.CLEAR_SCREEN + ANSI.MOVE_CURSOR_HOME);
   }
 
   // === 私有方法：渲染區塊 ===
@@ -154,9 +164,17 @@ export class TtyRenderer implements IDashboardRenderer {
     // 統一標籤寬度為 12（中文字元計為 2，"監控交易對:" 為 11 寬度）
     const LABEL_WIDTH = 12;
 
+    // 格式化最高 APY
+    const topAPYDisplay = business.topAPY !== null
+      ? `${ANSI.GREEN}${business.topAPY.toFixed(2)}%${ANSI.RESET}`
+      : `${ANSI.DIM}--${ANSI.RESET}`;
+
     return [
       this.renderLine(
         `  ${BOX.BRANCH} ${this.padRight('套利機會:', LABEL_WIDTH)} ${ANSI.GREEN}${business.activeOpportunities}${ANSI.RESET} 個`
+      ),
+      this.renderLine(
+        `  ${BOX.BRANCH} ${this.padRight('最高 APY:', LABEL_WIDTH)} ${topAPYDisplay}`
       ),
       this.renderLine(
         `  ${BOX.BRANCH} ${this.padRight('監控交易對:', LABEL_WIDTH)} ${ANSI.CYAN}${business.monitoredSymbols}${ANSI.RESET} 組`

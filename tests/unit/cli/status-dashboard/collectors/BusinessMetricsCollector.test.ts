@@ -11,6 +11,7 @@ import { BusinessMetricsCollector } from '@/cli/status-dashboard/collectors/Busi
 // Mock 依賴
 vi.mock('@/services/MonitorService', () => ({
   getMonitorInstance: vi.fn(),
+  getTrackerInstance: vi.fn(),
 }));
 
 vi.mock('@/lib/exchanges/constants', () => ({
@@ -24,12 +25,15 @@ vi.mock('@/lib/exchanges/constants', () => ({
   },
 }));
 
-import { getMonitorInstance } from '@/services/MonitorService';
+import { getMonitorInstance, getTrackerInstance } from '@/services/MonitorService';
 
 describe('BusinessMetricsCollector', () => {
   let mockMonitor: {
     getStats: ReturnType<typeof vi.fn>;
     getStatus: ReturnType<typeof vi.fn>;
+  };
+  let mockTracker: {
+    getTopAPY: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -50,6 +54,14 @@ describe('BusinessMetricsCollector', () => {
     vi.mocked(getMonitorInstance).mockReturnValue(
       mockMonitor as unknown as ReturnType<typeof getMonitorInstance>
     );
+
+    // 設定 getTrackerInstance mock
+    mockTracker = {
+      getTopAPY: vi.fn().mockReturnValue(1250.5),
+    };
+    vi.mocked(getTrackerInstance).mockReturnValue(
+      mockTracker as unknown as ReturnType<typeof getTrackerInstance>
+    );
   });
 
   describe('collect()', () => {
@@ -60,6 +72,7 @@ describe('BusinessMetricsCollector', () => {
       expect(result).not.toBeNull();
       expect(result).toMatchObject({
         activeOpportunities: 12,
+        topAPY: 1250.5,
         monitoredSymbols: 3,
         connectedExchanges: 5,
         exchangeList: ['Binance', 'OKX', 'Gate.io', 'BingX', 'MEXC'],
@@ -68,11 +81,13 @@ describe('BusinessMetricsCollector', () => {
 
     it('監控服務未初始化時應使用預設值', async () => {
       vi.mocked(getMonitorInstance).mockReturnValue(null);
+      vi.mocked(getTrackerInstance).mockReturnValue(null);
 
       const collector = new BusinessMetricsCollector();
       const result = await collector.collect();
 
       expect(result?.activeOpportunities).toBe(0);
+      expect(result?.topAPY).toBeNull();
       expect(result?.monitoredSymbols).toBe(0);
     });
 
@@ -81,6 +96,15 @@ describe('BusinessMetricsCollector', () => {
       const result = await collector.collect();
 
       expect(result?.connectedExchanges).toBe(5);
+    });
+
+    it('無活躍機會時 topAPY 應為 null', async () => {
+      mockTracker.getTopAPY.mockReturnValue(null);
+
+      const collector = new BusinessMetricsCollector();
+      const result = await collector.collect();
+
+      expect(result?.topAPY).toBeNull();
     });
   });
 

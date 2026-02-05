@@ -187,7 +187,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       longTakeProfitPrice: position.longTakeProfitPrice ? Number(position.longTakeProfitPrice) : null,
       shortTakeProfitPrice: position.shortTakeProfitPrice ? Number(position.shortTakeProfitPrice) : null,
       // 分單開倉組別 (Feature 069)
-      groupId: position.groupId,
+      groupId: position.groupId ?? position.id,
     };
 
     const response: OpenPositionResponse = {
