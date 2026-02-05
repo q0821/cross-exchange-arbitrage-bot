@@ -9,17 +9,25 @@
  * - 記憶體日誌分流到 logs/memory/YYYY-MM-DD.log
  * - Delta 變化量追蹤（識別潛在洩漏）
  * - EventEmitter listener 數量追蹤
+ *
+ * Feature: memory-usage-improvement
+ * - Heap 增長超過閾值時自動抓取並分析 heap snapshot
  */
 
 import { logger } from './logger';
 import { memoryLogger } from './memory-logger';
-import { DataStructureRegistry } from './data-structure-registry';
+import { DataStructureRegistry, initializeSingletonGetters } from './data-structure-registry';
 import {
   memoryDeltaTracker,
   MemoryDeltaTracker,
   type StatsSnapshot,
   type TopGrower,
 } from './memory-delta-tracker';
+import {
+  captureAndAnalyzeHeap,
+  isHeapSnapshotEnabled,
+  getHeapSnapshotThresholdMB,
+} from './heap-snapshot';
 import type { DataStructureStats } from '@/types/memory-stats';
 
 /**
@@ -238,18 +246,50 @@ function logMemoryUsage(): void {
       );
     }
   }
+
+  // Feature: memory-usage-improvement
+  // 當 heap 增長超過閾值時抓取並分析 heap snapshot
+  // 可透過環境變數控制：
+  //   ENABLE_HEAP_SNAPSHOT=true 啟用（預設關閉，避免影響 production 效能）
+  //   HEAP_SNAPSHOT_THRESHOLD_MB=100 設定觸發閾值（MB）
+  if (isHeapSnapshotEnabled()) {
+    const thresholdMB = getHeapSnapshotThresholdMB();
+    if (deltaResult.heapDelta > thresholdMB && !deltaResult.isFirstSnapshot) {
+      // 使用 async/await 處理（不阻塞主執行緒）
+      captureAndAnalyzeHeap(`growth-${Math.round(deltaResult.heapDelta)}MB`)
+        .then((report) => {
+          if (report) {
+            logger.warn(
+              {
+                heapDeltaMB: deltaResult.heapDelta,
+                thresholdMB,
+                snapshotFile: report.filepath,
+                topTypes: report.topTypes.slice(0, 5),
+              },
+              'Heap growth exceeded threshold - snapshot captured'
+            );
+          }
+        })
+        .catch((error) => {
+          logger.error({ error }, 'Failed to capture heap snapshot');
+        });
+    }
+  }
 }
 
 /**
  * 啟動記憶體監控
  *
- * @param intervalMs - 記錄間隔（毫秒），預設 60000 (1 分鐘)
+ * @param intervalMs - 記錄間隔（毫秒），預設 300000 (5 分鐘)
  */
-export function startMemoryMonitor(intervalMs = 60000): void {
+export function startMemoryMonitor(intervalMs = 300000): void {
   if (intervalId) {
     logger.warn('Memory monitor already running');
     return;
   }
+
+  // 初始化 singleton getters（確保所有服務都能被監控）
+  initializeSingletonGetters();
 
   startTime = new Date();
   peakHeapUsed = 0;

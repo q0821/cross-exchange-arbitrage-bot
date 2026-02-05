@@ -6,7 +6,6 @@
 - Prisma 7.x (ORM), CCXT 4.x (多交易所抽象)
 - PostgreSQL 15+ with TimescaleDB extension
 - Vitest 4.x, Decimal.js, TanStack Query 5.x
-- TypeScript 5.8+ / Node.js 20.x LTS + Prisma 7.x, Next.js 15, React 19, CCXT 4.x (070-unified-groupid)
 
 ## Key Files
 | 檔案 | 用途 |
@@ -192,6 +191,162 @@ DELETE FROM _prisma_migrations WHERE migration_name = '<orphan>';
 
 ---
 
+## 記憶體洩漏排查與修復經驗
+
+### 背景
+
+運行 3 小時後，Heap 從 750 MB 穩定增長到 1.2 GB，峰值達 2 GB。透過 Heap Snapshot 分析發現 string/array/object 物件持續大量創建。
+
+### 排查工具
+
+1. **記憶體監控日誌**：`logs/memory/YYYY-MM-DD.log`
+2. **Heap Snapshot 分析**：`pnpm tsx scripts/diagnostics/analyze-heap.ts <snapshot-file>`
+3. **資料結構統計**：查看 `DataStructureRegistry` 中各服務的 sizes 和 listeners
+
+### 常見記憶體洩漏模式
+
+#### 1. 高頻物件重建（P0 優先級）
+
+**問題**：每 N 秒全量重建物件，即使資料未變更
+```typescript
+// ❌ 錯誤：每次都重建所有物件
+private formatRates(rates: any[]): any[] {
+  return rates.map(rate => ({ ...格式化邏輯 }));
+}
+```
+
+**解法**：差異快取，只在資料變更時重建
+```typescript
+// ✅ 正確：使用 hash 比對，快取未變更的物件
+private lastFormattedRates: Map<string, FormattedRate> = new Map();
+private lastRatesHash: Map<string, string> = new Map();
+
+private formatRates(rates: any[]): FormattedRate[] {
+  for (const rate of rates) {
+    const hash = this.computeRateHash(rate);
+    if (hash === this.lastRatesHash.get(rate.symbol)) {
+      result.push(this.lastFormattedRates.get(rate.symbol)!);
+      continue;
+    }
+    // 只有變更時才重建
+    const formatted = this.buildFormattedRate(rate);
+    this.lastFormattedRates.set(rate.symbol, formatted);
+    this.lastRatesHash.set(rate.symbol, hash);
+    result.push(formatted);
+  }
+  return result;
+}
+```
+
+#### 2. 重複呼叫相同方法（P1 優先級）
+
+**問題**：同一週期內多次呼叫 `getAll()` 等方法
+```typescript
+// ❌ 錯誤：getAll() 被呼叫兩次
+const rates = ratesCache.getAll();
+const stats = ratesCache.getStats(); // 內部又呼叫 getAll()
+```
+
+**解法**：參數化方法，允許傳入已有資料
+```typescript
+// ✅ 正確：傳入 rates 避免重複呼叫
+const rates = ratesCache.getAll();
+const stats = ratesCache.getStats(rates);
+```
+
+#### 3. 無限增長的快取（P1 優先級）
+
+**問題**：快取只增不減，沒有大小限制
+```typescript
+// ❌ 錯誤：無限增長
+this.markPriceCache.set(symbol, markPrice);
+```
+
+**解法**：實作 LRU 淘汰機制
+```typescript
+// ✅ 正確：LRU 快取（利用 Map 的插入順序）
+private readonly MAX_CACHE_SIZE = 500;
+
+// 刪除再插入確保順序（LRU）
+this.markPriceCache.delete(symbol);
+this.markPriceCache.set(symbol, markPrice);
+
+// 超過限制時淘汰最舊項目
+if (this.markPriceCache.size > this.MAX_CACHE_SIZE) {
+  const firstKey = this.markPriceCache.keys().next().value;
+  if (firstKey) this.markPriceCache.delete(firstKey);
+}
+```
+
+#### 4. Event Listener 累積
+
+**問題**：重複註冊監聽器未正確清理
+```typescript
+// ❌ 錯誤：每次連線都註冊新監聽器
+socket.on('event', handler);
+```
+
+**解法**：追蹤已註冊狀態，斷線時清理
+```typescript
+// ✅ 正確：使用 WeakSet 追蹤，防止重複註冊
+private registeredSockets: WeakSet<Socket> = new WeakSet();
+private socketListeners: WeakMap<Socket, SocketListeners> = new WeakMap();
+
+register(socket: Socket): void {
+  if (this.registeredSockets.has(socket)) return; // 防止重複
+  // ...註冊監聯器
+  this.registeredSockets.add(socket);
+  this.socketListeners.set(socket, { ...handlers });
+}
+
+unregister(socket: Socket): void {
+  const listeners = this.socketListeners.get(socket);
+  if (!listeners) return;
+  socket.off('event', listeners.handler); // 清理
+  this.socketListeners.delete(socket);
+  this.registeredSockets.delete(socket);
+}
+```
+
+### 記憶體監控環境變數
+
+| 環境變數 | 預設值 | 說明 |
+|:---------|:-------|:-----|
+| `ENABLE_MEMORY_MONITOR` | `true` | 是否啟用記憶體監控 |
+| `MEMORY_MONITOR_INTERVAL_MS` | `300000` | 監控間隔（5 分鐘） |
+| `ENABLE_HEAP_SNAPSHOT` | `false` | 是否啟用 heap snapshot（效能影響大） |
+| `HEAP_SNAPSHOT_THRESHOLD_MB` | `100` | Heap 增長閾值才觸發 snapshot |
+
+### 診斷指令
+
+```bash
+# 查看最新記憶體快照
+tail -1 logs/memory/$(date +%Y-%m-%d).log | jq .
+
+# 查看 Heap 趨勢（應該穩定，不持續增長）
+cat logs/memory/$(date +%Y-%m-%d).log | jq -r '.heap.used' | tail -20
+
+# 查看 Event Listeners 數量（應該穩定）
+cat logs/memory/$(date +%Y-%m-%d).log | jq -r '.summary.totalEventListeners' | uniq
+
+# 查看增長最快的資料結構
+tail -1 logs/memory/$(date +%Y-%m-%d).log | jq '.summary.topGrowers'
+
+# 臨時啟用 heap snapshot 進行深度分析
+ENABLE_HEAP_SNAPSHOT=true MEMORY_MONITOR_INTERVAL_MS=60000 pnpm dev
+```
+
+### 關鍵檔案
+
+| 檔案 | 用途 |
+|:-----|:-----|
+| `src/lib/memory-monitor.ts` | 記憶體監控核心 |
+| `src/lib/heap-snapshot.ts` | Heap snapshot 抓取與分析 |
+| `src/lib/data-structure-registry.ts` | 資料結構註冊與統計 |
+| `docs/logging-and-memory-monitoring.md` | 完整文檔 |
+
+---
+
 ## Feature 參考
 
 ### Feature 033: Manual Open Position
@@ -281,4 +436,5 @@ tests/
 | `.github/workflows/e2e.yml` | Playwright E2E 測試 | push to main |
 
 ## Recent Changes
-- 070-unified-groupid: Added TypeScript 5.8+ / Node.js 20.x LTS + Prisma 7.x, Next.js 15, React 19, CCXT 4.x
+- 071-cli-status-dashboard: Added CLI status dashboard
+- 070-unified-groupid: Added unified groupId for position management

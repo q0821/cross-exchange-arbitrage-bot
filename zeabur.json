@@ -1,0 +1,8 @@
+{
+  "$schema": "https://zeabur.com/schemas/zeabur.json",
+  "build_command": "pnpm build",
+  "start_command": "pnpm start",
+  "env": {
+    "NODE_OPTIONS": "--max-old-space-size=4096"
+  }
+}

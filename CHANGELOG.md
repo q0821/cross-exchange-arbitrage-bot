@@ -6,7 +6,90 @@
 
 ## [Unreleased]
 
+### 新功能
+
+#### Feature 071: CLI 狀態儀表板（2026-02-04）
+
+**背景**：運維人員需要在程式啟動後快速掌握系統健康狀態，包括運行時間、記憶體使用量、套利機會數量、WebSocket 連線狀態等關鍵指標。原本這些資訊分散在不同的 log 中，缺乏統一的即時監控介面。
+
+**變更內容**：
+
+1. **CLI 狀態儀表板核心功能**
+   - 系統健康狀態：運行時間、記憶體使用量、Proxy 狀態、公開 IP
+   - 業務指標：套利機會數量、監控交易對數量、交易所連接數
+   - WebSocket 連線狀態：各交易所連線狀態（已連線/已斷線/REST 模式）
+   - 錯誤統計：累計錯誤次數
+   - 每 10 秒自動刷新
+
+2. **TTY 自動偵測與優雅降級**
+   - TTY 環境：使用 ANSI 控制碼顯示互動式儀表板
+   - 非 TTY 環境（Docker/CI）：自動切換為 JSON 結構化日誌輸出
+
+3. **公開 IP 查詢工具**
+   - 使用 ipify API 查詢公開 IP
+   - 支援 5 分鐘快取和 5 秒 timeout
+   - 備用 API（icanhazip.com）支援
+
+**環境變數**：
+| 變數 | 說明 | 預設值 |
+|:-----|:-----|:-------|
+| `ENABLE_CLI_DASHBOARD` | 啟用/停用 CLI 狀態儀表板 | `true` |
+| `CLI_DASHBOARD_INTERVAL_MS` | 儀表板刷新間隔（毫秒） | `10000` |
+| `CLI_DASHBOARD_FORCE_TTY` | 強制 TTY 模式（除錯用） | `false` |
+
+**檔案變更**：
+- `src/cli/status-dashboard/`（新增）- 儀表板核心模組
+- `src/lib/public-ip.ts`（新增）- 公開 IP 查詢工具
+- `server.ts` - 整合儀表板啟動邏輯
+- `.env.example` - 新增環境變數說明
+- `tests/unit/cli/status-dashboard/`（新增）- 44 個單元測試
+
+**規格文件**：`specs/071-cli-status-dashboard/`
+
+---
+
 ### 改善
+
+#### Node.js V8 Heap 記憶體上限配置（2026-02-03）
+
+**背景**：Node.js 預設 heap 上限約 2-4 GB，隨著交易所和交易對數量增加，可能會遇到記憶體不足的問題。為了支援未來擴展（10+ 交易所、5000+ 交易對），需要明確設定記憶體上限。
+
+**變更內容**：
+
+1. **新增 Zeabur 部署配置**
+   - 新增 `zeabur.json` 配置檔，設定 `--max-old-space-size=4096`
+   - 統一 build/start 命令和環境變數
+
+2. **更新啟動腳本**
+   - `package.json` start script 加入 `--max-old-space-size=4096`
+   - 確保本地和生產環境使用相同的記憶體配置
+
+3. **啟動時顯示 Heap 上限**
+   - `server.ts` 啟動時記錄 V8 heap limit
+   - 方便驗證記憶體配置是否生效
+
+4. **環境變數文件更新**
+   - `.env.example` 新增 `NODE_OPTIONS` 說明
+
+**環境變數**：
+| 變數 | 說明 | 預設值 |
+|:-----|:-----|:-------|
+| `NODE_OPTIONS` | Node.js 啟動參數 | `--max-old-space-size=4096` |
+
+**檔案變更**：
+- `zeabur.json`（新增）
+- `package.json`
+- `server.ts`
+- `.env.example`
+
+**擴展性評估**：
+| 規模 | 交易所數 | 交易對數 | 預估記憶體 |
+|:-----|:---------|:---------|:-----------|
+| 目前 | 5 | ~1000 | 500 MB - 1 GB |
+| 中期 | 10 | ~5000 | 1-2 GB |
+| 大型 | 20+ | ~10000 | 需水平分割 |
+
+---
 
 #### 交易對更新腳本改用 24hr Volume + 定時自動更新（2026-01-26）
 
@@ -57,6 +140,119 @@
 ---
 
 ### 效能優化
+
+#### 記憶體使用優化（2026-02-01）
+
+**問題**：運行 3 小時後，Heap 從 750 MB 穩定增長到 1.2 GB，峰值達 2 GB。Heap Snapshot 分析顯示 string/array/object 物件持續大量創建。
+
+**根因分析**：
+| 優先級 | 問題 | 影響 |
+|:------:|:-----|:-----|
+| P0 | `formatRates()` 每 2 秒全量重建物件 | ~126 萬物件/小時 |
+| P1 | `getStats()` 內部重複呼叫 `getAll()` | ~3.6 萬物件/小時 |
+| P1 | OKX `markPriceCache` 無大小限制 | 持續增長 |
+
+**修復內容**：
+
+1. **formatRates 差異快取**（`MarketRatesHandler.ts`）
+   - 新增 `lastFormattedRates` 和 `lastRatesHash` 快取
+   - 使用 hash 比對，只在資料變更時重建物件
+   - 預期節省 ~70% 物件創建
+
+2. **getStats 參數優化**（`RatesCache.ts`）
+   - `getStats()` 接受可選的 `rates` 參數
+   - 避免同一週期內重複呼叫 `getAll()`
+   - 預期節省 50% 陣列遍歷
+
+3. **OKX markPriceCache LRU 限制**（`OkxFundingWs.ts`）
+   - 新增 `MAX_MARK_PRICE_CACHE_SIZE = 500` 限制
+   - 實作 LRU 淘汰機制，防止無限增長
+
+4. **記憶體監控環境變數控制**
+   - `ENABLE_MEMORY_MONITOR`：是否啟用監控（預設 true）
+   - `MEMORY_MONITOR_INTERVAL_MS`：監控間隔（預設 5 分鐘）
+   - `ENABLE_HEAP_SNAPSHOT`：是否啟用 heap snapshot（預設 false）
+   - `HEAP_SNAPSHOT_THRESHOLD_MB`：觸發閾值（預設 100MB）
+
+**修改檔案**：
+- `src/websocket/handlers/MarketRatesHandler.ts`
+- `src/services/monitor/RatesCache.ts`
+- `src/services/websocket/OkxFundingWs.ts`
+- `src/lib/memory-monitor.ts`
+- `src/lib/heap-snapshot.ts`
+- `src/services/MonitorService.ts`
+
+**驗證結果**：11.5 小時運行後 Heap 穩定在 340-390 MB，無持續增長。
+
+---
+
+#### 記憶體優化：Validated Coalescing 模式（2026-02-02）
+
+**背景**：根據 Heap Snapshot 分析，記憶體主要消耗在高頻物件創建。資金費率和價格數據的時序不重要，只需要最新一筆資料。
+
+**優化內容**：
+
+1. **FundingRateStore 簡化**（`src/models/FundingRate.ts`）
+   - 從保留 100 筆歷史改為只保留最新一筆
+   - 使用 timestamp 驗證（Validated Coalescing）：只有較新資料才覆蓋
+   - 預計節省 ~90% 的 FundingRateRecord 物件（約 22,500 個）
+
+2. **新增 CoalescingQueue 工具類**（`src/lib/coalescing-queue.ts`）
+   - 合併佇列：只保留每個 key 的最新值
+   - 支援批量入隊、去抖動、異步處理
+   - 適用於高頻 WebSocket 訊息合併場景
+
+3. **MarketRatesHandler 差異廣播**（`src/websocket/handlers/MarketRatesHandler.ts`）
+   - 新增整體數據 hash 比對機制
+   - rates:update 和 rates:stats 獨立判斷是否需要廣播
+   - 數據沒變則跳過，減少 50-70% 的無效 JSON 序列化
+
+4. **RatesCache 定期清理機制**（`src/services/monitor/RatesCache.ts`）
+   - 新增 `startCleanup()` / `stopCleanup()` 方法
+   - 每 60 秒主動清理過期項目
+   - `markStart()` 時自動啟動清理
+
+**修改檔案**：
+- `src/models/FundingRate.ts`
+- `src/lib/coalescing-queue.ts`（新增）
+- `src/websocket/handlers/MarketRatesHandler.ts`
+- `src/services/monitor/RatesCache.ts`
+- `tests/unit/lib/coalescing-queue.test.ts`（新增，14 個測試案例）
+
+---
+
+#### 共享 ProxyAgent 與資源清理優化（2026-02-02）
+
+**問題**：每個 UserConnector 都創建獨立的 ProxyAgent 實例，AssetSnapshot 執行時會累積大量實例導致記憶體洩漏。
+
+**優化內容**：
+
+1. **共享 ProxyAgent 單例**（`src/lib/shared-proxy-agent.ts`）
+   - 新增 `getSharedProxyAgent()` 取得共享實例
+   - 新增 `closeSharedProxyAgent()` 釋放連接池資源
+   - 避免每個 Connector 創建獨立的 ProxyAgent
+
+2. **UserConnectorFactory 優化**（`src/services/assets/UserConnectorFactory.ts`）
+   - Binance/Gate.io Connector 改用共享 ProxyAgent
+   - 各 Connector 的 `disconnect()` 新增 `exchange.close()` 關閉 CCXT 連線池
+   - 減少連線資源洩漏
+
+3. **AssetSnapshotScheduler 防止重疊執行**（`src/services/assets/AssetSnapshotScheduler.ts`）
+   - 新增 `isJobRunning` 標誌
+   - 定時觸發與手動觸發不會重疊執行
+
+4. **graceful-shutdown 整合**（`src/lib/graceful-shutdown.ts`）
+   - 新增關閉共享 ProxyAgent 步驟
+
+**修改檔案**：
+- `src/lib/shared-proxy-agent.ts`（新增）
+- `src/lib/graceful-shutdown.ts`
+- `src/services/assets/UserConnectorFactory.ts`
+- `src/services/assets/AssetSnapshotScheduler.ts`
+- `tests/unit/lib/shared-proxy-agent.test.ts`（新增）
+- `tests/unit/services/assets/AssetSnapshotScheduler.test.ts`（新增）
+
+---
 
 #### 帳戶類型偵測快取（2026-01-26）
 

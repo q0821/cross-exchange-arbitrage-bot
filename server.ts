@@ -1,6 +1,7 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import { execFileSync } from 'child_process';
+import v8 from 'v8';
 import next from 'next';
 import { initializeSocketServer } from './src/websocket/SocketServer';
 import { logger } from './src/lib/logger';
@@ -18,6 +19,7 @@ import {
   registerShutdownHandlers,
   type ShutdownServices,
 } from './src/lib/graceful-shutdown';
+import { createStatusDashboard } from './src/cli/status-dashboard';
 
 // 在啟動時執行 Prisma migration
 function runMigrations(): void {
@@ -77,15 +79,20 @@ app.prepare().then(() => {
 
   // 啟動伺服器
   httpServer.listen(port, async () => {
+    const heapStats = v8.getHeapStatistics();
+    const heapLimitMB = Math.round(heapStats.heap_size_limit / 1024 / 1024);
+
     logger.info(
       {
         port,
         hostname,
         env: process.env.NODE_ENV,
+        heapLimitMB,
       },
       'Server started successfully',
     );
     console.log(`> Ready on http://${hostname}:${port}`);
+    console.log(`> V8 Heap Limit: ${heapLimitMB} MB`);
     console.log(`> Socket.io enabled`);
 
     // 啟動內建的資金費率監控服務
@@ -123,6 +130,24 @@ app.prepare().then(() => {
       }
     } else {
       console.log(`> Asset snapshot scheduler disabled (set ENABLE_ASSET_SNAPSHOT=true to enable)`);
+    }
+
+    // 啟動 CLI 狀態儀表板 (Feature 071)
+    if (process.env.ENABLE_CLI_DASHBOARD !== 'false') {
+      try {
+        const dashboard = createStatusDashboard();
+        await dashboard.start();
+        console.log(`> CLI status dashboard enabled`);
+
+        // 將 dashboard 加入 shutdown 處理
+        process.on('SIGINT', () => dashboard.stop());
+        process.on('SIGTERM', () => dashboard.stop());
+      } catch (error) {
+        logger.error({ error }, 'Failed to start CLI status dashboard');
+        console.error('> Warning: CLI status dashboard failed to start');
+      }
+    } else {
+      console.log(`> CLI status dashboard disabled (set ENABLE_CLI_DASHBOARD=true to enable)`);
     }
   });
 

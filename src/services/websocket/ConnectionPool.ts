@@ -20,6 +20,7 @@ import type { BaseExchangeWs, WebSocketClientStats } from './BaseExchangeWs';
 import type { DataStructureStats, Monitorable } from '@/types/memory-stats';
 import { DataStructureRegistry } from '@/lib/data-structure-registry';
 import { getEventEmitterStats } from '@/lib/event-emitter-stats';
+import { ConnectionPoolManager } from './ConnectionPoolManager';
 
 // =============================================================================
 // 1. 類型定義
@@ -118,6 +119,9 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter imple
     this.registryKey = `ConnectionPool:${this.config.exchange}`;
     DataStructureRegistry.register(this.registryKey, this);
 
+    // Feature 066: 註冊到 ConnectionPoolManager（用於記憶體監控彙總）
+    ConnectionPoolManager.registerPool(this.config.exchange, this as ConnectionPool<BaseExchangeWs>);
+
     logger.debug(
       {
         exchange: this.config.exchange,
@@ -133,56 +137,74 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter imple
 
   /**
    * 建立新連線
+   *
+   * 注意：連線失敗時會自動清理監聽器，避免記憶體洩漏
    */
   private async createConnection(): Promise<number> {
     const index = this.nextConnectionIndex++;
     const client = this.config.createClient();
+    const exchange = this.config.exchange;
 
-    // 綁定事件
-    client.on('fundingRate', (data: FundingRateReceived) => {
-      this.emit('fundingRate', data);
-    });
+    // 定義具名事件處理器（便於移除）
+    const handlers = {
+      fundingRate: (data: FundingRateReceived) => this.emit('fundingRate', data),
+      fundingRateBatch: (data: FundingRateReceived[]) => this.emit('fundingRateBatch', data),
+      connected: () => {
+        logger.info({ exchange, connectionIndex: index }, 'Connection established');
+        this.emit('connected', index);
+      },
+      disconnected: () => {
+        logger.info({ exchange, connectionIndex: index }, 'Connection disconnected');
+        this.emit('disconnected', index);
+      },
+      error: (error: Error) => {
+        logger.error({ exchange, connectionIndex: index, error: error.message }, 'Connection error');
+        this.emit('error', error, index);
+      },
+    };
 
-    client.on('fundingRateBatch', (data: FundingRateReceived[]) => {
-      this.emit('fundingRateBatch', data);
-    });
+    // 綁定監聽器
+    client.on('fundingRate', handlers.fundingRate);
+    client.on('fundingRateBatch', handlers.fundingRateBatch);
+    client.on('connected', handlers.connected);
+    client.on('disconnected', handlers.disconnected);
+    client.on('error', handlers.error);
 
-    client.on('connected', () => {
+    try {
+      // 連接
+      await client.connect();
+      this.connections.set(index, client);
+
       logger.info(
-        { exchange: this.config.exchange, connectionIndex: index },
-        'Connection established'
+        { exchange, connectionIndex: index, totalConnections: this.connections.size },
+        'New connection created'
       );
-      this.emit('connected', index);
-    });
 
-    client.on('disconnected', () => {
-      logger.info(
-        { exchange: this.config.exchange, connectionIndex: index },
-        'Connection disconnected'
-      );
-      this.emit('disconnected', index);
-    });
+      this.emit('connectionCountChanged', this.connections.size);
 
-    client.on('error', (error: Error) => {
+      return index;
+    } catch (error) {
+      // 連線失敗：清理所有監聽器，避免記憶體洩漏
+      client.off('fundingRate', handlers.fundingRate);
+      client.off('fundingRateBatch', handlers.fundingRateBatch);
+      client.off('connected', handlers.connected);
+      client.off('disconnected', handlers.disconnected);
+      client.off('error', handlers.error);
+
+      // 銷毀 client
+      try {
+        client.destroy();
+      } catch {
+        // 忽略銷毀時的錯誤
+      }
+
       logger.error(
-        { exchange: this.config.exchange, connectionIndex: index, error: error.message },
-        'Connection error'
+        { exchange, connectionIndex: index, error: error instanceof Error ? error.message : String(error) },
+        'Failed to create connection, cleaned up listeners'
       );
-      this.emit('error', error, index);
-    });
 
-    // 連接
-    await client.connect();
-    this.connections.set(index, client);
-
-    logger.info(
-      { exchange: this.config.exchange, connectionIndex: index, totalConnections: this.connections.size },
-      'New connection created'
-    );
-
-    this.emit('connectionCountChanged', this.connections.size);
-
-    return index;
+      throw error;
+    }
   }
 
   /**
@@ -547,6 +569,8 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter imple
 
   /**
    * 斷開所有連線
+   *
+   * 注意：會移除所有監聽器並清空 connections Map，避免記憶體洩漏
    */
   async disconnect(): Promise<void> {
     logger.info(
@@ -556,11 +580,24 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter imple
 
     const promises: Promise<void>[] = [];
 
-    for (const client of this.connections.values()) {
-      promises.push(client.disconnect());
+    for (const [index, client] of this.connections) {
+      promises.push(
+        (async () => {
+          try {
+            client.removeAllListeners(); // 移除監聽器，避免記憶體洩漏
+            await client.disconnect();
+          } catch (error) {
+            logger.warn(
+              { connectionIndex: index, error: error instanceof Error ? error.message : String(error) },
+              'Error disconnecting (ignored)'
+            );
+          }
+        })()
+      );
     }
 
     await Promise.all(promises);
+    this.connections.clear(); // 清空 Map
   }
 
   /**
@@ -571,6 +608,9 @@ export class ConnectionPool<T extends BaseExchangeWs> extends EventEmitter imple
 
     // Feature 066: 從 DataStructureRegistry 取消註冊
     DataStructureRegistry.unregister(this.registryKey);
+
+    // Feature 066: 從 ConnectionPoolManager 取消註冊
+    ConnectionPoolManager.unregisterPool(this.config.exchange);
 
     for (const client of this.connections.values()) {
       client.destroy();
