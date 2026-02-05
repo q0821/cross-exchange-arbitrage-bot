@@ -206,6 +206,18 @@ export class FundingFeeQueryService {
         );
       }
 
+      // Gate.io 需要特殊處理：API 返回帳戶級別所有 symbol 的記錄，
+      // CCXT 的 symbol 過濾會導致查詢其他 symbol 時返回空結果
+      if (exchange === 'gateio') {
+        return await this.queryGateioFundingFees(
+          instance,
+          symbol,
+          startTime,
+          endTime,
+          result,
+        );
+      }
+
       // OKX 需要特殊處理：instType 參數
       const params: Record<string, unknown> = { until: endTime.getTime() };
       if (exchange === 'okx') {
@@ -433,6 +445,108 @@ export class FundingFeeQueryService {
       logger.warn(
         { error: errorMessage, symbol },
         '[BingX] Failed to fetch funding history',
+      );
+      result.error = errorMessage;
+      return result;
+    }
+  }
+
+  /**
+   * Gate.io 資金費率歷史查詢
+   *
+   * Gate.io API 特性：
+   * - privateFuturesGetSettleAccountBook 返回帳戶級別的所有 symbol 結算記錄
+   * - CCXT fetchFundingHistory 會用 symbol 過濾結果，導致查詢其他 symbol 時返回空
+   * - 因此需要不帶 symbol 查詢，然後手動過濾目標 symbol
+   */
+  private async queryGateioFundingFees(
+    ccxtExchange: ccxt.Exchange,
+    symbol: string,
+    startTime: Date,
+    endTime: Date,
+    result: FundingFeeQueryResult,
+  ): Promise<FundingFeeQueryResult> {
+    try {
+      // 轉換 symbol 格式：BTCUSDT -> BTC_USDT（Gate.io API 格式）
+      const gateioSymbol = symbol.replace(/([A-Z0-9]+)(USDT|USDC|USD)$/, '$1_$2');
+
+      logger.info(
+        {
+          symbol,
+          gateioSymbol,
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+        },
+        '[Gate.io] Querying funding fee history via native API',
+      );
+
+      // 直接調用 Gate.io 底層 API，不帶 symbol 過濾
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rawResponse = await (ccxtExchange as any).privateFuturesGetSettleAccountBook({
+        settle: 'usdt',
+        type: 'fund',
+        from: Math.floor(startTime.getTime() / 1000),
+        to: Math.floor(endTime.getTime() / 1000),
+        limit: 1000,
+      });
+
+      logger.debug(
+        { totalRecords: rawResponse?.length || 0 },
+        '[Gate.io] Raw API response received',
+      );
+
+      // 解析並過濾目標 symbol 的記錄
+      const entries: FundingFeeEntry[] = [];
+      let totalAmount = new Decimal(0);
+      const startMs = startTime.getTime();
+      const endMs = endTime.getTime();
+
+      for (const entry of rawResponse || []) {
+        // 過濾：只保留匹配的 symbol（text 欄位格式為 BTC_USDT）
+        const entrySymbol = entry.text || entry.contract || '';
+        if (entrySymbol !== gateioSymbol) {
+          continue;
+        }
+
+        // 過濾：時間範圍
+        const timestamp = parseInt(entry.time, 10) * 1000;
+        if (timestamp < startMs || timestamp > endMs) {
+          continue;
+        }
+
+        const amount = new Decimal(entry.change || 0);
+        entries.push({
+          timestamp,
+          datetime: new Date(timestamp).toISOString(),
+          amount,
+          symbol: entrySymbol,
+          id: entry.id || String(timestamp),
+        });
+        totalAmount = totalAmount.plus(amount);
+      }
+
+      result.entries = entries;
+      result.totalAmount = totalAmount;
+      result.success = true;
+
+      logger.info(
+        {
+          exchange: 'gateio',
+          symbol,
+          gateioSymbol,
+          totalRecords: rawResponse?.length || 0,
+          matchedRecords: entries.length,
+          totalAmount: totalAmount.toFixed(8),
+        },
+        '[Gate.io] Funding fee query completed',
+      );
+
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.warn(
+        { error: errorMessage, symbol },
+        '[Gate.io] Failed to fetch funding history',
       );
       result.error = errorMessage;
       return result;
