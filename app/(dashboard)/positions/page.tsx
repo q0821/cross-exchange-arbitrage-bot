@@ -21,8 +21,10 @@ import { PositionGroupCard } from './components/PositionGroupCard';
 import { ClosePositionDialog } from './components/ClosePositionDialog';
 import { CloseProgressOverlay } from './components/CloseProgressOverlay';
 import { BatchCloseDialog } from './components/BatchCloseDialog';
+import { BatchMarkClosedDialog } from './components/BatchMarkClosedDialog';
 import { useClosePosition } from './hooks/useClosePosition';
 import { useBatchClose } from './hooks/useBatchClose';
+import { useBatchMarkClosed } from './hooks/useBatchMarkClosed';
 import { usePositionRates } from './hooks/usePositionRates';
 import { useGroupedPositionsQuery, type Position } from '@/hooks/queries/usePositionsQuery';
 import { queryKeys } from '@/lib/query-keys';
@@ -63,6 +65,9 @@ export default function PositionsPage() {
 
   // Feature 069: 批量平倉功能
   const batchClose = useBatchClose();
+
+  // 批量標記已平倉功能
+  const batchMarkClosed = useBatchMarkClosed();
 
   // Feature: 即時資金費率
   const { isConnected: isRatesConnected, getRateForPosition, currentTime } = usePositionRates();
@@ -133,6 +138,25 @@ export default function PositionsPage() {
    */
   const handleResetBatchClose = () => {
     batchClose.reset();
+  };
+
+  /**
+   * 處理組合批量標記已平倉
+   */
+  const handleBatchMarkClosed = (groupId: string) => {
+    batchMarkClosed.startMarkClosed(groupId);
+  };
+
+  const handleConfirmBatchMarkClosed = async () => {
+    await batchMarkClosed.confirmMarkClosed();
+  };
+
+  const handleCancelBatchMarkClosed = () => {
+    batchMarkClosed.cancelMarkClosed();
+  };
+
+  const handleResetBatchMarkClosed = () => {
+    batchMarkClosed.reset();
   };
 
   /**
@@ -404,6 +428,8 @@ export default function PositionsPage() {
                   group={group}
                   onBatchClose={handleBatchClose}
                   isBatchClosing={batchClose.closingGroupId === group.groupId && batchClose.isClosing}
+                  onMarkAsClosed={handleBatchMarkClosed}
+                  isMarkingAsClosed={batchMarkClosed.markingGroupId === group.groupId && batchMarkClosed.isProcessing}
                   rateInfo={getRateForPosition(group.symbol, group.longExchange, group.shortExchange)}
                   isRatesConnected={isRatesConnected}
                   currentTime={currentTime}
@@ -545,6 +571,28 @@ export default function PositionsPage() {
             onConfirm={handleConfirmBatchClose}
             onCancel={handleCancelBatchClose}
             onReset={handleResetBatchClose}
+          />
+        );
+      })()}
+
+      {/* Batch Mark Closed Dialog */}
+      {(() => {
+        const markingGroup = groups.find((g) => g.groupId === batchMarkClosed.markingGroupId);
+        if (!batchMarkClosed.markingGroupId || batchMarkClosed.isIdle || !markingGroup) {
+          return null;
+        }
+        return (
+          <BatchMarkClosedDialog
+            group={markingGroup}
+            isConfirming={batchMarkClosed.isConfirming}
+            isProcessing={batchMarkClosed.isProcessing}
+            isSuccess={batchMarkClosed.isSuccess}
+            isError={batchMarkClosed.isError}
+            totalUpdated={batchMarkClosed.result?.totalUpdated ?? null}
+            error={batchMarkClosed.error}
+            onConfirm={handleConfirmBatchMarkClosed}
+            onCancel={handleCancelBatchMarkClosed}
+            onReset={handleResetBatchMarkClosed}
           />
         );
       })()}

@@ -19,6 +19,7 @@ import {
   Shield,
   Target,
   XCircle,
+  CheckCircle,
   Eye,
   Loader2,
   TrendingUp,
@@ -36,6 +37,8 @@ interface PositionGroupCardProps {
   group: PositionGroup;
   onBatchClose?: (groupId: string) => void;
   isBatchClosing?: boolean;
+  onMarkAsClosed?: (groupId: string) => void;
+  isMarkingAsClosed?: boolean;
   onExpandPosition?: (positionId: string) => void;
   /** 即時費率資訊（可選） */
   rateInfo?: PositionRateInfo | null;
@@ -113,6 +116,8 @@ export function PositionGroupCard({
   group,
   onBatchClose,
   isBatchClosing = false,
+  onMarkAsClosed,
+  isMarkingAsClosed = false,
   onExpandPosition,
   rateInfo,
   isRatesConnected = false,
@@ -146,6 +151,12 @@ export function PositionGroupCard({
       onBatchClose(group.groupId);
     }
   }, [onBatchClose, group.groupId]);
+
+  const handleMarkAsClosed = useCallback(() => {
+    if (onMarkAsClosed) {
+      onMarkAsClosed(group.groupId);
+    }
+  }, [onMarkAsClosed, group.groupId]);
 
   const { aggregate, positions } = group;
   const firstOpenedAt = aggregate.firstOpenedAt
@@ -408,25 +419,47 @@ export function PositionGroupCard({
           )}
         </button>
 
-        {onBatchClose && (
-          <button
-            onClick={handleBatchClose}
-            disabled={isBatchClosing}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-loss hover:bg-loss/90 disabled:bg-loss/50 rounded-md transition-colors"
-          >
-            {isBatchClosing ? (
-              <>
-                <span className="animate-spin">⏳</span>
-                平倉中...
-              </>
-            ) : (
-              <>
-                <XCircle className="w-4 h-4" />
-                全部平倉
-              </>
-            )}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onMarkAsClosed && (
+            <button
+              onClick={handleMarkAsClosed}
+              disabled={isBatchClosing || isMarkingAsClosed}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-muted-foreground bg-muted hover:bg-muted/80 disabled:opacity-50 rounded-md transition-colors border border-border"
+            >
+              {isMarkingAsClosed ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  處理中...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4" />
+                  標記已平倉
+                </>
+              )}
+            </button>
+          )}
+
+          {onBatchClose && (
+            <button
+              onClick={handleBatchClose}
+              disabled={isBatchClosing || isMarkingAsClosed}
+              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-loss hover:bg-loss/90 disabled:bg-loss/50 rounded-md transition-colors"
+            >
+              {isBatchClosing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  平倉中...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4" />
+                  全部平倉
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Expanded Positions List */}
