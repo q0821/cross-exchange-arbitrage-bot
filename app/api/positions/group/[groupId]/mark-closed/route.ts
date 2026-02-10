@@ -12,7 +12,7 @@ import { authenticate } from '@/src/middleware/authMiddleware';
 import { getCorrelationId } from '@/src/middleware/correlationIdMiddleware';
 import { logger } from '@/src/lib/logger';
 import { PositionGroupService } from '@/src/services/trading/PositionGroupService';
-import { TradingError } from '@/src/lib/errors/trading-errors';
+import { ForbiddenError, BadRequestError } from '@/src/lib/errors';
 
 export async function PATCH(
   request: NextRequest,
@@ -39,12 +39,7 @@ export async function PATCH(
     const isOwner = await groupService.validateGroupOwnership(groupId, user.userId);
 
     if (!isOwner) {
-      throw new TradingError(
-        '無權操作此持倉組',
-        'GROUP_ACCESS_DENIED',
-        false,
-        { groupId, userId: user.userId },
-      );
+      throw new ForbiddenError('無權操作此持倉組');
     }
 
     // 3. 查詢組內符合條件的持倉（OPEN, PARTIAL, FAILED）
@@ -58,12 +53,7 @@ export async function PATCH(
     });
 
     if (eligiblePositions.length === 0) {
-      throw new TradingError(
-        '此組沒有可標記的持倉',
-        'NO_ELIGIBLE_POSITIONS',
-        false,
-        { groupId },
-      );
+      throw new BadRequestError('此組沒有可標記的持倉', { groupId });
     }
 
     // 4. 批量更新
