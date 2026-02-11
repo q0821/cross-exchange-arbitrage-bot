@@ -1,3 +1,10 @@
+import dns from 'dns';
+
+// 強制 DNS 解析優先使用 IPv4
+// OKX 等交易所的 API Key IP 白名單通常只設定 IPv4，
+// 若 Node.js 走 IPv6 連線會觸發 50110 錯誤
+dns.setDefaultResultOrder('ipv4first');
+
 import { createServer } from 'http';
 import { parse } from 'url';
 import { execFileSync } from 'child_process';
