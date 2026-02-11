@@ -1,0 +1,32 @@
+[
+  {
+    "id": "mexc-001",
+    "symbol": "BTC/USDT:USDT",
+    "timestamp": 1704070800000,
+    "datetime": "2024-01-01T01:00:00.000Z",
+    "amount": -0.04500,
+    "code": "USDT",
+    "info": {
+      "symbol": "BTCUSDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "-0.04500000",
+      "asset": "USDT",
+      "time": "1704070800000"
+    }
+  },
+  {
+    "id": "mexc-002",
+    "symbol": "BTC/USDT:USDT",
+    "timestamp": 1704074400000,
+    "datetime": "2024-01-01T02:00:00.000Z",
+    "amount": 0.02100,
+    "code": "USDT",
+    "info": {
+      "symbol": "BTCUSDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "0.02100000",
+      "asset": "USDT",
+      "time": "1704074400000"
+    }
+  }
+]

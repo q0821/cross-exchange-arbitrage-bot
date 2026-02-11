@@ -1,0 +1,53 @@
+{
+  "_comment": "OKX privateGetAccountBills raw response (type=8, funding fee)",
+  "data": [
+    {
+      "billId": "111001",
+      "instId": "BTC-USDT-SWAP",
+      "ccy": "USDT",
+      "balChg": "-0.02917500",
+      "pnl": "-0.02917500",
+      "fee": "0",
+      "sz": "0.01",
+      "ts": "1704070800000",
+      "type": "8",
+      "subType": "173"
+    },
+    {
+      "billId": "111002",
+      "instId": "BTC-USDT-SWAP",
+      "ccy": "USDT",
+      "balChg": "0.01523400",
+      "pnl": "0.01523400",
+      "fee": "0",
+      "sz": "0.01",
+      "ts": "1704074400000",
+      "type": "8",
+      "subType": "174"
+    },
+    {
+      "billId": "111003",
+      "instId": "ETH-USDT-SWAP",
+      "ccy": "USDT",
+      "balChg": "-0.00500000",
+      "pnl": "-0.00500000",
+      "fee": "0",
+      "sz": "0.1",
+      "ts": "1704070800000",
+      "type": "8",
+      "subType": "173"
+    },
+    {
+      "billId": "111004",
+      "instId": "BTC-USDT-SWAP",
+      "ccy": "USDT",
+      "balChg": "-0.14462079",
+      "pnl": "-0.14462079",
+      "fee": "0",
+      "sz": "0.01",
+      "ts": "1704000000000",
+      "type": "8",
+      "subType": "173"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "time": "1704070800",
+    "change": "-0.03250000",
+    "balance": "99.96750000",
+    "text": "BTC_USDT",
+    "type": "fund",
+    "id": "gateio-001"
+  },
+  {
+    "time": "1704074400",
+    "change": "0.01800000",
+    "balance": "99.98550000",
+    "text": "BTC_USDT",
+    "type": "fund",
+    "id": "gateio-002"
+  },
+  {
+    "time": "1704070800",
+    "change": "-0.00150000",
+    "balance": "99.99850000",
+    "text": "ETH_USDT",
+    "type": "fund",
+    "id": "gateio-003"
+  },
+  {
+    "time": "1704000000",
+    "change": "-0.05000000",
+    "balance": "99.95000000",
+    "text": "BTC_USDT",
+    "type": "fund",
+    "id": "gateio-004"
+  }
+]

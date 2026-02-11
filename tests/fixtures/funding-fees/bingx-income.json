@@ -1,0 +1,42 @@
+{
+  "_comment": "BingX swapV2PrivateGetUserIncome raw response (incomeType=FUNDING_FEE)",
+  "code": 0,
+  "data": [
+    {
+      "symbol": "BTC-USDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "-0.04125000",
+      "asset": "USDT",
+      "time": "1704070800000",
+      "tranId": "bingx-001",
+      "info": ""
+    },
+    {
+      "symbol": "BTC-USDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "0.02300000",
+      "asset": "USDT",
+      "time": "1704074400000",
+      "tranId": "bingx-002",
+      "info": ""
+    },
+    {
+      "symbol": "ETH-USDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "-0.00200000",
+      "asset": "USDT",
+      "time": "1704070800000",
+      "tranId": "bingx-003",
+      "info": ""
+    },
+    {
+      "symbol": "BTC-USDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "-0.10000000",
+      "asset": "USDT",
+      "time": "1704000000000",
+      "tranId": "bingx-004",
+      "info": ""
+    }
+  ]
+}

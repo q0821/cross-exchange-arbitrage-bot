@@ -1,0 +1,50 @@
+[
+  {
+    "id": "bin-001",
+    "symbol": "BTC/USDT:USDT",
+    "timestamp": 1704070800000,
+    "datetime": "2024-01-01T01:00:00.000Z",
+    "amount": -0.05125,
+    "code": "USDT",
+    "info": {
+      "symbol": "BTCUSDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "-0.05125000",
+      "asset": "USDT",
+      "time": "1704070800000",
+      "tranId": "4300001"
+    }
+  },
+  {
+    "id": "bin-002",
+    "symbol": "BTC/USDT:USDT",
+    "timestamp": 1704074400000,
+    "datetime": "2024-01-01T02:00:00.000Z",
+    "amount": 0.03250,
+    "code": "USDT",
+    "info": {
+      "symbol": "BTCUSDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "0.03250000",
+      "asset": "USDT",
+      "time": "1704074400000",
+      "tranId": "4300002"
+    }
+  },
+  {
+    "id": "bin-003",
+    "symbol": "BTC/USDT:USDT",
+    "timestamp": 1704000000000,
+    "datetime": "2023-12-31T05:20:00.000Z",
+    "amount": -0.10000,
+    "code": "USDT",
+    "info": {
+      "symbol": "BTCUSDT",
+      "incomeType": "FUNDING_FEE",
+      "income": "-0.10000000",
+      "asset": "USDT",
+      "time": "1704000000000",
+      "tranId": "4300003"
+    }
+  }
+]
