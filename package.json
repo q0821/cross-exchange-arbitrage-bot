@@ -53,7 +53,7 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.23.4 <23",
     "pnpm": ">=8.0.0"
   },
   "dependencies": {
