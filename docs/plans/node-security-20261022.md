@@ -39,3 +39,15 @@
 
 
 第二輪結果：沒有環境檔的隔離追蹤來源副本，在 Node.js 22.23.4 下 Prisma generate、bcrypt 假字串 smoke、tsc --noEmit 與完整 Next.js production build 通過。Prisma 只使用假 DB 位址產生 client；建置只允許固定 Google Fonts 下載，其他對外連線阻擋，未連實際 DB／交易所或執行 migration。先前失敗分別為禁止字型下載及非標準 NODE_ENV；最小 production 環境重驗通過。真實 DB、交易與完整路徑仍未驗。
+
+## 推送後相容性修正規格與計畫
+
+精確 SHA 的 Cloudflare Pages 建置日誌顯示 .tool-versions 中 node 名稱無對應 asdf plugin，導致建置初始化失敗。本次問題類型是 mise／asdf 共用設定名稱不相容，七個本輪新增檔案均需修正。
+
+目標與範圍：只將 .tool-versions 的 node 22.23.4 改為 nodejs 22.23.4，保留既有 Node.js 版本與功能。mise 官方 FAQ 確認 nodejs 是支援別名，且 .tool-versions 應使用 asdf 名稱。否決移除版本固定，因會失去安全修補版約束。
+
+計畫：先回填本規格，再修改一行設定；驗證 mise 實際解析為 22.23.4、diff 僅該設定與本文件，逐一提交並推送已核定的同名功能分支，依新 SHA 重查 Cloudflare 結果。原其他未提交檔案保留。Moneygame 日誌 API 回 403，其失敗根因尚未確認，不以淺草籤日誌代替它的證據。
+
+參考：https://mise.jdx.dev/faq.html
+
+【本機已驗證】mise current node 回 22.23.4，diff --check 通過。Cloudflare 結果依新 SHA 另存任務結果，不以本機解析代替遠端建置。
