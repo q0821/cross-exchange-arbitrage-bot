@@ -51,3 +51,11 @@
 參考：https://mise.jdx.dev/faq.html
 
 【本機已驗證】mise current node 回 22.23.4，diff --check 通過。Cloudflare 結果依新 SHA 另存任務結果，不以本機解析代替遠端建置。
+
+## 合併後 GitHub Actions 相容性修正
+
+問題：修補分支合併至 `main` 後，精確 SHA `df4088f78310756a1f6bdc6407b1da88e8f35a97` 的 GitHub Actions 在 `pnpm/action-setup@v4` 階段失敗。四份 workflow 共八處明確指定 pnpm 9，但 `package.json` 已固定 `packageManager: pnpm@10.34.5`，action 拒絕同時存在兩個不一致版本，因此測試尚未開始。
+
+目標與範圍：刪除八處 workflow 的 `version: 9`，讓 `pnpm/action-setup` 使用 `package.json` 的單一版本來源 10.34.5；Node.js 22.23.4、工作步驟、資料庫與交易設定不變。否決把 `packageManager` 降回 pnpm 9，因 lockfile 與本機已使用 pnpm 10，降級會擴大相容性風險。
+
+計畫：先修改本文件，再移除四份 workflow 的八個重複版本參數；以 YAML 差異、`packageManager` 與所有 action setup 節點一致性驗證；只提交本次文件與 workflow，不包含工作目錄原有的後端、測試、除錯腳本與規格變更。推送修補分支後再快轉 `main`，並以新 SHA 查核 GitHub Actions。
