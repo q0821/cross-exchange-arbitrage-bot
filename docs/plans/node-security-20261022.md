@@ -59,3 +59,5 @@
 目標與範圍：刪除八處 workflow 的 `version: 9`，讓 `pnpm/action-setup` 使用 `package.json` 的單一版本來源 10.34.5；Node.js 22.23.4、工作步驟、資料庫與交易設定不變。否決把 `packageManager` 降回 pnpm 9，因 lockfile 與本機已使用 pnpm 10，降級會擴大相容性風險。
 
 計畫：先修改本文件，再移除四份 workflow 的八個重複版本參數；以 YAML 差異、`packageManager` 與所有 action setup 節點一致性驗證；只提交本次文件與 workflow，不包含工作目錄原有的後端、測試、除錯腳本與規格變更。推送修補分支後再快轉 `main`，並以新 SHA 查核 GitHub Actions。
+
+【已驗證】補修提交 `1882eb060855b1820c1eefe534e96cac1f1e9739` 已合併至遠端 `main`。所有工作已通過 pnpm 10.34.5 與 Node.js 22.23.4 的安裝階段；Lint、TypeScript、Prisma migration consistency 通過。單元測試實際執行後為 147 個測試檔通過、1 個失敗，2,656 項通過、3 項失敗，均位於本次開始前已有未提交修改的 `tests/unit/services/FundingFeeQueryService.test.ts`，未納入本次提交。整合測試為 21 個測試檔通過、1 個失敗，153 項通過、5 項 Binance Funding WebSocket 測試失敗；這些測試需要外部即時資料，未將其誤判為 Node.js 或 pnpm 安裝失敗。CI 設定衝突已排除，但完整測試仍非全綠。
